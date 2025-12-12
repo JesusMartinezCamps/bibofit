@@ -66,7 +66,8 @@ const HomeRedirect = () => {
   if (!user) {
     return <Navigate to="/login" replace />;
   }
-  if (user.role === 'admin') return <Navigate to="/admin-panel/advisories" replace />;
+    if (user.role === 'admin') return <Navigate to="/admin-panel/advisories" replace />;
+    if (user.role === 'coach') return <Navigate to="/coach-dashboard" replace />;
   return <Navigate to="/dashboard" replace />;
 };
 
@@ -553,7 +554,12 @@ const AppContent = () => {
         const generateBreadcrumbs = async () => {
             const path = location.pathname;
             
-            if (path.startsWith('/admin-panel/advisories') || path.startsWith('/create-free-recipe') || path.startsWith('/create-snack')) {
+              if (
+                path.startsWith('/coach-dashboard') ||
+                path.startsWith('/admin-panel/advisories') ||
+                path.startsWith('/create-free-recipe') ||
+                path.startsWith('/create-snack'))
+              {
                 setBreadcrumbs([]);
                 return;
             }
@@ -562,11 +568,7 @@ const AppContent = () => {
                 let newBreadcrumbs = [];
                 
                 // Coach Breadcrumbs
-                if (path.startsWith('/coach-dashboard')) {
-                    newBreadcrumbs = [
-                        { label: 'Dashboard', href: '/coach-dashboard' }
-                    ];
-                } else if (path.startsWith('/coach/content')) {
+                if (path.startsWith('/coach/content')) {
                      newBreadcrumbs = [
                         { label: 'Dashboard', href: '/coach-dashboard' },
                         { label: 'Contenidos' }
