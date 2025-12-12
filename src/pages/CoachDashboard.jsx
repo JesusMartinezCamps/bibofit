@@ -18,7 +18,8 @@ import { Button } from '@/components/ui/button'; // Import Button component
 const CoachDashboard = () => {
     const [selectedUser, setSelectedUser] = useState(null);
     const [clientNotes, setClientNotes] = useState([]);
-    const [upcomingEvents, setUpcomingEvents] = useState([]);
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
+        const [reminderRefreshToken, setReminderRefreshToken] = useState(0);
     const navigate = useNavigate(); // Initialize useNavigate
     
     // Modal state for editing reminders
@@ -94,11 +95,14 @@ const CoachDashboard = () => {
         setEditingReminder(reminder);
         setIsReminderFormOpen(true);
     };
-
+    const handleReminderRefresh = async () => {
+        await fetchDashboardData();
+        setReminderRefreshToken((prev) => prev + 1);
+    };
     const handleReminderSave = () => {
         setIsReminderFormOpen(false);
         setEditingReminder(null);
-        fetchDashboardData();
+        handleReminderRefresh();
     };
 
     return (
@@ -279,7 +283,11 @@ const CoachDashboard = () => {
                                 </div>
                                 <div className="p-4 md:p-6 pt-0">
                                     <div className="min-h-[700px]">
-                                        <SharedCalendar userId={selectedUser.user_id} />
+                                       <SharedCalendar
+                                            userId={selectedUser.user_id}
+                                            onRemindersChanged={handleReminderRefresh}
+                                            refreshTrigger={reminderRefreshToken}
+                                        />
                                     </div>
                                 </div>
                             </div>
