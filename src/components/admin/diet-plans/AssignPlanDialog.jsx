@@ -13,6 +13,14 @@ import MealMacroConfiguration from '@/components/plans/constructor/MealMacroConf
 import ConflictResolutionDialog from './ConflictResolutionDialog';
 
 const AssignPlanDialog = ({ open, onOpenChange, template, onSuccess, preselectedClient }) => {
+    const buildBalancedPercentages = (mealsCount) => {
+        if (!mealsCount) return [];
+
+        const base = Math.floor(100 / mealsCount);
+        const remainder = 100 % mealsCount;
+
+        return Array.from({ length: mealsCount }, (_, idx) => base + (idx < remainder ? 1 : 0));
+    };
     const {
         clients,
         selectedClientId,
@@ -85,7 +93,25 @@ const AssignPlanDialog = ({ open, onOpenChange, template, onSuccess, preselected
                 
                 // Sort locally in case DB sort was ambiguous
                 initializedMeals.sort((a, b) => (a.day_meal?.display_order || 0) - (b.day_meal?.display_order || 0));
+                const hasStoredMacros = initializedMeals.reduce((acc, meal) => ({
+                    protein: acc.protein + (meal.protein_pct || 0),
+                    carbs: acc.carbs + (meal.carbs_pct || 0),
+                    fat: acc.fat + (meal.fat_pct || 0)
+                }), { protein: 0, carbs: 0, fat: 0 });
 
+                if (
+                    initializedMeals.length > 0 &&
+                    hasStoredMacros.protein === 0 &&
+                    hasStoredMacros.carbs === 0 &&
+                    hasStoredMacros.fat === 0
+                ) {
+                    const balancedPercentages = buildBalancedPercentages(initializedMeals.length);
+                    initializedMeals.forEach((meal, idx) => {
+                        meal.protein_pct = balancedPercentages[idx];
+                        meal.carbs_pct = balancedPercentages[idx];
+                        meal.fat_pct = balancedPercentages[idx];
+                    });
+                }
                 setUserMeals(initializedMeals);
                 setClientTdee(profileData?.tdee_kcal || 2000);
             } catch (err) {
