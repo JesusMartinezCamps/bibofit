@@ -55,8 +55,7 @@ const Header = ({ onShoppingListClick }) => {
   }
 
   const getCalendarLink = () => {
-    if (isAdmin) return '/admin-panel/advisories';
-    if (isCoach) return '/coach-dashboard';
+    if (isStaff) return '/dashboard';
     return '/plan';
   };
 
