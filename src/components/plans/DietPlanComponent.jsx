@@ -254,6 +254,8 @@ const DietPlanComponent = () => {
       // 2. Fetch closest weights for interpolation logic
       let closestWeightData = weightForDayData;
       let interpolatedWeightVal = null;
+      let previousWeightLog = null;
+      let nextWeightLog = null;
 
       if (!weightForDayData) {
         const [prevRes, nextRes] = await Promise.all([
@@ -275,6 +277,9 @@ const DietPlanComponent = () => {
 
         const prevWeight = prevRes.data;
         const nextWeight = nextRes.data;
+
+        previousWeightLog = prevWeight;
+        nextWeightLog = nextWeight;
 
         if (prevWeight && nextWeight) {
             const prevDate = parseISO(prevWeight.logged_on);
@@ -322,7 +327,9 @@ const DietPlanComponent = () => {
       setData({ 
           profile: profileData, 
           closestWeight: closestWeightData,
-          interpolatedWeight: interpolatedWeightVal,
+        interpolatedWeight: interpolatedWeightVal,
+        previousWeightLog,
+        nextWeightLog,
           calorieOverrides,
           preferences: {
               preferred: preferredRes.data?.map(p => p.food) || [],
@@ -344,7 +351,13 @@ const DietPlanComponent = () => {
         if (isCurrentDayLog) {
             setWeightForDay(newLog);
             // Since we added a log for today, it becomes the closest and exact match
-            setData(prev => ({ ...prev, closestWeight: newLog, interpolatedWeight: null }));
+          setData(prev => ({
+            ...prev,
+            closestWeight: newLog,
+            interpolatedWeight: null,
+            previousWeightLog: null,
+            nextWeightLog: null
+          }));
         } else {
              // Re-fetch to update neighbors if necessary
              fetchData();
@@ -540,10 +553,17 @@ const fetchConsumedMacros = useCallback(async (isInitialLoad = false) => {
     }
 }, [userId, activePlan, logDate, toast, viewMode]);
 
-const handlePlanUpdate = useCallback(() => {
-    if (viewMode === 'list') {
-        fetchConsumedMacros();
-    }
+    const handlePlanUpdate = useCallback((updatePayload) => {
+        if (updatePayload?.macroDelta && viewMode === 'list') {
+            setConsumedMacros(prev => ({
+                calories: Math.max(0, (prev?.calories || 0) + (updatePayload.macroDelta.calories || 0)),
+                proteins: Math.max(0, (prev?.proteins || 0) + (updatePayload.macroDelta.proteins || 0)),
+                carbs: Math.max(0, (prev?.carbs || 0) + (updatePayload.macroDelta.carbs || 0)),
+                fats: Math.max(0, (prev?.fats || 0) + (updatePayload.macroDelta.fats || 0)),
+            }));
+        } else {
+            fetchConsumedMacros();
+        }
     setTimelineRefreshTrigger(prev => prev + 1);
 }, [fetchConsumedMacros, viewMode]);
 
@@ -685,7 +705,18 @@ const combinedPlanRestrictions = useMemo(() => {
 };
 
   const isExactMatch = !!weightForDay;
-  const displayWeight = isExactMatch ? weightForDay : data?.closestWeight;
+  const displayWeight = isExactMatch
+    ? weightForDay
+    : interpolatedWeight.toFixed(1)
+        ? { weight_kg: interpolatedWeight.toFixed(1) }
+        : data?.closestWeight;
+  const previousWeightLog = data?.previousWeightLog;
+  const nextWeightLog = data?.nextWeightLog;
+  const hasInterpolationDetails =
+    !isExactMatch &&
+    interpolatedWeight &&
+    previousWeightLog?.logged_on &&
+    nextWeightLog?.logged_on;
 
   return (
     <div className="overflow-x-clip">
@@ -758,7 +789,7 @@ const combinedPlanRestrictions = useMemo(() => {
                         weightForDay ? "text-purple-300" : "text-purple-400"
                     )}>
                         <Weight className="w-4 h-4"/>
-                        {weightForDay ? "Peso de Hoy" : "Peso más cercano"}
+                        {weightForDay ? "Peso de Hoy" : "Peso medio estimado"}
                     </h4>
                     <p className={cn(
                         "text-2xl font-bold mt-1",
@@ -771,15 +802,25 @@ const combinedPlanRestrictions = useMemo(() => {
                             {displayWeight.satiety_levels.emoji} {displayWeight.satiety_levels.name}
                         </span>
                     )}
-                    {!isExactMatch && closestWeightDate && (
-                        <span className="text-xs text-purple-400/70 mt-1">
-                            {format(closestWeightDate, 'dd-MM-yyyy')} ({relativeWeightLabel})
-                        </span>
-                    )}
-                     {!isExactMatch && interpolatedWeight && (
-                        <div className="text-xs text-purple-200/80 mt-1">
-                            Peso estimado (media aproximada): {interpolatedWeight.toFixed(1)} kg
+                    {!isExactMatch && hasInterpolationDetails ? (
+                      <div className="text-[11px] sm:text-xs text-purple-100/80 mt-2 space-y-1 leading-relaxed">
+                        <div className="text-purple-200/80">
+                          {previousWeightLog?.weight_kg} kg · {format(parseISO(previousWeightLog.logged_on), 'dd-MM-yyyy')} y {nextWeightLog?.weight_kg} kg · {format(parseISO(nextWeightLog.logged_on), 'dd-MM-yyyy')}
                         </div>
+                      </div>
+                    ) : (
+                      <>
+                        {!isExactMatch && closestWeightDate && (
+                          <span className="text-xs text-purple-400/70 mt-1">
+                            {format(closestWeightDate, 'dd-MM-yyyy')} ({relativeWeightLabel})
+                          </span>
+                        )}
+                        {!isExactMatch && interpolatedWeight && (
+                          <div className="text-xs text-purple-200/80 mt-1">
+                            Peso estimado (media aproximada): {interpolatedWeight.toFixed(1)} kg
+                          </div>
+                        )}
+                      </>
                     )}
                 </div>
                 
