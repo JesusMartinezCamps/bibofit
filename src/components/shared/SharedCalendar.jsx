@@ -13,7 +13,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { format, isSameDay, startOfWeek, endOfWeek, eachDayOfInterval, addDays, isWithinInterval, parseISO, add, sub } from 'date-fns';
 import ReminderFormDialog from '@/components/admin/reminders/ReminderFormDialog';
 
-const SharedCalendar = ({ userId: propUserId }) => {
+const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger }) => {
   const { user: authUser } = useAuth();
   const userId = propUserId || authUser?.id;
   const isClientView = !propUserId || propUserId === authUser?.id;
@@ -123,6 +123,14 @@ const SharedCalendar = ({ userId: propUserId }) => {
     }
   }, [userId, firstDayOfMonth, lastDayOfMonth, toast, isManagerView]);
 
+  const handleRemindersUpdate = useCallback(async () => {
+    await fetchEventsAndReminders();
+    if (onRemindersChanged) {
+      onRemindersChanged();
+    }
+  }, [fetchEventsAndReminders, onRemindersChanged, refreshTrigger]);
+
+
   useEffect(() => {
     fetchEventsAndReminders();
   }, [fetchEventsAndReminders, currentDate]);
@@ -160,6 +168,11 @@ const SharedCalendar = ({ userId: propUserId }) => {
     setIsReminderFormOpen(true);
   };
 
+  const today = useMemo(() => {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    return now;
+  }, []);
   // ---------- RENDER ----------
   return (
 <>
@@ -227,7 +240,11 @@ const SharedCalendar = ({ userId: propUserId }) => {
             {/* Reminder Chips */}
             {isManagerView && dayReminders.length > 0 && (
               <div className="flex space-x-1 ml-1">
-                {dayReminders.map(rem => {
+                          {dayReminders.map(rem => {
+                                      const referenceDate = rem.end_date ? parseISO(rem.end_date) : parseISO(rem.start_date);
+                  const normalizedReference = new Date(referenceDate);
+                  normalizedReference.setHours(0, 0, 0, 0);
+                  const isPastReminder = normalizedReference < today;
                   const active = activeReminderTooltipId === rem.id;
                   return (
                     <Tooltip
@@ -242,7 +259,9 @@ const SharedCalendar = ({ userId: propUserId }) => {
                           type="button"
                           className={cn(
                             "inline-flex items-center justify-center rounded-full border",
-                            "border-amber-500/40 bg-amber-500/15 hover:bg-amber-500/25",
+                            isPastReminder
+                              ? "border-slate-500/50 bg-slate-700/40 hover:bg-slate-700/60"
+                              : "border-amber-500/40 bg-amber-500/15 hover:bg-amber-500/25",
                             "p-[2px] sm:p-[3px]"
                           )}
                           initial={{ opacity: 0, scale: 0.8 }}
@@ -259,16 +278,28 @@ const SharedCalendar = ({ userId: propUserId }) => {
                             setIsReminderFormOpen(true);
                           }}
                         >
-                          <Bell className="w-3 h-3 text-amber-300" />
-                        </motion.button>
+                       <Bell className={cn("w-3 h-3", isPastReminder ? "text-slate-300" : "text-amber-300")} />
+                              </motion.button>
                       </TooltipTrigger>
 
                       {/* ---- Tooltip Content with DETAILS ---- */}
-                      <TooltipContent className="bg-slate-800 text-white border-amber-400 max-w-sm p-3 space-y-2">
-                        <p className="font-bold text-amber-300">{rem.title}</p>
-                        <p className="text-sm leading-snug">{rem.content}</p>
+                          <TooltipContent
+                              className={cn(
+                                  "bg-slate-800 text-white max-w-sm p-3 space-y-2",
+                                  isPastReminder ? "border-slate-500" : "border-amber-400"
+                              )}
+                          >
+                              <p className={cn("font-bold", isPastReminder ? "text-slate-200" : "text-amber-300")}>{rem.title}</p>
+                              <p className={cn("text-sm leading-snug", isPastReminder && "text-slate-300")}>{rem.content}</p>
 
-                        <div className="text-xs text-amber-200/90 space-y-1 pt-2 border-t border-amber-500/20">
+                              <div
+                                  className={cn(
+                                      "text-xs space-y-1 pt-2 border-t",
+                                      isPastReminder
+                                          ? "text-slate-300 border-slate-500/30"
+                                          : "text-amber-200/90 border-amber-500/20"
+                                  )}
+                              >
                           <p className="uppercase tracking-wider opacity-80">Detalles:</p>
                           <p>Fecha inicio: {format(parseISO(rem.start_date), 'dd/MM/yyyy')}</p>
                           {rem.end_date && <p>Fecha fin: {format(parseISO(rem.end_date), 'dd/MM/yyyy')}</p>}
@@ -418,7 +449,7 @@ const SharedCalendar = ({ userId: propUserId }) => {
   <ReminderFormDialog
     isOpen={isReminderFormOpen}
     onOpenChange={setIsReminderFormOpen}
-    onSave={fetchEventsAndReminders}
+    onSave={handleRemindersUpdate}
     reminder={selectedReminder}
     userId={userId}
     newReminderPrefill={newReminderPrefill}
