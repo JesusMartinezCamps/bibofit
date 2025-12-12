@@ -60,16 +60,15 @@ import CoachContentPage from '@/pages/coach/CoachContentPage';
 const HomeRedirect = () => {
   const { user, loading } = useAuth();
   
-  // Optional: handle loading explicitly if not handled by parent
   if (loading) return null;
+  if (!user) return <Navigate to="/login" replace />;
 
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-    if (user.role === 'admin') return <Navigate to="/admin-panel/advisories" replace />;
-    if (user.role === 'coach') return <Navigate to="/coach-dashboard" replace />;
+  if (user.role === 'admin') return <Navigate to="/admin-panel/advisories" replace />;
+  if (user.role === 'coach') return <Navigate to="/coach-dashboard" replace />;
+
   return <Navigate to="/dashboard" replace />;
 };
+
 
 const RoleProtected = ({ allowedRoles, children }) => {
     const { user, loading } = useAuth();
@@ -99,14 +98,7 @@ const AppRoutes = () => {
           <UpdatePasswordPage />
         } 
       />
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        } 
-      />
+
       
       {/* Coach Routes */}
       <Route 
