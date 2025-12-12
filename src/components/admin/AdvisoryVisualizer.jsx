@@ -76,7 +76,7 @@ const AdvisoryVisualizer = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="flex flex-col md:flex-row gap-6"
+      className="flex flex-col md:flex-row gap-6 mt-6"
     >
       <div className="w-full md:w-80 flex-shrink-0">
         <UserList selectedUser={selectedUser} onSelectUser={setSelectedUser} />
