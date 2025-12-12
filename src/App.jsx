@@ -66,27 +66,8 @@ const HomeRedirect = () => {
   if (!user) {
     return <Navigate to="/login" replace />;
   }
-    
   if (user.role === 'admin') return <Navigate to="/admin-panel/advisories" replace />;
-  if (user.role === 'coach') return <Navigate to="/coach-dashboard" replace />;
-  
   return <Navigate to="/dashboard" replace />;
-};
-
-// Guard component to redirect coaches/admins away from client dashboard if they land there
-const DashboardRedirect = ({ children }) => {
-  const { user } = useAuth();
-  
-  if (!user) return null; // ProtectedRoute handles the redirect to login
-
-  if (user.role === 'coach') {
-    return <Navigate to="/coach-dashboard" replace />;
-  }
-  if (user.role === 'admin') {
-    return <Navigate to="/admin-panel/advisories" replace />;
-  }
-  
-  return children;
 };
 
 const RoleProtected = ({ allowedRoles, children }) => {
@@ -117,13 +98,11 @@ const AppRoutes = () => {
           <UpdatePasswordPage />
         } 
       />
-      <Route 
-        path="/dashboard" 
+      <Route
+        path="/dashboard"
         element={
           <ProtectedRoute>
-            <DashboardRedirect>
-              <Dashboard />
-            </DashboardRedirect>
+            <Dashboard />
           </ProtectedRoute>
         } 
       />
