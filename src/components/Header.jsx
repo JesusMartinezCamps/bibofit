@@ -54,6 +54,12 @@ const Header = ({ onShoppingListClick }) => {
        return '/';
   }
 
+  const getCalendarLink = () => {
+    if (isAdmin) return '/admin-panel/advisories';
+    if (isCoach) return '/coach-dashboard';
+    return '/plan';
+  };
+
   return (
     <motion.header
       initial={{ opacity: 0, y: -20 }}
@@ -112,19 +118,41 @@ const Header = ({ onShoppingListClick }) => {
               </div>
 
               <div className="flex items-center space-x-2">
-                {/* Unified Plan button for all users */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button asChild variant="ghost" size="icon" className={cn("text-gray-400 hover:text-white hover:bg-gray-700", location.pathname.includes('/plan') && 'bg-gray-700 text-white')}>
-                      <Link to="/plan">
-                        <BookOpen className="w-5 h-5" />
-                      </Link>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Mi Plan</p>
-                  </TooltipContent>
-                </Tooltip>
+{isStaff ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        asChild
+                        variant="ghost"
+                        size="icon"
+                        className={cn(
+                          'text-gray-400 hover:text-white hover:bg-gray-700',
+                          location.pathname.startsWith(getCalendarLink()) && 'text-gray-400'
+                        )}
+                      >
+                        <Link to={getCalendarLink()}>
+                          <Calendar className="w-5 h-5" />
+                        </Link>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Calendario</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button asChild variant="ghost" size="icon" className={cn("text-gray-400 hover:text-white hover:bg-gray-700", location.pathname.includes('/plan') && 'bg-gray-700 text-white')}>
+                        <Link to="/plan">
+                          <BookOpen className="w-5 h-5" />
+                        </Link>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Mi Plan</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
 
                 <Tooltip>
                   <TooltipTrigger asChild>
