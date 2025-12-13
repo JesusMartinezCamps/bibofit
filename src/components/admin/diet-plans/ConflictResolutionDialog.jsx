@@ -79,7 +79,9 @@ const ConflictResolutionDialog = ({ open, onOpenChange, conflicts, onRecipeUpdat
     };
 
     const handleRecipeSaveSuccess = (updatedRecipe) => {
-        onRecipeUpdate(updatedRecipe);
+        if (onRecipeUpdate) {
+            onRecipeUpdate(updatedRecipe);
+        }
         setResolvedRecipes(prev => new Set(prev).add(updatedRecipe.id));
         setIsRecipeModalOpen(false);
         setEditingRecipe(null);
