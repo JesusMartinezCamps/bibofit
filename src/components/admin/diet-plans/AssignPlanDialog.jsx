@@ -272,7 +272,7 @@ const AssignPlanDialog = ({ open, onOpenChange, template, onSuccess, preselected
                 open={isConflictModalOpen}
                 onOpenChange={setIsConflictModalOpen}
                 conflicts={conflicts}
-                onResolve={updateRecipeInState}
+                onRecipeUpdate={updateRecipeInState}
                 onResolveComplete={() => setStep(2)}
                 clientRestrictions={clientRestrictions}
                 planRestrictions={planRestrictionsForEditor}
