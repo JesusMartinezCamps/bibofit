@@ -25,6 +25,7 @@ const AssignPlanDialog = ({ open, onOpenChange, template, onSuccess, preselected
         clients,
         selectedClientId,
         setSelectedClientId,
+        clientRestrictions,
         newPlanName,
         setNewPlanName,
         dateRange,
@@ -129,6 +130,11 @@ const AssignPlanDialog = ({ open, onOpenChange, template, onSuccess, preselected
     const handleNext = () => {
         if (step === 1) {
             if (!selectedClientId || !newPlanName || !startDate || !endDate) return;
+             if (Object.keys(conflicts).length > 0) {
+                setIsConflictModalOpen(true);
+                return;
+            }
+
             setStep(2);
         } else {
             // Pre-calculate the target grams and calories before sending to handleAssign
@@ -156,6 +162,7 @@ const AssignPlanDialog = ({ open, onOpenChange, template, onSuccess, preselected
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="w-full sm:w-[90vw] sm:max-w-[90vw] max-w-none h-[80vh] h-auto bg-[#1a1e23] border-gray-700 text-white flex flex-col overflow-y-auto">
+
                 <DialogHeader>
                     <DialogTitle>Asignar Plantilla "{template?.name}"</DialogTitle>
                     <DialogDescription>
@@ -248,8 +255,11 @@ const AssignPlanDialog = ({ open, onOpenChange, template, onSuccess, preselected
                     )}
                     
                     <Button 
-                        onClick={handleNext} 
-                        disabled={isAssigning || (step === 1 && (!selectedClientId || !newPlanName || !startDate || !endDate))}
+                        onClick={handleNext}
+                        disabled={
+                            isAssigning ||
+                            (step === 1 && (!selectedClientId || !newPlanName || !startDate || !endDate))
+                        }
                         className="bg-green-600 hover:bg-green-500 text-white"
                     >
                         {isAssigning && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -263,6 +273,8 @@ const AssignPlanDialog = ({ open, onOpenChange, template, onSuccess, preselected
                 onOpenChange={setIsConflictModalOpen}
                 conflicts={conflicts}
                 onResolve={updateRecipeInState}
+                onResolveComplete={() => setStep(2)}
+                clientRestrictions={clientRestrictions}
                 planRestrictions={planRestrictionsForEditor}
             />
         </Dialog>
