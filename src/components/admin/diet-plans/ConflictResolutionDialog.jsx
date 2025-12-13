@@ -65,6 +65,14 @@ const ConflictResolutionDialog = ({ open, onOpenChange, conflicts, onRecipeUpdat
 
     const remainingRecipesCount = recipeConflicts.filter(item => !resolvedRecipes.has(item.recipe.id)).length;
 
+  const resolvedRestrictions = useMemo(() => ({
+        sensitivities: clientRestrictions?.sensitivities || [],
+        medical_conditions: clientRestrictions?.conditions || [],
+        individual_food_restrictions: planRestrictions?.individual_food_restrictions || [],
+        preferred_foods: planRestrictions?.preferred_foods || [],
+        non_preferred_foods: planRestrictions?.non_preferred_foods || []
+    }), [clientRestrictions, planRestrictions]);
+
     const handleEditRecipe = (recipe) => {
         setEditingRecipe(recipe);
         setIsRecipeModalOpen(true);
@@ -76,11 +84,19 @@ const ConflictResolutionDialog = ({ open, onOpenChange, conflicts, onRecipeUpdat
         setIsRecipeModalOpen(false);
         setEditingRecipe(null);
     };
+    const handleConfirm = () => {
+        if (remainingRecipesCount > 0) return;
 
+        onOpenChange(false);
+
+        if (onResolveComplete) {
+            onResolveComplete();
+        }
+    };
     return (
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent className="bg-[#1a1e23] border-gray-700 text-white max-w-3xl max-h-[80vh] flex flex-col">
+                <DialogContent className="bg-[#1a1e23] border-gray-700 text-white max-w-3xl max-h-[80vh] flex flex-col overflow-hidden">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2 text-orange-400">
                             <AlertTriangle className="w-6 h-6" />
@@ -92,7 +108,7 @@ const ConflictResolutionDialog = ({ open, onOpenChange, conflicts, onRecipeUpdat
                         </DialogDescription>
                     </DialogHeader>
 
-                    <ScrollArea className="flex-1 pr-4 mt-4">
+                    <div className="flex-1 overflow-y-auto mt-4 pr-2">
                         <div className="space-y-4">
                             {recipeConflicts.map(({ recipe, conflicts }) => {
                                 const isResolved = resolvedRecipes.has(recipe.id);
@@ -151,7 +167,7 @@ const ConflictResolutionDialog = ({ open, onOpenChange, conflicts, onRecipeUpdat
                                 );
                             })}
                         </div>
-                    </ScrollArea>
+                    </div>
 
                     <DialogFooter className="mt-6 pt-4 border-t border-gray-700">
                         <div className="flex items-center justify-between w-full">
@@ -165,7 +181,7 @@ const ConflictResolutionDialog = ({ open, onOpenChange, conflicts, onRecipeUpdat
                                     Cerrar
                                 </Button>
                                 <Button 
-                                    onClick={() => onOpenChange(false)} 
+                                    onClick={handleConfirm}
                                     disabled={remainingRecipesCount > 0}
                                     className="bg-green-600 hover:bg-green-500 text-white disabled:bg-gray-700 disabled:text-gray-400"
                                 >
@@ -183,14 +199,8 @@ const ConflictResolutionDialog = ({ open, onOpenChange, conflicts, onRecipeUpdat
                 onOpenChange={setIsRecipeModalOpen}
                 recipeToEdit={editingRecipe}
                 onSaveSuccess={handleRecipeSaveSuccess}
-                forcedRestrictions={{
-                    sensitivities: clientRestrictions?.sensitivities || [],
-                    medical_conditions: clientRestrictions?.conditions || [],
-                    individual_food_restrictions: [],
-                    preferred_foods: [],
-                    non_preferred_foods: []
-                }}
-                isTemporaryEdit={true} 
+                forcedRestrictions={resolvedRestrictions}
+                isTemporaryEdit={true}
                 isTemplatePlan={true}
             />
         </>
