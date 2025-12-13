@@ -13,18 +13,19 @@ import _ from 'lodash';
 import { updateDietPlanRecipeCustomization } from '@/components/shared/RecipeEditorModal/recipeService';
 
 const AdminRecipeModal = ({ 
-    open, 
-    onOpenChange, 
-    recipeToEdit, 
-    onSaveSuccess, 
-    userId, 
-    planRestrictions: initialPlanRestrictions, 
-    mealTargetMacros, 
-    isTemplatePlan = false, 
+    open,
+    onOpenChange,
+    recipeToEdit,
+    onSaveSuccess,
+    userId,
+    planRestrictions: initialPlanRestrictions,
+    mealTargetMacros,
+    isTemplatePlan = false,
     isAdding = false,
     forcedRestrictions = null,
-    isAssignedPlan = false // Prop to differentiate assigned plan edits
-}) => {
+    isAssignedPlan = false, // Prop to differentiate assigned plan edits
+    isTemporaryEdit = false }) =>
+{
     const { toast } = useToast();
     const { user } = useAuth();
     const [allVitamins, setAllVitamins] = useState([]);
@@ -448,8 +449,12 @@ const AdminRecipeModal = ({
 
     const loading = loadingRecipe || loadingInitialData;
     const isSaving = hookIsSaving || localIsSaving;
-    const showVariantButton = (recipeToEdit && (isTemplatePlan || userId) && (isAdding || recipeToEdit.id)); // Show if we are adding or editing
-
+    const showVariantButton = (
+        recipeToEdit &&
+        (isTemplatePlan || userId) &&
+        (isAdding || recipeToEdit.id) &&
+        !isTemporaryEdit
+    ); // Show if we are adding or editing
     const criticalConflicts = conflicts?.filter(c => ['condition_avoid', 'sensitivity', 'non-preferred', 'individual_restriction'].includes(c.type)) || [];
     const hasCriticalConflicts = criticalConflicts.length > 0;
     
@@ -483,7 +488,29 @@ const AdminRecipeModal = ({
             </Button>
         ) : null
     );
+    const handleTemporarySave = () => {
+        const foodMap = new Map((allFoods || []).map(food => [String(food.id), food]));
 
+        const mappedIngredients = ingredients.map(ing => ({
+            ...ing,
+            food: ing.food || foodMap.get(String(ing.food_id)) || null
+        }));
+
+        const updatedRecipe = {
+            ...recipeToEdit,
+            custom_name: recipeData?.name ?? recipeToEdit?.custom_name ?? recipeToEdit?.recipe?.name,
+            custom_instructions: recipeData?.instructions ?? recipeToEdit?.custom_instructions ?? recipeToEdit?.recipe?.instructions,
+            custom_prep_time_min: recipeData?.prep_time_min ?? recipeToEdit?.custom_prep_time_min ?? recipeToEdit?.recipe?.prep_time_min,
+            custom_difficulty: recipeData?.difficulty ?? recipeToEdit?.custom_difficulty ?? recipeToEdit?.recipe?.difficulty,
+            ingredients: mappedIngredients,
+            custom_ingredients: mappedIngredients
+        };
+
+        if (onSaveSuccess) {
+            onSaveSuccess(updatedRecipe);
+        }
+        handleClose();
+    };
     return (
         <Dialog open={open} onOpenChange={handleClose}>
             <DialogContent className="max-w-4xl h-[90vh] bg-slate-950 border-slate-800 text-white flex flex-col p-0 overflow-hidden">
@@ -523,8 +550,17 @@ const AdminRecipeModal = ({
                                         Cancelar
                                     </Button>
                                     
-                                    {showVariantButton ? (
-                                        <TooltipProvider>
+                                        {isTemporaryEdit ? (
+                                            <Button
+                                                onClick={handleTemporarySave}
+                                                disabled={isSaving}
+                                                className="bg-green-600 hover:bg-green-500"
+                                            >
+                                                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                                                Guardar cambios temporales
+                                            </Button>
+                                        ) : showVariantButton ? (
+                                            <TooltipProvider>
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
                                                     <span tabIndex={0}> 
