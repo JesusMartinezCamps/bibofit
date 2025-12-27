@@ -11,7 +11,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Trash2, Copy, UserCheck, ShieldAlert, HeartPulse, Tag, Edit2, Globe, Building2, ArrowUpCircle } from 'lucide-react';
+import { Trash2, Copy, UserCheck, ShieldAlert, HeartPulse, Tag, Edit2, Globe, Building2, ArrowUpCircle, Share2 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
@@ -77,7 +77,17 @@ const ClassificationDialog = ({ template, open, onOpenChange, onUpdate }) => {
     );
 };
 
-const TemplateCard = ({ template, onDelete, onAssign, onUpdate, onPromote, isAdmin, currentUserCenterId }) => {
+const TemplateCard = ({ 
+    template, 
+    onDelete, 
+    onAssign, 
+    onUpdate, 
+    onPromote, 
+    onAssignToCenter, 
+    isAdmin, 
+    currentUserCenterId, 
+    onCardClick 
+}) => {
     const navigate = useNavigate();
     const { user } = useAuth();
     const [isRestrictionsOpen, setIsRestrictionsOpen] = useState(false);
@@ -100,15 +110,31 @@ const TemplateCard = ({ template, onDelete, onAssign, onUpdate, onPromote, isAdm
     }, [template.template_scope, template.center_id]);
 
     const handleCardClick = (e) => {
-        if (e.target.closest('button, a, [role="dialog"], [role="tooltip"]')) {
+        // Prevent click if clicking on interactive elements
+        // Also check if we are inside a dialog content to be safe, though usually this card is the trigger
+        if (e.target.closest('button, a, [role="dialog"], [role="tooltip"], [data-radix-collection-item]')) {
             return;
         }
-        navigate(`/admin-panel/plan-detail/${template.id}`);
+        
+        // If onCardClick is provided (e.g. for preview), use it. Otherwise navigate.
+        if (onCardClick) {
+            onCardClick(template);
+        } else {
+            navigate(`/admin-panel/plan-detail/${template.id}`);
+        }
     };
 
-    const stopPropagation = (e) => e.stopPropagation();
+    const stopPropagation = (e) => {
+        if (e) {
+            e.stopPropagation();
+            // e.preventDefault() might be needed for some cases, but generally stopPropagation is enough for nested clicks
+        }
+    };
 
     const assignedPlans = useMemo(() => template.assigned_plans || [], [template.assigned_plans]);
+    
+    // Assigned Centers (for global templates)
+    const assignedCenters = useMemo(() => template.assigned_centers?.map(ac => ac.center).filter(Boolean) || [], [template.assigned_centers]);
 
     const sensitivitiesText = useMemo(() => 
         template.sensitivities?.map(s => s.sensitivities?.name || s.name).filter(Boolean).join(', ') || '',
@@ -134,10 +160,16 @@ const TemplateCard = ({ template, onDelete, onAssign, onUpdate, onPromote, isAdm
     const isCenter = template.template_scope === 'center';
     const canDelete = isAdmin || (isCenter && template.center_id === currentUserCenterId);
     const canPromote = isAdmin && isCenter;
+    const canAssignToCenter = isAdmin && isGlobal;
 
     return (
         <TooltipProvider>
-            <div onClick={handleCardClick} className="relative group h-full">
+            <div 
+                onClick={handleCardClick} 
+                className="relative group h-full w-full"
+                role="button"
+                tabIndex={0}
+            >
                 <div className="w-full h-full text-left bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800/80 p-5 rounded-xl hover:shadow-green-500/10 transition-all flex flex-col justify-between shadow-lg border border-slate-700/50 cursor-pointer hover:border-green-500/30">
                     <div className="flex-grow space-y-4">
                         <div className="flex justify-between items-start gap-2">
@@ -190,7 +222,7 @@ const TemplateCard = ({ template, onDelete, onAssign, onUpdate, onPromote, isAdm
                         
                         <Dialog open={isRestrictionsOpen} onOpenChange={setIsRestrictionsOpen}>
                             <DialogTrigger asChild onClick={stopPropagation}>
-                                <div className="space-y-2 pt-2 border-t border-slate-800/50">
+                                <div className="space-y-2 pt-2 border-t border-slate-800/50 cursor-default">
                                     {sensitivitiesText && (
                                         <Badge variant="outline" className="cursor-pointer w-full justify-start text-left h-auto py-1.5 group/badge border-orange-900/30 bg-orange-900/10 hover:bg-orange-900/20 hover:border-orange-500/50 pl-2">
                                             <ShieldAlert className="w-4 h-4 mr-2 flex-shrink-0 text-orange-400 group-hover/badge:text-orange-300 transition-colors" />
@@ -210,7 +242,7 @@ const TemplateCard = ({ template, onDelete, onAssign, onUpdate, onPromote, isAdm
                                     )}
                                 </div>
                             </DialogTrigger>
-                            <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-3xl">
+                            <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-3xl" onClick={(e) => e.stopPropagation()}>
                                 <RestrictionsManager 
                                     entityId={template.id}
                                     entityType="diet_plans"
@@ -221,6 +253,28 @@ const TemplateCard = ({ template, onDelete, onAssign, onUpdate, onPromote, isAdm
                                 />
                             </DialogContent>
                         </Dialog>
+                        
+                        {/* Assigned Centers Display */}
+                        {isGlobal && assignedCenters.length > 0 && (
+                            <div className="pt-2">
+                                <h4 className="text-xs font-semibold text-gray-500 mb-1 flex items-center gap-1 uppercase tracking-wide">
+                                    <Building2 className="w-3 h-3" />
+                                    Organizaciones ({assignedCenters.length})
+                                </h4>
+                                <div className="flex flex-wrap gap-1">
+                                    {assignedCenters.slice(0, 3).map(center => (
+                                        <Badge key={center.id} variant="outline" className="text-[10px] px-1.5 py-0 bg-slate-800/50 border-slate-700 text-gray-300">
+                                            {center.name}
+                                        </Badge>
+                                    ))}
+                                    {assignedCenters.length > 3 && (
+                                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-slate-800/50 border-slate-700 text-gray-400">
+                                            +{assignedCenters.length - 3}
+                                        </Badge>
+                                    )}
+                                </div>
+                            </div>
+                        )}
 
                         <div>
                             <h4 className="text-xs font-semibold text-gray-500 mb-2 mt-2 flex items-center gap-1 uppercase tracking-wide">
@@ -253,6 +307,19 @@ const TemplateCard = ({ template, onDelete, onAssign, onUpdate, onPromote, isAdm
                         </div>
                     </div>
                     <div className="mt-4 pt-4 border-t border-slate-700/50 flex justify-end gap-2">
+                        {canAssignToCenter && (
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button size="icon" variant="outline" onClick={(e) => { stopPropagation(e); onAssignToCenter(); }} className="h-8 w-8 bg-purple-700/30 text-purple-300 border-purple-900/50 hover:bg-purple-900/20 hover:text-purple-300">
+                                        <Share2 className="w-4 h-4" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent className="bg-slate-800 border-slate-700 text-white">
+                                    <p>Asignar a Organización</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        )}
+
                          {canPromote && (
                              <Tooltip>
                                 <TooltipTrigger asChild>
@@ -287,7 +354,11 @@ const TemplateCard = ({ template, onDelete, onAssign, onUpdate, onPromote, isAdm
                                 </AlertDialogContent>
                             </AlertDialog>
                         )}
-                        <Button size="sm" onClick={(e) => { stopPropagation(e); onAssign(); }} className="bg-green-600 hover:bg-green-500 text-white h-8 text-xs">
+                        <Button 
+                            size="sm" 
+                            onClick={(e) => { stopPropagation(e); onAssign(); }} 
+                            className="bg-green-600 hover:bg-green-500 text-white h-8 text-xs z-10 relative"
+                        >
                             <Copy className="w-3 h-3 mr-1.5"/> Asignar
                         </Button>
                     </div>
