@@ -9,13 +9,15 @@ import AdminRecipeModal from '@/components/admin/recipes/AdminRecipeModal';
 import RecipeCard from '@/components/shared/WeeklyDietPlanner/RecipeCard';
 import { useAuth } from '@/contexts/AuthContext';
 
-const MealSection = ({ meal, recipes, onAdd, onEdit, onDelete, allFoods, planRestrictions, user }) => (
+const MealSection = ({ meal, recipes, onAdd, onEdit, onDelete, allFoods, planRestrictions, user, readOnly }) => (
     <div key={meal.id} className="bg-slate-900/50 rounded-lg border border-gray-800 overflow-hidden">
         <div className="flex items-center justify-between gap-3 p-3 border-b border-gray-800 bg-slate-900/80">
             <h3 className="text-lg font-bold text-white">{meal.name}</h3>
-            <Button onClick={() => onAdd(meal)} size="icon" variant="ghost" className="h-7 w-7 text-green-500 hover:bg-green-500/10 hover:text-green-400">
-                <Plus className="h-5 w-5" />
-            </Button>
+            {!readOnly && (
+                <Button onClick={() => onAdd(meal)} size="icon" variant="ghost" className="h-7 w-7 text-green-500 hover:bg-green-500/10 hover:text-green-400">
+                    <Plus className="h-5 w-5" />
+                </Button>
+            )}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-y-3 gap-x-0 md:gap-4 p-0 md:p-4">
             {recipes.length > 0 ? (
@@ -25,13 +27,14 @@ const MealSection = ({ meal, recipes, onAdd, onEdit, onDelete, allFoods, planRes
                         recipe={pr}
                         user={user}
                         allFoods={allFoods}
-                        handleRecipeClick={onEdit}
-                        handleRemoveRecipe={onDelete}
+                        handleRecipeClick={readOnly ? undefined : onEdit}
+                        handleRemoveRecipe={readOnly ? undefined : onDelete}
                         isListView={true}
                         userRestrictions={planRestrictions}
                         isAdminView={true}
                         hideQuantities={true}
                         hideMacros={true}
+                        readOnly={readOnly}
                     />
                 ))
             ) : (
@@ -43,7 +46,7 @@ const MealSection = ({ meal, recipes, onAdd, onEdit, onDelete, allFoods, planRes
     </div>
 );
 
-const PlanRecipesView = ({ plan, onUpdate }) => {
+const PlanRecipesView = ({ plan, onUpdate, readOnly = false, clientRestrictions }) => {
     const { toast } = useToast();
     const { user } = useAuth();
     const [recipes, setRecipes] = useState([]);
@@ -66,7 +69,7 @@ const PlanRecipesView = ({ plan, onUpdate }) => {
                 supabase.from('diet_plan_recipes')
                     .select('*, recipe:recipe_id(*, recipe_ingredients(*, food(*, food_sensitivities(*), food_medical_conditions(*)))), custom_ingredients:diet_plan_recipe_ingredients(*, food(*, food_sensitivities(*), food_medical_conditions(*)))')
                     .eq('diet_plan_id', plan.id)
-                    .not('day_meal_id', 'is', null), // Ensure we only get recipes assigned to a meal (ignoring parents that were swapped out)
+                    .not('day_meal_id', 'is', null),
                 supabase.from('day_meals').select('*').order('display_order'),
                 supabase.from('food').select('*, food_sensitivities(*), food_medical_conditions(*)'),
                 supabase.from('diet_plan_sensitivities').select('sensitivity_id').eq('diet_plan_id', plan.id),
@@ -81,12 +84,24 @@ const PlanRecipesView = ({ plan, onUpdate }) => {
             if (planConditionsRes.error) throw planConditionsRes.error;
             if (allConditionsRes.error) throw allConditionsRes.error;
             
-            // Construct restrictions object with arrays of IDs
-            const restrictions = {
-                sensitivities: planSensitivitiesRes.data.map(s => s.sensitivity_id),
-                conditions: planConditionsRes.data.map(c => c.condition_id),
-                allMedicalConditions: allConditionsRes.data || [],
-            };
+            // If clientRestrictions are provided (in preview mode), use them. 
+            // Otherwise, use the plan's own restrictions.
+            let restrictions;
+            if (clientRestrictions) {
+                // Combine plan restrictions with client specific restrictions for conflict checking
+                 restrictions = {
+                    sensitivities: [...new Set([...clientRestrictions.sensitivities, ...planSensitivitiesRes.data.map(s => s.sensitivity_id)])],
+                    conditions: [...new Set([...clientRestrictions.conditions, ...planConditionsRes.data.map(c => c.condition_id)])],
+                    allMedicalConditions: allConditionsRes.data || [],
+                };
+            } else {
+                 restrictions = {
+                    sensitivities: planSensitivitiesRes.data.map(s => s.sensitivity_id),
+                    conditions: planConditionsRes.data.map(c => c.condition_id),
+                    allMedicalConditions: allConditionsRes.data || [],
+                };
+            }
+
             setPlanRestrictions(restrictions);
 
             setRecipes(recipesRes.data || []);
@@ -97,13 +112,14 @@ const PlanRecipesView = ({ plan, onUpdate }) => {
         } finally {
             setLoading(false);
         }
-    }, [plan, toast]);
+    }, [plan, toast, clientRestrictions]);
     
     useEffect(() => {
         if (plan) fetchData();
     }, [plan, fetchData]);
 
     const handleDeleteRecipe = async (recipeId) => {
+        if (readOnly) return;
         const { error } = await supabase.from('diet_plan_recipes').delete().eq('id', recipeId);
         if (error) {
             toast({ title: 'Error al eliminar', description: error.message, variant: 'destructive' });
@@ -114,11 +130,13 @@ const PlanRecipesView = ({ plan, onUpdate }) => {
     };
 
     const handleAddRecipe = (meal) => {
+        if (readOnly) return;
         setMealToAddTo(meal);
         setIsAddRecipeOpen(true);
     };
     
     const handleViewRecipe = (planRecipe) => {
+        if (readOnly) return;
         setRecipeToView(planRecipe);
         setIsAddingRecipe(false);
         setIsRecipeEditorOpen(true);
@@ -128,7 +146,6 @@ const PlanRecipesView = ({ plan, onUpdate }) => {
         if (!mealToAddTo) return;
         
         try {
-            // 1. Insert relation
             const { data: newPlanRecipe, error } = await supabase
                 .from('diet_plan_recipes')
                 .insert({
@@ -142,7 +159,6 @@ const PlanRecipesView = ({ plan, onUpdate }) => {
 
             if (error) throw error;
 
-            // 2. Fetch full record with joins to update UI without full refetch
             const { data: fullRecord, error: fetchError } = await supabase
                  .from('diet_plan_recipes')
                  .select('*, recipe:recipe_id(*, recipe_ingredients(*, food(*, food_sensitivities(*), food_medical_conditions(*)))), custom_ingredients:diet_plan_recipe_ingredients(*, food(*, food_sensitivities(*), food_medical_conditions(*)))')
@@ -160,6 +176,7 @@ const PlanRecipesView = ({ plan, onUpdate }) => {
     }, [plan.id, mealToAddTo, toast]);
 
     const handleOpenEditorForConflict = (recipe, conflicts) => {
+        if (readOnly) return;
         const mealForRecipe = mealToAddTo;
         if (!mealForRecipe) {
             toast({ title: 'Error', description: 'No se ha seleccionado un momento del día.', variant: 'destructive' });
@@ -173,7 +190,7 @@ const PlanRecipesView = ({ plan, onUpdate }) => {
             dietPlanId: plan.id,
             recipeTemplateId: recipe.id,
             mealId: mealForRecipe.id,
-            conflicts: conflicts // Pass conflicts to editor
+            conflicts: conflicts
         };
         setRecipeToView(detachedRecipe);
         setIsAddRecipeOpen(false);
@@ -185,8 +202,6 @@ const PlanRecipesView = ({ plan, onUpdate }) => {
         setIsRecipeEditorOpen(false);
         
         if (action === 'variant_created' && resultData) {
-            // Optimistic update: The variant creation API returns the new record.
-            // We need to fetch full details including relations (recipe, ingredients, etc.) to render it.
             try {
                  const { data: fullRecord, error: fetchError } = await supabase
                      .from('diet_plan_recipes')
@@ -197,20 +212,9 @@ const PlanRecipesView = ({ plan, onUpdate }) => {
                  if (fetchError) throw fetchError;
                  
                  setRecipes(prev => {
-                     // If we are editing an existing one, remove old
-                     // If we are adding (isAddingRecipe), just append
-                     // However, 'variant_created' implies a new ID was generated.
-                     // If we were editing, the old recipe needs to be removed from the list if the new one replaces it.
-                     // But usually variants are created on top of conflicts when adding.
-                     
-                     // If we were editing an existing Plan Recipe (recipeToView had an ID from diet_plan_recipes)
-                     // and we created a variant, usually we want to replace the old one in the view.
-                     // But if we were Adding (isAddingRecipe=true), there was no old ID in the list yet.
-                     
                      if (isAddingRecipe) {
                         return [...prev, fullRecord];
                      } else {
-                        // Editing existing
                         const filtered = prev.filter(r => r.id !== recipeToView.id);
                         return [...filtered, fullRecord];
                      }
@@ -218,7 +222,7 @@ const PlanRecipesView = ({ plan, onUpdate }) => {
 
             } catch (err) {
                  console.error("Error fetching new variant:", err);
-                 fetchData(); // Fallback to full fetch
+                 fetchData();
             }
         } else {
             fetchData();
@@ -234,11 +238,13 @@ const PlanRecipesView = ({ plan, onUpdate }) => {
     return (
         <>
             <Card className="bg-slate-900/50 border-gray-700 text-white overflow-hidden shadow-xl">
-                <CardHeader>
-                    <CardTitle>Recetas en la Plantilla</CardTitle>
-                    <CardDescription>Estas son las recetas base para este plan, organizadas por momento del día.</CardDescription>
-                </CardHeader>
-                <CardContent>
+                {!readOnly && (
+                    <CardHeader>
+                        <CardTitle>Recetas en la Plantilla</CardTitle>
+                        <CardDescription>Estas son las recetas base para este plan, organizadas por momento del día.</CardDescription>
+                    </CardHeader>
+                )}
+                <CardContent className={readOnly ? "pt-6" : ""}>
                     <div className="space-y-6">
                         {dayMeals.map(meal => (
                             <MealSection
@@ -251,6 +257,7 @@ const PlanRecipesView = ({ plan, onUpdate }) => {
                                 onDelete={handleDeleteRecipe}
                                 planRestrictions={planRestrictions}
                                 user={user}
+                                readOnly={readOnly}
                             />
                         ))}
                     </div>
@@ -279,7 +286,7 @@ const PlanRecipesView = ({ plan, onUpdate }) => {
                 onSaveSuccess={handleEditorSaveSuccess}
                 isTemplatePlan={plan.is_template}
                 isAdding={isAddingRecipe}
-                isAdminView={true} // Force admin view for templates
+                isAdminView={true}
             />
         </>
     );
