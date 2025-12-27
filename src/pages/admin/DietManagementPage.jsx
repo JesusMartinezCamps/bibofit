@@ -8,16 +8,45 @@ import { Button } from '@/components/ui/button';
 import { PlusCircle, Loader2 } from 'lucide-react';
 import PlanCard from '@/components/admin/diet-plans/PlanCard';
 import AssignPlanDialog from '@/components/admin/diet-plans/AssignPlanDialog';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import TemplateCard from '@/components/admin/diet-plans/TemplateCard';
+import PlanRecipesView from '@/components/admin/diet-plans/PlanRecipesView';
 
-const SelectTemplateDialog = ({ open, onOpenChange, templates, onSelect, loading }) => {
+const TemplatePreviewDialog = ({ open, onOpenChange, template, onAssign, clientRestrictions }) => {
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="w-full sm:w-[90vw] sm:max-w-[90vw] max-w-none h-[90vh] bg-[#1a1e23] border-gray-700 text-white flex flex-col p-0 overflow-hidden">
+                <DialogHeader className="px-6 py-4 bg-gray-900 border-b border-gray-800">
+                    <DialogTitle className="text-xl">Vista Previa: {template?.name}</DialogTitle>
+                    <DialogDescription>Revisa el contenido de la plantilla antes de asignarla. Verás alertas si hay conflictos con las restricciones del cliente.</DialogDescription>
+                </DialogHeader>
+                <div className="flex-grow overflow-y-auto p-6 styled-scrollbar-green">
+                    {template && (
+                        <PlanRecipesView 
+                            plan={template} 
+                            readOnly={true}
+                            clientRestrictions={clientRestrictions}
+                        />
+                    )}
+                </div>
+                <DialogFooter className="px-6 py-4 bg-gray-900 border-t border-gray-800 flex justify-between sm:justify-between">
+                    <Button variant="ghost" onClick={() => onOpenChange(false)}>Cerrar</Button>
+                    <Button onClick={onAssign} className="bg-green-600 hover:bg-green-500 text-white">
+                        Asignar esta Plantilla
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
+const SelectTemplateDialog = ({ open, onOpenChange, templates, onSelect, loading, onPreview }) => {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="w-full sm:w-[90vw] sm:max-w-[90vw] max-w-none h-[80vh] bg-[#1a1e23] border-gray-700 text-white flex flex-col">
                 <DialogHeader>
                     <DialogTitle>Seleccionar Plantilla de Dieta</DialogTitle>
-                    <DialogDescription>Elige una plantilla para asignar al cliente.</DialogDescription>
+                    <DialogDescription>Elige una plantilla para asignar al cliente. Haz clic en una tarjeta para ver el detalle.</DialogDescription>
                 </DialogHeader>
                 <div className="flex-grow overflow-y-auto mt-2 pr-2 styled-scrollbar-green">
                     {loading ? (
@@ -25,8 +54,12 @@ const SelectTemplateDialog = ({ open, onOpenChange, templates, onSelect, loading
                     ) : templates.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {templates.map(template => (
-                                <div key={template.id} onClick={() => onSelect(template)} className="cursor-pointer">
-                                    <TemplateCard template={template} onAssign={() => onSelect(template)} />
+                                <div key={template.id} className="h-full">
+                                    <TemplateCard 
+                                        template={template} 
+                                        onAssign={() => onSelect(template)} 
+                                        onCardClick={() => onPreview(template)}
+                                    />
                                 </div>
                             ))}
                         </div>
@@ -47,9 +80,14 @@ const DietManagementPage = () => {
     const [templates, setTemplates] = useState([]);
     const [loading, setLoading] = useState(true);
     const [loadingTemplates, setLoadingTemplates] = useState(false);
+    
+    // Dialog states
     const [isSelectTemplateOpen, setIsSelectTemplateOpen] = useState(false);
     const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
+    const [isPreviewDialogOpen, setIsPreviewDialogOpen] = useState(false);
+    
     const [selectedTemplate, setSelectedTemplate] = useState(null);
+    const [previewTemplate, setPreviewTemplate] = useState(null);
     
     const fetchClientData = useCallback(async (showLoading = true) => {
         if (showLoading) setLoading(true);
@@ -175,12 +213,26 @@ const DietManagementPage = () => {
     const handleTemplateSelected = (template) => {
         setSelectedTemplate(template);
         setIsSelectTemplateOpen(false);
+        setIsPreviewDialogOpen(false); // Close preview if open
         setIsAssignDialogOpen(true);
+    };
+
+    const handlePreviewTemplate = (template) => {
+        setPreviewTemplate(template);
+        setIsPreviewDialogOpen(true);
     };
 
     const handleAssignSuccess = () => {
         setIsAssignDialogOpen(false);
         fetchClientData(false);
+    };
+
+    const getClientRestrictions = () => {
+        if (!client) return null;
+        return {
+            sensitivities: client.user_sensitivities?.map(us => us.sensitivities.id) || [],
+            conditions: client.user_medical_conditions?.map(umc => umc.medical_conditions.id) || []
+        };
     };
 
     const renderPlansList = () => {
@@ -254,8 +306,18 @@ const DietManagementPage = () => {
                 onOpenChange={setIsSelectTemplateOpen}
                 templates={templates}
                 onSelect={handleTemplateSelected}
+                onPreview={handlePreviewTemplate}
                 loading={loadingTemplates}
             />
+
+            <TemplatePreviewDialog 
+                open={isPreviewDialogOpen}
+                onOpenChange={setIsPreviewDialogOpen}
+                template={previewTemplate}
+                onAssign={() => handleTemplateSelected(previewTemplate)}
+                clientRestrictions={getClientRestrictions()}
+            />
+
             {selectedTemplate && client && (
                 <AssignPlanDialog
                     open={isAssignDialogOpen}
