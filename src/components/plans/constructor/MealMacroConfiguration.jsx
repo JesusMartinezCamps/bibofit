@@ -182,7 +182,8 @@ const MealMacroConfiguration = ({
     macrosPct, 
     shouldAutoExpand,
     hideSaveButton = false,
-    onConfigChange 
+    onConfigChange,
+    readOnly = false 
 }) => {
   const [localMeals, setLocalMeals] = useState([]);
   const [open, setOpen] = useState(false);
@@ -229,6 +230,7 @@ const MealMacroConfiguration = ({
      HANDLER CENTRAL
      ------------------------ */
   const handleMealPctChange = useCallback((mealId, macro, value) => {
+    if (readOnly) return;
     setLocalMeals(currentMeals => {
         const adjusted = adjustMacroSequential(currentMeals, macro, mealId, value);
         // If an external handler is provided (e.g., for live preview in AssignDialog), call it.
@@ -347,7 +349,8 @@ const MealMacroConfiguration = ({
                   key={meal.id}
                   meal={meal}
                   totalGrams={totalGrams}
-                  onMealPctChange={handleMealPctChange}
+                    onMealPctChange={handleMealPctChange}
+                    readOnly={readOnly}
                 />
               ))}
             </div>
@@ -367,12 +370,12 @@ const MealMacroConfiguration = ({
               <TotalRow mealTotals={mealTotals} gramTotals={gramTotals} floating={false} />
             </div>
 
-            {!hideSaveButton && (
-              <CardFooter className="flex justify-end mt-4 p-4 bg-slate-900/70 border-t border-gray-800 rounded-b-lg">
-                <Button onClick={handleSave} disabled={!canSave || !hasChanges || isSaving}>
-                  {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                  Guardar
-                </Button>
+            {!hideSaveButton && !readOnly && (
+                <CardFooter className="flex justify-end mt-4 p-4 bg-slate-900/70 border-t border-gray-800 rounded-b-lg">
+                    <Button onClick={handleSave} disabled={!canSave || !hasChanges || isSaving}>
+                     { isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        Guardar
+                    </Button>
               </CardFooter>
             )}
 
