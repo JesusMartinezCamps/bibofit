@@ -11,15 +11,17 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import MealTargetMacros from '@/components/shared/MealTargetMacros';
 import { format } from 'date-fns';
 
-const MealSection = ({ meal, recipes, onAdd, onEdit, onDelete, allFoods, userRestrictions, userDayMeal, onAutoBalance, isBalancing, planUserId }) => (
+const MealSection = ({ meal, recipes, onAdd, onEdit, onDelete, allFoods, userRestrictions, userDayMeal, onAutoBalance, isBalancing, planUserId, readOnly = false }) => (
     <div key={meal.id} className="bg-slate-900/50 p-4 rounded-lg border border-gray-800">
         <div className="flex items-center gap-3 mb-4 flex-wrap justify-between">
             <div className="flex items-center gap-2">
                 <h3 className="text-xl font-bold text-white">{meal.name}</h3>
-                <Button onClick={() => onAdd(meal)} size="icon" variant="ghost" className="h-8 w-8 text-green-500 hover:bg-green-500/10 hover:text-green-400">
-                    <Plus className="h-6 w-6" />
-                </Button>
-                {recipes.length > 0 && (
+                {!readOnly && (
+                    <Button onClick={() => onAdd(meal)} size="icon" variant="ghost" className="h-8 w-8 text-green-500 hover:bg-green-500/10 hover:text-green-400">
+                        <Plus className="h-6 w-6" />
+                    </Button>
+                )}
+                {!readOnly && recipes.length > 0 && (
                     <Button 
                         onClick={() => onAutoBalance(userDayMeal.id, recipes, planUserId)} 
                         size="icon" 
@@ -50,6 +52,7 @@ const MealSection = ({ meal, recipes, onAdd, onEdit, onDelete, allFoods, userRes
                         onEdit={() => onEdit(pr, userDayMeal)}
                         onDelete={() => onDelete(pr.id, pr.is_private)}
                         userRestrictions={userRestrictions}
+                        readOnly={readOnly}
                     />
                 ))
             ) : (
@@ -61,7 +64,7 @@ const MealSection = ({ meal, recipes, onAdd, onEdit, onDelete, allFoods, userRes
     </div>
 );
 
-const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false }) => {
+const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOnly = false }) => {
     const { toast } = useToast();
     const [recipes, setRecipes] = useState([]);
     const [dayMeals, setDayMeals] = useState([]);
@@ -130,6 +133,7 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false }) => {
     }, [fetchPlanData]);
 
     const handleAutoBalance = async (momentId, momentRecipes, userId) => {
+        if (readOnly) return;
         setIsBalancing(true);
         try {
             const recipeIds = momentRecipes.map(r => ({ id: r.id, is_private: r.is_private }));
@@ -148,7 +152,7 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false }) => {
                 toast({
                     title: 'Autocuadre Exitoso',
                     description: `${data.recipesProcessed} de ${data.totalRecipes} recetas fueron ajustadas.`,
-                    className: 'bg-green-600 text-white'
+                    className: 'bg-cyan-600/25 text-white'
                 });
                 fetchPlanData(); // Refresh data
             } else {
@@ -166,11 +170,13 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false }) => {
     };
 
     const handleOpenAddRecipe = (meal) => {
+        if (readOnly) return;
         setMealToAddTo(meal);
         setIsAddRecipeOpen(true);
     };
 
     const handleEditRecipe = (recipe, userDayMeal) => {
+        if (readOnly) return;
         setRecipeToEdit(recipe);
         setMealTargetMacros(userDayMeal);
         setIsAddingViaConflict(false);
@@ -178,6 +184,7 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false }) => {
     };
 
     const handleDeleteRecipeFromPlan = (recipeId, isPrivate) => {
+        if (readOnly) return;
         setRecipeToDelete({ id: recipeId, isPrivate });
         setIsDeleteDialogOpen(true);
     };
@@ -353,30 +360,33 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false }) => {
                                 onAutoBalance={handleAutoBalance}
                                 isBalancing={isBalancing}
                                 planUserId={plan.user_id}
+                                readOnly={readOnly}
                             />
                         ))}
                     </div>
                 </CardContent>
             </Card>
 
-            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            {recipeToDelete.isPrivate 
-                                ? "Esta acción desasignará la receta privada de este plan, pero no la eliminará permanentemente. Seguirá visible en el historial de Comidas Libres."
-                                : "Esta acción eliminará la receta de este plan de dieta."}
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel onClick={() => setRecipeToDelete({ id: null, isPrivate: false })}>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmDeleteRecipe} className={recipeToDelete.isPrivate ? "bg-blue-600 hover:bg-blue-700" : "bg-red-600 hover:bg-red-700"}>
-                            {recipeToDelete.isPrivate ? "Desasignar" : "Eliminar"}
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            {!readOnly && (
+                <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                {recipeToDelete.isPrivate
+                                    ? "Esta acción desasignará la receta privada de este plan, pero no la eliminará permanentemente. Seguirá visible en el historial de Comidas Libres."
+                                    : "Esta acción eliminará la receta de este plan de dieta."}
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel onClick={() => setRecipeToDelete({ id: null, isPrivate: false })}>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={confirmDeleteRecipe} className={recipeToDelete.isPrivate ? "bg-blue-600 hover:bg-blue-700" : "bg-red-600 hover:bg-red-700"}>
+                                {recipeToDelete.isPrivate ? "Desasignar" : "Eliminar"}
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            )}
             
             <AddRecipeToPlanDialog
                 open={isAddRecipeOpen}
@@ -401,7 +411,6 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false }) => {
                 isAssignedPlan={isAssignedPlan} // NEW PROP
             />
         </>
-    );
-};
-
+    )
+}
 export default PlanView;
