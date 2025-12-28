@@ -86,7 +86,10 @@ const TemplateCard = ({
     onAssignToCenter, 
     isAdmin, 
     currentUserCenterId, 
-    onCardClick 
+    onCardClick,
+    allowManagement = true,
+    assignLabel = "Asignar",
+    assignDisabled = false
 }) => {
     const navigate = useNavigate();
     const { user } = useAuth();
@@ -111,15 +114,16 @@ const TemplateCard = ({
 
     const handleCardClick = (e) => {
         // Prevent click if clicking on interactive elements
-        // Also check if we are inside a dialog content to be safe, though usually this card is the trigger
-        if (e.target.closest('button, a, [role="dialog"], [role="tooltip"], [data-radix-collection-item]')) {
+        // We explicitly exclude buttons, links, and tooltip triggers
+        // CRITICAL: We removed [role="dialog"] check because the card itself is often inside a dialog (SelectTemplateDialog)
+        if (e.target.closest('button, a, [role="tooltip"], [data-radix-collection-item]')) {
             return;
         }
         
-        // If onCardClick is provided (e.g. for preview), use it. Otherwise navigate.
+        // If onCardClick is provided (e.g. for preview), use it. Otherwise navigate to detail.
         if (onCardClick) {
             onCardClick(template);
-        } else {
+        } else if (allowManagement) {
             navigate(`/admin-panel/plan-detail/${template.id}`);
         }
     };
@@ -127,7 +131,6 @@ const TemplateCard = ({
     const stopPropagation = (e) => {
         if (e) {
             e.stopPropagation();
-            // e.preventDefault() might be needed for some cases, but generally stopPropagation is enough for nested clicks
         }
     };
 
@@ -158,17 +161,25 @@ const TemplateCard = ({
     // Permission checks
     const isGlobal = template.template_scope === 'global';
     const isCenter = template.template_scope === 'center';
-    const canDelete = isAdmin || (isCenter && template.center_id === currentUserCenterId);
-    const canPromote = isAdmin && isCenter;
-    const canAssignToCenter = isAdmin && isGlobal;
+    const canManage = allowManagement && (isAdmin || (isCenter && template.center_id === currentUserCenterId));
+    const canDelete = canManage && (isAdmin || (isCenter && template.center_id === currentUserCenterId));
+    const canPromote = allowManagement && isAdmin && isCenter;
+    const canAssignToCenter = allowManagement && isAdmin && isGlobal;
+    const canEditClassification = allowManagement && canDelete;
+    const canOpenRestrictions = allowManagement;
 
     return (
         <TooltipProvider>
             <div 
                 onClick={handleCardClick} 
-                className="relative group h-full w-full"
+                className="relative group h-full w-full outline-none"
                 role="button"
                 tabIndex={0}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        handleCardClick(e);
+                    }
+                }}
             >
                 <div className="w-full h-full text-left bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800/80 p-5 rounded-xl hover:shadow-green-500/10 transition-all flex flex-col justify-between shadow-lg border border-slate-700/50 cursor-pointer hover:border-green-500/30">
                     <div className="flex-grow space-y-4">
@@ -192,7 +203,7 @@ const TemplateCard = ({
                                     </p>
                                 )}
                             </div>
-                            {canDelete && (
+                            {canEditClassification && (
                                 <Button 
                                     variant="ghost" 
                                     size="icon" 
@@ -220,39 +231,61 @@ const TemplateCard = ({
                              )}
                         </div>
                         
-                        <Dialog open={isRestrictionsOpen} onOpenChange={setIsRestrictionsOpen}>
-                            <DialogTrigger asChild onClick={stopPropagation}>
-                                <div className="space-y-2 pt-2 border-t border-slate-800/50 cursor-default">
-                                    {sensitivitiesText && (
-                                        <Badge variant="outline" className="cursor-pointer w-full justify-start text-left h-auto py-1.5 group/badge border-orange-900/30 bg-orange-900/10 hover:bg-orange-900/20 hover:border-orange-500/50 pl-2">
-                                            <ShieldAlert className="w-4 h-4 mr-2 flex-shrink-0 text-orange-400 group-hover/badge:text-orange-300 transition-colors" />
-                                            <span className="font-semibold mr-1 text-orange-400 group-hover/badge:text-orange-300 transition-colors">Evita:</span>
-                                            <span className="truncate text-gray-400 group-hover/badge:text-gray-300 transition-colors text-xs">{sensitivitiesText}</span>
-                                        </Badge>
-                                    )}
-                                    {conditionsText && (
-                                        <Badge variant="outline" className="cursor-pointer w-full justify-start text-left h-auto py-1.5 group/badge border-red-900/30 bg-red-900/10 hover:bg-red-900/20 hover:border-red-500/50 pl-2">
-                                            <HeartPulse className="w-4 h-4 mr-2 flex-shrink-0 text-red-400 group-hover/badge:text-red-300 transition-colors" />
-                                            <span className="font-semibold mr-1 text-red-400 group-hover/badge:text-red-300 transition-colors">Apta para:</span>
-                                            <span className="truncate text-gray-400 group-hover/badge:text-gray-300 transition-colors text-xs">{conditionsText}</span>
-                                        </Badge>
-                                    )}
-                                    {!sensitivitiesText && !conditionsText && (
-                                        <p className="text-xs text-gray-500 italic">Sin restricciones médicas o sensibilidades configuradas.</p>
-                                    )}
-                                </div>
-                            </DialogTrigger>
-                            <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-3xl" onClick={(e) => e.stopPropagation()}>
-                                <RestrictionsManager 
-                                    entityId={template.id}
-                                    entityType="diet_plans"
-                                    onUpdate={() => {
-                                        onUpdate();
-                                        setIsRestrictionsOpen(false);
-                                    }}
-                                />
-                            </DialogContent>
-                        </Dialog>
+                        {canOpenRestrictions ? (
+                            <Dialog open={isRestrictionsOpen} onOpenChange={setIsRestrictionsOpen}>
+                                <DialogTrigger asChild onClick={stopPropagation}>
+                                    <div className="space-y-2 pt-2 border-t border-slate-800/50 cursor-default">
+                                        {sensitivitiesText && (
+                                            <Badge variant="outline" className="cursor-pointer w-full justify-start text-left h-auto py-1.5 group/badge border-orange-900/30 bg-orange-900/10 hover:bg-orange-900/20 hover:border-orange-500/50 pl-2">
+                                                <ShieldAlert className="w-4 h-4 mr-2 flex-shrink-0 text-orange-400 group-hover/badge:text-orange-300 transition-colors" />
+                                                <span className="font-semibold mr-1 text-orange-400 group-hover/badge:text-orange-300 transition-colors">Evita:</span>
+                                                <span className="truncate text-gray-400 group-hover/badge:text-gray-300 transition-colors text-xs">{sensitivitiesText}</span>
+                                            </Badge>
+                                        )}
+                                        {conditionsText && (
+                                            <Badge variant="outline" className="cursor-pointer w-full justify-start text-left h-auto py-1.5 group/badge border-red-900/30 bg-red-900/10 hover:bg-red-900/20 hover:border-red-500/50 pl-2">
+                                                <HeartPulse className="w-4 h-4 mr-2 flex-shrink-0 text-red-400 group-hover/badge:text-red-300 transition-colors" />
+                                                <span className="font-semibold mr-1 text-red-400 group-hover/badge:text-red-300 transition-colors">Apta para:</span>
+                                                <span className="truncate text-gray-400 group-hover/badge:text-gray-300 transition-colors text-xs">{conditionsText}</span>
+                                            </Badge>
+                                        )}
+                                        {!sensitivitiesText && !conditionsText && (
+                                            <p className="text-xs text-gray-500 italic">Sin restricciones médicas o sensibilidades configuradas.</p>
+                                        )}
+                                    </div>
+                                </DialogTrigger>
+                                <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-3xl" onClick={(e) => e.stopPropagation()}>
+                                    <RestrictionsManager 
+                                        entityId={template.id}
+                                        entityType="diet_plans"
+                                        onUpdate={() => {
+                                            onUpdate();
+                                            setIsRestrictionsOpen(false);
+                                        }}
+                                    />
+                                </DialogContent>
+                            </Dialog>
+                        ) : (
+                            <div className="space-y-2 pt-2 border-t border-slate-800/50 cursor-default">
+                                {sensitivitiesText && (
+                                    <Badge variant="outline" className="w-full justify-start text-left h-auto py-1.5 group/badge border-orange-900/30 bg-orange-900/10 pl-2">
+                                        <ShieldAlert className="w-4 h-4 mr-2 flex-shrink-0 text-orange-400" />
+                                        <span className="font-semibold mr-1 text-orange-400">Evita:</span>
+                                        <span className="truncate text-gray-400 text-xs">{sensitivitiesText}</span>
+                                    </Badge>
+                                )}
+                                {conditionsText && (
+                                    <Badge variant="outline" className="w-full justify-start text-left h-auto py-1.5 group/badge border-red-900/30 bg-red-900/10 pl-2">
+                                        <HeartPulse className="w-4 h-4 mr-2 flex-shrink-0 text-red-400" />
+                                        <span className="font-semibold mr-1 text-red-400">Apta para:</span>
+                                        <span className="truncate text-gray-400 text-xs">{conditionsText}</span>
+                                    </Badge>
+                                )}
+                                {!sensitivitiesText && !conditionsText && (
+                                    <p className="text-xs text-gray-500 italic">Sin restricciones médicas o sensibilidades configuradas.</p>
+                                )}
+                            </div>
+                        )}
                         
                         {/* Assigned Centers Display */}
                         {isGlobal && assignedCenters.length > 0 && (
@@ -284,20 +317,26 @@ const TemplateCard = ({
                             {assignedPlans.length > 0 ? (
                                 <div className="flex flex-wrap gap-1.5">
                                     {assignedPlans.slice(0, 3).map(plan => (
-                                        <TooltipProvider key={plan.id}>
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <Link to={`/admin/manage-diet/${plan.profile.user_id}`} onClick={stopPropagation}>
-                                                        <Badge variant="outline" className="text-[10px] px-2 py-0.5 border-green-900/40 bg-green-900/10 text-green-400/80 hover:bg-green-900/30 hover:text-green-300 transition-colors cursor-pointer">
-                                                            {plan.profile.full_name.split(' ')[0]}
-                                                        </Badge>
-                                                    </Link>
-                                                </TooltipTrigger>
-                                                <TooltipContent className="bg-slate-800 border-slate-700 text-white">
-                                                    <p>Ver plan de {plan.profile.full_name}</p>
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        </TooltipProvider>
+                                        allowManagement ? (
+                                            <TooltipProvider key={plan.id}>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Link to={`/admin/manage-diet/${plan.profile.user_id}`} onClick={stopPropagation}>
+                                                            <Badge variant="outline" className="text-[10px] px-2 py-0.5 border-green-900/40 bg-green-900/10 text-green-400/80 hover:bg-green-900/30 hover:text-green-300 transition-colors cursor-pointer">
+                                                                {plan.profile.full_name.split(' ')[0]}
+                                                            </Badge>
+                                                        </Link>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent className="bg-slate-800 border-slate-700 text-white">
+                                                        <p>Ver plan de {plan.profile.full_name}</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        ) : (
+                                            <Badge key={plan.id} variant="outline" className="text-[10px] px-2 py-0.5 border-green-900/40 bg-green-900/10 text-green-400/80">
+                                                {plan.profile.full_name.split(' ')[0]}
+                                            </Badge>
+                                        )
                                     ))}
                                     {assignedPlans.length > 3 && <span className="text-[10px] text-gray-500 self-center">+{assignedPlans.length - 3}</span>}
                                 </div>
@@ -359,17 +398,19 @@ const TemplateCard = ({
                             onClick={(e) => { stopPropagation(e); onAssign(); }} 
                             className="bg-green-600 hover:bg-green-500 text-white h-8 text-xs z-10 relative"
                         >
-                            <Copy className="w-3 h-3 mr-1.5"/> Asignar
-                        </Button>
+                            disabled={assignDisabled}
+                            <Copy className="w-3 h-3 mr-1.5" /> {assignLabel}                        </Button>
                     </div>
                 </div>
                 
-                <ClassificationDialog 
-                    template={template} 
-                    open={isClassificationOpen} 
-                    onOpenChange={setIsClassificationOpen}
-                    onUpdate={onUpdate}
-                />
+                {canEditClassification && (
+                    <ClassificationDialog
+                        template={template}
+                        open={isClassificationOpen}
+                        onOpenChange={setIsClassificationOpen}
+                        onUpdate={onUpdate}
+                    />
+                )}
             </div>
         </TooltipProvider>
     );
