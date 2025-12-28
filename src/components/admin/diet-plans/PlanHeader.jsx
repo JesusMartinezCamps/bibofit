@@ -91,8 +91,7 @@ const ClassificationDialog = ({ template, open, onOpenChange, onUpdate }) => {
     );
 };
 
-const PlanHeader = ({ plan, onUpdate, onToggleActive }) => {
-    const navigate = useNavigate();
+const PlanHeader = ({ plan, onUpdate, onToggleActive, readOnly = false }) => {    const navigate = useNavigate();
     const { toast } = useToast();
     const [name, setName] = useState(plan.name);
     const [isNameChanged, setIsNameChanged] = useState(false);
@@ -141,6 +140,7 @@ const PlanHeader = ({ plan, onUpdate, onToggleActive }) => {
     }, [plan]);
 
     const handleNameChange = (e) => {
+        if (readOnly) return;
         const newName = e.target.value;
         setName(newName);
         setIsNameChanged(newName.trim() !== plan.name.trim());
@@ -180,6 +180,7 @@ const PlanHeader = ({ plan, onUpdate, onToggleActive }) => {
     };
 
     const handleBlur = () => {
+        if (readOnly) return;
         if (plan.is_template && debounceTimeout.current) {
             clearTimeout(debounceTimeout.current);
             if (name.trim() !== plan.name.trim()) {
@@ -195,6 +196,7 @@ const PlanHeader = ({ plan, onUpdate, onToggleActive }) => {
     };
 
     const handleDateChange = async (dates) => {
+        if (readOnly) return;
         const [start, end] = dates;
         setStartDate(start);
         setEndDate(end);
@@ -230,7 +232,7 @@ const PlanHeader = ({ plan, onUpdate, onToggleActive }) => {
                             onBlur={handleBlur}
                             className="text-2xl font-bold bg-transparent border-0 focus:ring-0 focus:bg-slate-800/50 p-2 -m-2 w-full"
                             placeholder="Nombre del Plan"
-                            disabled={isSavingName}
+                            disabled={isSavingName || readOnly}
                         />
 
                         {/* Bloque de info / botones del cliente */}
@@ -274,22 +276,30 @@ const PlanHeader = ({ plan, onUpdate, onToggleActive }) => {
                                         <p className="font-semibold text-white">Ir al Plan de Dieta</p>
                                     </InfoItem>
                                     <InfoItem icon={<CalendarIcon className="w-5 h-5 text-indigo-400" />} label="Rango de la Dieta">
-                                        <DatePicker
-                                            selected={startDate}
-                                            onChange={handleDateChange}
-                                            startDate={startDate}
-                                            endDate={endDate}
-                                            selectsRange
-                                            dateFormat="dd/MM/yyyy"
-                                            locale={es}
-                                            customInput={
-                                                <div className="font-semibold text-white bg-gray-700/50 border border-gray-600 rounded-md px-3 py-1.5 cursor-pointer hover:bg-gray-700 transition-colors w-full text-center">
-                                                    {startDate && endDate ? `${format(startDate, 'dd/MM/yy')} - ${format(endDate, 'dd/MM/yy')}` : 'Seleccionar rango'}
-                                                </div>
-                                            }
-                                            wrapperClassName="w-full"
-                                            popperClassName="z-50"
-                                        />
+                                        {readOnly ? (
+                                            <p className="font-semibold text-white">
+                                                {startDate && endDate
+                                                    ? `${format(startDate, 'dd/MM/yy')} - ${format(endDate, 'dd/MM/yy')}`
+                                                    : 'Sin rango definido'}
+                                            </p>
+                                        ) : (
+                                            <DatePicker
+                                                selected={startDate}
+                                                onChange={handleDateChange}
+                                                startDate={startDate}
+                                                endDate={endDate}
+                                                selectsRange
+                                                dateFormat="dd/MM/yyyy"
+                                                locale={es}
+                                                customInput={
+                                                    <div className="font-semibold text-white bg-gray-700/50 border border-gray-600 rounded-md px-3 py-1.5 cursor-pointer hover:bg-gray-700 transition-colors w-full text-center">
+                                                        {startDate && endDate ? `${format(startDate, 'dd/MM/yy')} - ${format(endDate, 'dd/MM/yy')}` : 'Seleccionar rango'}
+                                                    </div>
+                                                }
+                                                wrapperClassName="w-full"
+                                                popperClassName="z-50"
+                                            />
+                                        )}
                                     </InfoItem>
                                 </>
                             )}
@@ -321,7 +331,10 @@ const PlanHeader = ({ plan, onUpdate, onToggleActive }) => {
                         <div className="flex items-center space-x-4 bg-gray-800/50 p-2 rounded-lg border border-gray-700">
                             {plan.is_template ? (
                                 <Button onClick={() => setIsAssignDialogOpen(true)} className="bg-green-600 hover:bg-green-500 text-white">
-                                    <Copy className="w-4 h-4 mr-2" /> Asignar Plantilla
+                                    ) : readOnly ? (
+                                    <Badge className={`px-3 py-1 ${plan.is_active ? 'bg-green-900/40 text-green-200' : 'bg-gray-700 text-gray-200'}`}>
+                                        {plan.is_active ? 'Plan Activo' : 'Plan Inactivo'}
+                                    </Badge>
                                 </Button>
                             ) : (
                                 <>
