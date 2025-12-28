@@ -8,8 +8,7 @@ import CarbsIcon from '@/components/icons/CarbsIcon';
 import FatsIcon from '@/components/icons/FatsIcon';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
-const PlanRecipeCard = ({ recipe, onEdit, onDelete, allFoods, userRestrictions }) => {
-
+const PlanRecipeCard = ({ recipe, onEdit, onDelete, allFoods, userRestrictions, readOnly = false }) => {
     const ingredients = useMemo(() => {
         if (recipe.is_private) {
                 return recipe.private_recipe_ingredients || [];
@@ -91,16 +90,22 @@ const PlanRecipeCard = ({ recipe, onEdit, onDelete, allFoods, userRestrictions }
             );
         });
     }, [ingredients, allFoods, unsafeFoodsSet]);
+    const handleEdit = () => {
+        if (readOnly) return;
+        onEdit(recipe);
+    };
 
     return (
         <div className="relative group h-full">
             <button 
-                onClick={() => onEdit(recipe)}
+                onClick={handleEdit}
                 className={cn(
                     "w-full h-full text-left bg-gradient-to-br p-5 rounded-xl transition-all flex flex-col justify-between shadow-lg border",
                     recipe.is_private ? 'from-slate-900 via-slate-900 to-violet-800/50' : 'from-slate-900 via-slate-900 to-slate-800/80', 
-                    isSafe ? "border-slate-700 hover:border-green-500/50 hover:shadow-green-500/10" : "border-red-500/80 bg-red-900/10 hover:border-red-500 hover:shadow-red-500/20"
+                    isSafe ? "border-slate-700 hover:border-green-500/50 hover:shadow-green-500/10" : "border-red-500/80 bg-red-900/10 hover:border-red-500 hover:shadow-red-500/20",
+                    readOnly ? "cursor-default hover:border-slate-700" : ""
                 )}
+                disabled={readOnly}
             >
                 <div className="flex-1">
                     <div className="flex items-start justify-between">
@@ -136,12 +141,14 @@ const PlanRecipeCard = ({ recipe, onEdit, onDelete, allFoods, userRestrictions }
                     </div>
                 </div>
             </button>
-            <button 
-                onClick={(e) => { e.stopPropagation(); onDelete(recipe.id, recipe.is_private); }} 
-                className="absolute -top-2 -right-2 bg-red-600/90 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 z-10"
-            >
-                <Trash2 className="w-4 h-4" />
-            </button>
+            {!readOnly && (
+                <button
+                    onClick={(e) => { e.stopPropagation(); onDelete(recipe.id, recipe.is_private); }}
+                    className="absolute -top-2 -right-2 bg-red-600/90 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 z-10"
+                >
+                    <Trash2 className="w-4 h-4" />
+                </button>
+            )}
         </div>
     );
 };
