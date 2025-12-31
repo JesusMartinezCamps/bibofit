@@ -14,10 +14,11 @@ import MealMacroConfiguration from '@/components/plans/constructor/MealMacroConf
 import ConflictResolutionDialog from './ConflictResolutionDialog';
 import MacroDistribution from '@/components/plans/constructor/MacroDistribution';
 import CalorieAdjustment from '@/components/plans/constructor/CalorieAdjustment';
+import { useAuth } from '@/contexts/AuthContext';
 
-const AssignPlanDialog = ({ open, onOpenChange, template, onSuccess, preselectedClient }) => {
+const AssignPlanDialog = ({ open, onOpenChange, template, onSuccess, preselectedClient, mode = 'adminAssign', forcedUserId }) => {
     const { toast } = useToast();
-
+    const { user } = useAuth();
     const buildBalancedPercentages = (mealsCount) => {
         if (!mealsCount) return [];
 
@@ -43,14 +44,14 @@ const AssignPlanDialog = ({ open, onOpenChange, template, onSuccess, preselected
         planRestrictionsForEditor,
         updateRecipeInState,
         handleAssign
-    } = useAssignPlan({ open, onOpenChange, onSuccess, preselectedClient, template });
-    
+    } = useAssignPlan({ open, onOpenChange, onSuccess, preselectedClient, template, mode, forcedUserId });
+
     const [startDate, endDate] = dateRange;
     const [userMeals, setUserMeals] = useState([]);
     const [isLoadingMeals, setIsLoadingMeals] = useState(false);
     const [clientTdee, setClientTdee] = useState(2000);
     const [step, setStep] = useState(1); // 1: Basic Info, 2: Daily Macros, 3: Meal Config
-    
+    const [autoCreatedMeals, setAutoCreatedMeals] = useState(false);
     // New state for daily macros distribution
     const [dailyMacros, setDailyMacros] = useState({ protein: 30, carbs: 40, fat: 30 });
     
@@ -73,9 +74,19 @@ const AssignPlanDialog = ({ open, onOpenChange, template, onSuccess, preselected
             setUserMeals([]);
             setIsLoadingMeals(false);
             setLocalOverrides([]);
+
+            setClientTdee(2000);
+            setAutoCreatedMeals(false);
         }
     }, [open, template]);
 
+    // Reset derived data when switching the selected user
+    useEffect(() => {
+        if (!open) return;
+        setClientTdee(2000);
+        setUserMeals([]);
+        setAutoCreatedMeals(false);
+    }, [selectedClientId, open]);
     // Compute effective TDEE based on local overrides
     const effectiveTdee = useMemo(() => {
         const today = new Date().toISOString().slice(0, 10);
@@ -108,10 +119,10 @@ const AssignPlanDialog = ({ open, onOpenChange, template, onSuccess, preselected
             }
             
             setIsLoadingMeals(true);
+            setAutoCreatedMeals(false);
             try {
                 // Fetch base user meals (where diet_plan_id IS NULL)
-                const { data: mealsData, error: mealsError } = await supabase
-                    .from('user_day_meals')
+                let { data: mealsData, error: mealsError } = await supabase                    .from('user_day_meals')
                     .select('*, day_meal:day_meals(*)')
                     .eq('user_id', selectedClientId)
                     .is('diet_plan_id', null)
@@ -125,7 +136,52 @@ const AssignPlanDialog = ({ open, onOpenChange, template, onSuccess, preselected
 
                 if (mealsError) throw mealsError;
                 if (profileError) throw profileError;
-                
+
+                const isCurrentUser = user?.id === selectedClientId;
+
+                // Auto-create base moments for the admin if missing
+                if ((mealsData?.length || 0) === 0 && isCurrentUser) {
+                    const { data: defaultDayMeals, error: dayMealsError } = await supabase
+                        .from('day_meals')
+                        .select('*')
+                        .order('display_order', { ascending: true });
+
+                    if (dayMealsError) throw dayMealsError;
+
+                    if (defaultDayMeals?.length) {
+                        const payload = defaultDayMeals.map(dm => ({
+                            user_id: selectedClientId,
+                            day_meal_id: dm.id,
+                            preferences: '',
+                            target_calories: null,
+                            target_proteins: null,
+                            target_carbs: null,
+                            target_fats: null,
+                            protein_pct: null,
+                            carbs_pct: null,
+                            fat_pct: null,
+                            diet_plan_id: null
+                        }));
+
+                        const { error: insertError } = await supabase
+                            .from('user_day_meals')
+                            .insert(payload);
+
+                        if (insertError) throw insertError;
+
+                        const refreshed = await supabase
+                            .from('user_day_meals')
+                            .select('*, day_meal:day_meals(*)')
+                            .eq('user_id', selectedClientId)
+                            .is('diet_plan_id', null)
+                            .order('display_order', { foreignTable: 'day_meals', ascending: true });
+
+                        if (refreshed.error) throw refreshed.error;
+
+                        mealsData = refreshed.data || [];
+                        setAutoCreatedMeals(true);
+                    }
+                }
                 // Initialize meals. We ensure we have valid percentages, defaulting to 0 if null.
                 const initializedMeals = (mealsData || []).map(m => ({
                     ...m,
@@ -169,12 +225,9 @@ const AssignPlanDialog = ({ open, onOpenChange, template, onSuccess, preselected
         // We fetch meals when selectedClientId changes, or when entering step 3. 
         // We also need TDEE for step 2 now.
         if (selectedClientId && open && (step === 2 || step === 3)) {
-             // Re-using the same logic to fetch TDEE in step 2 if not fetched yet
-             if(clientTdee === 2000) { // rough check if it's default
-                fetchUserMeals(); 
-             }
+            fetchUserMeals(); 
         }
-    }, [selectedClientId, open, step]);
+    }, [selectedClientId, open, step, user]);
 
     const handleNext = () => {
         if (step === 1) {
@@ -262,7 +315,7 @@ const AssignPlanDialog = ({ open, onOpenChange, template, onSuccess, preselected
                 {/* STEP 1: Basic Info */}
                 {step === 1 && (
                     <div className="grid gap-4 py-4">
-                        {!preselectedClient && (
+                        {!preselectedClient && mode !== 'selfAssign' && (
                             <div className="space-y-2">
                                 <Label>Cliente</Label>
                                 <Select value={selectedClientId} onValueChange={setSelectedClientId}>
@@ -339,14 +392,21 @@ const AssignPlanDialog = ({ open, onOpenChange, template, onSuccess, preselected
                                 <p className="text-sm text-gray-400 mt-2">No se podrán distribuir macros automáticamente. Debes configurar los momentos de comida en el perfil del cliente primero.</p>
                             </div>
                         ) : (
-                            <MealMacroConfiguration 
-                                meals={userMeals}
-                                onConfigChange={setUserMeals}
-                                effectiveTdee={effectiveTdee}
-                                macrosPct={dailyMacros}
-                                shouldAutoExpand={true}
-                                hideSaveButton={true}
-                            />
+                            <div className="space-y-3">
+                                {autoCreatedMeals && (
+                                    <div className="p-3 rounded-md border border-green-700/50 bg-green-900/20 text-sm text-green-200">
+                                        Se han creado automáticamente tus momentos del día base para poder asignar la plantilla.
+                                    </div>
+                                )}
+                                <MealMacroConfiguration
+                                    meals={userMeals}
+                                    onConfigChange={setUserMeals}
+                                    effectiveTdee={effectiveTdee}
+                                    macrosPct={dailyMacros}
+                                    shouldAutoExpand={true}
+                                    hideSaveButton={true}
+                                />
+                            </div>
                         )}
                     </div>
                 )}
