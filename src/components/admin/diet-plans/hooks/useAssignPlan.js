@@ -231,7 +231,12 @@ export const useAssignPlan = ({ open, onOpenChange, onSuccess, preselectedClient
         checkConflicts();
     }, [clientRestrictions, templateRecipes, checkConflicts]);
 
-    const handleAssign = async (mealConfigs = [], globalMacrosOverride = null) => {
+    const handleAssign = async (
+        mealConfigs = [],
+        globalMacrosOverride = null,
+        effectiveTdeeOverride = null,
+        offlineOverrides = []
+    ) => {
         const [startDate, endDate] = dateRange;
         if (!selectedClientId || !template?.id || !newPlanName || !startDate || !endDate) {
             toast({ title: 'Campos requeridos', description: 'Por favor, selecciona cliente, nombre y un rango de fechas.', variant: 'destructive' });
@@ -261,7 +266,8 @@ export const useAssignPlan = ({ open, onOpenChange, onSuccess, preselectedClient
                 .maybeSingle(); 
             
             if (profileError) throw profileError;
-            const tdee = profile?.tdee_kcal || 2000;
+            const baseTdee = profile?.tdee_kcal || 2000;
+            const effectiveTdee = effectiveTdeeOverride || baseTdee;
 
             // 2. Create Plan First
             const { data: newPlan, error: planError } = await supabase
@@ -283,13 +289,29 @@ export const useAssignPlan = ({ open, onOpenChange, onSuccess, preselectedClient
 
             if (planError) throw planError;
 
+            // 2b. Persist calorie override if provided
+            const latestOverride = offlineOverrides
+                ?.filter(o => o?.manual_calories)
+                ?.sort((a, b) => new Date(b.effective_date) - new Date(a.effective_date))[0];
+
+            if (latestOverride) {
+                const { error: overrideError } = await supabase
+                    .from('diet_plan_calorie_overrides')
+                    .insert({
+                        diet_plan_id: newPlan.id,
+                        effective_date: latestOverride.effective_date || format(new Date(), 'yyyy-MM-dd'),
+                        manual_calories: latestOverride.manual_calories
+                    });
+                if (overrideError) throw overrideError;
+            }
+
             // 3. Insert plan-specific user day meals (Macro Objectives)
             if (mealConfigs.length > 0) {
                  const totalDailyGrams = {
-                    protein: (tdee * (proteinPct / 100)) / 4,
-                    carbs: (tdee * (carbsPct / 100)) / 4,
-                    fat: (tdee * (fatPct / 100)) / 9
-                };
+                     protein: (effectiveTdee * (proteinPct / 100)) / 4,
+                     carbs: (effectiveTdee * (carbsPct / 100)) / 4,
+                     fat: (effectiveTdee * (fatPct / 100)) / 9
+                 };
 
                 const userDayMealsToInsert = mealConfigs.map(config => {
                     const p_grams = totalDailyGrams.protein * (config.protein_pct / 100);
@@ -353,7 +375,7 @@ export const useAssignPlan = ({ open, onOpenChange, onSuccess, preselectedClient
                 if (hasRecipesToProcess) {
                     const payload = {
                         user_id: selectedClientId,
-                        tdee: tdee,
+                        tdee: effectiveTdee,
                         macro_distribution: {
                             protein: proteinPct,
                             carbs: carbsPct,
