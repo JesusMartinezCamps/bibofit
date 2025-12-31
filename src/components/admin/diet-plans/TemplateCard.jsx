@@ -88,8 +88,7 @@ const TemplateCard = ({
     currentUserCenterId, 
     onCardClick,
     allowManagement = true,
-    assignLabel = "Asignar",
-    assignDisabled = false
+    assignDisabled = false // Keep this prop for disabling the button, but not for text
 }) => {
     const navigate = useNavigate();
     const { user } = useAuth();
@@ -346,7 +345,7 @@ const TemplateCard = ({
                         </div>
                     </div>
                     <div className="mt-4 pt-4 border-t border-slate-700/50 flex justify-end gap-2">
-                        {canAssignToCenter && (
+                        {allowManagement && canAssignToCenter && (
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <Button size="icon" variant="outline" onClick={(e) => { stopPropagation(e); onAssignToCenter(); }} className="h-8 w-8 bg-purple-700/30 text-purple-300 border-purple-900/50 hover:bg-purple-900/20 hover:text-purple-300">
@@ -359,7 +358,7 @@ const TemplateCard = ({
                             </Tooltip>
                         )}
 
-                         {canPromote && (
+                         {allowManagement && canPromote && (
                              <Tooltip>
                                 <TooltipTrigger asChild>
                                      <Button size="icon" variant="outline" onClick={(e) => { stopPropagation(e); onPromote(); }} className="h-8 w-8 bg-blue-700/30 text-blue-300 border-blue-900/50 hover:bg-blue-900/20 hover:text-blue-300">
@@ -372,7 +371,7 @@ const TemplateCard = ({
                              </Tooltip>
                         )}
                         
-                        {canDelete && (
+                        {allowManagement && canDelete && (
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                     <Button variant="ghost" size="icon" className="text-red-300 bg-red-700/30 hover:text-red-400 hover:bg-red-600/30 h-8 w-8" onClick={stopPropagation}>
@@ -397,9 +396,10 @@ const TemplateCard = ({
                             size="sm" 
                             onClick={(e) => { stopPropagation(e); onAssign(); }} 
                             className="bg-green-600 hover:bg-green-500 text-white h-8 text-xs z-10 relative"
-                        >
                             disabled={assignDisabled}
-                            <Copy className="w-3 h-3 mr-1.5" /> {assignLabel}                        </Button>
+                        >
+                            <Copy className="w-3 h-3 mr-1.5" /> Usar esta plantilla
+                        </Button>
                     </div>
                 </div>
                 
