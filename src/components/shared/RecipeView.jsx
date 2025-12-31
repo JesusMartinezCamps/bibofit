@@ -80,6 +80,7 @@ const EditableField = ({ value, onChange, isEditing, placeholder, type = 'input'
 
 const IngredientCard = ({ ingredient, isFreeMealView, isEditing, onRemove, onReplace, onQuantityChange, displayAsBullet = false, allFoodGroups }) => {
   const { food, quantity, macros, vitamins, minerals, conflictType, conflictDetails, recommendationDetails } = ingredient;
+  const [popoverOpen, setPopoverOpen] = useState(false);
 
   // Calculate food group name for both edit and view modes
   const foodGroupName = allFoodGroups?.find(g => String(g.id) === String(ingredient.food_group_id))?.name || 
@@ -175,9 +176,17 @@ const IngredientCard = ({ ingredient, isFreeMealView, isEditing, onRemove, onRep
 
     return (
       <li className="border-b border-slate-800/50 last:border-0">
-        <Popover>
+        <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
           <PopoverTrigger asChild>
-            <div className="flex items-center justify-between text-sm py-2 hover:bg-slate-800/20 rounded-sm transition-colors cursor-pointer w-full group">
+            <div 
+              className="flex items-center justify-between text-sm py-2 hover:bg-slate-800/20 rounded-sm transition-colors cursor-pointer w-full group"
+              onClick={(e) => {
+                 // Important: Prevent the click from immediately toggling the state back off if the popover logic handles it weirdly.
+                 // However, Radix UI PopoverTrigger usually handles toggle automatically. 
+                 // If the parent has click handlers, stopping propagation is good.
+                 e.stopPropagation();
+              }}
+            >
                <div className="flex items-center min-w-0 mr-4 w-[90%]"> 
                    <div className={cn("w-1.5 h-1.5 rounded-full mr-3 flex-shrink-0 transition-colors", 
                         hasConflict ? "bg-red-500" : (isRecommended ? "bg-green-500" : "bg-slate-600 group-hover:bg-green-400")
@@ -194,7 +203,15 @@ const IngredientCard = ({ ingredient, isFreeMealView, isEditing, onRemove, onRep
                </div>
             </div>
           </PopoverTrigger>
-          <PopoverContent className="w-80 text-white p-4 z-50 shadow-xl shadow-black/50 border-slate-700/50" style={{ backgroundColor: 'rgb(10 19 31 / 95%)' }}>
+          <PopoverContent 
+             className="w-80 text-white p-4 z-50 shadow-xl shadow-black/50 border-slate-700/50" 
+             style={{ backgroundColor: 'rgb(10 19 31 / 95%)' }}
+             // Ensure clicks inside the content don't close it
+             onInteractOutside={(e) => {
+                // Optional: Prevent closing if clicking on specific elements outside if needed, 
+                // but usually default behavior is fine.
+             }}
+          >
               <div className="flex flex-col gap-3">
                   <div>
                      <h4 className="font-bold text-lg leading-tight bg-clip-text text-transparent bg-gradient-to-r from-green-300 to-teal-400">{food.name}</h4>
@@ -251,7 +268,7 @@ const IngredientCard = ({ ingredient, isFreeMealView, isEditing, onRemove, onRep
         <div className="flex flex-col gap-2">
           <div className="flex items-center">
             <div className={cn("w-3/5 flex flex-col justify-center transition-all", isEditing && "pl-3")}>
-                <div className={cn("font-semibold", statusColorClasses.split(' ').find(c => c.startsWith('text-')))}>
+                <div className="font-semibold" style={{ color: statusColorClasses.split(' ').find(c => c.startsWith('text-'))?.replace('text-', '') }}>
                 {food.name}
                 </div>
                 {/* Show Food Group Name in small text below ingredient */}
@@ -336,7 +353,7 @@ const RecipeView = ({
   macros: totalMacros, 
   isFreeMealView = false, 
   conflicts: propConflicts, 
-  recommendations: propRecommendations,
+  recommendations: propRecommendations, 
   userRestrictions: propUserRestrictions,
   isEditing = false,
   onFormChange,
@@ -344,10 +361,10 @@ const RecipeView = ({
   onRemoveIngredient,
   onAddIngredientClick,
   actionButton,
-  ingredientsFooter,
+  ingredientsFooter, // This prop is now ignored for auto-balance button to prevent duplicates
   mealTargetMacros, // Passed from parent for auto-balancing and visual feedback
   disableAutoBalance = false,
-  enableStickyMacros = false // New prop to control sticky behavior
+  enableStickyMacros = true // New prop to control sticky behavior
 }) => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -368,7 +385,8 @@ const RecipeView = ({
                    .select('target_calories, target_proteins, target_carbs, target_fats')
                    .eq('user_id', user.id)
                    .eq('day_meal_id', recipe.day_meal_id)
-                   .single();
+                   .limit(1)
+                   .maybeSingle();
                
                if (error && error.code !== 'PGRST116') { // Ignore 'no rows' error
                    console.error('Error fetching meal targets:', error);
@@ -661,7 +679,7 @@ const RecipeView = ({
             toast({
                 title: '¡Receta autocuadrada!',
                 description: 'Se han ajustado las cantidades de los ingredientes.',
-                className: "bg-green-600 text-white border-none"
+                className: "bg-cyan-600/25 text-white border-none backdrop-blur-md"
             });
         } else {
             throw new Error(data.error || 'Respuesta inesperada de la función.');
@@ -885,22 +903,19 @@ const RecipeView = ({
             </ul>
           )}
           
-          {/* Render the footer actions (like Auto-Balance) if provided or internal logic enabled */}
-          {(ingredientsFooter || showAutoBalance) && (
+          {/* Render the auto-balance button only once, here within RecipeView */}
+          {showAutoBalance && (mealTargetMacros || fetchedTargets) && (
              <div className="mt-4 pt-2 border-t border-gray-800">
-                {ingredientsFooter}
-                {showAutoBalance && (
-                     <Button 
-                        type="button" 
-                        onClick={handleAutoBalance} 
-                        disabled={isBalancing || disableAutoBalance}
-                        variant="outline"
-                        className="w-full bg-slate-800 border-cyan-500 text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300 mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {isBalancing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Bot className="w-4 h-4 mr-2" />}
-                        Autocuadrar Macros
-                    </Button>
-                )}
+                <Button 
+                    type="button" 
+                    onClick={handleAutoBalance} 
+                    disabled={isBalancing || disableAutoBalance}
+                    variant="outline"
+                    className="w-full bg-slate-800 border-cyan-500 text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300 mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    {isBalancing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Bot className="w-4 h-4 mr-2" />}
+                    Autocuadrar Macros
+                </Button>
              </div>
           )}
         </div>
