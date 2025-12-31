@@ -2,11 +2,11 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useToast } from '@/components/ui/use-toast';
 import { format, addMonths } from 'date-fns';
-import { saveDietPlanRecipeIngredients } from '@/lib/macroCalculator';
+import { saveDietPlanRecipeIngredients, calculateMacros, saveRecipeMacros } from '@/lib/macroCalculator';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
-export const useAssignPlan = ({ open, onOpenChange, onSuccess, preselectedClient, template }) => {
+export const useAssignPlan = ({ open, onOpenChange, onSuccess, preselectedClient, template, mode = 'adminAssign', forcedUserId }) => {
     const { toast } = useToast();
     const { user } = useAuth();
     const navigate = useNavigate();
@@ -74,6 +74,12 @@ export const useAssignPlan = ({ open, onOpenChange, onSuccess, preselectedClient
             const fetchClients = async () => {
                 try {
                     let clientIds = [];
+
+                     if (mode === 'selfAssign') {
+                        // Self-assign mode: only the authenticated user is allowed
+                        setClients(preselectedClient ? [preselectedClient] : [{ user_id: forcedUserId || user.id, full_name: user.full_name || user.email }]);
+                        return;
+                     }
                     
                     if (user?.role === 'admin') {
                         const { data: clientRoles, error: rolesError } = await supabase
@@ -122,9 +128,12 @@ export const useAssignPlan = ({ open, onOpenChange, onSuccess, preselectedClient
             
             if(preselectedClient) {
                 setSelectedClientId(preselectedClient.user_id);
+            } else if (mode === 'selfAssign') {
+                setSelectedClientId(forcedUserId || user.id);
             }
             if (template) {
-                setNewPlanName(template.name);
+                const fallbackName = user?.full_name ? `${template.name} de ${user.full_name}` : template.name;
+                setNewPlanName(mode === 'selfAssign' ? fallbackName : template.name);
             }
         } else {
             setSelectedClientId('');
@@ -133,17 +142,17 @@ export const useAssignPlan = ({ open, onOpenChange, onSuccess, preselectedClient
             setConflicts({});
             setModifiedRecipes(new Map());
         }
-    }, [open, preselectedClient, template, toast, fetchTemplateRecipes, user]);
+    }, [open, preselectedClient, template, toast, fetchTemplateRecipes, user, mode, forcedUserId]);
 
     // Update plan name when client is selected
     useEffect(() => {
-        if (selectedClientId && template && clients.length > 0) {
+        if (selectedClientId && template && clients.length > 0 && mode !== 'selfAssign') {
             const client = clients.find(c => c.user_id === selectedClientId);
             if (client) {
                 setNewPlanName(`${template.name} de ${client.full_name}`);
             }
         }
-    }, [selectedClientId, template, clients]);
+    }, [selectedClientId, template, clients, mode]);
 
     const checkConflicts = useCallback(() => {
         if (!clientRestrictions || !templateRecipes.length) {
@@ -222,10 +231,14 @@ export const useAssignPlan = ({ open, onOpenChange, onSuccess, preselectedClient
         checkConflicts();
     }, [clientRestrictions, templateRecipes, checkConflicts]);
 
-    const handleAssign = async (mealConfigs = []) => {
+    const handleAssign = async (mealConfigs = [], globalMacrosOverride = null) => {
         const [startDate, endDate] = dateRange;
         if (!selectedClientId || !template?.id || !newPlanName || !startDate || !endDate) {
             toast({ title: 'Campos requeridos', description: 'Por favor, selecciona cliente, nombre y un rango de fechas.', variant: 'destructive' });
+            return;
+        }
+        if (mode === 'selfAssign' && selectedClientId !== (forcedUserId || user.id)) {
+            toast({ title: 'Permiso denegado', description: 'Solo puedes asignarte un plan a ti mismo.', variant: 'destructive' });
             return;
         }
         if (Object.keys(conflicts).length > 0) {
@@ -235,6 +248,11 @@ export const useAssignPlan = ({ open, onOpenChange, onSuccess, preselectedClient
         setIsAssigning(true);
         
         try {
+            // Determine effective macros (use override if present, else template defaults)
+            const proteinPct = globalMacrosOverride?.protein ?? template.protein_pct;
+            const carbsPct = globalMacrosOverride?.carbs ?? template.carbs_pct;
+            const fatPct = globalMacrosOverride?.fat ?? template.fat_pct;
+
             // 1. Fetch Client TDEE (needed for calculations)
             const { data: profile, error: profileError } = await supabase
                 .from('profiles')
@@ -253,9 +271,9 @@ export const useAssignPlan = ({ open, onOpenChange, onSuccess, preselectedClient
                     name: newPlanName,
                     start_date: format(startDate, 'yyyy-MM-dd'),
                     end_date: format(endDate, 'yyyy-MM-dd'),
-                    protein_pct: template.protein_pct,
-                    carbs_pct: template.carbs_pct,
-                    fat_pct: template.fat_pct,
+                    protein_pct: proteinPct,
+                    carbs_pct: carbsPct,
+                    fat_pct: fatPct,
                     is_active: true,
                     is_template: false,
                     source_template_id: template.id,
@@ -266,12 +284,11 @@ export const useAssignPlan = ({ open, onOpenChange, onSuccess, preselectedClient
             if (planError) throw planError;
 
             // 3. Insert plan-specific user day meals (Macro Objectives)
-            // This is crucial to keep the DB consistent
             if (mealConfigs.length > 0) {
                  const totalDailyGrams = {
-                    protein: (tdee * (template.protein_pct / 100)) / 4,
-                    carbs: (tdee * (template.carbs_pct / 100)) / 4,
-                    fat: (tdee * (template.fat_pct / 100)) / 9
+                    protein: (tdee * (proteinPct / 100)) / 4,
+                    carbs: (tdee * (carbsPct / 100)) / 4,
+                    fat: (tdee * (fatPct / 100)) / 9
                 };
 
                 const userDayMealsToInsert = mealConfigs.map(config => {
@@ -283,7 +300,7 @@ export const useAssignPlan = ({ open, onOpenChange, onSuccess, preselectedClient
                     return {
                         user_id: selectedClientId,
                         day_meal_id: config.day_meal_id,
-                        diet_plan_id: newPlan.id, // Linked to the specific plan we just created
+                        diet_plan_id: newPlan.id,
                         protein_pct: config.protein_pct,
                         carbs_pct: config.carbs_pct,
                         fat_pct: config.fat_pct,
@@ -298,7 +315,7 @@ export const useAssignPlan = ({ open, onOpenChange, onSuccess, preselectedClient
                 const { error: udmError } = await supabase.from('user_day_meals').insert(userDayMealsToInsert);
                 if (udmError) {
                     console.error("Error inserting plan-specific user day meals:", udmError);
-                    toast({ title: 'Advertencia', description: 'Se creó el plan pero hubo un error guardando los objetivos de macros.', variant: 'warning' });
+                    toast({ title: 'Advertencia', description: 'Se creó el plan pero hubo un error guardando los objetivos de macros.', variant: 'destructive' });
                 }
             }
 
@@ -306,7 +323,6 @@ export const useAssignPlan = ({ open, onOpenChange, onSuccess, preselectedClient
             let adjustedRecipeMap = new Map();
 
             if (mealConfigs.length > 0) {
-                // Group recipes by meal moment (day_meal_id) to prepare for edge function payload
                 const recipesByMeal = templateRecipes.reduce((acc, recipe) => {
                     const mealId = recipe.day_meal_id;
                     if (!acc[mealId]) acc[mealId] = [];
@@ -319,7 +335,6 @@ export const useAssignPlan = ({ open, onOpenChange, onSuccess, preselectedClient
                     return acc;
                 }, {});
 
-                // Construct payload for the batch edge function
                 const mealsPayload = mealConfigs.map(config => {
                     const recipesForThisMoment = recipesByMeal[config.day_meal_id] || [];
                     const recipeIds = recipesForThisMoment.map(r => r.recipeId);
@@ -333,7 +348,6 @@ export const useAssignPlan = ({ open, onOpenChange, onSuccess, preselectedClient
                     };
                 });
                 
-                // Only call edge function if we actually have recipes to process
                 const hasRecipesToProcess = mealsPayload.some(m => m.recipe_ids.length > 0);
 
                 if (hasRecipesToProcess) {
@@ -341,15 +355,13 @@ export const useAssignPlan = ({ open, onOpenChange, onSuccess, preselectedClient
                         user_id: selectedClientId,
                         tdee: tdee,
                         macro_distribution: {
-                            protein: template.protein_pct,
-                            carbs: template.carbs_pct,
-                            fat: template.fat_pct
+                            protein: proteinPct,
+                            carbs: carbsPct,
+                            fat: fatPct
                         },
                         meals: mealsPayload
                     };
-    
-                    console.log("Calling auto-balance-macros-dietPlans with payload:", payload);
-    
+        
                     const { data: batchResult, error: batchError } = await supabase.functions.invoke('auto-balance-macros-dietPlans', {
                         body: payload
                     });
@@ -361,7 +373,6 @@ export const useAssignPlan = ({ open, onOpenChange, onSuccess, preselectedClient
                     
                     if (batchResult && batchResult.results) {
                         batchResult.results.forEach(res => {
-                             // Find the template recipe entry that matches both the recipe_id and the meal moment
                              const recipesForThisMoment = recipesByMeal[res.day_meal_id];
                              const matchedTemplateRecipe = recipesForThisMoment?.find(r => r.recipeId === res.recipe_id);
                              
@@ -373,50 +384,115 @@ export const useAssignPlan = ({ open, onOpenChange, onSuccess, preselectedClient
                 }
             }
 
-            // 5. Insert Recipes
+            // 5. Insert Recipes with proper ingredient handling
             for (const recipe of templateRecipes) {
                 const modifiedVersion = modifiedRecipes.get(recipe.id);
-                const recipeToCopy = modifiedVersion || recipe;
+                
+                let ingredientsToSave = [];
+                let source = "original";
+                let recipePayload = {};
+                
+                // --- LOGIC SPLIT: Modified vs Original/Auto-Balanced ---
+                
+                if (modifiedVersion) {                    
+                    // CASE 1: MANUAL MODIFICATION
+                    // As requested: New independent recipe, ignoring original recipe_id, strictly using custom_ingredients
+                    recipePayload = {
+                        diet_plan_id: newPlan.id,
+                        recipe_id: null, // Detach from original recipe
+                        day_meal_id: recipe.day_meal_id,
+                        is_customized: true,
+                        custom_name: modifiedVersion.custom_name || modifiedVersion.name,
+                        custom_prep_time_min: modifiedVersion.custom_prep_time_min || modifiedVersion.prep_time_min,
+                        custom_difficulty: modifiedVersion.custom_difficulty || modifiedVersion.difficulty,
+                        custom_instructions: modifiedVersion.custom_instructions || modifiedVersion.instructions,
+                        parent_diet_plan_recipe_id: recipe.id // Maintain hierarchy link
+                    };
+                    
+                    ingredientsToSave = modifiedVersion.custom_ingredients || [];
+                    source = "manual-modified-custom-ingredients";
 
-                // Create the diet_plan_recipe entry
+                } else {                    
+                    // CASE 2: STANDARD / AUTO-BALANCED
+                    // Standard copy of template recipe
+                    recipePayload = {
+                        diet_plan_id: newPlan.id,
+                        recipe_id: recipe.recipe_id, // Keep link to original recipe
+                        day_meal_id: recipe.day_meal_id,
+                        is_customized: true,
+                        custom_name: recipe.custom_name || recipe.recipe?.name,
+                        custom_prep_time_min: recipe.custom_prep_time_min || recipe.recipe?.prep_time_min,
+                        custom_difficulty: recipe.custom_difficulty || recipe.recipe?.difficulty,
+                        custom_instructions: recipe.custom_instructions || recipe.recipe?.instructions,
+                        parent_diet_plan_recipe_id: recipe.id
+                    };
+
+                    // Check for Auto-balanced ingredients
+                    if (adjustedRecipeMap.has(recipe.id)) {
+                        ingredientsToSave = adjustedRecipeMap.get(recipe.id);
+                        source = "auto-balanced";
+                    } else {
+                        // Fallback to original ingredients
+                        ingredientsToSave = recipe.custom_ingredients?.length > 0 
+                            ? recipe.custom_ingredients 
+                            : recipe.recipe?.recipe_ingredients;
+                        source = "original-template";
+                    }
+                }
+
+                // Insert the diet_plan_recipe entry
                 const { data: newPlanRecipe, error: recipeInsertError } = await supabase
                     .from('diet_plan_recipes')
-                    .insert({
-                        diet_plan_id: newPlan.id,
-                        recipe_id: recipeToCopy.recipe_id,
-                        day_meal_id: recipeToCopy.day_meal_id,
-                        is_customized: true,
-                        custom_name: modifiedVersion ? modifiedVersion.custom_name : recipeToCopy.recipe.name,
-                        custom_prep_time_min: modifiedVersion ? modifiedVersion.custom_prep_time_min : recipeToCopy.recipe.prep_time_min,
-                        custom_difficulty: modifiedVersion ? modifiedVersion.custom_difficulty : recipeToCopy.recipe.difficulty,
-                        custom_instructions: modifiedVersion ? modifiedVersion.custom_instructions : recipeToCopy.recipe.instructions,
-                        // Reference the parent recipe in the template (for tracking updates later if needed)
-                        parent_diet_plan_recipe_id: recipe.id 
-                    })
+                    .insert(recipePayload)
                     .select('id')
                     .single();
 
                 if (recipeInsertError) throw recipeInsertError;
+                const newRecipeId = newPlanRecipe.id;
+                
+                // Normalization of ingredients
+                const normalizedIngredients = (ingredientsToSave || []).map((ing, idx) => {
+                    const foodId = ing.food_id || ing.food?.id;
+                    const grams = parseFloat(ing.grams || ing.quantity || 0);
+                    
+                    const normalized = {
+                        diet_plan_recipe_id: newRecipeId,
+                        food_id: foodId ? parseInt(foodId, 10) : undefined,
+                        grams: grams,
+                        food: ing.food // Preserve for macro calculation
+                    };
 
-                // Determine ingredients
-                // Priority: 1. Adjusted by edge function, 2. Manual modification in UI, 3. Original template ingredients
-                let ingredientsToSave = adjustedRecipeMap.get(recipe.id);
+                    return normalized;
+                }).filter(i => {
+                    const isValid = i.food_id && i.grams > 0;
+                    if (!isValid) console.warn(`[DEBUG] Recipe ${recipe.id}: Dropping invalid ingredient`, i);
+                    return isValid;
+                });
                 
-                if (!ingredientsToSave) {
-                    ingredientsToSave = modifiedVersion 
-                        ? modifiedVersion.ingredients 
-                        : (recipeToCopy.custom_ingredients?.length > 0 ? recipeToCopy.custom_ingredients : recipeToCopy.recipe.recipe_ingredients);
+                // Save the ingredients
+                if (normalizedIngredients.length > 0) {
+                    const result = await saveDietPlanRecipeIngredients(newRecipeId, normalizedIngredients);
+                    if (!result.success) {
+                        console.error(`[DEBUG] Recipe ${recipe.id}: Error saving ingredients:`, result.error);
+                    }
                 }
-                
-                await saveDietPlanRecipeIngredients(newPlanRecipe.id, ingredientsToSave);
+
+                // Calculate and save macros immediately based on the final ingredients
+                const macros = calculateMacros(normalizedIngredients);
+                await saveRecipeMacros(null, newRecipeId, macros);
             }
             
-            toast({ title: 'Éxito', description: 'Plan asignado correctamente.' });
+            toast({ title: 'Éxito', description: 'Plan asignado correctamente con todas las modificaciones.' });
             if(onSuccess) onSuccess();
             onOpenChange(false);
+
+            // Navigate to the appropriate detail page
+            if (mode === 'selfAssign') {
+                navigate(`/my-plan`);
+            } else {
+                navigate(`/admin-panel/plan-detail/${newPlan.id}?scroll=recipes`);
+            }
             
-            // Navigate and scroll to recipes section
-            navigate(`/admin-panel/plan-detail/${newPlan.id}?scroll=recipes`);
         } catch (error) {
             console.error("Assign error", error);
             toast({ title: 'Error', description: `No se pudo asignar el plan: ${error.message}`, variant: 'destructive' });
