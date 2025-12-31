@@ -271,12 +271,7 @@ const AssignPlanDialog = ({ open, onOpenChange, template, onSuccess, preselected
                                  (Math.round(totalGrams.fat * (m.fat_pct / 100)) * 9)
             }));
             
-            // Pass meals config, macros, AND potentially we should save the override 
-            // handleAssign usually handles the creation of the plan. 
-            // If we want to persist the override, we might need to modify handleAssign 
-            // or do it after success if we had the new plan ID. 
-            // For now, we rely on calculating targets correctly based on the override.
-            handleAssign(mealsWithTargets, dailyMacros);
+            handleAssign(mealsWithTargets, dailyMacros, effectiveTdee, localOverrides);
         }
     };
 
