@@ -13,11 +13,22 @@ import TemplatePropertiesSection from '@/components/admin/diet-plans/TemplatePro
 import TemplateUsersSection from '@/components/admin/diet-plans/TemplateUsersSection';
 import { cn } from '@/lib/utils';
 
-const AdminDietPlanDetailPage = () => {
-    const { planId } = useParams();
+const AdminDietPlanDetailPage = ({
+    planIdOverride,
+    mode = 'admin',
+    readOnlyProperties = false,
+    hideUserAssignmentPanel = false,
+    canEditMacros = true,
+    canEditRecipes = true
+}) => {
+    const { planId: routePlanId } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
     const { toast } = useToast();
+    
+    // Determine the effective plan ID (prop takes precedence over route param)
+    const planId = planIdOverride || routePlanId;
+
     const [plan, setPlan] = useState(null);
     const [creator, setCreator] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -45,6 +56,7 @@ const AdminDietPlanDetailPage = () => {
     }, [calculatedTdee, calorieOverrides]);
 
     const fetchData = useCallback(async (forceReload = false) => {
+        if (!planId) return;
         if (!forceReload) setLoading(true);
         try {
             const { data: planData, error: planError } = await supabase
@@ -110,23 +122,25 @@ const AdminDietPlanDetailPage = () => {
 
         } catch (error) {
             toast({ title: "Error", description: `No se pudo cargar el plan: ${error.message}`, variant: "destructive" });
-            navigate('/admin-panel/content/plan-templates');
+            if (mode === 'admin') navigate('/admin-panel/content/plan-templates');
         } finally {
             if (!forceReload) setLoading(false);
         }
-    }, [planId, toast, navigate]);
+    }, [planId, toast, navigate, mode]);
 
     useEffect(() => {
         fetchData();
     }, [fetchData]);
     
+    // Auto-save macros effect (debounced)
     useEffect(() => {
+        // Skip auto-save if editing macros is disabled or no plan loaded
+        if (!canEditMacros || !plan) return;
+
         if (debounceTimeout.current) {
             clearTimeout(debounceTimeout.current);
         }
         debounceTimeout.current = setTimeout(async () => {
-            if (!plan) return;
-
             const { error } = await supabase.from('diet_plans').update({
                 protein_pct: macrosPct.protein,
                 carbs_pct: macrosPct.carbs,
@@ -143,14 +157,15 @@ const AdminDietPlanDetailPage = () => {
                 clearTimeout(debounceTimeout.current);
             }
         };
-    }, [macrosPct, plan, toast]);
+    }, [macrosPct, plan, toast, canEditMacros]);
 
     const handleMacrosPctChange = (newMacros) => {
+        if (!canEditMacros) return;
         setMacrosPct(newMacros);
     };
 
     const handleSaveMealConfig = useCallback(async (newMeals) => {
-        if (isTemplate) return;
+        if (isTemplate || !canEditMacros) return;
         try {
             const totalGrams = {
                 protein: Math.round((effectiveTdee * (macrosPct.protein / 100)) / 4),
@@ -188,14 +203,14 @@ const AdminDietPlanDetailPage = () => {
         } catch (error) {
             toast({ title: 'Error', description: `No se pudo guardar: ${error.message}`, variant: 'destructive' });
         }
-    }, [isTemplate, effectiveTdee, macrosPct, toast, fetchData]);
+    }, [isTemplate, effectiveTdee, macrosPct, toast, fetchData, canEditMacros]);
 
     const handlePlanUpdate = useCallback(() => {
         fetchData(true);
     }, [fetchData]);
 
     const handleToggleActive = useCallback(async (newActiveState) => {
-        if (!plan || plan.is_template) return;
+        if (!plan || plan.is_template || readOnlyProperties) return;
     
         try {
             const { error } = await supabase
@@ -229,23 +244,31 @@ const AdminDietPlanDetailPage = () => {
                 variant: 'destructive',
             });
         }
-    }, [plan, toast]);
+    }, [plan, toast, readOnlyProperties]);
     
-    if (loading) return <div className="flex justify-center items-center h-screen"><Loader2 className="w-12 h-12 animate-spin text-green-500" /></div>;
+    if (loading) return <div className="flex justify-center items-center h-64"><Loader2 className="w-12 h-12 animate-spin text-green-500" /></div>;
     if (!plan) return <div className="text-center text-red-500 p-8">No se encontró el plan de dieta.</div>;
 
     const clientName = plan?.profile?.full_name || 'Cliente';
 
     return (
-        <main className="w-full p-4 lg:p-8 space-y-8">
+        <main className="w-full space-y-8">
             <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
                 {!isTemplate ? (
-                    // CLIENT PLAN VIEW (Legacy Layout)
+                    // CLIENT PLAN VIEW (Assigned Plan)
                     <>
-                         <h1 className="text-4xl md:text-5xl font-extrabold mb-8 mt-6 text-center bg-gradient-to-r from-[#51ff77bf] to-green-300 bg-clip-text text-transparent">
-                            Gestor de Dieta de {clientName}
-                        </h1>
-                        <PlanHeader plan={plan} onUpdate={handlePlanUpdate} onToggleActive={handleToggleActive} />
+                         {mode === 'admin' && (
+                             <h1 className="text-4xl md:text-5xl font-extrabold mb-8 mt-6 text-center bg-gradient-to-r from-[#51ff77bf] to-green-300 bg-clip-text text-transparent">
+                                Gestor de Dieta de {clientName}
+                            </h1>
+                         )}
+                        
+                        <PlanHeader 
+                            plan={plan} 
+                            onUpdate={handlePlanUpdate} 
+                            onToggleActive={handleToggleActive} 
+                            readOnly={readOnlyProperties}
+                        />
 
                         <div className="my-8 grid grid-cols-1 lg:grid-cols-5 gap-8">
                              <div className="lg:col-span-2">
@@ -257,6 +280,7 @@ const AdminDietPlanDetailPage = () => {
                                     dietPlanId={plan.id}
                                     onOverridesUpdate={() => fetchData(true)}
                                     isTemplate={isTemplate}
+                                    readOnly={!canEditMacros}
                                 />
                             </div>
                             {meals.length > 0 && (
@@ -267,6 +291,8 @@ const AdminDietPlanDetailPage = () => {
                                         effectiveTdee={effectiveTdee}
                                         macrosPct={macrosPct}
                                         shouldAutoExpand={shouldFocusMacros}
+                                        readOnly={!canEditMacros}
+                                        hideSaveButton={!canEditMacros}
                                     />
                                 </div>
                             )}
@@ -275,23 +301,26 @@ const AdminDietPlanDetailPage = () => {
                             plan={plan} 
                             onUpdate={handlePlanUpdate} 
                             userDayMeals={meals} 
-                            isAssignedPlan={true} // Explicitly passing true for assigned diet plans
+                            isAssignedPlan={true} 
+                            readOnly={!canEditRecipes}
                         />
                     </>
                 ) : (
-                    // TEMPLATE VIEW (New Layout)
+                    // TEMPLATE VIEW
                     <div className="space-y-6">
                         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                            <div className="xl:col-span-2">
+                            <div className={cn("xl:col-span-3", !hideUserAssignmentPanel && "xl:col-span-2")}>
                                 <TemplatePropertiesSection 
                                     plan={plan} 
                                     creator={creator}
                                     onUpdate={handlePlanUpdate} 
                                 />
                             </div>
-                            <div className="xl:col-span-1">
-                                <TemplateUsersSection plan={plan} onUpdate={handlePlanUpdate} />
-                            </div>
+                            {!hideUserAssignmentPanel && (
+                                <div className="xl:col-span-1">
+                                    <TemplateUsersSection plan={plan} onUpdate={handlePlanUpdate} />
+                                </div>
+                            )}
                         </div>
                         
                         <div className="grid grid-cols-1">
@@ -303,10 +332,15 @@ const AdminDietPlanDetailPage = () => {
                                 dietPlanId={plan.id}
                                 onOverridesUpdate={() => fetchData(true)}
                                 isTemplate={isTemplate}
+                                readOnly={!canEditMacros}
                             />
                         </div>
                         
-                        <PlanRecipesView plan={plan} onUpdate={handlePlanUpdate} />
+                        <PlanRecipesView 
+                            plan={plan} 
+                            onUpdate={handlePlanUpdate} 
+                            readOnly={!canEditRecipes}
+                        />
                     </div>
                 )}
             </motion.div>
