@@ -30,8 +30,10 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Search, UserCog, Building2, UserPlus, X } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 const UsersManagerPage = () => {
+    const { user: currentUser } = useAuth();
     const [searchParams] = useSearchParams();
     const [users, setUsers] = useState([]);
     const [roles, setRoles] = useState([]);
@@ -52,6 +54,8 @@ const UsersManagerPage = () => {
     const [isCenterClientsDialogOpen, setIsCenterClientsDialogOpen] = useState(false);
     const [selectedCoachForClients, setSelectedCoachForClients] = useState(null);
     const [coachCenterClients, setCoachCenterClients] = useState([]);
+
+    const isAdmin = currentUser?.role === 'admin';
 
     useEffect(() => {
         const querySearch = searchParams.get('search');
@@ -205,12 +209,25 @@ const UsersManagerPage = () => {
 
     // Helper to get available coaches for a client
     const getAvailableCoaches = (client) => {
-        if (!client.center_id) return [];
-        return users.filter(u => 
-            u.role === 'coach' && 
-            u.center_id === client.center_id && 
-            !client.assigned_coaches.some(ac => ac.user_id === u.user_id)
-        );
+        if (!client) return [];
+        
+        // If not admin, strict center check is required
+        if (!isAdmin && !client.center_id) return [];
+
+        return users.filter(u => {
+            // 1. Must be a coach OR be the current admin (to allow self-assignment)
+            const isCoach = u.role === 'coach';
+            const isMeAdmin = isAdmin && u.user_id === currentUser.id;
+            
+            if (!isCoach && !isMeAdmin) return false;
+
+            // 2. Prevent duplicate assignment
+            if (client.assigned_coaches.some(ac => ac.user_id === u.user_id)) return false;
+
+            // 3. Center restrictions
+            if (isAdmin) return true; // Admins can assign any coach/themselves regardless of center
+            return u.center_id === client.center_id;
+        });
     };
 
     const handleViewCenterClients = (coach) => {
@@ -272,10 +289,19 @@ const UsersManagerPage = () => {
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <Input 
                             placeholder="Buscar por nombre o email..." 
-                            className="pl-9 bg-slate-800/50 border-slate-700 text-white"
+                            className="pl-9 pr-8 bg-slate-800/50 border-slate-700 text-white"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
+                         {searchTerm && (
+                            <button
+                                onClick={() => setSearchTerm('')}
+                                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+                                aria-label="Limpiar búsqueda"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
@@ -363,8 +389,9 @@ const UsersManagerPage = () => {
                                                         setSelectedClientForCoach(user);
                                                         setIsCoachDialogOpen(true);
                                                     }}
-                                                    disabled={!user.center_id}
-                                                    title={!user.center_id ? "Asigna un centro primero" : "Asignar entrenador"}
+                                                    // Admins can assign even if no center. Coaches require center match.
+                                                    disabled={!isAdmin && !user.center_id}
+                                                    title={(!isAdmin && !user.center_id) ? "Asigna un centro primero" : "Asignar entrenador"}
                                                 >
                                                     <UserPlus className="w-3 h-3" />
                                                 </Button>
@@ -426,7 +453,10 @@ const UsersManagerPage = () => {
                     <DialogHeader>
                         <DialogTitle>Asignar Entrenador</DialogTitle>
                         <DialogDescription>
-                            Selecciona un entrenador del centro <strong>{selectedClientForCoach?.center_name}</strong>.
+                            {isAdmin 
+                                ? "Como administrador, puedes asignar cualquier entrenador o asignarte a ti mismo, independientemente del centro."
+                                : <>Selecciona un entrenador del centro <strong>{selectedClientForCoach?.center_name}</strong>.</>
+                            }
                         </DialogDescription>
                     </DialogHeader>
                     <div className="py-4">
@@ -437,10 +467,13 @@ const UsersManagerPage = () => {
                             <SelectContent className="bg-slate-800 border-slate-700 text-white">
                                 {selectedClientForCoach && getAvailableCoaches(selectedClientForCoach).length > 0 ? (
                                     getAvailableCoaches(selectedClientForCoach).map(c => (
-                                        <SelectItem key={c.user_id} value={c.user_id}>{c.full_name}</SelectItem>
+                                        <SelectItem key={c.user_id} value={c.user_id}>
+                                            {c.full_name} {isAdmin && c.user_id === currentUser.id ? '(Yo)' : ''}
+                                            {isAdmin && c.center_name ? ` - ${c.center_name}` : ''}
+                                        </SelectItem>
                                     ))
                                 ) : (
-                                    <div className="p-2 text-sm text-gray-500 text-center">No hay entrenadores disponibles en este centro</div>
+                                    <div className="p-2 text-sm text-gray-500 text-center">No hay entrenadores disponibles</div>
                                 )}
                             </SelectContent>
                         </Select>
