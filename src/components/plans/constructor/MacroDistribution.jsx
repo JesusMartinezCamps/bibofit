@@ -35,7 +35,7 @@ const MacroInput = ({ value, onChange, icon, label, colorClass, grams,  readOnly
 const MacroDistribution = ({ effectiveTdee, macrosPct: initialMacrosPct, onMacrosPctChange, calorieOverrides, dietPlanId, onOverridesUpdate, isTemplate, readOnly = false }) => {
     const [macrosPct, setMacrosPct] = useState(initialMacrosPct);
     const debounceTimeout = useRef(null);
-    const [open, setOpen] = useState(defaultOpen); 
+    const [open, setOpen] = useState(true); 
 
     useEffect(() => {
         setMacrosPct(initialMacrosPct);
