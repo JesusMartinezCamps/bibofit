@@ -52,6 +52,10 @@ import CreateSnackPage from '@/pages/CreateSnackPage';
 import WeightHistoryPage from '@/pages/WeightHistoryPage';
 import UserDietTemplatesPage from '@/pages/UserDietTemplatesPage';
 
+// New Refactored Pages
+import ClientPlanTemplatesPage from '@/pages/ClientPlanTemplatesPage';
+import ClientPlanDetailPage from '@/pages/ClientPlanDetailPage';
+
 // Coach Pages
 import CoachDashboard from '@/pages/CoachDashboard';
 import CoachRemindersPage from '@/pages/coach/CoachRemindersPage';
@@ -99,6 +103,14 @@ const AppRoutes = () => {
         } 
       />
 
+      <Route 
+        path="/dashboard" 
+        element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        } 
+      />
       
       {/* Coach Routes */}
       <Route 
@@ -334,7 +346,9 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
-      <Route
+      
+      {/* Legacy Route redirecting to new logic */}
+      <Route 
         path="/profile/diet-templates"
         element={
           <ProtectedRoute>
@@ -342,6 +356,25 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+
+      {/* NEW ROUTES FOR REFACTORED DIET MANAGEMENT */}
+      <Route 
+        path="/diet-templates"
+        element={
+          <ProtectedRoute>
+            <ClientPlanTemplatesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route 
+        path="/my-plan"
+        element={
+          <ProtectedRoute>
+            <ClientPlanDetailPage />
+          </ProtectedRoute>
+        }
+      />
+
        <Route 
         path="/client-profile/:userId"
         element={
@@ -537,7 +570,7 @@ const AppContent = () => {
     const noHeaderPaths = ['/login', '/signup', '/reset-password', '/update-password'];
     const showHeader = !noHeaderPaths.some(path => location.pathname.startsWith(path));
     
-    const noMobilePaddingPaths = ['/plan/dieta', '/create-snack', '/create-free-recipe', '/admin-panel/plan-detail', '/dashboard', '/coach-dashboard', '/plan']; // Added /plan
+    const noMobilePaddingPaths = ['/plan/dieta', '/create-snack', '/create-free-recipe', '/admin-panel/plan-detail', '/dashboard', '/coach-dashboard', '/plan', '/admin-panel/advisories']; 
     const shouldRemoveMobilePadding = noMobilePaddingPaths.some(path => location.pathname.startsWith(path));
     const isProfileDataPage = location.pathname === '/profile/data';
 
@@ -639,10 +672,15 @@ const AppContent = () => {
                         { label: 'Perfil', href: '/profile' },
                         { label: 'Mis Recetas Libres' }
                     ];
-                } else if (path === '/profile/diet-templates') { // New breadcrumb
+                } else if (path === '/diet-templates') {
                     newBreadcrumbs = [
                         { label: 'Perfil', href: '/profile' },
-                        { label: 'Mis Plantillas de Dieta' }
+                        { label: 'Catálogo de Plantillas' }
+                    ];
+                } else if (path === '/my-plan') {
+                    newBreadcrumbs = [
+                        { label: 'Perfil', href: '/profile' },
+                        { label: 'Mi Plan Actual' }
                     ];
                 }
                 
