@@ -1,18 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useAssignPlan } from './hooks/useAssignPlan';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { useToast } from '@/components/ui/use-toast';
 import DatePicker from 'react-datepicker';
 import { es } from 'date-fns/locale';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import MealMacroConfiguration from '@/components/plans/constructor/MealMacroConfiguration';
 import ConflictResolutionDialog from './ConflictResolutionDialog';
+import MacroDistribution from '@/components/plans/constructor/MacroDistribution';
+import CalorieAdjustment from '@/components/plans/constructor/CalorieAdjustment';
 
 const AssignPlanDialog = ({ open, onOpenChange, template, onSuccess, preselectedClient }) => {
+    const { toast } = useToast();
+
     const buildBalancedPercentages = (mealsCount) => {
         if (!mealsCount) return [];
 
@@ -21,6 +26,7 @@ const AssignPlanDialog = ({ open, onOpenChange, template, onSuccess, preselected
 
         return Array.from({ length: mealsCount }, (_, idx) => base + (idx < remainder ? 1 : 0));
     };
+
     const {
         clients,
         selectedClientId,
@@ -43,19 +49,57 @@ const AssignPlanDialog = ({ open, onOpenChange, template, onSuccess, preselected
     const [userMeals, setUserMeals] = useState([]);
     const [isLoadingMeals, setIsLoadingMeals] = useState(false);
     const [clientTdee, setClientTdee] = useState(2000);
-    const [step, setStep] = useState(1); // 1: Basic Info, 2: Meal Config
+    const [step, setStep] = useState(1); // 1: Basic Info, 2: Daily Macros, 3: Meal Config
+    
+    // New state for daily macros distribution
+    const [dailyMacros, setDailyMacros] = useState({ protein: 30, carbs: 40, fat: 30 });
+    
+    // State for local calorie overrides (Offline mode)
+    const [localOverrides, setLocalOverrides] = useState([]);
 
-    // Reset state when dialog closes
+    // Reset state when dialog closes or template changes
     useEffect(() => {
-        if (!open) {
+        if (open) {
+            if (step === 1) { 
+                setDailyMacros({
+                    protein: template?.protein_pct || 30,
+                    carbs: template?.carbs_pct || 40,
+                    fat: template?.fat_pct || 30
+                });
+                setLocalOverrides([]); // Reset local overrides
+            }
+        } else {
             setStep(1);
             setUserMeals([]);
             setIsLoadingMeals(false);
-            return;
+            setLocalOverrides([]);
         }
-    }, [open]);
+    }, [open, template]);
 
-    // Fetch user base meals when entering step 2
+    // Compute effective TDEE based on local overrides
+    const effectiveTdee = useMemo(() => {
+        const today = new Date().toISOString().slice(0, 10);
+        // Sort overrides by date desc, pick the latest one applicable (<= today)
+        // Since in assignment we usually set for "today" or future, we check broadly.
+        // For simplicity in this dialog, we prioritize the latest added override.
+        const applicableOverride = [...localOverrides]
+             .sort((a, b) => new Date(b.effective_date) - new Date(a.effective_date))[0];
+
+        return applicableOverride ? applicableOverride.manual_calories : clientTdee;
+    }, [clientTdee, localOverrides]);
+
+    const handleOfflineOverrideChange = (action) => {
+        if (action.type === 'add') {
+            setLocalOverrides(prev => [...prev, action.data]);
+        } else if (action.type === 'update') {
+            setLocalOverrides(prev => prev.map(o => o.id === action.id ? { ...o, manual_calories: action.value } : o));
+        } else if (action.type === 'delete') {
+            setLocalOverrides(prev => prev.filter(o => o.id !== action.id));
+        }
+    };
+
+
+    // Fetch user base meals when entering step 3 (Meal Config)
     useEffect(() => {
         const fetchUserMeals = async () => {
             if (!selectedClientId) {
@@ -85,7 +129,6 @@ const AssignPlanDialog = ({ open, onOpenChange, template, onSuccess, preselected
                 // Initialize meals. We ensure we have valid percentages, defaulting to 0 if null.
                 const initializedMeals = (mealsData || []).map(m => ({
                     ...m,
-                    // IMPORTANT: We use the existing percentages from the profile as a starting point, or 0
                     protein_pct: m.protein_pct || 0,
                     carbs_pct: m.carbs_pct || 0,
                     fat_pct: m.fat_pct || 0,
@@ -94,6 +137,7 @@ const AssignPlanDialog = ({ open, onOpenChange, template, onSuccess, preselected
                 
                 // Sort locally in case DB sort was ambiguous
                 initializedMeals.sort((a, b) => (a.day_meal?.display_order || 0) - (b.day_meal?.display_order || 0));
+                
                 const hasStoredMacros = initializedMeals.reduce((acc, meal) => ({
                     protein: acc.protein + (meal.protein_pct || 0),
                     carbs: acc.carbs + (meal.carbs_pct || 0),
@@ -122,27 +166,46 @@ const AssignPlanDialog = ({ open, onOpenChange, template, onSuccess, preselected
             }
         };
 
-        if (selectedClientId && open && step === 2) {
-            fetchUserMeals();
+        // We fetch meals when selectedClientId changes, or when entering step 3. 
+        // We also need TDEE for step 2 now.
+        if (selectedClientId && open && (step === 2 || step === 3)) {
+             // Re-using the same logic to fetch TDEE in step 2 if not fetched yet
+             if(clientTdee === 2000) { // rough check if it's default
+                fetchUserMeals(); 
+             }
         }
     }, [selectedClientId, open, step]);
 
     const handleNext = () => {
         if (step === 1) {
+            // Validate Step 1
             if (!selectedClientId || !newPlanName || !startDate || !endDate) return;
              if (Object.keys(conflicts).length > 0) {
                 setIsConflictModalOpen(true);
                 return;
             }
-
             setStep(2);
+        } else if (step === 2) {
+            // Validate Step 2
+            const total = dailyMacros.protein + dailyMacros.carbs + dailyMacros.fat;
+            if (total !== 100) {
+                toast({
+                    title: "Error de validación",
+                    description: `Los porcentajes deben sumar 100%. Actualmente suman ${total}%.`,
+                    variant: "destructive"
+                });
+                return;
+            }
+            setStep(3);
         } else {
+            // Step 3 -> Submit
+            
             // Pre-calculate the target grams and calories before sending to handleAssign
-            // This ensures the hook receives fully computed data for insertion
+            // using the EFFECTIVE TDEE (which includes manual overrides)
             const totalGrams = {
-                protein: Math.round((clientTdee * (template?.protein_pct || 30) / 100) / 4),
-                carbs: Math.round((clientTdee * (template?.carbs_pct || 40) / 100) / 4),
-                fat: Math.round((clientTdee * (template?.fat_pct || 30) / 100) / 9)
+                protein: Math.round((effectiveTdee * (dailyMacros.protein / 100)) / 4),
+                carbs: Math.round((effectiveTdee * (dailyMacros.carbs / 100)) / 4),
+                fat: Math.round((effectiveTdee * (dailyMacros.fat / 100)) / 9)
             };
 
             const mealsWithTargets = userMeals.map(m => ({
@@ -155,7 +218,35 @@ const AssignPlanDialog = ({ open, onOpenChange, template, onSuccess, preselected
                                  (Math.round(totalGrams.fat * (m.fat_pct / 100)) * 9)
             }));
             
-            handleAssign(mealsWithTargets);
+            // Pass meals config, macros, AND potentially we should save the override 
+            // handleAssign usually handles the creation of the plan. 
+            // If we want to persist the override, we might need to modify handleAssign 
+            // or do it after success if we had the new plan ID. 
+            // For now, we rely on calculating targets correctly based on the override.
+            handleAssign(mealsWithTargets, dailyMacros);
+        }
+    };
+
+    const handleBack = () => {
+        if (step > 1) setStep(step - 1);
+        else onOpenChange(false);
+    };
+
+    const getDialogTitle = () => {
+        switch(step) {
+            case 1: return `Asignar Plantilla "${template?.name}"`;
+            case 2: return "Distribución Diaria de Macros";
+            case 3: return "Reparto por Comida";
+            default: return "";
+        }
+    };
+
+    const getDialogDescription = () => {
+        switch(step) {
+            case 1: return "Configura los detalles básicos del plan.";
+            case 2: return "Ajusta las calorías totales y los objetivos globales de macronutrientes.";
+            case 3: return "Ajusta la distribución de macros para las comidas del usuario.";
+            default: return "";
         }
     };
 
@@ -164,12 +255,11 @@ const AssignPlanDialog = ({ open, onOpenChange, template, onSuccess, preselected
         <DialogContent className="w-full sm:w-[90vw] sm:max-w-[90vw] max-w-none h-[80vh] h-auto bg-[#1a1e23] border-gray-700 text-white flex flex-col overflow-y-auto">
 
                 <DialogHeader>
-                    <DialogTitle>Asignar Plantilla "{template?.name}"</DialogTitle>
-                    <DialogDescription>
-                        {step === 1 ? "Configura los detalles básicos del plan." : "Ajusta la distribución de macros para las comidas del usuario."}
-                    </DialogDescription>
+                    <DialogTitle>{getDialogTitle()}</DialogTitle>
+                    <DialogDescription>{getDialogDescription()}</DialogDescription>
                 </DialogHeader>
 
+                {/* STEP 1: Basic Info */}
                 {step === 1 && (
                     <div className="grid gap-4 py-4">
                         {!preselectedClient && (
@@ -217,7 +307,29 @@ const AssignPlanDialog = ({ open, onOpenChange, template, onSuccess, preselected
                     </div>
                 )}
 
+                {/* STEP 2: Daily Macros & Calories */}
                 {step === 2 && (
+                    <div className="py-4 space-y-6">
+                        <CalorieAdjustment 
+                            calculatedTdee={clientTdee}
+                            calorieOverrides={localOverrides}
+                            onOverridesUpdate={() => {}} // No-op in offline mode
+                            isOffline={true}
+                            onOfflineChange={handleOfflineOverrideChange}
+                        />
+                        
+                        <MacroDistribution 
+                            effectiveTdee={effectiveTdee}
+                            macrosPct={dailyMacros}
+                            onMacrosPctChange={setDailyMacros}
+                            isTemplate={true} // Hides internal CalorieAdjustment
+                            defaultOpen={true}
+                        />
+                    </div>
+                )}
+
+                {/* STEP 3: Meal Config */}
+                {step === 3 && (
                     <div className="py-4 space-y-4">
                         {isLoadingMeals ? (
                             <div className="flex justify-center p-8"><Loader2 className="animate-spin text-green-500" /></div>
@@ -230,12 +342,8 @@ const AssignPlanDialog = ({ open, onOpenChange, template, onSuccess, preselected
                             <MealMacroConfiguration 
                                 meals={userMeals}
                                 onConfigChange={setUserMeals}
-                                effectiveTdee={clientTdee}
-                                macrosPct={{ 
-                                    protein: template?.protein_pct || 30, 
-                                    carbs: template?.carbs_pct || 40, 
-                                    fat: template?.fat_pct || 30 
-                                }}
+                                effectiveTdee={effectiveTdee}
+                                macrosPct={dailyMacros}
                                 shouldAutoExpand={true}
                                 hideSaveButton={true}
                             />
@@ -244,26 +352,28 @@ const AssignPlanDialog = ({ open, onOpenChange, template, onSuccess, preselected
                 )}
 
                 <DialogFooter className="flex justify-between sm:justify-between w-full">
-                    {step === 2 ? (
-                        <Button className="mt-4 sm:mt-0" variant="ghost" onClick={() => setStep(1)} disabled={isAssigning}>
-                            Atrás
-                        </Button>
-                    ) : (
-                        <Button variant="ghost" onClick={() => onOpenChange(false)}>
-                            Cancelar
-                        </Button>
-                    )}
+                    <Button 
+                        variant="ghost" 
+                        onClick={handleBack} 
+                        disabled={isAssigning}
+                        className="mt-4 sm:mt-0"
+                    >
+                        {step === 1 ? "Cancelar" : "Atrás"}
+                    </Button>
                     
                     <Button 
                         onClick={handleNext}
                         disabled={
                             isAssigning ||
-                            (step === 1 && (!selectedClientId || !newPlanName || !startDate || !endDate))
+                            (step === 1 && (!selectedClientId || !newPlanName || !startDate || !endDate)) ||
+                            (step === 2 && (dailyMacros.protein + dailyMacros.carbs + dailyMacros.fat) !== 100)
                         }
                         className="bg-green-600 hover:bg-green-500 text-white"
                     >
                         {isAssigning && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {step === 1 ? "Siguiente: Macros" : "Confirmar Asignación"}
+                        {step === 1 ? "Siguiente: Macros Diarios" : 
+                         step === 2 ? "Siguiente: Reparto por Comida" : 
+                         "Asignar"}
                     </Button>
                 </DialogFooter>
             </DialogContent>
