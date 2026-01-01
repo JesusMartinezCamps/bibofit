@@ -229,6 +229,7 @@ const IngredientCard = ({
           <PopoverContent
             className="w-80 text-white p-4 z-50 shadow-xl shadow-black/50 border-slate-700/50"
             style={{ backgroundColor: 'rgb(10 19 31 / 95%)' }}
+            portalled={false}
             // Prevent closing if the click interaction happened on the trigger itself
             onInteractOutside={(e) => {
               if (triggerRef.current && triggerRef.current.contains(e.target)) {
@@ -416,7 +417,7 @@ const RecipeView = ({
     // Solo reiniciar cuando cambiamos de modo o cargamos otra receta, no en cada render
     setOpenIngredientPopoverId(null);
   }, [isEditing, recipeIdentity]);
-  
+
   // Fetch targets if not provided via props but needed for auto-balancing and display
   useEffect(() => {
     if (mealTargetMacros || !isEditing || !user || !recipe?.day_meal_id) return;
