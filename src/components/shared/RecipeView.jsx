@@ -93,6 +93,8 @@ const IngredientCard = ({
 }) => {
   const { food, quantity, macros, vitamins, minerals, conflictType, conflictDetails, recommendationDetails } = ingredient;
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const triggerRef = useRef(null);
+
   const effectiveOpen = displayAsBullet ? !!isOpen : popoverOpen;
 
   const handlePopoverOpenChange = (open) => {
@@ -200,11 +202,11 @@ const IngredientCard = ({
         <Popover open={effectiveOpen} onOpenChange={handlePopoverOpenChange}>
           <PopoverTrigger asChild>
             <div
+              ref={triggerRef}
               className="flex items-center justify-between text-sm py-2 hover:bg-slate-800/20 rounded-sm transition-colors cursor-pointer w-full group"
               onClick={(e) => {
-                // Important: Prevent the click from immediately toggling the state back off if the popover logic handles it weirdly.
-                // However, Radix UI PopoverTrigger usually handles toggle automatically. 
-                // If the parent has click handlers, stopping propagation is good.
+                // Manually handle toggle if needed, or rely on PopoverTrigger.
+                // Stopping propagation to avoid confusing react-day-picker or other parent listeners if any.
                 e.stopPropagation();
               }}
             >
@@ -227,10 +229,11 @@ const IngredientCard = ({
           <PopoverContent
             className="w-80 text-white p-4 z-50 shadow-xl shadow-black/50 border-slate-700/50"
             style={{ backgroundColor: 'rgb(10 19 31 / 95%)' }}
-            // Ensure clicks inside the content don't close it
+            // Prevent closing if the click interaction happened on the trigger itself
             onInteractOutside={(e) => {
-              // Optional: Prevent closing if clicking on specific elements outside if needed, 
-              // but usually default behavior is fine.
+              if (triggerRef.current && triggerRef.current.contains(e.target)) {
+                e.preventDefault();
+              }
             }}
           >
             <div className="flex flex-col gap-3">
@@ -396,9 +399,24 @@ const RecipeView = ({
   const [replacingIngredient, setReplacingIngredient] = useState(null);
   const [openIngredientPopoverId, setOpenIngredientPopoverId] = useState(null);
 
+  const recipeIdentity = useMemo(() => {
+    if (!recipe) return null;
+    return (
+      recipe.id ??
+      recipe.diet_plan_recipe_id ??
+      recipe.dietPlanRecipeId ??
+      recipe.recipe_id ??
+      recipe.private_recipe_id ??
+      recipe.name ??
+      null
+    );
+  }, [recipe]);
+
   useEffect(() => {
+    // Solo reiniciar cuando cambiamos de modo o cargamos otra receta, no en cada render
     setOpenIngredientPopoverId(null);
-  }, [isEditing, recipe]);
+  }, [isEditing, recipeIdentity]);
+  
   // Fetch targets if not provided via props but needed for auto-balancing and display
   useEffect(() => {
     if (mealTargetMacros || !isEditing || !user || !recipe?.day_meal_id) return;
