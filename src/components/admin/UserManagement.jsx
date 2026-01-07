@@ -264,11 +264,38 @@ const UsersManagerPage = () => {
         setIsDeleteDialogOpen(true);
     };
 
+    const deleteUserEquivalenceAdjustments = async (userId) => {
+        const { data: adjustmentIds, error: adjustmentsError } = await supabase
+            .from('equivalence_adjustments')
+            .select('id')
+            .eq('user_id', userId);
+
+        if (adjustmentsError) throw adjustmentsError;
+
+        const ids = (adjustmentIds || []).map(adj => adj.id);
+
+        if (ids.length > 0) {
+            const { error: ingredientError } = await supabase
+                .from('daily_ingredient_adjustments')
+                .delete()
+                .in('equivalence_adjustment_id', ids);
+            if (ingredientError) throw ingredientError;
+        }
+
+        const { error: deleteError } = await supabase
+            .from('equivalence_adjustments')
+            .delete()
+            .eq('user_id', userId);
+
+        if (deleteError) throw deleteError;
+    };
+
     const handleDeleteUser = async () => {
         if (!userToDelete) return;
         setIsDeleting(true);
 
-        try {
+      try {
+            await deleteUserEquivalenceAdjustments(userToDelete.user_id);
             // Call the database function to delete user data
             const { error } = await supabase.rpc('delete_user_complete', { p_user_id: userToDelete.user_id });
 
