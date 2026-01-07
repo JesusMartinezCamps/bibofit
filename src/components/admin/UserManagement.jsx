@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { format, differenceInYears, parseISO, isValid } from 'date-fns';
