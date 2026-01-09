@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from '@/contexts/AuthContext';
@@ -55,6 +56,7 @@ import UserDietTemplatesPage from '@/pages/UserDietTemplatesPage';
 // New Refactored Pages
 import ClientPlanTemplatesPage from '@/pages/ClientPlanTemplatesPage';
 import ClientPlanDetailPage from '@/pages/ClientPlanDetailPage';
+import HomePage from '@/pages/HomePage';
 
 // Coach Pages
 import CoachDashboard from '@/pages/CoachDashboard';
@@ -65,7 +67,8 @@ const HomeRedirect = () => {
   const { user, loading } = useAuth();
   
   if (loading) return null;
-  if (!user) return <Navigate to="/login" replace />;
+  // If not authenticated, redirect to the landing page instead of login
+  if (!user) return <Navigate to="/home" replace />;
 
   if (user.role === 'admin') return <Navigate to="/admin-panel/advisories" replace />;
   if (user.role === 'coach') return <Navigate to="/coach-dashboard" replace />;
@@ -93,6 +96,7 @@ const RoleProtected = ({ allowedRoles, children }) => {
 const AppRoutes = () => {
   return (
     <Routes>
+      <Route path="/home" element={<HomePage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignUpPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
@@ -290,8 +294,10 @@ const AppRoutes = () => {
       <Route 
         path="/admin-panel/:mainView?/:subView?" 
         element={
-          <ProtectedRoute adminOnly>
-            <AdminPanel />
+          <ProtectedRoute>
+            <RoleProtected allowedRoles={['admin', 'coach']}>
+               <AdminPanel />
+            </RoleProtected>
           </ProtectedRoute>
         } 
       />
@@ -494,16 +500,20 @@ const AppRoutes = () => {
       <Route 
         path="/admin-panel/content/free-recipe-requests"
         element={
-          <ProtectedRoute adminOnly>
-            <FreeMealRequestsPage />
+          <ProtectedRoute>
+            <RoleProtected allowedRoles={['admin', 'coach']}>
+              <FreeMealRequestsPage />
+            </RoleProtected>
           </ProtectedRoute>
         }
       />
       <Route 
         path="/admin-panel/content/diet-requests"
         element={
-          <ProtectedRoute adminOnly>
-            <DietChangeRequestsPage />
+          <ProtectedRoute>
+            <RoleProtected allowedRoles={['admin', 'coach']}>
+              <DietChangeRequestsPage />
+            </RoleProtected>
           </ProtectedRoute>
         }
       />
@@ -566,11 +576,12 @@ const AppContent = () => {
     const location = useLocation();
     const [breadcrumbs, setBreadcrumbs] = useState([]);
     const [isShoppingListOpen, setIsShoppingListOpen] = useState(false);
+    const { user } = useAuth(); // Needed for breadcrumb logic
 
-    const noHeaderPaths = ['/login', '/signup', '/reset-password', '/update-password'];
+    const noHeaderPaths = ['/login', '/signup', '/reset-password', '/update-password', '/home'];
     const showHeader = !noHeaderPaths.some(path => location.pathname.startsWith(path));
     
-    const noMobilePaddingPaths = ['/plan/dieta', '/create-snack', '/create-free-recipe', '/admin-panel/plan-detail', '/dashboard', '/coach-dashboard', '/plan', '/admin-panel/advisories']; 
+    const noMobilePaddingPaths = ['/plan/dieta', '/create-snack', '/create-free-recipe', '/admin-panel/plan-detail', '/dashboard', '/coach-dashboard', '/plan', '/admin-panel/advisories', '/home']; 
     const shouldRemoveMobilePadding = noMobilePaddingPaths.some(path => location.pathname.startsWith(path));
     const isProfileDataPage = location.pathname === '/profile/data';
 
@@ -583,7 +594,8 @@ const AppContent = () => {
                 path.startsWith('/coach-dashboard') ||
                 path.startsWith('/admin-panel/advisories') ||
                 path.startsWith('/create-free-recipe') ||
-                path.startsWith('/create-snack'))
+                path.startsWith('/create-snack') ||
+                path.startsWith('/home'))
               {
                 setBreadcrumbs([]);
                 return;
@@ -624,6 +636,18 @@ const AppContent = () => {
                     newBreadcrumbs = [
                         { label: 'Gestión de Contenido', href: '/admin-panel/content' },
                         { label: 'Gestión de Centros' }
+                    ];
+                } else if (path.startsWith('/admin-panel/content/free-recipe-requests')) {
+                     const backLink = user?.role === 'coach' ? '/coach/content' : '/admin-panel/content/nutrition';
+                     newBreadcrumbs = [
+                        { label: 'Gestión de Contenido', href: backLink },
+                        { label: 'Solicitudes de Recetas Libres' }
+                    ];
+                } else if (path.startsWith('/admin-panel/content/diet-requests')) {
+                     const backLink = user?.role === 'coach' ? '/coach/content' : '/admin-panel/content/nutrition';
+                     newBreadcrumbs = [
+                        { label: 'Gestión de Contenido', href: backLink },
+                        { label: 'Solicitudes de Cambios de Recetas' }
                     ];
                 } else if (path.startsWith('/admin/manage-diet/')) {
                     const userId = path.split('/')[3];
@@ -694,7 +718,7 @@ const AppContent = () => {
         if (showHeader) {
             generateBreadcrumbs();
         }
-    }, [location.pathname, showHeader]);
+    }, [location.pathname, showHeader, user]);
 
 
   return (
