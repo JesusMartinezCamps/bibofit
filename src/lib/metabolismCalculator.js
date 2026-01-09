@@ -123,6 +123,16 @@ export const calculateAndSaveMetabolism = async (userId, profileData = null) => 
       if (error) throw error;
       profile = data;
     }
+    if (!profile.activity_levels?.factor && profile.activity_level_id) {
+      const { data: activityLevel, error: activityLevelError } = await supabase
+        .from('activity_levels')
+        .select('factor')
+        .eq('id', profile.activity_level_id)
+        .single();
+
+      if (activityLevelError) throw activityLevelError;
+      profile.activity_levels = activityLevel;
+    }
 
     // Calcular edad
     const age = calculateAge(profile.birth_date);
