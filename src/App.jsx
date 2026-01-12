@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
 import LoginPage from '@/pages/LoginPage';
@@ -44,19 +44,19 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { NotificationsProvider } from '@/contexts/NotificationsContext';
 import { RealtimeProvider } from '@/contexts/RealtimeProvider';
-import GlobalShoppingListDialog from '@/components/shared/GlobalShoppingListDialog';
 import ProfileDataPage from '@/pages/ProfileDataPage';
 import MyFreeRecipesPage from '@/pages/MyFreeRecipesPage';
 import MyFoodsPage from '@/pages/MyFoodsPage';
 import CreateFreeRecipePage from '@/pages/CreateFreeRecipePage';
 import CreateSnackPage from '@/pages/CreateSnackPage';
 import WeightHistoryPage from '@/pages/WeightHistoryPage';
-import UserDietTemplatesPage from '@/pages/UserDietTemplatesPage';
+import PricingPage from '@/pages/PricingPage'; // New Import
 
 // New Refactored Pages
 import ClientPlanTemplatesPage from '@/pages/ClientPlanTemplatesPage';
 import ClientPlanDetailPage from '@/pages/ClientPlanDetailPage';
 import HomePage from '@/pages/HomePage';
+import ShoppingListPage from '@/pages/ShoppingListPage';
 
 // Coach Pages
 import CoachDashboard from '@/pages/CoachDashboard';
@@ -97,6 +97,7 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/home" element={<HomePage />} />
+      <Route path="/pricing" element={<PricingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignUpPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
@@ -114,6 +115,16 @@ const AppRoutes = () => {
             <Dashboard />
           </ProtectedRoute>
         } 
+      />
+      
+      {/* Shopping List Route - NEW */}
+      <Route 
+        path="/shopping-list"
+        element={
+          <ProtectedRoute>
+            <ShoppingListPage />
+          </ProtectedRoute>
+        }
       />
       
       {/* Coach Routes */}
@@ -353,12 +364,12 @@ const AppRoutes = () => {
         }
       />
       
-      {/* Legacy Route redirecting to new logic */}
+      {/* Legacy Route redirecting to new logic - now using ClientPlanTemplatesPage */}
       <Route 
         path="/profile/diet-templates"
         element={
           <ProtectedRoute>
-            <UserDietTemplatesPage />
+            <ClientPlanTemplatesPage />
           </ProtectedRoute>
         }
       />
@@ -574,14 +585,16 @@ const AppRoutes = () => {
 
 const AppContent = () => {
     const location = useLocation();
+    const navigate = useNavigate();
     const [breadcrumbs, setBreadcrumbs] = useState([]);
-    const [isShoppingListOpen, setIsShoppingListOpen] = useState(false);
-    const { user } = useAuth(); // Needed for breadcrumb logic
+    const { user } = useAuth();
 
     const noHeaderPaths = ['/login', '/signup', '/reset-password', '/update-password', '/home'];
-    const showHeader = !noHeaderPaths.some(path => location.pathname.startsWith(path));
     
-    const noMobilePaddingPaths = ['/plan/dieta', '/create-snack', '/create-free-recipe', '/admin-panel/plan-detail', '/dashboard', '/coach-dashboard', '/plan', '/admin-panel/advisories', '/home']; 
+    // Only show header if path is not in noHeaderPaths AND we are not on /pricing as an unauthenticated user
+    const showHeader = !noHeaderPaths.some(path => location.pathname.startsWith(path)) && !(location.pathname === '/pricing' && !user);
+    
+    const noMobilePaddingPaths = ['/plan/dieta', '/create-snack', '/create-free-recipe', '/admin-panel/plan-detail', '/dashboard', '/coach-dashboard', '/plan', '/admin-panel/advisories', '/home', '/shopping-list', '/pricing'];
     const shouldRemoveMobilePadding = noMobilePaddingPaths.some(path => location.pathname.startsWith(path));
     const isProfileDataPage = location.pathname === '/profile/data';
 
@@ -595,7 +608,9 @@ const AppContent = () => {
                 path.startsWith('/admin-panel/advisories') ||
                 path.startsWith('/create-free-recipe') ||
                 path.startsWith('/create-snack') ||
-                path.startsWith('/home'))
+                path.startsWith('/home') ||
+                path.startsWith('/shopping-list') ||
+                path.startsWith('/pricing'))
               {
                 setBreadcrumbs([]);
                 return;
@@ -615,9 +630,9 @@ const AppContent = () => {
                         { label: 'Dashboard', href: '/coach-dashboard' },
                         { label: 'Recordatorios' }
                     ];
-                } else if (path === '/plan') { // New breadcrumb for /plan route
+                } else if (path === '/plan') {
                     newBreadcrumbs = [
-                        { label: 'Dashboard', href: '/coach-dashboard' }, // or /dashboard for client
+                        { label: 'Dashboard', href: '/coach-dashboard' },
                         { label: 'Mis Planes' }
                     ];
                 }
@@ -723,7 +738,7 @@ const AppContent = () => {
 
   return (
     <div className="min-h-screen bg-[#1a1e23] flex flex-col">
-      {showHeader && <Header onShoppingListClick={() => setIsShoppingListOpen(true)} />}
+      {showHeader && <Header onShoppingListClick={() => navigate('/shopping-list')} />}
       <div className={cn(
           "w-full text-white sm:px-6", 
           shouldRemoveMobilePadding && "px-0 sm:px-0",
@@ -733,7 +748,6 @@ const AppContent = () => {
         <AppRoutes />
       </div>
       <Toaster />
-      {showHeader && <GlobalShoppingListDialog open={isShoppingListOpen} onOpenChange={setIsShoppingListOpen} fromHeader={true} />}
     </div>
   );
 };
