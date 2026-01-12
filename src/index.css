@@ -1,3 +1,4 @@
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Slab:wght@400;700&display=swap');
 
 @tailwind base;
@@ -26,6 +27,12 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
+    
+    /* Safe Area Variables */
+    --sat: env(safe-area-inset-top);
+    --sab: env(safe-area-inset-bottom);
+    --sal: env(safe-area-inset-left);
+    --sar: env(safe-area-inset-right);
   }
 
   .dark {
@@ -58,6 +65,14 @@
   html, body, #root {
     @apply bg-background text-foreground w-full h-full;
     font-family: 'Inter', sans-serif;
+    overscroll-behavior-y: none; /* Prevents pull-to-refresh on mobile */
+  }
+  
+  body {
+    padding-top: var(--sat);
+    padding-bottom: var(--sab);
+    padding-left: var(--sal);
+    padding-right: var(--sar);
   }
   
   html, body {
