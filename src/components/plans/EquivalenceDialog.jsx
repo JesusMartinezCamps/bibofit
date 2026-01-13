@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabaseClient';
 import { useToast } from '@/components/ui/use-toast';
-import { Loader2, ArrowRight, Utensils, CalendarDays, CheckCircle2 } from 'lucide-react';
+import { Loader2, ArrowRight, Utensils, CalendarDays, CheckCircle2, X } from 'lucide-react';
 import { addDays, format, parseISO, isSameDay } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -206,7 +206,8 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
 
       toast({ title: 'Éxito', description: 'Equivalencia aplicada y recetas ajustadas.' });
       if(onSuccess) onSuccess(newAdjustment);
-      onOpenChange(false);
+      // NO cerramos aquí: el padre se encarga de cerrar y limpiar estado.
+      // Esto evita el "cierra/reabre" por dobles updates + refetch.    
     } catch (error) {
       console.error("Equivalence Process Error:", error);
       toast({ title: 'Error', description: `No se pudo aplicar la equivalencia: ${error.message}`, variant: 'destructive' });
@@ -216,10 +217,34 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
   };
 
   const caloriesToCompensate = Math.round(sourceItemMacros?.calories || 0);
-
+  const handleDialogOpenChange = (nextOpen) => {
+    if (isSubmitting && !nextOpen) {
+      return;
+    }
+    onOpenChange(nextOpen);
+  };
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-slate-900 border-slate-800 text-slate-50 max-w-2xl p-0 overflow-hidden shadow-2xl rounded-2xl">
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
+      <DialogContent
+        className="bg-slate-900 border-slate-800 text-slate-50 max-w-2xl p-0 overflow-hidden shadow-2xl rounded-2xl"
+        onEscapeKeyDown={(event) => {
+          if (isSubmitting) event.preventDefault();
+        }}
+        onInteractOutside={(event) => {
+          if (isSubmitting) event.preventDefault();
+        }}
+      >
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={() => onOpenChange(false)}
+          className="absolute right-3 top-9 z-30 h-9 w-9 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/70"
+          aria-label="Cerrar"
+        >
+          <X className="h-5 w-5" />
+        </Button>
+
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 pointer-events-none" />
         
         <DialogHeader className="p-6 pb-2 relative z-10 border-b border-slate-800/60 bg-slate-900/50 backdrop-blur-sm">
@@ -250,7 +275,7 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
           </div>
         </DialogHeader>
 
-        <div className="max-h-[55vh] overflow-y-auto p-6 relative z-10 styled-scrollbar-thin">
+        <div className="max-h-[55vh] overflow-y-auto p-6 relative z-10 styled-scrollbar-thin eq-scrollbar-blue">
           {loading ? (
             <div className="flex flex-col justify-center items-center h-48 gap-3 animate-pulse">
               <div className="p-3 bg-blue-500/10 rounded-full">
@@ -376,6 +401,11 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
               </span>
             )}
           </Button>
+          {isSubmitting && (
+            <p className="text-xs text-slate-400 sm:ml-2">
+              Espera un momento, estamos recalculando tu plan.
+            </p>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
