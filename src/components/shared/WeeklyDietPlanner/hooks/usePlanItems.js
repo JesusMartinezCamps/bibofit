@@ -260,6 +260,7 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
             'free_recipe_occurrences',
             'snack_occurrences',
             'daily_snack_logs',
+            'daily_ingredient_adjustments',
             'equivalence_adjustments',
             'diet_plan_recipes',
             'private_recipes',
