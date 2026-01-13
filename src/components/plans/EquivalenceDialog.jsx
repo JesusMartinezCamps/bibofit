@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -7,9 +6,11 @@ import { useToast } from '@/components/ui/use-toast';
 import { Loader2 } from 'lucide-react';
 import { addDays, format, parseISO, isSameDay } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 
 const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sourceLogId, onSuccess, sourceItemMacros }) => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [availableMeals, setAvailableMeals] = useState([]);
@@ -20,7 +21,6 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
     return sourceItem.meal_date || sourceItem.log_date;
   }, [sourceItem]);
 
-  // Parse sourceDate once to avoid re-parsing in render loop
   const parsedSourceDate = useMemo(() => {
     return sourceDate ? parseISO(sourceDate) : null;
   }, [sourceDate]);
@@ -30,8 +30,6 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
       if (!open || !sourceItem || !sourceDate || !parsedSourceDate) return;
       setLoading(true);
       try {
-        // 1. Determine the Active Diet Plan ID
-        // Priority: sourceItem.diet_plan_id -> Fetch Active Plan by Date
         let activePlanId = sourceItem.diet_plan_id;
 
         if (!activePlanId) {
@@ -52,9 +50,6 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
             throw new Error("No se encontró un plan de dieta activo para la fecha seleccionada.");
         }
         
-        // 2. Fetch User Day Meals filtered by Diet Plan ID
-        // CRITICAL: We must filter by diet_plan_id to ensure we get the slots for the CURRENT plan,
-        // not ghost slots from previous plans.
         const { data: userDayMeals, error: userDayMealsError } = await supabase
           .from('user_day_meals')
           .select('*, day_meal:day_meal_id(*)')
@@ -64,19 +59,16 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
         
         if (userDayMealsError) throw userDayMealsError;
 
-        // Sort locally to ensure correct order
         const sortedUserDayMeals = (userDayMeals || []).sort((a, b) => {
              return (a.day_meal?.display_order || 0) - (b.day_meal?.display_order || 0);
         });
 
-        // Determine current meal order to filter past meals if needed
         const sourceMealOrder = sortedUserDayMeals.find(udm => udm.day_meal_id === sourceItem.day_meal_id)?.day_meal?.display_order;
         
         const todayFormatted = format(parsedSourceDate, 'yyyy-MM-dd');
         const tomorrow = addDays(parsedSourceDate, 1);
         const tomorrowFormatted = format(tomorrow, 'yyyy-MM-dd');
 
-        // Build available meal options
         const todayMeals = sortedUserDayMeals
           .filter(udm => sourceMealOrder === undefined || (udm.day_meal?.display_order || 0) >= sourceMealOrder)
           .map(udm => ({
@@ -90,7 +82,7 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
           ...udm,
           date: tomorrowFormatted,
           label: `${udm.day_meal?.name || 'Comida'} (Mañana)`,
-          display_order: (udm.day_meal?.display_order || 0) + 100 // Ensure tomorrow's meals appear after today's
+          display_order: (udm.day_meal?.display_order || 0) + 100 
         }));
 
         const finalSortedMeals = [...todayMeals, ...tomorrowMeals].sort((a, b) => a.display_order - b.display_order);
@@ -108,20 +100,27 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
   }, [open, sourceItem, sourceDate, toast, parsedSourceDate]);
 
   const handleConfirm = async () => {
-    if (!selectedMeal || !sourceItemMacros) {
+    if (!selectedMeal || !sourceItemMacros || !user) {
         toast({ title: 'Error', description: 'Faltan datos para crear la equivalencia.', variant: 'destructive' });
         return;
     }
     setIsSubmitting(true);
     try {
-      // Determine the correct ID based on the item structure (flat or nested)
       const freeRecipeId = sourceItemType === 'free_recipe' 
         ? (sourceItem.free_recipe?.id || sourceItem.id) 
         : null;
       
-      // Determine the occurrence ID if it's a free recipe
       const freeRecipeOccurrenceId = sourceItemType === 'free_recipe' ? sourceItem.occurrence_id : null;
 
+      // 1. Calculate Target Macros (Meal Target - Snack Adjustment)
+      const newTargetMacros = {
+          calories: Math.max(0, (selectedMeal.target_calories || 0) - (sourceItemMacros.calories || 0)),
+          proteins: Math.max(0, (selectedMeal.target_proteins || 0) - (sourceItemMacros.proteins || 0)),
+          carbs: Math.max(0, (selectedMeal.target_carbs || 0) - (sourceItemMacros.carbs || 0)),
+          fats: Math.max(0, (selectedMeal.target_fats || 0) - (sourceItemMacros.fats || 0)),
+      };
+
+      // 2. Create Adjustment Record
       const adjustmentPayload = {
         user_id: sourceItem.user_id,
         log_date: selectedMeal.date,
@@ -146,10 +145,61 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
 
       if (adjustmentError) throw adjustmentError;
 
-      toast({ title: 'Éxito', description: 'Equivalencia solicitada. El sistema está ajustando las recetas...' });
+      // 3. Identify Recipes
+      const dateObj = parseISO(selectedMeal.date);
+      const jsDay = dateObj.getDay(); 
+      const isoDow = jsDay === 0 ? 7 : jsDay;
+
+      // Diet Plan Recipes
+      const { data: planRecipes } = await supabase
+        .from('diet_plan_recipes')
+        .select('id')
+        .eq('diet_plan_id', selectedMeal.diet_plan_id)
+        .eq('day_meal_id', selectedMeal.day_meal_id);
+
+      // Private Recipes
+      const { data: plannedPrivate } = await supabase
+        .from('private_recipes')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('diet_plan_id', selectedMeal.diet_plan_id)
+        .eq('day_meal_id', selectedMeal.day_meal_id);
+
+      const recipesPayload = [];
+      if (planRecipes) {
+          planRecipes.forEach(r => recipesPayload.push({ id: r.id, is_private: false }));
+      }
+      if (plannedPrivate) {
+          plannedPrivate.forEach(p => recipesPayload.push({ id: p.private_recipe_id, is_private: true }));
+      }
+
+      const payload = {
+          equivalence_adjustment_id: newAdjustment.id,
+          user_id: user.id,
+          target_macros: newTargetMacros,
+          recipes: recipesPayload
+      };
+
+      // Validation
+      if (!payload.user_id || !payload.equivalence_adjustment_id || !payload.target_macros || !payload.recipes) {
+          console.error("Payload Validation Failed", payload);
+          throw new Error("Validation Failed: Missing required fields in payload.");
+      }
+
+      // 4. Invoke Edge Function (Aligned Structure)
+      const { data: funcData, error: invokeError } = await supabase.functions.invoke('auto-balance-equivalence', {
+          body: payload
+      });
+
+      if (invokeError) throw new Error('Error en el balanceo automático: ' + invokeError.message);
+      if (funcData && !funcData.success) throw new Error('Error interno en balanceo: ' + (funcData.error || 'Unknown error'));
+
+
+      toast({ title: 'Éxito', description: 'Equivalencia aplicada y recetas ajustadas.' });
       if(onSuccess) onSuccess(newAdjustment);
       onOpenChange(false);
     } catch (error) {
+      console.error("Equivalence Process Error:", error);
       toast({ title: 'Error', description: `No se pudo aplicar la equivalencia: ${error.message}`, variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
@@ -186,13 +236,8 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
                     className={cn(
                       'w-full justify-start h-auto py-3 transition-all duration-200',
                       {
-                        // Selected meal styles
                         'bg-blue-600 hover:bg-blue-700 text-white': isSelected,
-                        
-                        // Unselected "Today" meal styles
                         'bg-gradient-to-r from-[#001e2f] to-[#2f2169] hover:from-[#002b44] hover:to-[#3e2f84] text-white border-blue-800': isTodayMeal && !isSelected,
-                        
-                        // Unselected "Tomorrow" meal styles
                         'bg-gradient-to-r from-[#142631] to-[#312953] hover:from-[#1b3442] hover:to-[#3d3368] text-white border-gray-600': !isTodayMeal && !isSelected
                       }
                     )}
