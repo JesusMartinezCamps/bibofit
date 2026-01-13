@@ -244,7 +244,41 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
         },
     }));
 
-  const handleRecipeClick = useCallback(async (planRecipe, adjustment, date) => {
+    // --- Moved Equivalence Handlers to top to avoid ReferenceError ---
+    const handleOpenEquivalence = useCallback(({ item, type, macros, logId, closeSnackEditor = false }) => {
+        setEquivalenceData({
+            item,
+            type,
+            macros,
+            logId,
+        });
+        setCloseSnackEditorOnEquivalence(closeSnackEditor);
+        setIsEquivalenceDialogOpen(true);
+    }, []);
+
+    const handleEquivalenceOpenChange = useCallback((isOpen) => {
+        setIsEquivalenceDialogOpen(isOpen);
+        if (!isOpen) {
+            setEquivalenceData(null);
+            setCloseSnackEditorOnEquivalence(false);
+        }
+    }, []);
+    
+    const handleEquivalenceSuccess = useCallback((newAdjustment) => {
+        if (newAdjustment) {
+            setEquivalenceAdjustments(prev => [...prev, newAdjustment]);
+            setAdjustments(prev => [...prev, newAdjustment]);
+        }
+        setIsEquivalenceDialogOpen(false);
+        setEquivalenceData(null);
+        if (closeSnackEditorOnEquivalence) {
+            setIsSnackEditorOpen(false);
+            setCloseSnackEditorOnEquivalence(false);
+        }
+    }, [setEquivalenceAdjustments, setAdjustments, closeSnackEditorOnEquivalence]);
+    // ----------------------------------------------------------------
+
+    const handleRecipeClick = useCallback(async (planRecipe, adjustment, date) => {
         setRecipeToEdit(planRecipe);
         setRecipeAdjustment(adjustment);
         setIsEditorOpen(true);
@@ -578,38 +612,6 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
         setSnackToEdit(snack);
         setIsSnackEditorOpen(true);
     };
-
-    const handleOpenEquivalence = useCallback(({ item, type, macros, logId, closeSnackEditor = false }) => {
-        setEquivalenceData({
-            item,
-            type,
-            macros,
-            logId,
-        });
-        setCloseSnackEditorOnEquivalence(closeSnackEditor);
-        setIsEquivalenceDialogOpen(true);
-    }, []);
-
-    const handleEquivalenceOpenChange = useCallback((isOpen) => {
-        setIsEquivalenceDialogOpen(isOpen);
-        if (!isOpen) {
-            setEquivalenceData(null);
-            setCloseSnackEditorOnEquivalence(false);
-        }
-    }, []);
-    
-    const handleEquivalenceSuccess = useCallback((newAdjustment) => {
-        if (newAdjustment) {
-            setEquivalenceAdjustments(prev => [...prev, newAdjustment]);
-            setAdjustments(prev => [...prev, newAdjustment]);
-        }
-        setIsEquivalenceDialogOpen(false);
-        setEquivalenceData(null);
-        if (closeSnackEditorOnEquivalence) {
-            setIsSnackEditorOpen(false);
-            setCloseSnackEditorOnEquivalence(false);
-        }
-    }, [setEquivalenceAdjustments, setAdjustments, closeSnackEditorOnEquivalence]);
 
     const groupedByMeal = useMemo(() => {
         const dailyPlanRecipes = planRecipes.map(r => {
