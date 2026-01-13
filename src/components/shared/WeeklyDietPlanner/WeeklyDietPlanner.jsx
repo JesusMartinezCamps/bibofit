@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useMemo, useEffect, forwardRef, useImperativeHandle, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useToast } from '@/components/ui/use-toast';
@@ -72,8 +71,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
     const { toast } = useToast();
     const { user } = useAuth();
     const navigate = useNavigate();
-    console.log("carga")
-    const dayElementsRef = useRef(null); // Changed to single ref for consistency, though WeekView maps to array
+    const dayElementsRef = useRef(null); 
 
     const logDate = useMemo(() => {
         const date = parseISO(propLogDate);
@@ -230,7 +228,6 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
     const [snackToEdit, setSnackToEdit] = useState(null);
     const [isSnackEditorOpen, setIsSnackEditorOpen] = useState(false);
     
-    // Generic state for equivalence dialog (handles both snacks and free recipes)
     const [equivalenceData, setEquivalenceData] = useState(null);
     const [isEquivalenceDialogOpen, setIsEquivalenceDialogOpen] = useState(false);
 
@@ -302,7 +299,6 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
         const originalFreeMeals = [...freeMeals];
         const originalLogs = [...allMealLogs];
         
-        // Optimistic cleanup of adjustments
         const adjustmentToDelete = equivalenceAdjustments.find(adj => adj.source_free_recipe_occurrence_id === occurrenceId);
         
         if (adjustmentToDelete) {
@@ -319,14 +315,11 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
         processMealLogs(updatedLogs);
 
         try {
-             // 1. Delete equivalence adjustment first if exists
-             // We attempt to delete even if not found locally to ensure DB consistency
             await supabase
                 .from('equivalence_adjustments')
                 .delete()
                 .eq('source_free_recipe_occurrence_id', occurrenceId);
 
-            // 2. Delete meal log
             const { error: logError } = await supabase
                 .from('daily_meal_logs')
                 .delete()
@@ -334,7 +327,6 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
 
             if (logError) console.warn("Could not delete meal log, it might not exist.", logError);
 
-            // 3. Delete occurrence
             const { error: occurrenceError } = await supabase
                 .from('free_recipe_occurrences')
                 .delete()
@@ -348,7 +340,6 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
             setFreeMeals(originalFreeMeals);
             setAllMealLogs(originalLogs);
             processMealLogs(originalLogs);
-            // Re-fetch data to ensure state is consistent with DB if error occurred
             fetchAndSetPlanItems();
             toast({ title: 'Error', description: `No se pudo eliminar la receta: ${error.message}`, variant: 'destructive' });
         }
@@ -380,22 +371,15 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
     const handleRemoveRecipe = useCallback(async (recipeId, isPrivate) => {
         try {
             if (isPrivate) {
-                // Use the robust database function to handle cascading deletion of children and dependencies
                 const { error } = await supabase.rpc('delete_private_recipe_cascade', { p_recipe_id: recipeId });
-                
                 if (error) throw error;
 
                 setPlanRecipes(prev => prev.filter(r => !(r.id === recipeId && r.is_private)));
                 toast({ title: 'Éxito', description: 'Receta privada eliminada.' });
             } else if (isAdminView) {
-                // Admin deleting diet plan recipe
-                // We use the newly created function
                 const { error } = await supabase.rpc('delete_diet_plan_recipe_with_dependencies', { p_recipe_id: recipeId });
-                
-                // If RPC fails (or doesn't exist), try fallback but it likely failed because of FKs
                 if (error) {
                     console.error("Error with delete_diet_plan_recipe_with_dependencies:", error);
-                    // Fallback manual deletion logic - though this might fail if FKs exist and function failed
                      try {
                         await supabase.from('diet_change_requests').delete().eq('diet_plan_recipe_id', recipeId);
                         await supabase.from('daily_meal_logs').delete().eq('diet_plan_recipe_id', recipeId);
@@ -403,7 +387,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
                         await supabase.from('recipe_macros').delete().eq('diet_plan_recipe_id', recipeId);
                         await supabase.from('diet_plan_recipes').delete().eq('id', recipeId);
                     } catch (manualError) {
-                         throw error; // Throw original error if manual fails too
+                         throw error; 
                     }
                 }
                 
@@ -411,7 +395,6 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
                 toast({ title: 'Éxito', description: 'Receta del plan eliminada.' });
             }
             
-            // Update logs
             const updatedLogs = allMealLogs.filter(log => {
                 if (isPrivate) return log.private_recipe_id !== recipeId;
                 return log.diet_plan_recipe_id !== recipeId;
@@ -420,7 +403,6 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
             processMealLogs(updatedLogs);
             if (onPlanUpdate) onPlanUpdate();
 
-            // Refresh all items to ensure UI is in sync (e.g. removed children recipes)
             fetchAndSetPlanItems();
 
         } catch (error) {
@@ -430,7 +412,6 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
     }, [isAdminView, allMealLogs, onPlanUpdate, toast, setPlanRecipes, setAllMealLogs, processMealLogs, fetchAndSetPlanItems]);
 
     const handleSnackUpdate = useCallback((newLog, newSnackWithOccurrence) => {
-        // Unify ingredients for macro calculation and display
         const unifiedIngredients = newSnackWithOccurrence.snack_ingredients.map(ing => {
             const food = ing.food || ing.user_created_food;
             return {
@@ -509,7 +490,6 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
     }, [onPlanUpdate, toast, fetchAndSetPlanItems, setSnacks, setSnackLogs, snackLogs, setAdjustments, setEquivalenceAdjustments, setDailyIngredientAdjustments, equivalenceAdjustments]);
 
     const handleUndoEquivalence = useCallback(async (sourceDailySnackLogId, equivalenceAdjustmentId) => {
-        // Optimistic UI updates
         setEquivalenceAdjustments(prev => prev.filter(adj => adj.id !== equivalenceAdjustmentId));
         setAdjustments(prev => prev.filter(adj => adj.id !== equivalenceAdjustmentId));
         setDailyIngredientAdjustments(prev => prev.filter(dia => dia.equivalence_adjustment_id !== equivalenceAdjustmentId));
@@ -520,7 +500,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
     
             toast({ title: 'Éxito', description: 'La equivalencia ha sido deshecha. Las recetas han vuelto a su estado original.' });
             if (onPlanUpdate) onPlanUpdate();
-            fetchAndSetPlanItems(); // Refresh data to show original values
+            fetchAndSetPlanItems();
     
         } catch (error) {
             toast({ title: 'Error', description: `No se pudo deshacer la equivalencia: ${error.message}`, variant: 'destructive' });
@@ -612,12 +592,27 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
             setAdjustments(prev => [...prev, newAdjustment]);
         }
         setIsEquivalenceDialogOpen(false);
-        setEquivalenceData(null);
-        fetchAndSetPlanItems(); // CRITICAL: Refresh data to show updated recipe macros.
-    }, [setEquivalenceAdjustments, setAdjustments, fetchAndSetPlanItems]);
+        setEquivalenceData(null);        
+    }, [setEquivalenceAdjustments, setAdjustments]);
 
     const groupedByMeal = useMemo(() => {
-        const dailyPlanRecipes = planRecipes.map(r => ({ ...r, selectionCount: mealCounts[r.dnd_id] || 0 }));
+        const dailyPlanRecipes = planRecipes.map(r => {
+             const recipeAdjustment = getAdjustmentsForRecipe(
+                dailyIngredientAdjustments,
+                equivalenceAdjustments,
+                r.id,
+                userDayMeals.find(udm => udm.day_meal_id === r.day_meal_id)?.id,
+                logDate,
+                r.is_private
+            );
+
+            return { 
+                ...r, 
+                selectionCount: mealCounts[r.dnd_id] || 0,
+                adjustment: recipeAdjustment 
+            };
+        });
+
         const dailyFreeMeals = freeMeals
             .filter(item => item.meal_date === logDate)
             .map(fm => ({ ...fm, selectionCount: mealCounts[fm.dnd_id] || 0 }));
@@ -668,7 +663,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
         });
 
         return orderedMealGroups;
-    }, [userDayMeals, planRecipes, freeMeals, snacks, mealCounts, logDate, snackLogs, allAvailableFoods, handleRemoveSnackFromLog, handleToggleSnackSelection, handleSnackCardClick]);
+    }, [userDayMeals, planRecipes, freeMeals, snacks, mealCounts, logDate, snackLogs, allAvailableFoods, handleRemoveSnackFromLog, handleToggleSnackSelection, handleSnackCardClick, dailyIngredientAdjustments, equivalenceAdjustments]);
 
     const handleAddFreeMeal = (userDayMealId, mealName) => {
         const userDayMeal = userDayMeals.find(udm => udm.id === userDayMealId);
@@ -741,7 +736,6 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
             const { data: newLog, error: insertError } = await supabase.from('daily_meal_logs').insert(newLogData).select().single();
             if (insertError) throw insertError;
     
-            // Normalize ingredients to ensure FreeMealCard has all data
             const rawIngredients = recipeToRepeat.ingredients || recipeToRepeat.free_recipe_ingredients || [];
             
             const unifiedIngredients = rawIngredients.map(ing => {
@@ -774,7 +768,6 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
             handleFreeMealUpdate(newLog, newFreeMealWithOccurrence);
             setIsRepeatFreeRecipeOpen(false);
 
-            // Calculate macros for equivalence dialog using the unified ingredients
             let macros = recipeToRepeat.macros;
             if (!macros || macros.calories === 0) {
                 macros = calculateMacros(unifiedIngredients, allAvailableFoods);
@@ -835,7 +828,6 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
                 .single();
             if (logError) throw logError;
     
-            // Re-fetch the full snack details to ensure all nested data is present
             const { data: fullSnack, error: fullSnackError } = await supabase
                 .from('snacks')
                 .select('*, snack_ingredients(*, food(*), user_created_food:user_created_foods(*))')
