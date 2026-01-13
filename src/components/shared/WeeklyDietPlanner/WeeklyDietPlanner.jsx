@@ -230,6 +230,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
     
     const [equivalenceData, setEquivalenceData] = useState(null);
     const [isEquivalenceDialogOpen, setIsEquivalenceDialogOpen] = useState(false);
+    const [closeSnackEditorOnEquivalence, setCloseSnackEditorOnEquivalence] = useState(false);
 
     useImperativeHandle(ref, () => ({
         refreshItems: fetchAndSetPlanItems,
@@ -448,7 +449,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
     
             const snackMacros = calculateMacros(snackWithUnifiedIngredients.snack_ingredients, allAvailableFoods);
             
-            setEquivalenceData({
+            handleOpenEquivalence({
                 item: snackWithUnifiedIngredients,
                 type: 'snack',
                 macros: snackMacros,
@@ -458,7 +459,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
         }
     
         if (onPlanUpdate) onPlanUpdate();
-    }, [onPlanUpdate, setSnacks, setSnackLogs, allAvailableFoods]);
+    }, [onPlanUpdate, setSnacks, setSnackLogs, allAvailableFoods, handleOpenEquivalence]);
 
     const handleRemoveSnackFromLog = useCallback(async (occurrenceId) => {
         const logToDelete = snackLogs.find(l => l.snack_occurrence_id === occurrenceId);
@@ -578,13 +579,24 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
         setIsSnackEditorOpen(true);
     };
 
-    const handleSnackEditorSave = (newAdjustment) => {
-        if (newAdjustment) {
-            setEquivalenceAdjustments(prev => [...prev, newAdjustment]);
-            setAdjustments(prev => [...prev, newAdjustment]);
+    const handleOpenEquivalence = useCallback(({ item, type, macros, logId, closeSnackEditor = false }) => {
+        setEquivalenceData({
+            item,
+            type,
+            macros,
+            logId,
+        });
+        setCloseSnackEditorOnEquivalence(closeSnackEditor);
+        setIsEquivalenceDialogOpen(true);
+    }, []);
+
+    const handleEquivalenceOpenChange = useCallback((isOpen) => {
+        setIsEquivalenceDialogOpen(isOpen);
+        if (!isOpen) {
+            setEquivalenceData(null);
+            setCloseSnackEditorOnEquivalence(false);
         }
-        setIsSnackEditorOpen(false);
-    };
+    }, []);
     
     const handleEquivalenceSuccess = useCallback((newAdjustment) => {
         if (newAdjustment) {
@@ -592,8 +604,12 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
             setAdjustments(prev => [...prev, newAdjustment]);
         }
         setIsEquivalenceDialogOpen(false);
-        setEquivalenceData(null);        
-    }, [setEquivalenceAdjustments, setAdjustments]);
+        setEquivalenceData(null);
+        if (closeSnackEditorOnEquivalence) {
+            setIsSnackEditorOpen(false);
+            setCloseSnackEditorOnEquivalence(false);
+        }
+    }, [setEquivalenceAdjustments, setAdjustments, closeSnackEditorOnEquivalence]);
 
     const groupedByMeal = useMemo(() => {
         const dailyPlanRecipes = planRecipes.map(r => {
@@ -773,13 +789,12 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
                 macros = calculateMacros(unifiedIngredients, allAvailableFoods);
             }
 
-            setEquivalenceData({
+            handleOpenEquivalence({
                 item: newFreeMealWithOccurrence,
                 type: 'free_recipe',
                 macros: macros,
                 logId: newLog.id
             });
-            setIsEquivalenceDialogOpen(true);
     
             toast({ title: 'Éxito', description: `"${recipeToRepeat.name}" añadida a tu plan.` });
         } catch (error) {
@@ -911,8 +926,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
                     open={isSnackEditorOpen}
                     onOpenChange={setIsSnackEditorOpen}
                     snackToEdit={snackToEdit}
-                    onSaveSuccess={handleSnackEditorSave}
-                    userId={userId}
+                    onOpenEquivalence={(payload) => handleOpenEquivalence({ ...payload, closeSnackEditor: true })}
                     onDeleteFromLog={handleRemoveSnackFromLog}
                     onDeletePermanent={handleRemoveSnackPermanently}
                     allFoods={allAvailableFoods}
@@ -922,7 +936,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
             {equivalenceData && (
                 <EquivalenceDialog
                     open={isEquivalenceDialogOpen}
-                    onOpenChange={setIsEquivalenceDialogOpen}
+                    onOpenChange={handleEquivalenceOpenChange}
                     sourceItem={equivalenceData.item}
                     sourceItemType={equivalenceData.type}
                     sourceItemMacros={equivalenceData.macros}
