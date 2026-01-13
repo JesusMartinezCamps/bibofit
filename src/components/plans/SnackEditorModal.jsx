@@ -4,17 +4,15 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabaseClient';
 import { useToast } from '@/components/ui/use-toast';
 import { calculateMacros } from '@/lib/macroCalculator';
-import EquivalenceDialog from './EquivalenceDialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Scale, Trash2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { motion } from 'framer-motion';
 
-const SnackEditorModal = ({ open, onOpenChange, snackToEdit, onSaveSuccess, userId, onDeleteFromLog, onDeletePermanent, allFoods: allAvailableFoods }) => {
-  const { toast } = useToast();
+const SnackEditorModal = ({ open, onOpenChange, snackToEdit, onOpenEquivalence, onDeleteFromLog, onDeletePermanent, allFoods: allAvailableFoods }) => {
+    const { toast } = useToast();
   const [ingredients, setIngredients] = useState([]);
   const [snackData, setSnackData] = useState(null);
-  const [isEquivalenceDialogOpen, setIsEquivalenceDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [sourceLogId, setSourceLogId] = useState(null);
 
@@ -51,7 +49,7 @@ const SnackEditorModal = ({ open, onOpenChange, snackToEdit, onSaveSuccess, user
     } else {
       setSourceLogId(null);
     }
-  }, [open, snackToEdit, userId]);
+  }, [open, snackToEdit]);
 
   useEffect(() => {
     fetchInitialData();
@@ -69,8 +67,13 @@ const SnackEditorModal = ({ open, onOpenChange, snackToEdit, onSaveSuccess, user
             description: 'Debes marcar el snack como comido para poder aplicar una equivalencia.',
             variant: 'default',
         });
-    } else {
-        setIsEquivalenceDialogOpen(true);
+    } else if (onOpenEquivalence) {
+        onOpenEquivalence({
+            item: snackData,
+            type: 'snack',
+            macros,
+            logId: sourceLogId,
+        });
     }
   };
 
@@ -177,20 +180,6 @@ const SnackEditorModal = ({ open, onOpenChange, snackToEdit, onSaveSuccess, user
             </AlertDialogContent>
         </AlertDialog>
 
-        {snackData && (
-            <EquivalenceDialog
-                open={isEquivalenceDialogOpen}
-                onOpenChange={setIsEquivalenceDialogOpen}
-                sourceItem={snackData}
-                sourceItemType="snack"
-                sourceLogId={sourceLogId}
-                sourceItemMacros={macros}
-                onSuccess={(newAdjustment) => {
-                    setIsEquivalenceDialogOpen(false);
-                    onSaveSuccess(newAdjustment);
-                }}
-            />
-        )}
     </>
   );
 };
