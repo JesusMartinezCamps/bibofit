@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { onboardingService } from '@/lib/onboarding/onboardingService';
@@ -110,20 +109,22 @@ export const useOnboarding = () => {
   }, [currentStepIndex]);
 
   const completeOnboarding = useCallback(async () => {
-    console.log('🎉 [useOnboarding] Completing onboarding process...');
+    console.log('🎉 [useOnboarding] Completing onboarding process (state update)...');
     try {
       setIsLoading(true);
-      await onboardingService.completeOnboarding(user.id);
+      // Removed duplicate DB call to onboardingService.completeOnboarding(user.id)
+      // because DB update is now handled by closeOnboarding in useTour.js 
+      // which allows for precise error handling and atomicity.
+      
       setIsOnboardingCompleted(true);
-      console.log('✅ Onboarding marked as complete.');
-      // Removed window.location.reload() to allow tour transition
+      console.log('✅ Onboarding marked as complete in state.');
     } catch (err) {
       console.error('❌ [useOnboarding] Error completing:', err);
       setError(err.message);
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, []);
 
   return {
     currentStep,
