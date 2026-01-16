@@ -1,21 +1,27 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { CheckCircle2, ArrowRight, Loader2 } from 'lucide-react';
 import { useTour } from '@/hooks/useTour';
+import { useOnboarding } from '@/hooks/useOnboarding';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
 const CompletionStep = () => {
   const navigate = useNavigate();
-  const { closeOnboarding } = useTour();
+  const { closeOnboarding, startTourFromOnboarding } = useTour();
+  const { completeOnboarding } = useOnboarding();
   const { user } = useAuth();
   const { toast } = useToast();
   const [isStartingTour, setIsStartingTour] = useState(false);
+  const mounted = useRef(true);
 
-  const handleStartTour = async () => {
+  useEffect(() => {
+    return () => { mounted.current = false; };
+  }, []);
+
+  const handleNext = async () => {
     if (!user) {
       toast({
         title: "Error",
@@ -33,12 +39,26 @@ const CompletionStep = () => {
       const { success, error } = await closeOnboarding();
 
       if (!success) {
-        throw error || new Error('No se pudo finalizar el onboarding.');
+        // If it failed because it was already completed, we can safely proceed.
+        // Otherwise, it's a real error.
+        const isAlreadyCompleted = error?.code === 'ALREADY_COMPLETED';
+        
+        if (!isAlreadyCompleted) {
+          throw error || new Error('No se pudo finalizar el onboarding.');
+        } else {
+          console.log('ℹ️ [CompletionStep] Onboarding was already completed. Proceeding...');
+        }
       }
 
-      console.log('✅ [CompletionStep] Onboarding completed. Navigating to templates...');
+      // 2. Mark local state as complete (this closes the overlay)
+      await completeOnboarding();
 
-      // 2. Only navigate if successful
+      // 3. Initialize Tour
+      await startTourFromOnboarding();
+
+      console.log('✅ [CompletionStep] Flow finished. Navigating to templates...');
+
+      // 4. Navigate to templates
       navigate('/profile/templates');
       
     } catch (error) {
@@ -49,7 +69,9 @@ const CompletionStep = () => {
         variant: "destructive"
       });
     } finally {
-      setIsStartingTour(false);
+      if (mounted.current) {
+        setIsStartingTour(false);
+      }
     }
   };
 
@@ -75,7 +97,7 @@ const CompletionStep = () => {
       </p>
 
       <Button
-        onClick={handleStartTour}
+        onClick={handleNext}
         disabled={isStartingTour}
         className="w-full h-14 text-lg bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-900/20 group"
       >
