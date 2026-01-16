@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider } from '@/contexts/AuthContext';
@@ -50,7 +49,7 @@ import MyFoodsPage from '@/pages/MyFoodsPage';
 import CreateFreeRecipePage from '@/pages/CreateFreeRecipePage';
 import CreateSnackPage from '@/pages/CreateSnackPage';
 import WeightHistoryPage from '@/pages/WeightHistoryPage';
-import PricingPage from '@/pages/PricingPage'; // New Import
+import PricingPage from '@/pages/PricingPage';
 
 // New Refactored Pages
 import ClientPlanTemplatesPage from '@/pages/ClientPlanTemplatesPage';
@@ -63,11 +62,14 @@ import CoachDashboard from '@/pages/CoachDashboard';
 import CoachRemindersPage from '@/pages/coach/CoachRemindersPage';
 import CoachContentPage from '@/pages/coach/CoachContentPage';
 
+// Onboarding
+import OnboardingWizard from '@/components/onboarding/OnboardingWizard';
+import { isMobile } from '@/lib/isMobile';
+
 const HomeRedirect = () => {
   const { user, loading } = useAuth();
   
   if (loading) return null;
-  // If not authenticated, redirect to the landing page instead of login
   if (!user) return <Navigate to="/home" replace />;
 
   if (user.role === 'admin') return <Navigate to="/admin-panel/advisories" replace />;
@@ -75,7 +77,6 @@ const HomeRedirect = () => {
 
   return <Navigate to="/dashboard" replace />;
 };
-
 
 const RoleProtected = ({ allowedRoles, children }) => {
     const { user, loading } = useAuth();
@@ -87,7 +88,6 @@ const RoleProtected = ({ allowedRoles, children }) => {
     }
     
     if (!allowedRoles.includes(user.role)) {
-         // Redirect to appropriate dashboard if unauthorized for specific route
          return <Navigate to="/" replace />;
     }
     return children;
@@ -117,7 +117,6 @@ const AppRoutes = () => {
         } 
       />
       
-      {/* Shopping List Route - NEW */}
       <Route 
         path="/shopping-list"
         element={
@@ -224,7 +223,6 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
-      {/* Catch-all for legacy coach dashboard route */}
       <Route 
         path="/coach/dashboard" 
         element={<Navigate to="/coach-dashboard" replace />} 
@@ -364,7 +362,6 @@ const AppRoutes = () => {
         }
       />
       
-      {/* Legacy Route redirecting to new logic - now using ClientPlanTemplatesPage */}
       <Route 
         path="/profile/diet-templates"
         element={
@@ -374,7 +371,6 @@ const AppRoutes = () => {
         }
       />
 
-      {/* NEW ROUTES FOR REFACTORED DIET MANAGEMENT */}
       <Route 
         path="/diet-templates"
         element={
@@ -588,10 +584,30 @@ const AppContent = () => {
     const navigate = useNavigate();
     const [breadcrumbs, setBreadcrumbs] = useState([]);
     const { user } = useAuth();
+    const [showOnboarding, setShowOnboarding] = useState(false);
+    const [isMobileDevice, setIsMobileDevice] = useState(isMobile());
+
+    useEffect(() => {
+        const handleResize = () => setIsMobileDevice(isMobile());
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    useEffect(() => {
+        // Logic to show onboarding wizard
+        if (user && 
+            (user.role === 'client' || user.role === 'free') && 
+            !user.onboarding_completed_at && 
+            isMobileDevice
+        ) {
+            setShowOnboarding(true);
+        } else {
+            setShowOnboarding(false);
+        }
+    }, [user, isMobileDevice]);
 
     const noHeaderPaths = ['/login', '/signup', '/reset-password', '/update-password', '/home'];
     
-    // Only show header if path is not in noHeaderPaths AND we are not on /pricing as an unauthenticated user
     const showHeader = !noHeaderPaths.some(path => location.pathname.startsWith(path)) && !(location.pathname === '/pricing' && !user);
     
     const noMobilePaddingPaths = ['/plan/dieta', '/create-snack', '/create-free-recipe', '/admin-panel/plan-detail', '/dashboard', '/coach-dashboard', '/plan', '/admin-panel/advisories', '/home', '/shopping-list', '/pricing'];
@@ -619,7 +635,6 @@ const AppContent = () => {
             try {
                 let newBreadcrumbs = [];
                 
-                // Coach Breadcrumbs
                 if (path.startsWith('/coach/content')) {
                      newBreadcrumbs = [
                         { label: 'Dashboard', href: '/coach-dashboard' },
@@ -636,7 +651,6 @@ const AppContent = () => {
                         { label: 'Mis Planes' }
                     ];
                 }
-                // Admin Breadcrumbs (existing logic)
                 else if (path.startsWith('/admin-panel/content/plan-templates')) {
                     newBreadcrumbs = [
                         { label: 'Gestión de Contenido', href: '/admin-panel/content/nutrition' },
@@ -678,8 +692,7 @@ const AppContent = () => {
                     const planId = path.split('/')[3];
                     if (planId) {
                         const { data: plan, error } = await supabase.from('diet_plans').select('name, is_template, user_id, profiles(full_name)').eq('id', planId).maybeSingle();
-                        if (error) throw error;
-                        if (plan) {
+                        if (!error && plan) {
                             if (plan.is_template) {
                                 newBreadcrumbs = [
                                     { label: 'Gestión de Contenido', href: '/admin-panel/content/nutrition' },
@@ -737,7 +750,14 @@ const AppContent = () => {
 
 
   return (
-    <div className="min-h-screen bg-[#1a1e23] flex flex-col">
+    <div className="min-h-screen bg-[#1a1e23] flex flex-col relative">
+      {/* Onboarding Wizard Overlay */}
+      {showOnboarding && (
+        <div className="fixed inset-0 z-[100]">
+            <OnboardingWizard />
+        </div>
+      )}
+
       {showHeader && <Header onShoppingListClick={() => navigate('/shopping-list')} />}
       <div className={cn(
           "w-full text-white sm:px-6", 
