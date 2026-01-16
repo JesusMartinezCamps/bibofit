@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
@@ -125,7 +124,8 @@ export const useTour = () => {
 
   /**
    * Completes the onboarding process by setting the timestamp.
-   * Only updates if it hasn't been set previously.
+   * Only updates if it hasn't been set previously (is NULL).
+   * Returns an error object if no rows were updated (meaning it was already completed).
    */
   const closeOnboarding = async () => {
     if (!user) return { success: false, error: 'No authenticated user' };
@@ -133,21 +133,27 @@ export const useTour = () => {
     try {
       console.log('🏁 [useTour] Closing onboarding...');
       
-      // Update DB
-      const { error } = await supabase
+      // Update DB and return selected rows to check if update actually happened
+      const { data, error } = await supabase
         .from('profiles')
         .update({ onboarding_completed_at: new Date().toISOString() })
         .eq('user_id', user.id)
-        .is('onboarding_completed_at', null);
+        .is('onboarding_completed_at', null)
+        .select();
 
       if (error) throw error;
 
+      // If data is empty, it means condition .is('onboarding_completed_at', null) failed,
+      // so it was already completed.
+      if (!data || data.length === 0) {
+        console.warn('⚠️ [useTour] Onboarding already completed or user not found');
+        return { 
+          success: false, 
+          error: { code: 'ALREADY_COMPLETED', message: 'Onboarding already completed' } 
+        };
+      }
+
       console.log('✅ [useTour] Onboarding closed successfully');
-      
-      // We don't have direct access to OnboardingContext state here to update it,
-      // but the DB update is the source of truth. The caller (CompletionStep)
-      // will handle navigation which triggers re-renders/fetches elsewhere.
-      
       return { success: true };
     } catch (err) {
       console.error('❌ [useTour] Failed to close onboarding:', err);
