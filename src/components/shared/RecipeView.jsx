@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { calculateMacros } from '@/lib/macroCalculator';
 import CaloriesIcon from '@/components/icons/CaloriesIcon';
@@ -519,8 +518,12 @@ const RecipeView = ({
   }, [user, propConflicts, propUserRestrictions]);
 
   const { conflicts, recommendations } = useMemo(() => {
-    if (propConflicts) return { conflicts: propConflicts, recommendations: propRecommendations || [] };
+    const hasGranularPropConflicts = Array.isArray(propConflicts)
+      && propConflicts.some(c => c && c.foodId !== undefined && c.foodId !== null);
 
+    if (hasGranularPropConflicts) {
+      return { conflicts: propConflicts, recommendations: propRecommendations || [] };
+    }
     const activeRestrictions = propUserRestrictions || internalRestrictions;
     if (!activeRestrictions || !recipe || !recipe.ingredients) return { conflicts: [], recommendations: [] };
 
