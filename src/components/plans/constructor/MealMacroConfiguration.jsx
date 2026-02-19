@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Slider } from '@/components/ui/slider';
 import { Info, Save, Loader2, Lock } from 'lucide-react';

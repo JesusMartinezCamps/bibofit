@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabaseClient';
 
 const DEBUG_MODE = true; // Debug flag

@@ -1,4 +1,3 @@
-
 // DEPRECATED: Tour functionality has been replaced by the OnboardingWizard flow.
 export const useTour = () => ({
   isOpen: false,

@@ -1,8 +1,8 @@
-
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { calculateMacros } from '@/lib/macroCalculator';
+import { getConflictInfo } from '@/lib/restrictionChecker';
 import { submitChangeRequest, savePrivateRecipe, saveFreeRecipe, saveDietPlanRecipe, updateRecipeDetails, updateDietPlanRecipeCustomization } from './recipeService';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/lib/supabaseClient';
@@ -155,7 +155,43 @@ export const useRecipeEditor = ({ recipeToEdit, onSaveSuccess, isAdminView, user
         setRecommendations(flatRecs);
     }
   }, [initialConflicts, recipeToEdit]);
+  useEffect(() => {
+    if (!ingredients?.length || !userRestrictions || !allFoods?.length) return;
 
+    const computedConflicts = [];
+    const computedRecommendations = [];
+
+    ingredients.forEach((ing) => {
+      const foodId = ing.food?.id || ing.food_id || ing.user_created_food_id;
+      const isUserCreated = !!(ing.is_user_created || ing.user_created_food_id || ing.food?.is_user_created);
+
+      const food = ing.food || allFoods.find(f =>
+        String(f.id) === String(foodId) && !!f.is_user_created === isUserCreated
+      );
+
+      if (!food) return;
+
+      const info = getConflictInfo(food, userRestrictions);
+      if (!info) return;
+
+      if (['condition_avoid', 'sensitivity', 'individual_restriction', 'non-preferred'].includes(info.type)) {
+        computedConflicts.push({
+          foodId: food.id,
+          type: info.type === 'individual_restriction' ? 'condition_avoid' : info.type,
+          restrictionName: info.reason
+        });
+      } else if (['condition_recommend', 'preferred'].includes(info.type)) {
+        computedRecommendations.push({
+          foodId: food.id,
+          restrictionName: info.reason
+        });
+      }
+    });
+
+    setConflicts(computedConflicts);
+    setRecommendations(computedRecommendations);
+  }, [ingredients, userRestrictions, allFoods]);
+  
   const handleFormChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));

@@ -1,4 +1,3 @@
-
 // DEPRECATED: Tour functionality has been replaced by the OnboardingWizard flow.
 // This file is kept as a stub to prevent import errors during migration.
 export const tourSteps = [];

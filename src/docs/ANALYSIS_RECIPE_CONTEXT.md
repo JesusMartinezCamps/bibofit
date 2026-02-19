@@ -1,4 +1,3 @@
-
 # Análisis de Contexto: Template vs Plan Activo
 
 Este documento detalla cómo los componentes `RecipeView` y `RecipeEditorModal` distinguen (o deberían distinguir) entre la edición de una plantilla (`isTemplate = true`) y un plan de dieta activo asignado a un usuario.
@@ -42,4 +41,3 @@ Se han realizado los siguientes cambios para soportar esta distinción:
 
 1.  **Propagación:** `RecipeEditorModal` ahora acepta una prop `isTemplate`.
 2.  **Lógica Condicional (`useRecipeEditor.js`):**
-    
