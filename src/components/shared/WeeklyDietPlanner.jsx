@@ -1,3 +1,6 @@
+
 // This file has been refactored into smaller modules
 // Import the new modular component
-export { default } from './WeeklyDietPlanner/WeeklyDietPlanner';
+import WeeklyDietPlanner from './WeeklyDietPlanner/WeeklyDietPlanner';
+
+export default WeeklyDietPlanner;

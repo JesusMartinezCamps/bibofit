@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -51,7 +52,8 @@ const MacroDistribution = ({
     isOffline = false,
     calculatedTdee,
     userId: propUserId,
-    supabase
+    supabase,
+    onValidationChange // New prop for validation callback
 }) => {
     const location = useLocation();
     const { toast } = useToast();
@@ -112,6 +114,14 @@ const MacroDistribution = ({
     }), [macrosPct]);
 
     const totalPct = useMemo(() => Object.values(parsedMacros).reduce((sum, val) => sum + val, 0), [parsedMacros]);
+    const isInvalid = totalPct !== 100;
+
+    // Task 1: Expose validation state
+    useEffect(() => {
+        if (onValidationChange) {
+            onValidationChange(!isInvalid);
+        }
+    }, [isInvalid, onValidationChange]);
 
     const totalGrams = useMemo(() => ({
         protein: Math.round(effectiveTdee * (parsedMacros.protein / 100) / 4),
@@ -226,11 +236,18 @@ const MacroDistribution = ({
                             />
                         </div>
                         
-                        <div className="border-t border-gray-700 pt-3 flex justify-between items-center text-lg">
-                            <Label>Total Porcentajes</Label>
-                            <p className={`font-bold ${totalPct !== 100 ? 'text-yellow-400' : 'text-green-400'}`}>
-                                {totalPct}%
-                            </p>
+                        <div className="border-t border-gray-700 pt-3 flex flex-col gap-2">
+                            <div className="flex justify-between items-center text-lg">
+                                <Label>Total Porcentajes</Label>
+                                <p className={`font-bold ${isInvalid ? 'text-red-500' : 'text-green-500'}`}>
+                                    {totalPct}%
+                                </p>
+                            </div>
+                            {isInvalid && (
+                                <p className="text-red-500 text-sm font-medium animate-pulse">
+                                    Los porcentajes deben sumar 100%. Total actual: {totalPct}%
+                                </p>
+                            )}
                         </div>
                     </div>
                 </CardContent>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Loader2, Calendar, Layers, Search, X, ChevronDown, ChevronUp, Lock, ArrowLeft, Plus, Trash2, ShoppingCart, RefreshCw, AlertCircle } from 'lucide-react';
+import { Loader2, Calendar, Search, X, ChevronDown, ChevronUp, Lock, ArrowLeft, Plus, Trash2, ShoppingCart, RefreshCw, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -19,6 +19,7 @@ import FatsIcon from '@/components/icons/FatsIcon';
 import { format, startOfDay, addDays } from 'date-fns';
 
 const STORAGE_KEY = 'shoppingListModalMode';
+const SHOPPING_CACHE_TTL_MS = 3 * 60 * 1000;
 
 const normalizeText = (text) => {
     return text
@@ -271,6 +272,8 @@ const ShoppingListPage = () => {
     const [privateItems, setPrivateItems] = useState([]);
     const [loadingPrivate, setLoadingPrivate] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const shoppingDataCacheRef = useRef(new Map());
+    const foodsCacheRef = useRef({ userId: null, foodsMap: null });
     
     // Collapsible states
     const [openSections, setOpenSections] = useState({
@@ -305,6 +308,10 @@ const ShoppingListPage = () => {
         const dateToUse = date || new Date();
         return format(dateToUse, 'yyyy-MM-dd');
     }, []);
+
+    const getCacheKey = useCallback((mode, date) => {
+        return `${mode}:${getListDate(mode, date)}`;
+    }, [getListDate]);
 
     const syncShoppingList = useCallback(async () => {
         if (!hasChanges || !user) return;
@@ -493,34 +500,51 @@ const ShoppingListPage = () => {
         return 'others';
     };
 
-    const fetchShoppingData = useCallback(async () => {
+    const fetchShoppingData = useCallback(async ({ force = false, silent = false } = {}) => {
         if (!user) return;
 
-        setLoading(true);
-        setError(null);
+        const dateToUse = initialDate || new Date();
+        const cacheKey = getCacheKey(listMode, dateToUse);
+        const cached = shoppingDataCacheRef.current.get(cacheKey);
+        const isCacheFresh = cached && (Date.now() - cached.fetchedAt < SHOPPING_CACHE_TTL_MS);
+
+        if (!force && isCacheFresh) {
+            setListData(cached.listData);
+            setCheckedItems(new Set(cached.checkedItems));
+            setError(null);
+            setLoading(false);
+            return;
+        }
+
+        if (!silent) {
+            setLoading(true);
+            setError(null);
+        }
         setHasChanges(false);
-        
-        // Fetch private items in parallel but handled separately
-        fetchPrivateItems();
 
         try {
-            const dateToUse = initialDate || new Date();
             const startDate = format(startOfDay(dateToUse), 'yyyy-MM-dd');
 
             // 1. Fetch Foods
-            const { data: foods, error: foodsError } = await supabase.from('food')
-                .select('*, food_to_food_groups(food_groups(macro_role))');
-            if (foodsError) throw new Error(`Error loading foods: ${foodsError.message}`);
+            let allFoodsMap = foodsCacheRef.current.foodsMap;
+            const isFoodsCacheValid = foodsCacheRef.current.userId === user.id && allFoodsMap;
 
-            const { data: userFoods, error: userFoodsError } = await supabase.from('user_created_foods')
-                .select('*, user_created_food_to_food_groups(food_groups(macro_role))')
-                .eq('user_id', user.id);
-            if (userFoodsError) throw new Error(`Error loading user foods: ${userFoodsError.message}`);
+            if (!isFoodsCacheValid) {
+                const { data: foods, error: foodsError } = await supabase.from('food')
+                    .select('*, food_to_food_groups(food_groups(macro_role))');
+                if (foodsError) throw new Error(`Error loading foods: ${foodsError.message}`);
 
-            const allFoodsMap = new Map();
-            (foods || []).forEach(f => allFoodsMap.set(`std_${f.id}`, { ...f, is_user_created: false }));
-            (userFoods || []).forEach(f => allFoodsMap.set(`uc_${f.id}`, { ...f, is_user_created: true }));
+                const { data: userFoods, error: userFoodsError } = await supabase.from('user_created_foods')
+                    .select('*, user_created_food_to_food_groups(food_groups(macro_role))')
+                    .eq('user_id', user.id);
+                if (userFoodsError) throw new Error(`Error loading user foods: ${userFoodsError.message}`);
 
+                allFoodsMap = new Map();
+                (foods || []).forEach(f => allFoodsMap.set(`std_${f.id}`, { ...f, is_user_created: false }));
+                (userFoods || []).forEach(f => allFoodsMap.set(`uc_${f.id}`, { ...f, is_user_created: true }));
+
+                foodsCacheRef.current = { userId: user.id, foodsMap: allFoodsMap };
+            }
             let allMealsToProcess = [];
 
             // 2. Fetch Meals based on mode
@@ -683,6 +707,11 @@ const ShoppingListPage = () => {
             const newCheckedItems = new Set();
             (savedItems || []).forEach(item => { if (item.is_checked) newCheckedItems.add(item.food_id); });
             setCheckedItems(newCheckedItems);
+            shoppingDataCacheRef.current.set(cacheKey, {
+                listData: categorized,
+                checkedItems: Array.from(newCheckedItems),
+                fetchedAt: Date.now(),
+            });
 
         } catch (error) {
             console.error("Critical error in shopping list:", error);
@@ -693,13 +722,28 @@ const ShoppingListPage = () => {
                 variant: "destructive" 
             });
         } finally {
-            setLoading(false);
+            if (!silent) {
+                setLoading(false);
+            }
         }
-    }, [user, listMode, initialDate, fetchPrivateItems, getListDate, toast]);
+    }, [user, listMode, initialDate, getCacheKey, getListDate, toast]);
+
+    useEffect(() => {
+        fetchPrivateItems();
+    }, [fetchPrivateItems]);
 
     useEffect(() => {
         fetchShoppingData();
     }, [fetchShoppingData]);
+    useEffect(() => {
+        if (loading || error) return;
+        const cacheKey = getCacheKey(listMode, initialDate || new Date());
+        shoppingDataCacheRef.current.set(cacheKey, {
+            listData,
+            checkedItems: Array.from(checkedItems),
+            fetchedAt: Date.now(),
+        });
+    }, [checkedItems, error, getCacheKey, initialDate, listData, listMode, loading]);
 
     const filteredData = useMemo(() => {
         if (!searchQuery.trim()) return { listData, privateItems };
@@ -780,7 +824,7 @@ const ShoppingListPage = () => {
     const retryFetch = () => {
         setLoading(true);
         setError(null);
-        fetchShoppingData();
+        fetchShoppingData({ force: true });
     };
 
     return (
@@ -803,8 +847,8 @@ const ShoppingListPage = () => {
                         mode={listMode}
                         onModeChange={handleModeChangeWithSync}
                         loading={loading}
-                        optionOne={{ value: 'complete', label: 'Lista Completa', icon: Layers }}
-                        optionTwo={{ value: 'planned', label: 'Planificada (7 días)', icon: Calendar }}
+                        optionOne={{ value: 'complete', label: 'Lista', icon: ShoppingCart }}
+                        optionTwo={{ value: 'planned', label: 'Comidas Planificadas', icon: Calendar }}
                         isSegmented={true}
                         className="w-full"
                     />
@@ -899,7 +943,7 @@ const ShoppingListPage = () => {
                         
                         <ShoppingListGroup 
                             title="Otros" 
-                            icon={<Layers className="w-5 h-5 text-current" />} 
+                            icon={<ShoppingCart className="w-5 h-5 text-current" />} 
                             items={filteredData.listData.others} 
                             checkedItems={checkedItems} 
                             onCheckedChange={handleCheckedChange} 

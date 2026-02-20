@@ -1,15 +1,18 @@
+
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { onboardingService } from '@/lib/onboarding/onboardingService';
 import { ONBOARDING_STEPS } from '@/lib/onboarding/onboardingConfig';
 import { supabase } from '@/lib/supabaseClient';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/components/ui/use-toast';
 
 export const OnboardingContext = createContext(null);
 
 export const OnboardingProvider = ({ children }) => {
   const { user, refreshUser } = useAuth(); 
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   const [currentStepId, setCurrentStepId] = useState(ONBOARDING_STEPS[0].id);
   const [isLoading, setIsLoading] = useState(true);
@@ -23,6 +26,20 @@ export const OnboardingProvider = ({ children }) => {
       macroDistribution: { protein: 30, carbs: 40, fat: 30 },
       userDayMeals: []
   });
+
+  // Task 3: Helper function to save step ID to DB
+  const saveOnboardingStep = async (stepId) => {
+    if (!user) return;
+    try {
+      await supabase
+        .from('profiles')
+        .update({ onboarding_step_id: stepId })
+        .eq('user_id', user.id);
+    } catch (err) {
+      console.error("Error saving onboarding step:", err);
+      // Optional: show silent error toast if needed, but keeping it non-blocking
+    }
+  };
 
   // Helper to refresh onboarding state data
   const refreshOnboardingState = useCallback(async () => {
@@ -76,6 +93,7 @@ export const OnboardingProvider = ({ children }) => {
              setIsOnboardingCompleted(true);
              setIsOpen(false);
           } else {
+             // Task 6: Set initial step from DB
              if (status && status.onboarding_step_id) {
                const stepExists = ONBOARDING_STEPS.find(s => s.id === status.onboarding_step_id);
                if (stepExists) {
@@ -117,6 +135,7 @@ export const OnboardingProvider = ({ children }) => {
       const hasDataToSave = data && Object.keys(data).length > 0;
       const tableName = currentStep.tableName;
 
+      // 1. Save Step Data
       if (hasDataToSave && tableName) {
         await onboardingService.saveStepData(user.id, currentStep.id, data, tableName);
       } else {
@@ -126,23 +145,41 @@ export const OnboardingProvider = ({ children }) => {
       await refreshUser();
       await refreshOnboardingState(); // Refresh local state after step save
 
+      // 2. Advance to next step and save ID
       if (currentStep.nextStepId) {
+        // Task 3: Call helper to save step ID to DB before updating local state
+        await saveOnboardingStep(currentStep.nextStepId);
         setCurrentStepId(currentStep.nextStepId);
       }
       return true;
     } catch (err) {
       setError(err.message || 'Error saving data');
+      toast({
+          title: "Error de conexión",
+          description: "No se pudo guardar el progreso. Inténtalo de nuevo.",
+          variant: "destructive"
+      });
       return false;
     } finally {
       setIsLoading(false);
     }
-  }, [currentStep, user, refreshUser, refreshOnboardingState]);
+  }, [currentStep, user, refreshUser, refreshOnboardingState, toast]);
 
-  const previousStep = useCallback(() => {
+  const previousStep = useCallback(async () => {
     const currentIndex = ONBOARDING_STEPS.findIndex(s => s.id === currentStepId);
     if (currentIndex > 0) {
       const prevStep = ONBOARDING_STEPS[currentIndex - 1];
-      setCurrentStepId(prevStep.id);
+      
+      // Task 5: Save previous step ID to DB when going back
+      setIsLoading(true);
+      try {
+          await saveOnboardingStep(prevStep.id);
+          setCurrentStepId(prevStep.id);
+      } catch (error) {
+          console.error("Error going back:", error);
+      } finally {
+          setIsLoading(false);
+      }
     }
   }, [currentStepId]);
 
@@ -156,8 +193,7 @@ export const OnboardingProvider = ({ children }) => {
     try {
       setIsLoading(true);
       
-      // Task 1: Update BOTH onboarding_completed_at and onboarding_step_id to 'completion'
-      // This ensures we mark it as done only if the DB update succeeds.
+      // Update BOTH onboarding_completed_at and onboarding_step_id to 'completion'
       const updates = {
         onboarding_completed_at: new Date().toISOString(),
         onboarding_step_id: 'completion'
@@ -170,7 +206,7 @@ export const OnboardingProvider = ({ children }) => {
 
       if (dbError) throw dbError;
 
-      // 2. Refresh final state
+      // Refresh final state
       await refreshUser();
       
       setIsOnboardingCompleted(true);
@@ -180,7 +216,6 @@ export const OnboardingProvider = ({ children }) => {
       return true;
     } catch (err) {
       setError(err.message);
-      // Return false so caller knows it failed
       return false;
     } finally {
       setIsLoading(false);
@@ -204,7 +239,8 @@ export const OnboardingProvider = ({ children }) => {
     closeOnboardingModal,
     isOnboardingActive: isOpen,
     onboardingState, // Exposed State
-    refreshOnboardingState // Helper if needed manually
+    refreshOnboardingState, // Helper if needed manually
+    saveOnboardingStep // Exposed helper
   };
 
   return (

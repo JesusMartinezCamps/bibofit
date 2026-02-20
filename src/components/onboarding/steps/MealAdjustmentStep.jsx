@@ -7,17 +7,16 @@ import { supabase } from '@/lib/supabaseClient';
 import { useOnboardingContext } from '@/contexts/OnboardingContext';
 import { useToast } from '@/components/ui/use-toast';
 import { useOnboardingDietAssignment } from '@/hooks/useOnboardingDietAssignment';
-import { useNavigate } from 'react-router-dom';
+import ConflictResolutionDialog from '@/components/admin/diet-plans/ConflictResolutionDialog';
 
 const MealAdjustmentStep = ({ isLoading: isStepLoading }) => {
   const { user } = useAuth();
   const { completeOnboarding } = useOnboardingContext();
   const { toast } = useToast();
-  const navigate = useNavigate();
   
   // Use the new hook for assignment logic
-  const { assignDietFromOnboarding, loading: assignmentLoading } = useOnboardingDietAssignment();
-  
+    const { assignDietFromOnboarding, prepareConflictResolutionData, loading: assignmentLoading } = useOnboardingDietAssignment();
+
   const [loading, setLoading] = useState(true);
   const [planData, setPlanData] = useState(null);
   const [meals, setMeals] = useState([]);
@@ -25,7 +24,11 @@ const MealAdjustmentStep = ({ isLoading: isStepLoading }) => {
   // Local macros pct state for configuration
   const [macrosPct, setMacrosPct] = useState({ protein: 30, carbs: 40, fat: 30 });
   const [dailyCalories, setDailyCalories] = useState(2000);
-
+    const [conflicts, setConflicts] = useState({});
+    const [clientRestrictions, setClientRestrictions] = useState({ sensitivities: [], conditions: [] });
+    const [planRestrictionsForEditor, setPlanRestrictionsForEditor] = useState({ sensitivities: [], conditions: [] });
+    const [isConflictModalOpen, setIsConflictModalOpen] = useState(false);
+    const [recipeOverrides, setRecipeOverrides] = useState(new Map());
   // Fetch data accumulated in previous steps and DB meals
   useEffect(() => {
     if (!user) return;
@@ -125,6 +128,65 @@ const MealAdjustmentStep = ({ isLoading: isStepLoading }) => {
     loadPlanData();
   }, [user, toast]);
 
+    const updateRecipeInState = (updatedRecipe) => {
+        setRecipeOverrides(prev => {
+            const next = new Map(prev);
+            next.set(updatedRecipe.id, updatedRecipe);
+            return next;
+        });
+
+        setConflicts(prev => {
+            const newConflicts = { ...prev };
+            Object.keys(newConflicts).forEach(key => {
+                newConflicts[key] = newConflicts[key].filter(r => r.id !== updatedRecipe.id);
+                if (newConflicts[key].length === 0) {
+                    delete newConflicts[key];
+                }
+            });
+            return newConflicts;
+        });
+    };
+
+    const runAssignment = async (template, localRecipeOverrides = null) => {
+        const result = await assignDietFromOnboarding(user.id, {
+            dailyCalories,
+            macrosPct,
+            meals,
+            template,
+            recipeOverrides: localRecipeOverrides,
+            planName: "Mi Plan de Nutrición"
+        });
+
+        if (result && result.success) {
+            toast({
+                title: "¡Plan Creado y Balanceado!",
+                description: "Tu plan de nutrición ha sido asignado y optimizado correctamente."
+            });
+
+            const completeSuccess = await completeOnboarding();
+
+            if (!completeSuccess) {
+                toast({
+                    title: "Advertencia",
+                    description: "El plan se creó, pero hubo un problema actualizando tu perfil. Por favor contacta soporte.",
+                    variant: "warning"
+                });
+            }
+        }
+    };
+
+    const handleConflictResolutionComplete = async () => {
+        setIsConflictModalOpen(false);
+        const template = planData?.selectedTemplate || planData?.template;
+        if (!template) return;
+
+        try {
+            await runAssignment(template, recipeOverrides);
+        } catch (err) {
+            // Error handling already managed by assignment hook
+        }
+    };
+
   const handleFinish = async () => {
     if (!planData) {
          toast({ title: "Error", description: "Faltan datos del plan. Recarga la página.", variant: "destructive" });
@@ -138,40 +200,24 @@ const MealAdjustmentStep = ({ isLoading: isStepLoading }) => {
         return;
     }
 
-    // Task 2: Verify success before completing onboarding
     try {
-        // 1. Call the assignment service (which triggers Edge Function)
-        const result = await assignDietFromOnboarding(user.id, {
-            dailyCalories,
-            macrosPct,
-            meals,
-            template,
-            planName: "Mi Plan de Nutrición" 
+        
+        const conflictData = await prepareConflictResolutionData({
+            userId: user.id,
+            template
         });
 
-        // 2. Check result success strictly
-        if (result && result.success) {
-            
-            toast({ 
-                title: "¡Plan Creado y Balanceado!", 
-                description: "Tu plan de nutrición ha sido asignado y optimizado correctamente." 
-            });
+        setClientRestrictions(conflictData.clientRestrictions);
+        setPlanRestrictionsForEditor(conflictData.planRestrictionsForEditor);
+        setRecipeOverrides(conflictData.recipeOverrides);
 
-            // 3. ONLY now complete onboarding
-            const completeSuccess = await completeOnboarding();
-            
-            if (!completeSuccess) {
-                // Optional: show a specific error if onboarding completion fails
-                toast({
-                    title: "Advertencia",
-                    description: "El plan se creó, pero hubo un problema actualizando tu perfil. Por favor contacta soporte.",
-                    variant: "warning"
-                });
-            }
-        } else {
-            // Do NOT call completeOnboarding() here. 
-            // The hook assignDietFromOnboarding already shows an error toast.
+        if (Object.keys(conflictData.conflicts).length > 0) {
+            setConflicts(conflictData.conflicts);
+            setIsConflictModalOpen(true);
+            return;
         }
+
+        await runAssignment(template, conflictData.recipeOverrides);
     } catch (err) {
         // Do NOT close onboarding on error
     }
@@ -221,7 +267,16 @@ const MealAdjustmentStep = ({ isLoading: isStepLoading }) => {
                 <><Rocket className="w-5 h-5 mr-2" /> Finalizar y Crear Plan</>
             )}
         </Button>
-      </div>
+          </div>
+          <ConflictResolutionDialog
+              open={isConflictModalOpen}
+              onOpenChange={setIsConflictModalOpen}
+              conflicts={conflicts}
+              onRecipeUpdate={updateRecipeInState}
+              onResolveComplete={handleConflictResolutionComplete}
+              clientRestrictions={clientRestrictions}
+              planRestrictions={planRestrictionsForEditor}
+          />
     </div>
   );
 };

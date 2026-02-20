@@ -1,12 +1,139 @@
 import React, { useState } from 'react';
 import { assignDietPlanToUser } from '@/lib/dietAssignmentService';
 import { useToast } from '@/components/ui/use-toast';
+import { supabase } from '@/lib/supabaseClient';
+
+
+const fetchClientRestrictions = async (userId) => {
+  if (!userId) {
+    return { sensitivities: [], conditions: [] };
+  }
+
+  const [{ data: sensitivities, error: sensError }, { data: conditions, error: condError }] = await Promise.all([
+    supabase
+      .from('user_sensitivities')
+      .select('sensitivities(id, name)')
+      .eq('user_id', userId),
+    supabase
+      .from('user_medical_conditions')
+      .select('medical_conditions(id, name)')
+      .eq('user_id', userId)
+  ]);
+
+  if (sensError) throw sensError;
+  if (condError) throw condError;
+
+  return {
+    sensitivities: (sensitivities || []).map(s => s.sensitivities).filter(Boolean),
+    conditions: (conditions || []).map(c => c.medical_conditions).filter(Boolean)
+  };
+};
+
+const fetchTemplateRecipesWithFoods = async (templateId) => {
+  if (!templateId) return [];
+
+  const { data, error } = await supabase
+    .from('diet_plan_recipes')
+    .select(`
+      *,
+      recipe:recipe_id(
+        *,
+        recipe_ingredients(
+          *,
+          food(
+            *,
+            food_sensitivities(sensitivity_id),
+            food_medical_conditions(*)
+          )
+        )
+      ),
+      custom_ingredients:diet_plan_recipe_ingredients(
+        *,
+        food(
+          *,
+          food_sensitivities(sensitivity_id),
+          food_medical_conditions(*)
+        )
+      )
+    `)
+    .eq('diet_plan_id', templateId);
+
+  if (error) throw error;
+  return data || [];
+};
+
+const buildConflictsMap = (templateRecipes = [], clientRestrictions = { sensitivities: [], conditions: [] }) => {
+  const newConflicts = {};
+
+  const clientSensitivityIds = new Set((clientRestrictions.sensitivities || []).map(s => s.id));
+  const clientConditionIds = new Set((clientRestrictions.conditions || []).map(c => c.id));
+
+  templateRecipes.forEach(recipe => {
+    const ingredientsSource = recipe.custom_ingredients?.length > 0
+      ? recipe.custom_ingredients
+      : recipe.recipe?.recipe_ingredients || [];
+
+    const ingredients = ingredientsSource.map(i => i?.food).filter(Boolean);
+
+    ingredients.forEach(food => {
+      (food.food_sensitivities || []).forEach(fs => {
+        if (clientSensitivityIds.has(fs.sensitivity_id)) {
+          const restriction = (clientRestrictions.sensitivities || []).find(s => s.id === fs.sensitivity_id);
+          if (restriction) {
+            if (!newConflicts[restriction.name]) newConflicts[restriction.name] = [];
+            if (!newConflicts[restriction.name].some(r => r.id === recipe.id)) {
+              newConflicts[restriction.name].push(recipe);
+            }
+          }
+        }
+      });
+
+      (food.food_medical_conditions || []).forEach(fmc => {
+        if (clientConditionIds.has(fmc.condition_id) && (fmc.relation_type === 'to_avoid' || fmc.relation_type === 'evitar')) {
+          const restriction = (clientRestrictions.conditions || []).find(c => c.id === fmc.condition_id);
+          if (restriction) {
+            if (!newConflicts[restriction.name]) newConflicts[restriction.name] = [];
+            if (!newConflicts[restriction.name].some(r => r.id === recipe.id)) {
+              newConflicts[restriction.name].push(recipe);
+            }
+          }
+        }
+      });
+    });
+  });
+
+  return newConflicts;
+};
+
+const buildRecipeOverrideMap = (templateRecipes = []) => {
+  const map = new Map();
+  templateRecipes.forEach(recipe => map.set(recipe.id, recipe));
+  return map;
+};
 
 export const useOnboardingDietAssignment = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const { toast } = useToast();
+ const prepareConflictResolutionData = async ({ userId, template }) => {
+    const [clientRestrictions, templateRecipes] = await Promise.all([
+      fetchClientRestrictions(userId),
+      fetchTemplateRecipesWithFoods(template?.id)
+    ]);
 
+    const conflicts = buildConflictsMap(templateRecipes, clientRestrictions);
+
+    return {
+      conflicts,
+      clientRestrictions,
+      templateRecipes,
+      recipeOverrides: buildRecipeOverrideMap(templateRecipes),
+      planRestrictionsForEditor: {
+        sensitivities: (clientRestrictions.sensitivities || []).map(s => s.id),
+        conditions: (clientRestrictions.conditions || []).map(c => c.id)
+      }
+    };
+  };
   const assignDietFromOnboarding = async (userId, onboardingData) => {
     setLoading(true);
     setError(null);
@@ -63,7 +190,7 @@ export const useOnboardingDietAssignment = () => {
       };
 
       // 4. Create Plan via Service
-      const result = await assignDietPlanToUser(userId, planData, true);
+        const result = await assignDietPlanToUser(userId, planData, true, onboardingData?.recipeOverrides);
 
       if (!result.success) {
         throw new Error(result.error?.message || "Error desconocido al asignar el plan.");
@@ -92,7 +219,8 @@ export const useOnboardingDietAssignment = () => {
   };
 
   return {
-    assignDietFromOnboarding,
+      assignDietFromOnboarding,
+      prepareConflictResolutionData,
     loading,
     error
   };

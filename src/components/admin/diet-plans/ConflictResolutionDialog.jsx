@@ -11,7 +11,13 @@ const ConflictResolutionDialog = ({ open, onOpenChange, conflicts, onRecipeUpdat
     const [editingRecipe, setEditingRecipe] = useState(null);
     const [isRecipeModalOpen, setIsRecipeModalOpen] = useState(false);
     const [resolvedRecipes, setResolvedRecipes] = useState(new Set());
+    const matchesRestrictionLabel = (reason, restrictionName) => {
+        if (!reason || !restrictionName) return false;
 
+        return reason === restrictionName ||
+            reason.includes(`: ${restrictionName}`) ||
+            reason.includes(`por: ${restrictionName}`);
+    };
     // Flatten conflicts to be recipe-centric instead of type-centric, and resolve specific foods
     const recipeConflicts = useMemo(() => {
         const recipeMap = new Map();
@@ -45,8 +51,7 @@ const ConflictResolutionDialog = ({ open, onOpenChange, conflicts, onRecipeUpdat
 
                     // Check if this specific food triggers the current restriction name
                     const info = getConflictInfo(food, clientRestrictions);
-                    if (info && info.reason === restrictionName) {
-                        conflictingFoods.push(food.name);
+                    if (info && matchesRestrictionLabel(info.reason, restrictionName)) {                        conflictingFoods.push(food.name);
                     }
                 });
 

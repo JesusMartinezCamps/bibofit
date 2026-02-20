@@ -112,10 +112,9 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
 
         planRecipes.forEach(recipe => {
             const baseIngredients = recipe.type === 'recipe'
-                ? [
-                    ...(recipe.recipe?.recipe_ingredients || []),
-                    ...(recipe.custom_ingredients || []),
-                ]
+                ? ((recipe.custom_ingredients && recipe.custom_ingredients.length > 0)
+                    ? recipe.custom_ingredients
+                    : (recipe.recipe?.recipe_ingredients || []))
                 : (recipe.private_recipe_ingredients || []);
             map.set(recipe.dnd_id, baseIngredients);
         });
@@ -980,6 +979,10 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
             <RepeatSnackDialog
                 open={isRepeatSnackOpen}
                 onOpenChange={setIsRepeatSnackOpen}
+                onBack={() => {
+                    setIsRepeatSnackOpen(false);
+                    setIsSnackSelectorOpen(true);
+                }}
                 planId={activePlan?.id}
                 userId={userId}
                 allFoods={allAvailableFoods}
