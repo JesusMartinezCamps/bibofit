@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
     import { supabase } from '@/lib/supabaseClient';
     import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
     import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-    import { Apple, Calendar, Loader2, X } from 'lucide-react';
+    import { Apple, ArrowLeft, Calendar, Loader2, X } from 'lucide-react';
     import { formatDistanceToNow, parseISO } from 'date-fns';
     import { es } from 'date-fns/locale';
     import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
-    const RepeatSnackDialog = ({ open, onOpenChange, onSelectSnack, planId, userId, allFoods, onDeleteSnack }) => {
+    const RepeatSnackDialog = ({ open, onOpenChange, onSelectSnack, planId, userId, allFoods, onDeleteSnack, onBack}) => {
       const [loading, setLoading] = useState(true);
       const [snacks, setSnacks] = useState([]);
       const [snackToDelete, setSnackToDelete] = useState(null);
@@ -50,7 +50,14 @@ import React, { useState, useEffect } from 'react';
         onSelectSnack(snack);
         onOpenChange(false);
       };
+       const handleBack = () => {
+        if (onBack) {
+          onBack();
+          return;
+        }
 
+        onOpenChange(false);
+      };
       const handleDeleteClick = (e, snack) => {
         e.stopPropagation();
         setSnackToDelete(snack);
@@ -94,6 +101,13 @@ import React, { useState, useEffect } from 'react';
             <DialogContent className="bg-[#1a1e23] border-gray-700 text-white sm:max-w-md p-0 sm:p-0">
               <div className="p-6 pb-2">
                 <DialogHeader>
+                <button
+                    onClick={handleBack}
+                    className="absolute left-6 top-6 inline-flex items-center justify-center rounded-full p-2 text-gray-300 transition-colors hover:bg-gray-700/80 hover:text-white"
+                    aria-label="Volver al selector de picoteos"
+                  >
+                    <ArrowLeft className="h-5 w-5" />
+                  </button>
                   <DialogTitle className="text-center text-2xl">Repetir un Picoteo</DialogTitle>
                   <DialogDescription className="text-center">
                     Selecciona uno de tus picoteos guardados para añadirlo al día de hoy.

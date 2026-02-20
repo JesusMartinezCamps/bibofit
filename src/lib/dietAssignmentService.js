@@ -45,6 +45,32 @@ const fetchFullTemplateRecipes = async (templateId) => {
     return data || [];
 };
 
+const applyRecipeOverrides = (fullTemplateRecipes = [], recipeOverrides = null) => {
+    if (!recipeOverrides) return fullTemplateRecipes;
+
+    const overrideMap = recipeOverrides instanceof Map
+        ? recipeOverrides
+        : new Map(Object.entries(recipeOverrides || {}).map(([key, value]) => [Number(key), value]));
+
+    if (overrideMap.size === 0) return fullTemplateRecipes;
+
+    return fullTemplateRecipes.map(recipe => overrideMap.get(recipe.id) || recipe);
+};
+
+const buildGroupedRecipesFromTemplateRecipes = (templateRecipes = []) => {
+    return templateRecipes.reduce((acc, recipe) => {
+        const mealId = recipe.day_meal_id;
+        if (!mealId) return acc;
+
+        if (!acc[mealId]) acc[mealId] = [];
+
+        const recipeId = recipe.recipe_id || recipe.recipe?.id;
+        if (recipeId) acc[mealId].push(recipeId);
+
+        return acc;
+    }, {});
+};
+
 /**
  * Creates the diet plan structure in the database.
  * This function acts as the "Service Layer" equivalent of the logic previously found in useAssignPlan hook.
@@ -219,8 +245,8 @@ const createUserDietFromTemplate = async (userId, planData, templateRecipes, edg
  * @param {object} planData - Configuration object for the plan.
  * @param {boolean} isOnboarding - Flag to indicate if this is part of onboarding flow.
  */
-export const assignDietPlanToUser = async (userId, planData, isOnboarding = false) => {
-    try {
+export const assignDietPlanToUser = async (userId, planData, isOnboarding = false, recipeOverrides = null) => {
+  try {
         const { 
             planName, 
             startDate, 
@@ -241,12 +267,15 @@ export const assignDietPlanToUser = async (userId, planData, isOnboarding = fals
         if (!globalMacros) throw new Error("Missing required field: globalMacros");
         if (!mealMacroDistribution || mealMacroDistribution.length === 0) throw new Error("Missing required field: mealMacroDistribution");
 
-        // 1. Fetch Recipes for Payload Construction (Lightweight/Grouped)
-        const groupedRecipes = await fetchRecipesForTemplate(template.id);
-        
-        // 2. Fetch Full Recipes for Copying (Heavyweight/Detailed)
-        const fullTemplateRecipes = await fetchFullTemplateRecipes(template.id);
+        // 1. Fetch Full Recipes for Copying (Heavyweight/Detailed)
+        const fullTemplateRecipesRaw = await fetchFullTemplateRecipes(template.id);
+        const fullTemplateRecipes = applyRecipeOverrides(fullTemplateRecipesRaw, recipeOverrides);
 
+        // 2. Resolve recipes for payload (respect overrides when present)
+        const groupedRecipes = recipeOverrides
+        ? buildGroupedRecipesFromTemplateRecipes(fullTemplateRecipes)
+        : await fetchRecipesForTemplate(template.id);
+        
         // 3. Build Payload and Call Edge Function
         const payload = buildMacroBalancingParams({
             templateId: template.id,

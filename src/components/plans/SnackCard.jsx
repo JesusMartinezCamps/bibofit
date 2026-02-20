@@ -53,9 +53,9 @@ const SnackCard = ({ snack, allFoods, onRemove, onToggle, onClick, isSelected })
         <div className="mt-4 flex justify-between items-center">
           <div className="flex items-center gap-x-3 gap-y-1 text-sm font-mono flex-wrap">
             <span className="flex items-center text-orange-300" title="Calorías"><Apple className="w-4 h-4 mr-1 text-orange-300"/>{Math.round(macros.calories || 0)}</span>
-            <span className="flex items-center text-orange-300" title="Proteínas"><ProteinIcon className="w-4 h-4 mr-1 text-orange-300"/>{Math.round(macros.proteins || 0)}</span>
-            <span className="flex items-center text-orange-300" title="Carbohidratos"><CarbsIcon className="w-4 h-4 mr-1 text-orange-300"/>{Math.round(macros.carbs || 0)}</span>
-            <span className="flex items-center text-orange-300" title="Grasas"><FatsIcon className="w-4 h-4 mr-1 text-orange-300"/>{Math.round(macros.fats || 0)}</span>
+            <span className="flex items-center text-orange-300" title="Proteínas"><ProteinIcon className="w-4 h-4 mr-1 text-orange-300"/>{Math.round(macros.proteins || 0)}g</span>
+            <span className="flex items-center text-orange-300" title="Carbohidratos"><CarbsIcon className="w-4 h-4 mr-1 text-orange-300"/>{Math.round(macros.carbs || 0)}g</span>
+            <span className="flex items-center text-orange-300" title="Grasas"><FatsIcon className="w-4 h-4 mr-1 text-orange-300"/>{Math.round(macros.fats || 0)}g</span>
           </div>
           <button
             onClick={(e) => {
