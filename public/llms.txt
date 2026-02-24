@@ -1,0 +1,23 @@
+## Pages
+- [- Bibofit](/profile): Gestiona tu información y consulta tus creaciones.
+- [- Gsus Martz`}](/diet): No description available
+- [` : 'Plan de Entreno'} - Gsus Martz](/workout): No description available
+- [Actualizar Contraseña - Gsus Martz](/updatepassword): Establece tu nueva contraseña.
+- [Añadir Picoteo - Gsus Martz](/createsnack): Crea y añade un picoteo a tu plan de dieta.
+- [Bibofit | Software para Nutricionistas y Entrenadores](/home): La plataforma todo en uno para gestionar planes de nutrición, rutinas de entrenamiento y seguimiento de clientes. Escala tu negocio fitness con Bibofit.
+- [Crear Receta Libre - Gsus Martz](/createfreerecipe): Crea y añade una receta libre a tu plan de dieta.
+- [Dashboard - Bibofit](/dashboard): Tu calendario de entrenamientos y dietas.
+- [Dashboard Entrenador - Gsus Martz](/coachdashboard): No description available
+- [Historial de Peso - Gsus Martz](/weighthistory): Consulta tu progreso y evolución de peso.
+- [Iniciar Sesión - Bibofit](/login): Accede a tu plataforma de entrenamiento personal con Bibofit
+- [Mi Plan Actual - Gsus Martz](/clientplandetail): No description available
+- [Mis Alimentos Creados - Gsus Martz](/myfoods): Consulta el historial de tus alimentos creados y su estado.
+- [Mis Datos - Gsus Martz](/profiledata): Edita tus datos personales, preferencias de dieta y de entrenamiento.
+- [Mis Recetas Libres - Gsus Martz](/myfreerecipes): Consulta el historial de tus recetas libres y su estado.
+- [Plan de Dieta - Gsus Martz](/dietplan): Visualiza y gestiona tu plan de dieta diario y semanal.
+- [Plan de Entreno - Gsus Martz](/trainingplan): Tu plan de entrenamiento completo.
+- [Precios y Planes | Bibofit](/pricing): Elige el plan perfecto para tus objetivos de fitness y nutrición.
+- [Registrarse - Bibofit](/signup): Crea tu cuenta en Bibofit y empieza tu transformación fitness
+- [Restablecer Contraseña - Bibofit](/resetpassword): Recupera el acceso a tu cuenta de Bibofit.
+- [Tu Plan - Gsus Martz](/plan): Accede a tu plan de dieta y entrenamiento personalizado.
+- [Untitled Page](/weeklyplanner): Planifica tus comidas para los próximos 7 días.
