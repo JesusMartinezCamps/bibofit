@@ -2,6 +2,22 @@ import { supabase } from '@/lib/customSupabaseClient';
 import { getStepConfig } from './onboardingConfig';
 import { calculateAndSaveMetabolism } from '@/lib/metabolismCalculator';
 
+const fetchDefaultDietTemplate = async () => {
+  const { data, error } = await supabase
+    .from('diet_plans')
+    .select('id, name, protein_pct, carbs_pct, fat_pct')
+    .eq('name', 'Mi última dieta')
+    .eq('is_template', true)
+    .limit(1);
+
+  if (error) {
+    console.error("Error fetching default template 'Mi última dieta':", error);
+    return null;
+  }
+
+  return data?.[0] || null;
+};
+
 export const onboardingService = {
   async getOnboardingStatus(userId) {
     const { data, error } = await supabase
@@ -94,9 +110,17 @@ export const onboardingService = {
                         .maybeSingle();
                     
                     const existingPlanData = currentProgress?.plan_data || {};
+                    const fallbackTemplate = existingPlanData?.template
+                      || existingPlanData?.selectedTemplate
+                      || await fetchDefaultDietTemplate();
                     const newPlanData = {
                         ...existingPlanData,
-                        macros: data.macroDistribution
+                        dailyCalories: data.dailyCalories ?? existingPlanData.dailyCalories,
+                        macroDistribution: data.macroDistribution,
+                        // Backward compatibility with older reads expecting this key.
+                        macros: data.macroDistribution,
+                        ...(existingPlanData?.template ? {} : { template: fallbackTemplate }),
+                        ...(existingPlanData?.selectedTemplate ? {} : { selectedTemplate: fallbackTemplate })
                     };
 
                     const { error: progressError } = await supabase
