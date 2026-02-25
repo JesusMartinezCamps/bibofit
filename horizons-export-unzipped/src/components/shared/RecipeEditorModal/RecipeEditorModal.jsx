@@ -126,6 +126,22 @@ const RecipeEditorModal = ({
             setEnrichedRecipe({
               ...recipeToEdit,
               recipe: recipeSource,
+              image_url:
+                recipeToEdit.image_url ||
+                recipeToEdit.img_url ||
+                recipeSource?.image_url ||
+                recipeSource?.img_url ||
+                recipeToEdit.recipe?.image_url ||
+                recipeToEdit.recipe?.img_url ||
+                null,
+              img_url:
+                recipeToEdit.img_url ||
+                recipeToEdit.image_url ||
+                recipeSource?.img_url ||
+                recipeSource?.image_url ||
+                recipeToEdit.recipe?.img_url ||
+                recipeToEdit.recipe?.image_url ||
+                null,
               ingredients: populatedIngredients
             });
 

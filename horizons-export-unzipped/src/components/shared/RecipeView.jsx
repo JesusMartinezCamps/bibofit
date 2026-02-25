@@ -455,6 +455,19 @@ const RecipeView = ({
     );
   }, [recipe]);
 
+  const recipeImageUrl = useMemo(() => {
+    if (!recipe) return null;
+    return (
+      recipe.img_url ||
+      recipe.image_url ||
+      recipe.recipe?.img_url ||
+      recipe.recipe?.image_url ||
+      recipe.recipe?.recipe?.img_url ||
+      recipe.recipe?.recipe?.image_url ||
+      null
+    );
+  }, [recipe]);
+
   useEffect(() => {
     setOpenIngredientPopoverId(null);
   }, [isEditing, recipeIdentity]);
@@ -760,6 +773,16 @@ const RecipeView = ({
       )}
 
       <div className="text-center mt-6 relative z-10">
+        {recipeImageUrl && (
+          <div className="mb-4 overflow-hidden rounded-xl border border-slate-700/70 bg-slate-900/70">
+            <img
+              src={recipeImageUrl}
+              alt={`Imagen de ${recipe.name || 'receta'}`}
+              className="w-full h-44 sm:h-56 object-cover"
+              loading="lazy"
+            />
+          </div>
+        )}
         {isEditing ? (
           <EditableField
             value={recipe.name}

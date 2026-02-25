@@ -1,14 +1,40 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { motion } from 'framer-motion';
 import SharedCalendar from '@/components/shared/SharedCalendar';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabaseClient';
 import { useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
+import { useToast } from '@/components/ui/use-toast';
+import { useSwipeGesture } from '@/hooks/useSwipeGesture';
+import SwipeIndicator from '@/components/shared/SwipeIndicator';
 
 const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const todayPath = `/plan/dieta/${format(new Date(), 'yyyy-MM-dd')}`;
+  const trainingPath = '/plan/entreno';
+
+  const { handlers: swipeHandlers, isSwiping, swipeOffset, swipeDirection } = useSwipeGesture({
+    onSwipeLeft: () => {
+      toast({
+        title: 'Abriendo plan',
+        description: 'Plan de dieta de hoy',
+        duration: 1200
+      });
+      navigate(todayPath);
+    },
+    onSwipeRight: () => {
+      toast({
+        title: 'Abriendo plan',
+        description: 'Plan de entreno',
+        duration: 1200
+      });
+      navigate(trainingPath);
+    }
+  });
 
   useEffect(() => {
     const checkUserStatus = async () => {
@@ -61,11 +87,14 @@ const Dashboard = () => {
         <meta name="description" content="Tu calendario de entrenamientos y dietas." />
       </Helmet>
       <main className="w-full px-0 py-8">
+        <SwipeIndicator isSwiping={isSwiping && swipeDirection === 'left'} offset={swipeOffset} variant="diet-edge" />
+        <SwipeIndicator isSwiping={isSwiping && swipeDirection === 'right'} offset={swipeOffset} variant="training-edge" />
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="h-full"
+          className="h-full touch-pan-y"
+          {...swipeHandlers}
         >
           <div className="h-full flex flex-col">
             <div className="flex-grow">

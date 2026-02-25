@@ -263,7 +263,7 @@ const RecipeCard = ({
         {/* Gradient Bottom Overlay */}
         <div 
           className="absolute inset-0 pointer-events-none"
-          style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 40%, rgba(0,0,0,0) 100%)' }}
+          style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0, 0, 0, 0.29) 40%, rgba(0,0,0,0) 100%)' }}
         />
 
         <button onClick={() => handleRecipeClick && handleRecipeClick({ ...recipe, is_private_recipe: isPrivate }, adjustment)} className="relative z-10 w-full h-full text-left p-5 flex flex-col justify-between">
