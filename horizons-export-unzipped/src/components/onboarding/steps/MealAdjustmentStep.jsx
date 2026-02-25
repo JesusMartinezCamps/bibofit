@@ -31,6 +31,52 @@ const MealAdjustmentStep = ({ onNext, isLoading: isStepLoading }) => {
   const [isConflictModalOpen, setIsConflictModalOpen] = useState(false);
   const [recipeOverrides, setRecipeOverrides] = useState(new Map());
 
+  const fetchDefaultTemplate = async () => {
+    const { data, error } = await supabase
+      .from('diet_plans')
+      .select('id, name, protein_pct, carbs_pct, fat_pct')
+      .eq('name', 'Mi última dieta')
+      .eq('is_template', true)
+      .limit(1);
+
+    if (error) {
+      console.error("Error fetching default template 'Mi última dieta':", error);
+      return null;
+    }
+
+    return data?.[0] || null;
+  };
+
+  const ensureTemplate = async (sourcePlanData = planData) => {
+    const existingTemplate = sourcePlanData?.selectedTemplate || sourcePlanData?.template;
+    if (existingTemplate) return existingTemplate;
+
+    const fallbackTemplate = await fetchDefaultTemplate();
+    if (!fallbackTemplate) return null;
+
+    const mergedPlanData = {
+      ...(sourcePlanData || {}),
+      template: fallbackTemplate,
+      selectedTemplate: sourcePlanData?.selectedTemplate || fallbackTemplate
+    };
+
+    setPlanData(mergedPlanData);
+
+    try {
+      await supabase
+        .from('assignment_progress')
+        .upsert({
+          user_id: user.id,
+          plan_data: mergedPlanData,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' });
+    } catch (e) {
+      console.error('Error persisting fallback template in assignment_progress:', e);
+    }
+
+    return fallbackTemplate;
+  };
+
   // Fetch data accumulated in previous steps and DB meals
   useEffect(() => {
     if (!user) return;
@@ -50,13 +96,25 @@ const MealAdjustmentStep = ({ onNext, isLoading: isStepLoading }) => {
              // Error silently handled or logged if critical
         }
 
-        const data = progress?.plan_data || {};
+        let data = progress?.plan_data || {};
+
+        if (!data.selectedTemplate && !data.template) {
+          const fallbackTemplate = await fetchDefaultTemplate();
+          if (fallbackTemplate) {
+            data = {
+              ...data,
+              template: fallbackTemplate,
+              selectedTemplate: fallbackTemplate
+            };
+          }
+        }
 
         setPlanData(data);
         
         // Initialize state from fetched data
         if (data.dailyCalories) setDailyCalories(data.dailyCalories);
         if (data.macroDistribution) setMacrosPct(data.macroDistribution);
+        else if (data.macros) setMacrosPct(data.macros);
         
         // 2. Fetch User Day Meals from DB (Priority over assignment_progress for meals)
         const { data: dbMeals, error: mealsError } = await supabase
@@ -84,6 +142,8 @@ const MealAdjustmentStep = ({ onNext, isLoading: isStepLoading }) => {
 
         let mealsToSet = [];
 
+        const baseMacroDistribution = data.macroDistribution || data.macros || { protein: 30, carbs: 40, fat: 30 };
+
         if (dbMeals && dbMeals.length > 0) {
             const uniqueMealsMap = new Map();
             
@@ -93,9 +153,9 @@ const MealAdjustmentStep = ({ onNext, isLoading: isStepLoading }) => {
                         id: m.id,
                         name: m.day_meals?.name || 'Comida',
                         day_meal_id: m.day_meal_id,
-                        protein_pct: m.protein_pct || data.macroDistribution?.protein || 30, 
-                        carbs_pct: m.carbs_pct || data.macroDistribution?.carbs || 40,
-                        fat_pct: m.fat_pct || data.macroDistribution?.fat || 30,
+                        protein_pct: m.protein_pct || baseMacroDistribution.protein || 30, 
+                        carbs_pct: m.carbs_pct || baseMacroDistribution.carbs || 40,
+                        fat_pct: m.fat_pct || baseMacroDistribution.fat || 30,
                         day_meal: m.day_meals
                     });
                 }
@@ -221,7 +281,7 @@ const MealAdjustmentStep = ({ onNext, isLoading: isStepLoading }) => {
 
   const handleConflictResolutionComplete = async () => {
       setIsConflictModalOpen(false);
-      const template = planData?.selectedTemplate || planData?.template;
+      const template = await ensureTemplate(planData);
       if (!template) return;
 
       await runAssignment(template, recipeOverrides);
@@ -233,7 +293,7 @@ const MealAdjustmentStep = ({ onNext, isLoading: isStepLoading }) => {
          return;
     }
 
-    const template = planData.selectedTemplate || planData.template;
+    const template = await ensureTemplate(planData);
     
     if (!template) {
         toast({ title: "Error", description: "No se ha seleccionado una plantilla base.", variant: "destructive" });

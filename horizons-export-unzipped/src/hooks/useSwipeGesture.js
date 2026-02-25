@@ -10,8 +10,16 @@ export const useSwipeGesture = ({ onSwipeLeft, onSwipeRight, threshold = 50, ver
   const touchStart = useRef({ x: 0, y: 0 });
   const lastTrigger = useRef(0);
 
+  if (!isSwipeEnabled) {
+    return {
+      handlers: {},
+      isSwiping: false,
+      swipeOffset: 0,
+      swipeDirection: null
+    };
+  }
+
   const onTouchStart = (e) => {
-    if (!isSwipeEnabled) return;
     touchStart.current = { 
       x: e.touches[0].clientX, 
       y: e.touches[0].clientY 
@@ -22,7 +30,7 @@ export const useSwipeGesture = ({ onSwipeLeft, onSwipeRight, threshold = 50, ver
   };
 
   const onTouchMove = (e) => {
-    if (!isSwipeEnabled || !isSwiping) return;
+    if (!isSwiping) return;
     const currentX = e.touches[0].clientX;
     const currentY = e.touches[0].clientY;
     
@@ -48,7 +56,7 @@ export const useSwipeGesture = ({ onSwipeLeft, onSwipeRight, threshold = 50, ver
   };
 
   const onTouchEnd = (e) => {
-    if (!isSwipeEnabled || !isSwiping) return;
+    if (!isSwiping) return;
     
     const currentX = e.changedTouches[0]?.clientX || touchStart.current.x;
     const diffX = touchStart.current.x - currentX;
