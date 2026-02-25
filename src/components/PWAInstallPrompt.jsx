@@ -6,8 +6,20 @@ import { motion, AnimatePresence } from 'framer-motion';
 const PWAInstallPrompt = () => {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isVisible, setIsVisible] = useState(false);
+  const isMobileDevice = () => {
+    if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
+
+    const mobileUserAgent = /Android|iPhone|iPad|iPod|Mobile|Opera Mini|IEMobile/i.test(navigator.userAgent);
+    const hasCoarsePointer = window.matchMedia?.('(pointer: coarse)').matches ?? false;
+    const isSmallViewport = window.innerWidth < 1024;
+
+    return mobileUserAgent || (hasCoarsePointer && isSmallViewport);
+  };
 
   useEffect(() => {
+    if (!isMobileDevice()) {
+      return;
+    }
     const handleBeforeInstallPrompt = (e) => {
       // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
