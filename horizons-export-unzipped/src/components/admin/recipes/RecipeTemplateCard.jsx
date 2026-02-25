@@ -22,9 +22,18 @@ const RecipeTemplateCard = ({ recipe, onSelect, isSelected, onDelete }) => {
       exit={{ opacity: 0, y: 10 }}
       transition={{ duration: 0.2 }}
       onClick={() => onSelect(recipe)}
+      style={
+        recipe.image_url
+          ? {
+              backgroundImage: `linear-gradient(rgba(2, 6, 23, 0.75), rgba(2, 6, 23, 0.23)), url(${recipe.image_url})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }
+          : undefined
+      }
       className={cn(
         'p-4 rounded-lg cursor-pointer transition-all duration-200 border-2',
-        'bg-slate-800/50 hover:bg-slate-700/50',
+        recipe.image_url ? 'bg-slate-800/20' : 'bg-slate-800/50 hover:bg-slate-700/50',
         isSelected ? 'border-green-500 shadow-lg shadow-green-500/10' : 'border-slate-700 hover:border-slate-600'
       )}
     >
