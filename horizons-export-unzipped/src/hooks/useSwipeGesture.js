@@ -1,10 +1,11 @@
 import { useState, useRef } from 'react';
 import { useSwipeConfig } from '@/contexts/SwipeGestureContext';
 
-export const useSwipeGesture = ({ onSwipeLeft, threshold = 50, verticalTolerance = 30 }) => {
+export const useSwipeGesture = ({ onSwipeLeft, onSwipeRight, threshold = 50, verticalTolerance = 30 }) => {
   const { isSwipeEnabled } = useSwipeConfig();
   const [isSwiping, setIsSwiping] = useState(false);
   const [swipeOffset, setSwipeOffset] = useState(0);
+  const [swipeDirection, setSwipeDirection] = useState(null);
   
   const touchStart = useRef({ x: 0, y: 0 });
   const lastTrigger = useRef(0);
@@ -17,6 +18,7 @@ export const useSwipeGesture = ({ onSwipeLeft, threshold = 50, verticalTolerance
     };
     setIsSwiping(true);
     setSwipeOffset(0);
+    setSwipeDirection(null);
   };
 
   const onTouchMove = (e) => {
@@ -34,11 +36,14 @@ export const useSwipeGesture = ({ onSwipeLeft, threshold = 50, verticalTolerance
       return;
     }
 
-    // Only track left swipes
+    // Track left and right swipes
     if (diffX > 0) {
       setSwipeOffset(diffX);
+      setSwipeDirection('left');
     } else {
-      setSwipeOffset(0);
+      const rightOffset = Math.abs(diffX);
+      setSwipeOffset(rightOffset);
+      setSwipeDirection(rightOffset > 0 ? 'right' : null);
     }
   };
 
@@ -50,15 +55,19 @@ export const useSwipeGesture = ({ onSwipeLeft, threshold = 50, verticalTolerance
     
     setIsSwiping(false);
     setSwipeOffset(0);
+    setSwipeDirection(null);
 
     // Trigger callback if horizontal threshold is met
-    if (diffX > threshold) {
+    if (Math.abs(diffX) > threshold) {
       const now = Date.now();
       // Debounce trigger (500ms)
       if (now - lastTrigger.current > 500) {
         lastTrigger.current = now;
-        if (onSwipeLeft) {
+        if (diffX > 0 && onSwipeLeft) {
           onSwipeLeft();
+        }
+        if (diffX < 0 && onSwipeRight) {
+          onSwipeRight();
         }
       }
     }
@@ -71,6 +80,7 @@ export const useSwipeGesture = ({ onSwipeLeft, threshold = 50, verticalTolerance
       onTouchEnd
     },
     isSwiping,
-    swipeOffset
+    swipeOffset,
+    swipeDirection
   };
 };

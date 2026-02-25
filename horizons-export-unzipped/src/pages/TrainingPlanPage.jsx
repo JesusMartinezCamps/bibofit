@@ -3,9 +3,18 @@ import { motion } from 'framer-motion';
 import { Helmet } from 'react-helmet';
 import { Dumbbell, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useSwipeGesture } from '@/hooks/useSwipeGesture';
+import SwipeIndicator from '@/components/shared/SwipeIndicator';
 
 const TrainingPlanPage = () => {
+  const navigate = useNavigate();
+  const { handlers: swipeHandlers, isSwiping, swipeOffset, swipeDirection } = useSwipeGesture({
+    onSwipeLeft: () => {
+      navigate('/dashboard');
+    }
+  });
+
   return (
     <>
       <Helmet>
@@ -13,7 +22,8 @@ const TrainingPlanPage = () => {
         <meta name="description" content="Tu plan de entrenamiento completo." />
       </Helmet>
 
-      <main className="w-full px-4 py-8">
+      <main className="w-full px-4 py-8 touch-pan-y" {...swipeHandlers}>
+        <SwipeIndicator isSwiping={isSwiping && swipeDirection === 'left'} offset={swipeOffset} variant="calendar-edge-right" />
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}

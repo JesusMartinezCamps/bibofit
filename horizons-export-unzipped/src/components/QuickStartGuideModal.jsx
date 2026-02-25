@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronRight, SlidersHorizontal, ChevronLeft, CheckCircle, Search, Calendar, ShoppingCart, ListTodo, Apple, Wand2, Sparkles } from 'lucide-react';
+import { X, ChevronRight, SlidersHorizontal, ChevronLeft, CheckCircle, Search, Calendar, ShoppingCart, ListTodo, Apple, Wand2, Sparkles, ArrowRightLeft } from 'lucide-react';
 import { useQuickStartGuide } from '@/contexts/QuickStartGuideContext';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -21,6 +21,13 @@ const steps = [
     icon: ListTodo,
     color: 'text-green-400',
     bg: 'bg-green-400/10'
+  },
+  {
+    title: 'Gestos Rápidos',
+    description: 'Desliza en el Dashboard: a la izquierda para abrir tu Plan de Dieta y a la derecha para abrir tu Plan de Entreno. Desde los planes, puedes deslizar para volver rápidamente al Dashboard.',
+    icon: ArrowRightLeft,
+    color: 'text-fuchsia-400',
+    bg: 'bg-fuchsia-400/10'
   },
   {
     title: 'Crea nuevas variantes',

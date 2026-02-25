@@ -177,7 +177,7 @@ const DietPlanComponent = () => {
   };
   
   // Swipe gesture hook setup
-  const { handlers: swipeHandlers, isSwiping, swipeOffset } = useSwipeGesture({
+  const { handlers: swipeHandlers, isSwiping, swipeOffset, swipeDirection } = useSwipeGesture({
     onSwipeLeft: () => {
       const nextDay = addDays(currentDate, 1);
       toast({
@@ -186,6 +186,13 @@ const DietPlanComponent = () => {
         duration: 1500,
       });
       handleDateChange(nextDay);
+    },
+    onSwipeRight: () => {
+      if (isAdminView) {
+        navigate(`/planner/${userId}`);
+        return;
+      }
+      navigate('/dashboard');
     }
   });
 
@@ -727,7 +734,8 @@ const combinedPlanRestrictions = useMemo(() => {
         className="overflow-x-clip min-h-screen touch-pan-y"
         {...swipeHandlers}
     >
-      <SwipeIndicator isSwiping={isSwiping} offset={swipeOffset} />
+      <SwipeIndicator isSwiping={isSwiping && swipeDirection === 'left'} offset={swipeOffset} />
+      <SwipeIndicator isSwiping={isSwiping && swipeDirection === 'right'} offset={swipeOffset} variant="calendar-edge" />
 
       <AnimatePresence mode="wait">
         <motion.div
