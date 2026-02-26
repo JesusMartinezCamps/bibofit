@@ -187,6 +187,7 @@ const IngredientCard = ({
 
   const statusColorClasses = getStatusColorClasses(conflictType);
   const displayQuantity = (quantity === '' || quantity === null || isNaN(quantity)) ? 0 : Math.round(Number(quantity));
+  const canManageIngredient = typeof onRemove === 'function' && typeof onReplace === 'function';
 
   if (displayAsBullet) {
     const baseMacros = {
@@ -203,19 +204,53 @@ const IngredientCard = ({
 
     return (
       <li className="border-b border-slate-800/50 last:border-0 relative">
+        {canManageIngredient && (
+          <>
+            <button
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onReplace();
+              }}
+              className="absolute left-1 top-1/2 -translate-y-1/2 bg-blue-600/90 text-white rounded-full p-1 transition-opacity hover:bg-blue-500 z-[60] shadow-lg"
+              title="Reemplazar ingrediente"
+            >
+              <ArrowRightLeft className="w-4 h-4" />
+            </button>
+            <button
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onRemove();
+              }}
+              className="absolute right-1 top-1/2 -translate-y-1/2 bg-red-600/90 text-white rounded-full p-1 transition-opacity hover:bg-red-500 z-[60] shadow-lg"
+              title="Eliminar ingrediente"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </>
+        )}
         <Popover open={effectiveOpen} onOpenChange={handlePopoverOpenChange}>
           <PopoverTrigger asChild>
             <div
               ref={triggerRef}
-              className="flex items-center justify-between text-sm py-2 hover:bg-slate-800/20 rounded-sm transition-colors cursor-pointer w-full group relative z-50"
+              className={cn(
+                "flex items-center justify-between text-sm py-2 hover:bg-slate-800/20 rounded-sm transition-colors cursor-pointer w-full group relative z-50",
+                canManageIngredient && "pl-8 pr-8"
+              )}
               onClick={(e) => {
                 e.stopPropagation();
               }}
             >
               <div className="flex items-center min-w-0 mr-4 w-[90%]">
-                <div className={cn("w-1.5 h-1.5 rounded-full mr-3 flex-shrink-0 transition-colors",
-                  hasConflict ? "bg-red-500" : (isRecommended ? "bg-green-500" : "bg-slate-600 group-hover:bg-green-400")
-                )} />
                 <span className={cn("text-base truncate transition-colors",
                   hasConflict ? "text-red-400 group-hover:text-red-300" : (isRecommended ? "text-green-400 group-hover:text-green-300" : "group-hover:text-green-300"),
                   statusColorClasses.split(' ').find(c => c.startsWith('text-'))
@@ -278,12 +313,20 @@ const IngredientCard = ({
 
   return (
     <div data-ingredient-food-id={food.id} className={cn("relative p-3 rounded-lg border transition-all duration-300", statusColorClasses.split(' ').filter(c => c.startsWith('bg-') || c.startsWith('border-')))}>
-      {isEditing && (
+      {canManageIngredient && (
         <>
-          <button onClick={onReplace} className="absolute -top-2 -left-2 bg-blue-600/90 text-white rounded-full p-1 transition-opacity hover:bg-blue-500 z-10 shadow-lg" title="Reemplazar ingrediente">
+          <button
+            onClick={onReplace}
+            className="absolute left-1 top-1/2 -translate-y-1/2 bg-blue-600/90 text-white rounded-full p-1 transition-opacity hover:bg-blue-500 z-10 shadow-lg"
+            title="Reemplazar ingrediente"
+          >
             <ArrowRightLeft className="w-4 h-4" />
           </button>
-          <button onClick={onRemove} className="absolute -top-2 -right-2 bg-red-600/90 text-white rounded-full p-1 transition-opacity hover:bg-red-500 z-10 shadow-lg" title="Eliminar ingrediente">
+          <button
+            onClick={onRemove}
+            className="absolute right-1 top-1/2 -translate-y-1/2 bg-red-600/90 text-white rounded-full p-1 transition-opacity hover:bg-red-500 z-10 shadow-lg"
+            title="Eliminar ingrediente"
+          >
             <X className="w-4 h-4" />
           </button>
         </>
@@ -292,7 +335,7 @@ const IngredientCard = ({
       {isEditing ? (
         <div className="flex flex-col gap-2">
           <div className="flex items-center">
-            <div className={cn("w-3/5 flex flex-col justify-center transition-all", isEditing && "pl-3")}>
+            <div className={cn("w-3/5 flex flex-col justify-center transition-all", canManageIngredient && "pl-7")}>
               <div className="font-semibold" style={{ color: statusColorClasses.split(' ').find(c => c.startsWith('text-'))?.replace('text-', '') }}>
                 {food.name}
               </div>
@@ -547,14 +590,14 @@ const RecipeView = ({
     recipe.ingredients.forEach(ing => {
       let food = ing.food;
       if (!food && allFoods) {
-        const foodId = ing.food_id || ing.user_created_food_id;
-        const isUserCreated = !!ing.user_created_food_id;
+        const foodId = ing.food_id;
+        const isUserCreated = !!ing.is_user_created;
         food = allFoods.find(f => String(f.id) === String(foodId) && f.is_user_created === isUserCreated);
       }
 
       if (food && allFoods) {
         const foodId = food.id;
-        const isUserCreated = !!(food.is_user_created || ing.user_created_food_id);
+        const isUserCreated = !!(food.is_user_created || ing.is_user_created);
         const fullFood = allFoods.find(f => String(f.id) === String(foodId) && f.is_user_created === isUserCreated);
         if (fullFood) {
           food = fullFood;
@@ -599,13 +642,13 @@ const RecipeView = ({
     return recipe.ingredients.map((ing, originalIndex) => {
         let food = ing.food;
         if (!food && allFoods) {
-            const foodId = ing.food_id || ing.user_created_food_id;
-            const isUserCreated = !!ing.user_created_food_id;
+            const foodId = ing.food_id;
+            const isUserCreated = !!ing.is_user_created;
             food = allFoods.find(f => String(f.id) === String(foodId) && f.is_user_created === isUserCreated);
         }
         if (food && allFoods) {
             const foodId = food.id;
-            const isUserCreated = !!(food.is_user_created || ing.user_created_food_id);
+            const isUserCreated = !!(food.is_user_created || ing.is_user_created);
             const fullFood = allFoods.find(f => String(f.id) === String(foodId) && f.is_user_created === isUserCreated);
             if (fullFood) food = fullFood;
         }
@@ -735,6 +778,7 @@ const RecipeView = ({
   const greenCount = recommendations.length;
   const redCount = conflicts.length;
   const showAutoBalance = isEditing && recipe.ingredients?.length > 0 && (mealTargetMacros || recipe.day_meal_id) && !disableAutoBalance;
+  const canManageIngredientsInView = !!onIngredientsChange && !!onRemoveIngredient;
 
   if (replacingIngredient) {
     return (
@@ -928,6 +972,8 @@ const RecipeView = ({
                     popoverId={ing.local_id || `${ing.food_id}-${index}`}
                     isOpen={openIngredientPopoverId === (ing.local_id || `${ing.food_id}-${index}`)}
                     onOpenChange={handleIngredientPopoverChange}
+                    onRemove={canManageIngredientsInView ? () => onRemoveIngredient(ing) : undefined}
+                    onReplace={canManageIngredientsInView ? () => setReplacingIngredient(ing) : undefined}
                   />
                 ))
               ) : (

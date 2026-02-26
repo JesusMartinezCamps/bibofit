@@ -40,7 +40,7 @@ const SnackDialog = ({ open, onOpenChange, userId, onSaveSuccess, mealDate, pres
             quantity: ing.grams,
             is_free: false,
             food_unit: foodDetails.food_unit,
-            is_user_created: !!ing.user_created_food_id
+            is_user_created: !!ing.is_user_created
           };
         });
         setIngredients(ingredientsData);

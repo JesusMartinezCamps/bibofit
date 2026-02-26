@@ -66,8 +66,8 @@ export const calculateMacros = (ingredients, allFoods = []) => {
     } else if (ingredient.user_created_food) {
         foodDetails = ingredient.user_created_food;
     } else {
-        const foodId = ingredient.food_id ?? ingredient.user_created_food_id;
-        const isUserCreated = !!(ingredient.user_created_food_id || ingredient.is_user_created);
+        const foodId = ingredient.food_id;
+        const isUserCreated = !!ingredient.is_user_created;
 
         if (foodId) {
              if (foodsSource instanceof Map) {

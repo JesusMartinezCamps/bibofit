@@ -37,9 +37,9 @@ const applyIngredientAdjustments = (ingredients, adjustments) => {
     if (!adjustments || adjustments.length === 0) return ingredients;
 
     return ingredients.map(ing => {
-        const foodId = ing.food_id || ing.food?.id || ing.user_created_food_id;
+        const foodId = ing.food_id || ing.food?.id;
         const adjustment = adjustments.find(adj => {
-            const targetFoodId = adj.food_id || adj.food?.id || adj.user_created_food_id;
+            const targetFoodId = adj.food_id || adj.food?.id;
             return targetFoodId === foodId;
         });
 
@@ -497,7 +497,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
             return {
                 ...ing,
                 food,
-                is_user_created: !!ing.user_created_food_id,
+                is_user_created: !!ing.is_user_created,
                 food_id: food?.id,
                 quantity: ing.grams
             };
@@ -806,7 +806,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
                  if (!foodDetails && ing.user_created_food) foodDetails = ing.user_created_food;
                  
                  if (!foodDetails) {
-                    foodDetails = allAvailableFoods.find(f => String(f.id) === String(ing.food_id) && !!f.is_user_created === !!(ing.user_created_food_id || ing.is_user_created));
+                    foodDetails = allAvailableFoods.find(f => String(f.id) === String(ing.food_id) && !!f.is_user_created === !!ing.is_user_created);
                  }
                  
                  return { 

@@ -33,8 +33,7 @@ const MyFreeRecipesPage = () => {
             food:food_id(
               *, 
               food_to_food_groups(food_group_id)
-            ), 
-            user_created_food:user_created_food_id(*)
+            )
           )
         `)
         .eq('user_id', user.id)

@@ -26,8 +26,8 @@ const buildIngredientEnricher = (foods = []) => {
     if (!Array.isArray(ingredients)) return [];
 
     return ingredients.map((ing) => {
-      const isUserCreated = !!(ing.is_user_created || ing.user_created_food_id);
-      const foodId = isUserCreated ? ing.user_created_food_id : ing.food_id;
+      const isUserCreated = !!ing.is_user_created;
+      const foodId = ing.food_id;
       const detailedFood = foodIndex.get(`${isUserCreated ? 1 : 0}:${foodId}`);
 
       return {

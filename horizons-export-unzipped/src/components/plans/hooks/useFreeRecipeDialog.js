@@ -163,8 +163,7 @@ export const useFreeRecipeDialog = ({ targetUserId, dayMealId, dietPlanId, date,
 
       const ingredientsToInsert = ingredients.map(ing => ({
         free_recipe_id: freeRecipe.id,
-        food_id: !ing.is_user_created ? ing.food_id : null,
-        user_created_food_id: ing.is_user_created ? ing.food_id : null,
+        food_id: ing.food_id,
         grams: ing.quantity,
         status: 'approved',
       }));
