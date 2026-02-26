@@ -96,30 +96,23 @@ const RecipeEditorModal = ({
             }
 
             const populatedIngredients = ingredientsSource.map(ing => {
-                const isUserCreated = !!(ing.is_user_created || (ing.food && ing.food.is_user_created));
                 const foodId = ing.food_id;
                 
-                const foodDetails = combinedFoods.find(f => 
-                    String(f.id) === String(foodId) && 
-                    f.is_user_created === isUserCreated
-                );
+                const foodDetails = combinedFoods.find(f => String(f.id) === String(foodId));
                 
                 if (!foodDetails) return null;
 
                 let adjustedQuantity = ing.grams || ing.quantity;
                 if (adjustments && Array.isArray(adjustments)) {
-                    if (!isUserCreated) {
-                         const adj = adjustments.find(a => String(a.food_id) === String(foodId));
-                         if (adj) adjustedQuantity = adj.adjusted_grams;
-                    }
+                     const adj = adjustments.find(a => String(a.food_id) === String(foodId));
+                     if (adj) adjustedQuantity = adj.adjusted_grams;
                 }
 
                 return {
                     ...ing,
                     grams: adjustedQuantity,
                     quantity: adjustedQuantity,
-                    food: foodDetails,
-                    is_user_created: isUserCreated
+                    food: foodDetails
                 };
             }).filter(Boolean);
 
@@ -192,6 +185,7 @@ const RecipeEditorModal = ({
 
   const [isSearching, setIsSearching] = useState(false);
   const [scrollToFoodId, setScrollToFoodId] = useState(null);
+  const [quickEditIngredientKey, setQuickEditIngredientKey] = useState(null);
   const ingredientsContainerRef = useRef(null);
 
   useEffect(() => {
@@ -221,13 +215,21 @@ const RecipeEditorModal = ({
   };
   
   const handleLocalAddIngredient = (newIngredientData) => {
-    handleAddIngredient(newIngredientData);
+    const addedIngredient = handleAddIngredient(newIngredientData);
     setIsSearching(false);
-    if (mode === 'view') {
-        setMode('settings');
-    }
     setScrollToFoodId(newIngredientData.food_id);
+    if (mode === 'view' && addedIngredient?.local_id) {
+      setQuickEditIngredientKey(addedIngredient.local_id);
+    }
   }
+
+  const handleSaveClick = async () => {
+    const success = await handleSubmit('save');
+    if (success) {
+      onOpenChange(false);
+      setIsSearching(false);
+    }
+  };
 
   const recipeForView = useMemo(() => ({
     ...enrichedRecipe,
@@ -332,17 +334,19 @@ const RecipeEditorModal = ({
                     userRestrictions={userRestrictions}
                     isEditing={isEditingMode}
                     onFormChange={handleFormChange}
-                    onIngredientsChange={handleIngredientsChange}
-                    onRemoveIngredient={handleRemoveIngredient}
-                    onAddIngredientClick={() => setIsSearching(true)}
+                    onIngredientsChange={isEditable && !readOnly ? handleIngredientsChange : undefined}
+                    onRemoveIngredient={isEditable && !readOnly ? handleRemoveIngredient : undefined}
+                    onAddIngredientClick={isEditable && !readOnly ? () => setIsSearching(true) : undefined}
                     disableAutoBalance={shouldDisableAutoBalance}
                     onAutoBalanceBlocked={!canUseAutoFrame ? handleBlockedFeature : undefined}
                     enableStickyMacros={true}
                     isTemplate={isTemplate}
+                    quickEditIngredientKey={quickEditIngredientKey}
+                    onQuickEditConsumed={() => setQuickEditIngredientKey(null)}
                   />
                 )}
                   
-                  {!isSearching && isEditingMode && !readOnly && (
+                  {!isSearching && isEditable && !readOnly && (
                     <div className="flex justify-center pt-4 px-2 gap-4 pb-4">
                       <TooltipProvider>
                         <Tooltip>
@@ -350,7 +354,7 @@ const RecipeEditorModal = ({
                                 <span tabIndex={0}>
                                   <Button 
                                     type="button" 
-                                    onClick={() => handleSubmit('save')} 
+                                    onClick={handleSaveClick} 
                                     disabled={isButtonDisabled} 
                                     className={cn(
                                       "bg-gradient-to-r from-[#550d4f] to-[#2f0596] hover:from-[#6b1062] hover:to-[#3b06bb] text-white font-bold transition-all duration-300",
