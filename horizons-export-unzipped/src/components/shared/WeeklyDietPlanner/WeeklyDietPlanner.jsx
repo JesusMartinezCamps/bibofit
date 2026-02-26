@@ -67,7 +67,7 @@ const normalizeDateKey = (value) => {
 };
 
 
-const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', logDate: propLogDate, currentDate, activePlan, onAddRecipeClick, onPlanUpdate, plannedMeals, setPlannedMeals, userRestrictions }, ref) => {
+const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', logDate: propLogDate, currentDate, activePlan, onAddRecipeClick, onPlanUpdate, plannedMeals, setPlannedMeals, userRestrictions, onWeekSummaryChange }, ref) => {
     const { toast } = useToast();
     const { user } = useAuth();
     const navigate = useNavigate();
@@ -214,6 +214,53 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
         setAllMealLogs,
         processMealLogs
     } = useMealLogging(userId, initialMealLogs, userDayMeals, onMealLogUpdate);
+
+    const weekSummaryByDate = useMemo(() => {
+        const summary = {};
+        weekDates.forEach(date => {
+            const key = format(date, 'yyyy-MM-dd');
+            summary[key] = {
+                planned: 0,
+                logged: 0,
+                loggedRecipe: 0,
+                loggedPrivate: 0,
+                loggedFree: 0,
+                snacksLogged: 0,
+                freeAvailable: 0,
+                snacksAvailable: 0,
+            };
+        });
+
+        (plannedMeals || []).forEach(item => {
+            if (summary[item.plan_date]) summary[item.plan_date].planned += 1;
+        });
+
+        (allMealLogs || []).forEach(log => {
+            if (!summary[log.log_date]) return;
+            summary[log.log_date].logged += 1;
+            if (log.private_recipe_id) summary[log.log_date].loggedPrivate += 1;
+            else if (log.free_recipe_occurrence_id) summary[log.log_date].loggedFree += 1;
+            else if (log.diet_plan_recipe_id) summary[log.log_date].loggedRecipe += 1;
+        });
+
+        (snackLogs || []).forEach(log => {
+            if (summary[log.log_date]) summary[log.log_date].snacksLogged += 1;
+        });
+
+        (freeMeals || []).forEach(item => {
+            if (summary[item.meal_date]) summary[item.meal_date].freeAvailable += 1;
+        });
+
+        (snacks || []).forEach(item => {
+            if (summary[item.meal_date]) summary[item.meal_date].snacksAvailable += 1;
+        });
+
+        return summary;
+    }, [weekDates, plannedMeals, allMealLogs, snackLogs, freeMeals, snacks]);
+
+    useEffect(() => {
+        if (onWeekSummaryChange) onWeekSummaryChange(weekSummaryByDate);
+    }, [onWeekSummaryChange, weekSummaryByDate]);
 
     const [recipeToEdit, setRecipeToEdit] = useState(null);
     const [recipeAdjustment, setRecipeAdjustment] = useState(null);
