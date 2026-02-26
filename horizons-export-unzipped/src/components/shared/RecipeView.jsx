@@ -1,25 +1,23 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import { calculateMacros } from '@/lib/macroCalculator';
 import CaloriesIcon from '@/components/icons/CaloriesIcon';
 import ProteinIcon from '@/components/icons/ProteinIcon';
 import CarbsIcon from '@/components/icons/CarbsIcon';
 import FatsIcon from '@/components/icons/FatsIcon';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Sparkles, ShieldAlert, CheckCircle2, Clock, ChefHat, X, PlusCircle, AlertTriangle, Loader2, ThumbsUp, Bot, ArrowRightLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { getConflictInfo } from '@/lib/restrictionChecker.js';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/customSupabaseClient';
 import { useToast } from '@/components/ui/use-toast';
 import IngredientSearch from '@/components/plans/IngredientSearch';
 import { Badge } from '@/components/ui/badge';
-import { motion, AnimatePresence } from 'framer-motion';
 
 const EditableField = ({ value, onChange, isEditing, placeholder, type = 'input', options = [], className = '' }) => {
   const textareaRef = useRef(null);
@@ -93,26 +91,12 @@ const IngredientCard = ({
   isEditing,
   onRemove,
   onReplace,
+  onQuickEdit,
   onQuantityChange,
   displayAsBullet = false,
-  allFoodGroups,
-  isOpen,
-  onOpenChange,
-  popoverId
+  allFoodGroups
 }) => {
   const { food, quantity, macros, vitamins, minerals, conflictType, conflictDetails, recommendationDetails } = ingredient;
-  const [popoverOpen, setPopoverOpen] = useState(false);
-  const triggerRef = useRef(null);
-
-  const effectiveOpen = displayAsBullet ? !!isOpen : popoverOpen;
-
-  const handlePopoverOpenChange = (open) => {
-    if (displayAsBullet && onOpenChange) {
-      onOpenChange(popoverId, open);
-    } else {
-      setPopoverOpen(open);
-    }
-  };
 
   const foodGroupName = allFoodGroups?.find(g => String(g.id) === String(ingredient.food_group_id))?.name ||
     ingredient.food?.food_to_food_groups?.[0]?.food_group?.name || "Otros";
@@ -190,15 +174,6 @@ const IngredientCard = ({
   const canManageIngredient = typeof onRemove === 'function' && typeof onReplace === 'function';
 
   if (displayAsBullet) {
-    const baseMacros = {
-      calories: 0,
-      proteins: parseFloat(food.proteins || 0),
-      carbs: parseFloat(food.total_carbs || 0),
-      fats: parseFloat(food.total_fats || 0)
-    };
-    baseMacros.calories = (baseMacros.proteins * 4) + (baseMacros.carbs * 4) + (baseMacros.fats * 9);
-    const baseUnitLabel = food.food_unit === 'unidades' ? 'por unidad' : 'por 100g';
-
     const hasConflict = ['condition_avoid', 'sensitivity', 'non-preferred'].includes(conflictType);
     const isRecommended = ['condition_recommend', 'preferred'].includes(conflictType);
 
@@ -238,73 +213,26 @@ const IngredientCard = ({
             </button>
           </>
         )}
-        <Popover open={effectiveOpen} onOpenChange={handlePopoverOpenChange}>
-          <PopoverTrigger asChild>
-            <div
-              ref={triggerRef}
-              className={cn(
-                "flex items-center justify-between text-sm py-2 hover:bg-slate-800/20 rounded-sm transition-colors cursor-pointer w-full group relative z-50",
-                canManageIngredient && "pl-8 pr-8"
-              )}
-              onClick={(e) => {
-                e.stopPropagation();
-              }}
-            >
-              <div className="flex items-center min-w-0 mr-4 w-[90%]">
-                <span className={cn("text-base truncate transition-colors",
-                  hasConflict ? "text-red-400 group-hover:text-red-300" : (isRecommended ? "text-green-400 group-hover:text-green-300" : "group-hover:text-green-300"),
-                  statusColorClasses.split(' ').find(c => c.startsWith('text-'))
-                )}>
-                  {food.name}
-                </span>
-                <span className="text-gray-500 text-xs ml-2 whitespace-nowrap">({displayQuantity}{food.food_unit === 'unidades' ? ' ud' : 'g'})</span>
-                {hasConflict && <AlertTriangle className="w-3.5 h-3.5 text-red-500 ml-2 shrink-0" />}
-                {isRecommended && <ThumbsUp className="w-3.5 h-3.5 text-green-500 ml-2 shrink-0" />}
-              </div>
-            </div>
-          </PopoverTrigger>
-          <PopoverContent
-            className="w-80 text-white p-4 z-[10050] shadow-xl shadow-black/50 border-slate-700/50 relative"
-            style={{ backgroundColor: 'rgb(10 19 31 / 95%)' }}
-            onInteractOutside={(e) => {
-              if (triggerRef.current && triggerRef.current.contains(e.target)) {
-                e.preventDefault();
-              }
-            }}
-          >
-            <div className="flex flex-col gap-3">
-              <div>
-                <h4 className="font-bold text-lg leading-tight bg-clip-text text-transparent bg-gradient-to-r from-green-300 to-teal-400">{food.name}</h4>
-                <p className="text-xs text-gray-400 mt-1">Grupo: <span className="text-gray-300">{foodGroupName}</span></p>
-
-                {hasConflict && (
-                  <div className="mt-1.5 flex items-center gap-1.5 text-red-400 text-xs font-medium animate-in fade-in">
-                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                    <span>{conflictDetails.map(c => c.restrictionName).join(', ')}</span>
-                  </div>
-                )}
-                {isRecommended && getStatusDisplay(conflictType, conflictDetails, recommendationDetails)}
-
-                <div className="mt-2 bg-slate-800/50 p-2 rounded-md border border-slate-700/30">
-                  <p className="text-[10px] text-gray-400 mb-1 uppercase tracking-wider font-semibold">Macros {baseUnitLabel}</p>
-                  {renderMacros(baseMacros, false, false, false, true, true)}
-                </div>
-              </div>
-              <div className="h-px bg-slate-700/50" />
-              <div>
-                <p className="text-xs font-semibold text-purple-300 uppercase tracking-wider mb-2">Micronutrientes</p>
-                {(vitamins.length > 0 || minerals.length > 0) ? (
-                  <div className="flex flex-wrap gap-1.5">
-                    {vitamins.map(v => <NutrientBadge key={`v-${v.id}`} nutrient={v} />)}
-                    {minerals.map(m => <NutrientBadge key={`m-${m.id}`} nutrient={m} />)}
-                  </div>
-                ) : (
-                  <p className="text-xs text-gray-500 italic">No hay datos registrados.</p>
-                )}
-              </div>
-            </div>
-          </PopoverContent>
-        </Popover>
+        <div
+          className={cn(
+            "flex items-center justify-between text-sm py-2 rounded-sm transition-colors w-full group relative z-50",
+            onQuickEdit && "cursor-pointer hover:bg-slate-800/20",
+            canManageIngredient && "pl-8 pr-8"
+          )}
+          onClick={() => onQuickEdit && onQuickEdit()}
+        >
+          <div className="flex items-center min-w-0 mr-4 w-[90%]">
+            <span className={cn("text-base truncate transition-colors",
+              hasConflict ? "text-red-400 group-hover:text-red-300" : (isRecommended ? "text-green-400 group-hover:text-green-300" : "group-hover:text-green-300"),
+              statusColorClasses.split(' ').find(c => c.startsWith('text-'))
+            )}>
+              {food.name}
+            </span>
+            <span className="text-gray-500 text-xs ml-2 whitespace-nowrap">({displayQuantity}{food.food_unit === 'unidades' ? ' ud' : 'g'})</span>
+            {hasConflict && <AlertTriangle className="w-3.5 h-3.5 text-red-500 ml-2 shrink-0" />}
+            {isRecommended && <ThumbsUp className="w-3.5 h-3.5 text-green-500 ml-2 shrink-0" />}
+          </div>
+        </div>
       </li>
     );
   }
@@ -454,6 +382,196 @@ const renderTargetMacros = (targets) => {
     );
 };
 
+const IngredientQuickEditDialog = ({
+  open,
+  ingredient,
+  allFoods,
+  allVitamins,
+  allMinerals,
+  selectedIngredients,
+  userRestrictions,
+  onOpenChange,
+  onSave
+}) => {
+  const [quantity, setQuantity] = useState('');
+  const [selectedFoodId, setSelectedFoodId] = useState(null);
+  const [isReplacing, setIsReplacing] = useState(false);
+
+  useEffect(() => {
+    if (!ingredient) return;
+    const initialQty = ingredient.quantity ?? ingredient.grams ?? 0;
+    setQuantity(String(initialQty));
+    setSelectedFoodId(ingredient.food?.id ?? ingredient.food_id ?? null);
+    setIsReplacing(false);
+  }, [ingredient]);
+
+  if (!ingredient) return null;
+
+  const selectedFood = (allFoods || []).find((food) => String(food.id) === String(selectedFoodId)) || ingredient.food;
+  const defaultQty = selectedFood?.food_unit === 'unidades' ? 1 : 100;
+  const parsedQty = Number(quantity);
+  const safeQty = Number.isFinite(parsedQty) ? parsedQty : 0;
+  const originalQty = Number(ingredient.quantity ?? ingredient.grams ?? 0) || defaultQty;
+  const ratio = originalQty > 0 ? safeQty / originalQty : 0;
+  const selectedIngredientForCalc = {
+    ...ingredient,
+    food: selectedFood,
+    food_id: selectedFood?.id || ingredient.food_id,
+    grams: safeQty,
+    quantity: safeQty
+  };
+  const originalIngredientForCalc = {
+    ...ingredient,
+    food: selectedFood,
+    food_id: selectedFood?.id || ingredient.food_id,
+    grams: originalQty,
+    quantity: originalQty
+  };
+  const originalMacros = selectedFood ? calculateMacros([originalIngredientForCalc], allFoods || []) : (ingredient.macros || { calories: 0, proteins: 0, carbs: 0, fats: 0 });
+  const updatedCalc = selectedFood ? calculateMacros([selectedIngredientForCalc], allFoods || []) : null;
+  const updatedMacros = {
+    calories: updatedCalc ? updatedCalc.calories : (originalQty > 0 ? originalMacros.calories * ratio : 0),
+    proteins: updatedCalc ? updatedCalc.proteins : (originalQty > 0 ? originalMacros.proteins * ratio : 0),
+    carbs: updatedCalc ? updatedCalc.carbs : (originalQty > 0 ? originalMacros.carbs * ratio : 0),
+    fats: updatedCalc ? updatedCalc.fats : (originalQty > 0 ? originalMacros.fats * ratio : 0)
+  };
+  const selectedVitamins = (selectedFood?.food_vitamins || [])
+    .map((fv) => {
+      const vitaminData = (allVitamins || []).find(v => v.id === (fv.vitamin_id || fv.vitamin?.id));
+      if (!vitaminData) return null;
+      return { ...vitaminData, mg_per_100g: typeof fv.mg_per_100g === 'number' ? fv.mg_per_100g : null };
+    })
+    .filter(Boolean);
+  const selectedMinerals = (selectedFood?.food_minerals || [])
+    .map((fm) => {
+      const mineralData = (allMinerals || []).find(m => m.id === (fm.mineral_id || fm.mineral?.id));
+      if (!mineralData) return null;
+      return { ...mineralData, mg_per_100g: typeof fm.mg_per_100g === 'number' ? fm.mg_per_100g : null };
+    })
+    .filter(Boolean);
+  const searchSelectedIngredients = (selectedIngredients || []).filter(
+    (ing) => String(ing.food_id) !== String(ingredient.food_id || ingredient.food?.id)
+  );
+
+  if (isReplacing) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="bg-[#0E1528] border-slate-700 text-white max-w-2xl p-0">
+          <div className="p-4 h-[70vh]">
+            <IngredientSearch
+              selectedIngredients={searchSelectedIngredients}
+              availableFoods={allFoods}
+              userRestrictions={userRestrictions}
+              onBack={() => setIsReplacing(false)}
+              onIngredientAdded={(newIngredientData) => {
+                const selected = (allFoods || []).find((food) => String(food.id) === String(newIngredientData.food_id));
+                const initial = selected?.food_unit === 'unidades' ? 1 : 100;
+                setSelectedFoodId(newIngredientData.food_id);
+                setQuantity(String(initial));
+                setIsReplacing(false);
+              }}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="bg-[#0E1528] border-slate-700 text-white max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="text-xl bg-clip-text text-transparent bg-gradient-to-r from-green-300 to-teal-400">
+            Ajustar Ingrediente
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="rounded-lg border border-slate-700/70 bg-slate-900/60 p-3">
+            <p className="text-sm text-slate-400">Ingrediente</p>
+            <p className="text-lg font-semibold text-slate-100">{selectedFood?.name || ingredient.food?.name}</p>
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full border-blue-500 bg-blue-600/20 text-white p-1 transition-opacity hover:text-blue-100 hover:bg-blue-500/30"
+            onClick={() => setIsReplacing(true)}
+          >
+            <ArrowRightLeft className="w-4 h-4 mr-2" />
+            Reemplazar ingrediente
+          </Button>
+
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <p className="text-xs text-slate-400 mb-1">Cantidad</p>
+              <Input
+                type="number"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                className="input-field bg-transparent border-dashed text-center"
+              />
+            </div>
+            <div className="pt-6 text-slate-300 text-sm">
+              {selectedFood?.food_unit === 'unidades' ? 'ud' : 'g'}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-lg border border-slate-700/70 bg-slate-900/60 p-3">
+              <p className="text-xs text-slate-400 mb-1">Macros originales</p>
+              <div className="space-y-1 text-sm">
+                <p className="text-orange-300">Kcal: {Math.round(originalMacros.calories || 0)}</p>
+                <p className="text-red-300">Prot: {Math.round(originalMacros.proteins || 0)}g</p>
+                <p className="text-yellow-300">Carbs: {Math.round(originalMacros.carbs || 0)}g</p>
+                <p className="text-green-300">Grasas: {Math.round(originalMacros.fats || 0)}g</p>
+              </div>
+            </div>
+            <div className="rounded-lg border border-cyan-700/60 bg-cyan-900/20 p-3">
+              <p className="text-xs text-cyan-300 mb-1">Macros actualizadas</p>
+              <div className="space-y-1 text-sm">
+                <p className="text-orange-300">Kcal: {Math.round(updatedMacros.calories || 0)}</p>
+                <p className="text-red-300">Prot: {Math.round(updatedMacros.proteins || 0)}g</p>
+                <p className="text-yellow-300">Carbs: {Math.round(updatedMacros.carbs || 0)}g</p>
+                <p className="text-green-300">Grasas: {Math.round(updatedMacros.fats || 0)}g</p>
+              </div>
+            </div>
+          </div>
+
+          {(selectedVitamins.length > 0 || selectedMinerals.length > 0) && (
+            <div className="rounded-lg border border-slate-700/70 bg-slate-900/60 p-3">
+              <p className="text-xs text-slate-400 mb-2">Vitaminas y Minerales</p>
+              <div className="flex flex-wrap gap-2">
+                {selectedVitamins.map((v) => (
+                  <Badge key={`qv-${v.id}`} variant="outline" className="border-emerald-500/40 text-emerald-300 bg-emerald-900/20">
+                    {v.name}{typeof v.mg_per_100g === 'number' ? ` (${v.mg_per_100g} mg/100g)` : ''}
+                  </Badge>
+                ))}
+                {selectedMinerals.map((m) => (
+                  <Badge key={`qm-${m.id}`} variant="outline" className="border-sky-500/40 text-sky-300 bg-sky-900/20">
+                    {m.name}{typeof m.mg_per_100g === 'number' ? ` (${m.mg_per_100g} mg/100g)` : ''}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <Button
+            type="button"
+            className="w-full bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-500 hover:to-teal-500"
+            onClick={() => onSave({
+              quantity: safeQty,
+              food: selectedFood
+            })}
+          >
+            Cambiar alimento
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 const RecipeView = ({
   recipe,
   allFoods,
@@ -474,7 +592,9 @@ const RecipeView = ({
   mealTargetMacros,
   disableAutoBalance = false,
   enableStickyMacros = true,
-  isTemplate = false // New prop
+  isTemplate = false, // New prop
+  quickEditIngredientKey = null,
+  onQuickEditConsumed
 }) => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -483,20 +603,7 @@ const RecipeView = ({
   const [isBalancing, setIsBalancing] = useState(false);
   const [fetchedTargets, setFetchedTargets] = useState(null);
   const [replacingIngredient, setReplacingIngredient] = useState(null);
-  const [openIngredientPopoverId, setOpenIngredientPopoverId] = useState(null);
-
-  const recipeIdentity = useMemo(() => {
-    if (!recipe) return null;
-    return (
-      recipe.id ??
-      recipe.diet_plan_recipe_id ??
-      recipe.dietPlanRecipeId ??
-      recipe.recipe_id ??
-      recipe.private_recipe_id ??
-      recipe.name ??
-      null
-    );
-  }, [recipe]);
+  const [quantityEditorIngredient, setQuantityEditorIngredient] = useState(null);
 
   const recipeImageUrl = useMemo(() => {
     if (!recipe) return null;
@@ -510,10 +617,6 @@ const RecipeView = ({
       null
     );
   }, [recipe]);
-
-  useEffect(() => {
-    setOpenIngredientPopoverId(null);
-  }, [isEditing, recipeIdentity]);
 
   // Fetch targets
   useEffect(() => {
@@ -591,14 +694,12 @@ const RecipeView = ({
       let food = ing.food;
       if (!food && allFoods) {
         const foodId = ing.food_id;
-        const isUserCreated = !!ing.is_user_created;
-        food = allFoods.find(f => String(f.id) === String(foodId) && f.is_user_created === isUserCreated);
+        food = allFoods.find(f => String(f.id) === String(foodId));
       }
 
       if (food && allFoods) {
         const foodId = food.id;
-        const isUserCreated = !!(food.is_user_created || ing.is_user_created);
-        const fullFood = allFoods.find(f => String(f.id) === String(foodId) && f.is_user_created === isUserCreated);
+        const fullFood = allFoods.find(f => String(f.id) === String(foodId));
         if (fullFood) {
           food = fullFood;
         }
@@ -643,13 +744,11 @@ const RecipeView = ({
         let food = ing.food;
         if (!food && allFoods) {
             const foodId = ing.food_id;
-            const isUserCreated = !!ing.is_user_created;
-            food = allFoods.find(f => String(f.id) === String(foodId) && f.is_user_created === isUserCreated);
+            food = allFoods.find(f => String(f.id) === String(foodId));
         }
         if (food && allFoods) {
             const foodId = food.id;
-            const isUserCreated = !!(food.is_user_created || ing.is_user_created);
-            const fullFood = allFoods.find(f => String(f.id) === String(foodId) && f.is_user_created === isUserCreated);
+            const fullFood = allFoods.find(f => String(f.id) === String(foodId));
             if (fullFood) food = fullFood;
         }
         if (!food) return null;
@@ -657,8 +756,26 @@ const RecipeView = ({
         const qty = (ing.grams !== undefined && ing.grams !== null && ing.grams !== '') ? Number(ing.grams) : 0;
         const ingredientWithFood = { ...ing, food, quantity: qty };
         const ingredientMacros = calculateMacros([ingredientWithFood], allFoods);
-        const vitamins = food.food_vitamins?.map(fv => allVitamins.find(v => v.id === (fv.vitamin_id || fv.vitamin?.id))).filter(Boolean) || [];
-        const minerals = food.food_minerals?.map(fm => allMinerals.find(m => m.id === (fm.mineral_id || fm.mineral?.id))).filter(Boolean) || [];
+        const vitamins = (food.food_vitamins || [])
+          .map((fv) => {
+            const vitaminData = allVitamins.find(v => v.id === (fv.vitamin_id || fv.vitamin?.id));
+            if (!vitaminData) return null;
+            return {
+              ...vitaminData,
+              mg_per_100g: typeof fv.mg_per_100g === 'number' ? fv.mg_per_100g : null
+            };
+          })
+          .filter(Boolean);
+        const minerals = (food.food_minerals || [])
+          .map((fm) => {
+            const mineralData = allMinerals.find(m => m.id === (fm.mineral_id || fm.mineral?.id));
+            if (!mineralData) return null;
+            return {
+              ...mineralData,
+              mg_per_100g: typeof fm.mg_per_100g === 'number' ? fm.mg_per_100g : null
+            };
+          })
+          .filter(Boolean);
         const foodConflicts = conflicts.filter(c => c.foodId === food.id);
         const foodRecommendations = recommendations.filter(r => r.foodId === food.id);
         const conflictType = getConflictTypeForFood(food);
@@ -688,6 +805,17 @@ const RecipeView = ({
     });
   }, [ingredientsWithDetails]);
 
+  useEffect(() => {
+    if (!quickEditIngredientKey || !groupedAndSortedIngredients.length) return;
+    const target = groupedAndSortedIngredients.find(
+      (ing) => String(ing.local_id || ing.id) === String(quickEditIngredientKey)
+    );
+    if (target) {
+      setQuantityEditorIngredient(target);
+      if (onQuickEditConsumed) onQuickEditConsumed();
+    }
+  }, [quickEditIngredientKey, groupedAndSortedIngredients, onQuickEditConsumed]);
+
   const handleQuantityChange = (ingredient, newQuantity) => {
     const targetIndex = ingredient.originalIndex;
     if (targetIndex !== undefined && targetIndex !== null) {
@@ -703,10 +831,6 @@ const RecipeView = ({
         );
         onIngredientsChange(newIngredients);
     }
-  };
-
-  const handleIngredientPopoverChange = (id, open) => {
-    setOpenIngredientPopoverId(open ? id : null);
   };
 
   const handleAutoBalance = async () => {
@@ -749,6 +873,39 @@ const RecipeView = ({
     }
   };
 
+  const handleQuickEditSave = ({ quantity, food }) => {
+    if (!quantityEditorIngredient) return;
+    const hasFoodChanged = food && String(food.id) !== String(quantityEditorIngredient.food_id || quantityEditorIngredient.food?.id);
+    if (!hasFoodChanged) {
+      handleQuantityChange(quantityEditorIngredient, quantity);
+      setQuantityEditorIngredient(null);
+      return;
+    }
+
+    const replacementIngredient = {
+      local_id: crypto.randomUUID(),
+      food_id: food.id,
+      grams: quantity,
+      quantity: quantity,
+      food_group_id: food?.food_to_food_groups?.[0]?.food_group_id || null,
+      food
+    };
+    const targetIndex = quantityEditorIngredient.originalIndex;
+    if (targetIndex !== undefined && targetIndex !== null && recipe.ingredients[targetIndex]) {
+      const newIngredients = [...recipe.ingredients];
+      newIngredients[targetIndex] = replacementIngredient;
+      onIngredientsChange(newIngredients);
+    } else {
+      const identifier = quantityEditorIngredient.local_id || quantityEditorIngredient.id;
+      const newIngredients = recipe.ingredients.map((ing) =>
+        (ing.local_id || ing.id) === identifier ? replacementIngredient : ing
+      );
+      onIngredientsChange(newIngredients);
+    }
+    toast({ title: 'Ingrediente actualizado', description: `Se cambió por ${food.name}.` });
+    setQuantityEditorIngredient(null);
+  };
+
   const handleReplaceSelection = (newFoodData) => {
     if (!replacingIngredient) return;
     const newIngredient = {
@@ -757,7 +914,6 @@ const RecipeView = ({
       grams: newFoodData.quantity || 100,
       quantity: newFoodData.quantity || 100,
       food_group_id: allFoods?.find(f => String(f.id) === String(newFoodData.food_id))?.food_to_food_groups?.[0]?.food_group_id || null,
-      is_user_created: newFoodData.is_user_created
     };
     const targetIndex = replacingIngredient.originalIndex;
     if (targetIndex !== undefined && targetIndex !== null && recipe.ingredients[targetIndex]) {
@@ -799,23 +955,6 @@ const RecipeView = ({
 
   return (
     <div className="text-white space-y-6 p-2 sm:p-4 md:p-6">
-      {typeof document !== 'undefined' && createPortal(
-        <AnimatePresence>
-          {openIngredientPopoverId && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.35 }}
-              className="fixed inset-0 bg-black/70 z-[10000]"
-              onClick={() => setOpenIngredientPopoverId(null)}
-              style={{ pointerEvents: 'auto' }}
-            />
-          )}
-        </AnimatePresence>,
-        document.body
-      )}
-
       <div className="text-center mt-6 relative z-10">
         {recipeImageUrl && (
           <div className="mb-4 overflow-hidden rounded-xl border border-slate-700/70 bg-slate-900/70">
@@ -926,7 +1065,7 @@ const RecipeView = ({
       <div className="relative z-10">
         <div className="flex justify-between items-center mb-3 border-b border-gray-700 pb-2">
           <h3 className="text-xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-green-300 to-teal-400">Ingredientes</h3>
-          {isEditing && (
+          {onAddIngredientClick && (
             <Button variant="ghost" size="icon" onClick={onAddIngredientClick} className="text-green-400 hover:bg-green-500/10 hover:text-green-300">
               <PlusCircle className="w-6 h-6" />
             </Button>
@@ -946,9 +1085,6 @@ const RecipeView = ({
                     onReplace={() => setReplacingIngredient(ing)}
                     onQuantityChange={(e) => handleQuantityChange(ing, e.target.value)}
                     allFoodGroups={allFoodGroups}
-                    popoverId={ing.local_id || `${ing.food_id}-${index}`}
-                    isOpen={openIngredientPopoverId === (ing.local_id || `${ing.food_id}-${index}`)}
-                    onOpenChange={handleIngredientPopoverChange}
                   />
                 ))}
               </div>
@@ -969,11 +1105,9 @@ const RecipeView = ({
                     isEditing={isEditing}
                     displayAsBullet={true}
                     allFoodGroups={allFoodGroups}
-                    popoverId={ing.local_id || `${ing.food_id}-${index}`}
-                    isOpen={openIngredientPopoverId === (ing.local_id || `${ing.food_id}-${index}`)}
-                    onOpenChange={handleIngredientPopoverChange}
                     onRemove={canManageIngredientsInView ? () => onRemoveIngredient(ing) : undefined}
                     onReplace={canManageIngredientsInView ? () => setReplacingIngredient(ing) : undefined}
+                    onQuickEdit={canManageIngredientsInView ? () => setQuantityEditorIngredient(ing) : undefined}
                   />
                 ))
               ) : (
@@ -1000,6 +1134,20 @@ const RecipeView = ({
           )}
         </div>
       </div>
+
+      <IngredientQuickEditDialog
+        open={!!quantityEditorIngredient}
+        ingredient={quantityEditorIngredient}
+        allFoods={allFoods}
+        allVitamins={allVitamins}
+        allMinerals={allMinerals}
+        selectedIngredients={recipe?.ingredients || []}
+        userRestrictions={propUserRestrictions || internalRestrictions}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) setQuantityEditorIngredient(null);
+        }}
+        onSave={handleQuickEditSave}
+      />
     </div>
   );
 };

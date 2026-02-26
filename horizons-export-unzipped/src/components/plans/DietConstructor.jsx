@@ -63,7 +63,27 @@ const DietConstructor = ({ userId, dietPlan, onPlanUpdate, isTemplate }) => {
                     .select('*, recipe:recipe_id(*, recipe_ingredients(*, food(*))), day_meal:day_meal_id!inner(id, name, display_order), custom_ingredients:diet_plan_recipe_ingredients(*, food(*))')
                     .eq('diet_plan_id', dietPlan.id);
                 if (recipesError) throw recipesError;
-                if (isMounted.current) setPlanRecipes(recipes);
+
+                const { data: privateRecipes, error: privateRecipesError } = await supabase
+                    .from('private_recipes')
+                    .select(`
+                        *,
+                        private_recipe_ingredients(*, food(*)),
+                        day_meal:day_meal_id!inner(id, name, display_order),
+                        change_requests:diet_change_requests!requested_changes_private_recipe_id(status)
+                    `)
+                    .eq('diet_plan_id', dietPlan.id);
+                if (privateRecipesError) throw privateRecipesError;
+
+                if (isMounted.current) {
+                    const mappedPrivateRecipes = (privateRecipes || []).map((r) => ({
+                        ...r,
+                        type: 'private_recipe',
+                        is_private_recipe: true,
+                        changeRequest: Array.isArray(r.change_requests) ? r.change_requests[0] : r.change_requests
+                    }));
+                    setPlanRecipes([...(recipes || []), ...mappedPrivateRecipes]);
+                }
 
                 // Use created_at for sorting overrides
                 const { data: overrides, error: overridesError } = await supabase.from('diet_plan_calorie_overrides').select('*').eq('diet_plan_id', dietPlan.id).order('created_at', { ascending: false });

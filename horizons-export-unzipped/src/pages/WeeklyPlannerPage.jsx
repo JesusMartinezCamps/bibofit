@@ -59,12 +59,30 @@ const WeeklyPlannerPage = () => {
                     .eq('diet_plan_id', plan.id);
                 if (recipesError) throw recipesError;
 
+                const { data: privateRecipes, error: privateRecipesError } = await supabase
+                    .from('private_recipes')
+                    .select(`
+                        *,
+                        private_recipe_ingredients(*, food(*)),
+                        day_meal:day_meal_id!inner(id, name, display_order),
+                        change_requests:diet_change_requests!requested_changes_private_recipe_id(status)
+                    `)
+                    .eq('diet_plan_id', plan.id);
+                if (privateRecipesError) throw privateRecipesError;
+
                 const { data: foods, error: foodsError } = await supabase.from('food').select('*');
                 if (foodsError) throw foodsError;
                 setAllFoods(foods || []);
                 
                 const mealsWithType = (recipes || []).map(r => ({ ...r, type: 'recipe', dnd_id: `pr-${r.id}` }));
-                setPlannedMeals(mealsWithType);
+                const privateMealsWithType = (privateRecipes || []).map((r) => ({
+                    ...r,
+                    type: 'private_recipe',
+                    is_private_recipe: true,
+                    changeRequest: Array.isArray(r.change_requests) ? r.change_requests[0] : r.change_requests,
+                    dnd_id: `pv-${r.id}`
+                }));
+                setPlannedMeals([...mealsWithType, ...privateMealsWithType]);
             } else {
                 setPlannedMeals([]);
             }
@@ -129,6 +147,9 @@ const WeeklyPlannerPage = () => {
         const dnd_id = item.dnd_id;
 
         const isCurrentlySelected = selectedMealLogs.has(dnd_id);
+        if (item.type === 'private_recipe' || item.is_private_recipe) {
+            return;
+        }
 
         try {
             if (isCurrentlySelected) {

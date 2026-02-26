@@ -107,7 +107,22 @@ export const submitChangeRequest = async ({ actionType, recipeToEdit, formData, 
             throw new Error(`No se pudo enviar la solicitud de cambio: ${requestError.message}`);
         }
 
-        return { success: true, message: 'Tu solicitud de cambio ha sido enviada para revisión.' };
+        return {
+            success: true,
+            action: 'change_request_pending',
+            message: 'Tu solicitud de cambio ha sido enviada para revisión.',
+            data: {
+                id: newPrivateRecipe.id,
+                type: 'private_recipe',
+                is_private_recipe: true,
+                status: 'pending',
+                name: formData.name,
+                instructions: formData.instructions,
+                prep_time_min: formData.prep_time_min,
+                difficulty: formData.difficulty,
+                private_recipe_ingredients: ingredients
+            }
+        };
 
     } catch (error) {
         return { success: false, message: error.message };
