@@ -1,70 +1,15 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
+import { usePWAInstallPrompt } from '@/hooks/usePWAInstallPrompt';
 
 const PWAInstallPrompt = () => {
-  const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [isVisible, setIsVisible] = useState(false);
-  const isMobileDevice = () => {
-    if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
-
-    const mobileUserAgent = /Android|iPhone|iPad|iPod|Mobile|Opera Mini|IEMobile/i.test(navigator.userAgent);
-    const hasCoarsePointer = window.matchMedia?.('(pointer: coarse)').matches ?? false;
-    const isSmallViewport = window.innerWidth < 1024;
-
-    return mobileUserAgent || (hasCoarsePointer && isSmallViewport);
-  };
-
-  useEffect(() => {
-    if (!isMobileDevice()) {
-      return;
-    }
-    const handleBeforeInstallPrompt = (e) => {
-      // Prevent the mini-infobar from appearing on mobile
-      e.preventDefault();
-      // Stash the event so it can be triggered later
-      setDeferredPrompt(e);
-      // Update UI notify the user they can install the PWA
-      setIsVisible(true);
-    };
-
-    const handleAppInstalled = () => {
-      setIsVisible(false);
-      setDeferredPrompt(null);
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    window.addEventListener('appinstalled', handleAppInstalled);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      window.removeEventListener('appinstalled', handleAppInstalled);
-    };
-  }, []);
-
-  const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-    
-    // Show the install prompt
-    deferredPrompt.prompt();
-    
-    // Wait for the user to respond to the prompt
-    const { outcome } = await deferredPrompt.userChoice;
-    console.log(`User response to the install prompt: ${outcome}`);
-    
-    // We've used the prompt, and can't use it again, throw it away
-    setDeferredPrompt(null);
-    setIsVisible(false);
-  };
-
-  const handleDismiss = () => {
-    setIsVisible(false);
-  };
+  const { showPrompt, handleInstall, handleDismiss } = usePWAInstallPrompt();
 
   return (
     <AnimatePresence>
-      {isVisible && (
+      {showPrompt && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center">
           {/* Dark translucent overlay */}
           <motion.div
@@ -107,7 +52,7 @@ const PWAInstallPrompt = () => {
               </div>
               
               <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4 tracking-tight">
-                Instalar Bibofit
+                Install Bibofit on your device
               </h2>
               
               <p className="text-gray-300 text-sm sm:text-base mb-8 leading-relaxed">
@@ -117,7 +62,7 @@ const PWAInstallPrompt = () => {
               <div className="flex flex-col gap-3 w-full">
                 <Button 
                   size="lg" 
-                  onClick={handleInstallClick} 
+                  onClick={handleInstall} 
                   className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold text-lg py-6 rounded-xl shadow-lg shadow-green-900/20 transition-all active:scale-[0.98]"
                 >
                   Instalar ahora

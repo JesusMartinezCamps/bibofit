@@ -49,7 +49,7 @@ const steps = [
     icon: CheckCircle,
     color: 'text-emerald-400',
     bg: 'bg-emerald-400/10'
-  },  
+  },
   {
     title: 'Planificación Semanal',
     description: 'Usa la vista semanal para organizar tus comidas de los próximos días.',
@@ -99,8 +99,8 @@ const containerVariants = {
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
-  visible: { 
-    opacity: 1, 
+  visible: {
+    opacity: 1,
     y: 0,
     transition: { type: 'spring', stiffness: 300, damping: 24 }
   }
@@ -167,7 +167,7 @@ const QuickStartGuideModal = () => {
                   exit={{ opacity: 0, x: -20, transition: { duration: 0.2 } }}
                   className="flex flex-col items-center w-full"
                 >
-                  <motion.div 
+                  <motion.div
                     variants={itemVariants}
                     animate={{ y: [0, -10, 0] }}
                     transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
@@ -175,11 +175,11 @@ const QuickStartGuideModal = () => {
                   >
                     <step.icon className={cn("w-12 h-12", step.color)} />
                   </motion.div>
-                  
+
                   <motion.h2 variants={itemVariants} className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400 mb-4">
                     {step.title}
                   </motion.h2>
-                  
+
                   <motion.p variants={itemVariants} className="text-emerald-400 font-medium text-xl mb-4">
                     {step.subtitle}
                   </motion.p>
@@ -202,11 +202,11 @@ const QuickStartGuideModal = () => {
                   <div className={cn("w-20 h-20 rounded-full flex items-center justify-center mb-6", step.bg)}>
                     <step.icon className={cn("w-10 h-10", step.color)} />
                   </div>
-                  
+
                   <h2 className="text-2xl font-bold text-white mb-3">
                     {step.title}
                   </h2>
-                  
+
                   <p className="text-gray-300 text-lg leading-relaxed">
                     {step.description}
                   </p>
