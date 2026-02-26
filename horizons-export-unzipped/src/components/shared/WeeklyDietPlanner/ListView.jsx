@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import RecipeCard from './RecipeCard';
 import FreeRecipeCard from '@/components/plans/FreeRecipeCard';
 import { Button } from '@/components/ui/button';
 import { UtensilsCrossed, Utensils, ChevronDown, Apple, RotateCcw, Loader2, Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { parseISO, isValid, isToday } from 'date-fns';
+import { parseISO, isValid } from 'date-fns';
 import MealTargetMacros from '@/components/shared/MealTargetMacros';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { calculateMacros } from '@/lib/macroCalculator';
@@ -31,7 +31,7 @@ const getAdjustmentsForRecipe = (dailyIngredientAdjustments, equivalenceAdjustme
     return recipeAdjustments.length > 0 ? recipeAdjustments : null;
 };
 
-const MealHeader = ({ mealName, mealId, name, items, isAnyRecipeSelectedInMeal, isFreeRecipeSelected, isPrivateRecipeSelected, mealTargetData, mealAdjustment, handleUndoEquivalence, handleAddSnack, handleAddFreeMeal, hasSnacks }) => {
+const MealHeader = React.memo(({ mealName, mealId, name, items, isAnyRecipeSelectedInMeal, isFreeRecipeSelected, isPrivateRecipeSelected, mealTargetData, mealAdjustment, handleUndoEquivalence, handleAddSnack, handleAddFreeMeal, hasSnacks }) => {
     const [isUndoLoading, setIsUndoLoading] = useState(false);
     const pluralize = (name) => {
         if (!name) return '';
@@ -112,7 +112,7 @@ const MealHeader = ({ mealName, mealId, name, items, isAnyRecipeSelectedInMeal, 
             </div>
         </div>
     )
-}
+});
 
 const ListView = ({
   groupedByMeal,
@@ -137,26 +137,44 @@ const ListView = ({
   handleUndoEquivalence
 }) => {
   const [searchQueries, setSearchQueries] = useState({});
+  const foodById = useMemo(() => {
+    const map = new Map();
+    (allFoods || []).forEach((food) => {
+      map.set(food.id, food);
+    });
+    return map;
+  }, [allFoods]);
+
+  const restrictionSets = useMemo(() => {
+    const sensitivities = new Set((userRestrictions?.sensitivities || []).map((s) => s.id));
+    const conditions = new Set((userRestrictions?.medical_conditions || []).map((c) => c.id));
+    const nonPreferred = new Set((userRestrictions?.non_preferred_foods || []).map((f) => f.id));
+    const restricted = new Set((userRestrictions?.individual_food_restrictions || []).map((f) => f.id));
+
+    return {
+      sensitivities,
+      conditions,
+      nonPreferred,
+      restricted,
+      hasAny: sensitivities.size > 0 || conditions.size > 0 || nonPreferred.size > 0 || restricted.size > 0,
+    };
+  }, [userRestrictions]);
 
   const currentDate = parseISO(logDate);
-  if (!isValid(currentDate)) {
-      return <div>Fecha inválida</div>;
-  }
-  const isCurrentDay = isToday(currentDate);
 
   const mealHasSnacks = (items) => {
     if (!items || items.length === 0) return false;
     return items.some(item => item.type === 'snack');
   };
 
-  const handleSearchChange = (mealId, query) => {
+  const handleSearchChange = useCallback((mealId, query) => {
     setSearchQueries(prev => ({
       ...prev,
       [mealId]: query
     }));
-  };
+  }, []);
 
-  const filterItems = (items, query) => {
+  const filterItems = useCallback((items, query) => {
     if (!query) return items;
     const normalizedQuery = normalizeText(query);
 
@@ -179,18 +197,30 @@ const ListView = ({
 
         if (ingredients && ingredients.length > 0) {
             return ingredients.some(ing => {
-                const foodName = ing.food?.name || ing.user_created_food?.name || allFoods.find(f => f.id === ing.food_id)?.name || '';
+                const foodName = ing.food?.name || ing.user_created_food?.name || foodById.get(ing.food_id || ing.user_created_food_id)?.name || '';
                 return normalizeText(foodName).includes(normalizedQuery);
             });
         }
 
         return false;
     });
-  };
+  }, [foodById]);
+
+  if (!isValid(currentDate)) {
+      return <div>Fecha inválida</div>;
+  }
 
   return (
     <div className="space-y-4">
       {Object.entries(groupedByMeal).map(([mealName, { items, mealId, name }]) => {
+        const snackCaloriesCache = new Map();
+        const getSnackCalories = (snack) => {
+          if (snackCaloriesCache.has(snack.occurrence_id)) return snackCaloriesCache.get(snack.occurrence_id);
+          const calories = calculateMacros(snack.snack_ingredients, allFoods).calories;
+          snackCaloriesCache.set(snack.occurrence_id, calories);
+          return calories;
+        };
+
         const sortedItems = [...items].sort((a, b) => {
           const isASnack = a.type === 'snack';
           const isBSnack = b.type === 'snack';
@@ -202,8 +232,8 @@ const ListView = ({
             if (a.isSelected && !b.isSelected) return -1;
             if (!a.isSelected && b.isSelected) return 1;
             if (a.isSelected && b.isSelected) {
-              const caloriesA = calculateMacros(a.snack_ingredients, allFoods).calories;
-              const caloriesB = calculateMacros(b.snack_ingredients, allFoods).calories;
+              const caloriesA = getSnackCalories(a);
+              const caloriesB = getSnackCalories(b);
               return caloriesB - caloriesA;
             }
             return 0;
@@ -297,11 +327,7 @@ const ListView = ({
                     
                     const isSafe = (() => {
                         if (item.type === 'free_meal') return true;
-                        if (!userRestrictions) return true;
-                        
-                        const { sensitivities = [], medical_conditions = [], non_preferred_foods = [], individual_food_restrictions = [] } = userRestrictions;
-                        
-                        if (!sensitivities.length && !medical_conditions.length && !non_preferred_foods.length && !individual_food_restrictions.length) {
+                        if (!restrictionSets.hasAny) {
                             return true;
                         }
                         
@@ -315,29 +341,24 @@ const ListView = ({
                         }
                         
                         const unsafeFoodsSet = new Set();
-                        
-                        const sensitivityIds = new Set(sensitivities.map(s => s.id));
-                        const conditionIds = new Set(medical_conditions.map(c => c.id));
-                        const nonPreferredIds = new Set(non_preferred_foods.map(f => f.id));
-                        const restrictedIds = new Set(individual_food_restrictions.map(f => f.id));
 
                         ingredients.forEach(ing => {
-                            const food = allFoods.find(f => f.id === ing.food_id);
+                            const food = foodById.get(ing.food_id || ing.user_created_food_id);
                             if (!food) return;
                             
-                            if (nonPreferredIds.has(food.id)) unsafeFoodsSet.add(food.name);
-                            if (restrictedIds.has(food.id)) unsafeFoodsSet.add(food.name);
+                            if (restrictionSets.nonPreferred.has(food.id)) unsafeFoodsSet.add(food.name);
+                            if (restrictionSets.restricted.has(food.id)) unsafeFoodsSet.add(food.name);
 
                             // ROBUST CHECK: Handle both direct ID and nested object
                             const foodSensitivityIds = new Set(food.food_sensitivities?.map(fs => fs.sensitivity?.id || fs.sensitivity_id).filter(Boolean) || []);
                             foodSensitivityIds.forEach(id => {
-                                if (sensitivityIds.has(id)) unsafeFoodsSet.add(food.name);
+                                if (restrictionSets.sensitivities.has(id)) unsafeFoodsSet.add(food.name);
                             });
 
                             (food.food_medical_conditions || []).forEach(fmc => {
                               // ROBUST CHECK: Handle both direct ID and nested object
                               const condId = fmc.condition?.id || fmc.condition_id;
-                              if (conditionIds.has(condId) && (fmc.relation_type === 'to_avoid' || fmc.relation_type === 'evitar')) {
+                              if (restrictionSets.conditions.has(condId) && (fmc.relation_type === 'to_avoid' || fmc.relation_type === 'evitar')) {
                                 unsafeFoodsSet.add(food.name);
                               }
                             });

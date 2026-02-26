@@ -3,323 +3,406 @@ import { supabase } from '@/lib/customSupabaseClient';
 import { format } from 'date-fns';
 import { useRealtime } from '@/contexts/RealtimeProvider';
 
-const mergeById = (prevArr, newArr) => {
-  const map = new Map(prevArr.map(x => [x.id, x]));
-  for (const n of newArr) map.set(n.id, n);
-  return Array.from(map.values());
+const hashValue = (value) => {
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(Math.random());
+  }
+};
+
+const buildFoodIndex = (foods = []) => {
+  const map = new Map();
+  foods.forEach((food) => {
+    map.set(`${food.is_user_created ? 1 : 0}:${food.id}`, food);
+  });
+  return map;
+};
+
+const buildIngredientEnricher = (foods = []) => {
+  const foodIndex = buildFoodIndex(foods);
+
+  return (ingredients) => {
+    if (!Array.isArray(ingredients)) return [];
+
+    return ingredients.map((ing) => {
+      const isUserCreated = !!(ing.is_user_created || ing.user_created_food_id);
+      const foodId = isUserCreated ? ing.user_created_food_id : ing.food_id;
+      const detailedFood = foodIndex.get(`${isUserCreated ? 1 : 0}:${foodId}`);
+
+      return {
+        ...ing,
+        food: detailedFood || ing.food,
+      };
+    });
+  };
 };
 
 export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => {
-    const [planRecipes, setPlanRecipes] = useState([]);
-    const [freeMeals, setFreeMeals] = useState([]);
-    const [snacks, setSnacks] = useState([]);
-    const [snackLogs, setSnackLogs] = useState([]);
-    const [mealLogs, setMealLogs] = useState([]);
-    const [userDayMeals, setUserDayMeals] = useState([]);
-    const [adjustments, setAdjustments] = useState([]);
-    const [equivalenceAdjustments, setEquivalenceAdjustments] = useState([]);
-    const [dailyIngredientAdjustments, setDailyIngredientAdjustments] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [allAvailableFoods, setAllAvailableFoods] = useState([]);
-    const foodsCacheRef = useRef({ userId: null, foods: [] });
-    
-    const { subscribe, unregister } = useRealtime();
+  const [planRecipes, setPlanRecipes] = useState([]);
+  const [freeMeals, setFreeMeals] = useState([]);
+  const [snacks, setSnacks] = useState([]);
+  const [snackLogs, setSnackLogs] = useState([]);
+  const [mealLogs, setMealLogs] = useState([]);
+  const [userDayMeals, setUserDayMeals] = useState([]);
+  const [adjustments, setAdjustments] = useState([]);
+  const [equivalenceAdjustments, setEquivalenceAdjustments] = useState([]);
+  const [dailyIngredientAdjustments, setDailyIngredientAdjustments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [allAvailableFoods, setAllAvailableFoods] = useState([]);
 
-    const fetchAndSetPlanItems = useCallback(async () => {
-        setLoading(true);
-        setError(null);
+  const staticCacheRef = useRef({ key: null, data: null });
+  const rangeCacheRef = useRef(new Map());
+  const stateHashesRef = useRef({});
+  const realtimeDebounceRef = useRef(null);
+  const pendingStaticRefreshRef = useRef(false);
 
-        if (!userId || !activePlan) {
-            setLoading(false);
-            return;
+  const { subscribe, unregister } = useRealtime();
+
+  const setStateIfChanged = useCallback((stateKey, nextValue, setter) => {
+    const nextHash = hashValue(nextValue);
+    if (stateHashesRef.current[stateKey] === nextHash) return false;
+
+    stateHashesRef.current[stateKey] = nextHash;
+    setter(nextValue);
+    return true;
+  }, []);
+
+  const applyProcessedData = useCallback((processed) => {
+    if (!processed) return;
+
+    const { staticData, rangeData } = processed;
+
+    if (staticData) {
+      setStateIfChanged('allAvailableFoods', staticData.allFoods, setAllAvailableFoods);
+      setStateIfChanged('planRecipes', staticData.planRecipes, setPlanRecipes);
+      setStateIfChanged('userDayMeals', staticData.userDayMeals, setUserDayMeals);
+    }
+
+    if (rangeData) {
+      setStateIfChanged('plannedMeals', rangeData.plannedMeals, setPlannedMeals);
+      setStateIfChanged('freeMeals', rangeData.freeMeals, setFreeMeals);
+      setStateIfChanged('snacks', rangeData.snacks, setSnacks);
+      setStateIfChanged('snackLogs', rangeData.snackLogs, setSnackLogs);
+      setStateIfChanged('mealLogs', rangeData.mealLogs, setMealLogs);
+      setStateIfChanged('equivalenceAdjustments', rangeData.equivalenceAdjustments, setEquivalenceAdjustments);
+      setStateIfChanged('dailyIngredientAdjustments', rangeData.dailyIngredientAdjustments, setDailyIngredientAdjustments);
+      setStateIfChanged('adjustments', rangeData.equivalenceAdjustments, setAdjustments);
+    }
+  }, [setPlannedMeals, setStateIfChanged]);
+
+  const fetchAndSetPlanItems = useCallback(async (options = {}) => {
+    const { force = false, refreshStatic = false, silent = false } = options;
+
+    if (!userId || !activePlan || !weekDates?.length) {
+      setLoading(false);
+      return;
+    }
+
+    const firstDay = weekDates[0];
+    const lastDay = weekDates[weekDates.length - 1];
+    const startDate = format(firstDay, 'yyyy-MM-dd');
+    const endDate = format(lastDay, 'yyyy-MM-dd');
+
+    const staticKey = `${userId}:${activePlan.id}`;
+    const rangeKey = `${staticKey}:${startDate}:${endDate}`;
+
+    const cachedStatic = staticCacheRef.current.key === staticKey ? staticCacheRef.current.data : null;
+    const cachedRange = rangeCacheRef.current.get(rangeKey);
+
+    // If we already have this range and static data, re-apply from cache and skip network.
+    if (!force && cachedStatic && cachedRange) {
+      applyProcessedData({ staticData: cachedStatic, rangeData: cachedRange });
+      setLoading(false);
+      return;
+    }
+
+    if (!silent && (!cachedStatic || !cachedRange)) {
+      setLoading(true);
+    }
+    setError(null);
+
+    try {
+      const shouldFetchStatic = force ? (refreshStatic || !cachedStatic) : (!cachedStatic || refreshStatic);
+
+      let staticData = cachedStatic;
+      if (shouldFetchStatic) {
+        const [dietPlanRecipesRes, privateRecipesRes, userDayMealsRes, foodsRes, userFoodsRes, changeRequestsRes] = await Promise.all([
+          supabase.from('diet_plan_recipes').select(`
+            *, 
+            recipe:recipe_id(*, recipe_ingredients(*)), 
+            custom_ingredients:diet_plan_recipe_ingredients(*), 
+            day_meal:day_meal_id!inner(id,name,display_order)
+          `).eq('diet_plan_id', activePlan.id),
+          supabase.from('private_recipes').select(`
+            *, 
+            private_recipe_ingredients(*), 
+            day_meal:day_meal_id!inner(id,name,display_order)
+          `).eq('diet_plan_id', activePlan.id),
+          supabase.from('user_day_meals')
+            .select('*, day_meal:day_meals(*)')
+            .eq('user_id', userId)
+            .eq('diet_plan_id', activePlan.id)
+            .order('display_order', { foreignTable: 'day_meals' }),
+          supabase.from('food').select(`
+            *, 
+            food_sensitivities(sensitivity:sensitivities(*)), 
+            food_medical_conditions(relation_type, condition:medical_conditions(*)), 
+            food_vitamins(mg_per_100g, vitamin:vitamins(*)), 
+            food_minerals(mg_per_100g, mineral:minerals(*)), 
+            food_to_food_groups(food_group:food_groups(*))
+          `),
+          supabase.from('user_created_foods').select('*').eq('user_id', userId).not('status', 'eq', 'rejected'),
+          supabase.from('diet_change_requests').select('*').eq('user_id', userId).eq('status', 'pending'),
+        ]);
+
+        const staticResponses = [dietPlanRecipesRes, privateRecipesRes, userDayMealsRes, foodsRes, userFoodsRes, changeRequestsRes];
+        for (const res of staticResponses) {
+          if (res.error) throw res.error;
         }
 
-        try {
-            const firstDay = weekDates[0];
-            const lastDay = weekDates[weekDates.length - 1];
-            const startDate = format(firstDay, 'yyyy-MM-dd');
-            const endDate = format(lastDay, 'yyyy-MM-dd');
-            const shouldFetchFoods = foodsCacheRef.current.userId !== userId || !foodsCacheRef.current.foods?.length;
-
-            const [
-                plannedMealsData,
-                dietPlanRecipesData,
-                privateRecipesData,
-                freeMealsData,
-                mealLogsData,
-                userDayMealsData,
-                equivalenceAdjustmentsData,
-                ingredientAdjustmentsData,
-                snacksData,
-                snackLogsData,
-                foodsData,
-                userFoodsData,
-                changeRequestsData,
-            ] = await Promise.all([
-                supabase.from('planned_meals').select(`
-                    *,
-                    diet_plan_recipe:diet_plan_recipes(*, recipe:recipes(*, recipe_ingredients(*, food(*))), custom_ingredients:diet_plan_recipe_ingredients(*, food(*)), day_meal:day_meals(*)),
-                    private_recipe:private_recipes(*, private_recipe_ingredients(*, food(*)), day_meal:day_meals(*))
-                `).eq('user_id', userId).eq('diet_plan_id', activePlan.id).gte('plan_date', startDate).lte('plan_date', endDate),
-                
-                supabase.from('diet_plan_recipes').select(`
-                    *, 
-                    recipe:recipe_id(*, recipe_ingredients(*)), 
-                    custom_ingredients:diet_plan_recipe_ingredients(*), 
-                    day_meal:day_meal_id!inner(id,name,display_order)
-                `).eq('diet_plan_id', activePlan.id),
-                
-                supabase.from('private_recipes').select(`
-                    *, 
-                    private_recipe_ingredients(*), 
-                    day_meal:day_meal_id!inner(id,name,display_order)
-                `).eq('diet_plan_id', activePlan.id),
-                
-                supabase.from('free_recipe_occurrences').select(`
-                    *,
-                    free_recipe:free_recipes!inner(*, free_recipe_ingredients!inner(id, grams, food:food_id(*), user_created_food:user_created_foods(*))),
-                    day_meal:day_meals(*)
-                `).eq('user_id', userId).gte('meal_date', startDate).lte('meal_date', endDate),
-
-                supabase.from('daily_meal_logs')
-                    .select('log_date, diet_plan_recipe_id, private_recipe_id, free_recipe_occurrence_id, user_day_meal_id, id')
-                    .eq('user_id', userId)
-                    .gte('log_date', startDate)
-                    .lte('log_date', endDate),
-                
-                supabase.from('user_day_meals')
-                    .select('*, day_meal:day_meals(*)')
-                    .eq('user_id', userId)
-                    .eq('diet_plan_id', activePlan.id)
-                    .order('display_order', { foreignTable: 'day_meals' }),
-                
-                supabase.from('equivalence_adjustments').select('*').eq('user_id', userId).gte('log_date', startDate).lte('log_date', endDate),
-                
-                supabase.from('daily_ingredient_adjustments').select('*, equivalence_adjustment:equivalence_adjustments!inner(id, log_date, user_id, target_user_day_meal_id)').eq('equivalence_adjustment.user_id', userId).gte('equivalence_adjustment.log_date', startDate).lte('equivalence_adjustment.log_date', endDate),
-
-                supabase.from('snack_occurrences').select('*, snack:snacks(*, snack_ingredients(*, food:food_id(*), user_created_food:user_created_foods(*)))').eq('user_id', userId).gte('meal_date', startDate).lte('meal_date', endDate),
-                supabase.from('daily_snack_logs').select('*').eq('user_id', userId).gte('log_date', startDate).lte('log_date', endDate),
-                shouldFetchFoods
-                    ? supabase.from('food').select(`
-                        *, 
-                        food_sensitivities(sensitivity:sensitivities(*)), 
-                        food_medical_conditions(relation_type, condition:medical_conditions(*)), 
-                        food_vitamins(mg_per_100g, vitamin:vitamins(*)), 
-                        food_minerals(mg_per_100g, mineral:minerals(*)), 
-                        food_to_food_groups(food_group:food_groups(*))
-                    `)
-                    : Promise.resolve({ data: [], error: null }),
-                shouldFetchFoods
-                    ? supabase.from('user_created_foods').select('*').eq('user_id', userId).not('status', 'eq', 'rejected')
-                    : Promise.resolve({ data: [], error: null }),
-                supabase.from('diet_change_requests').select('*').eq('user_id', userId).eq('status', 'pending'),
-            ]);
-
-            // Error handling for all promises
-            const responses = [plannedMealsData, dietPlanRecipesData, privateRecipesData, freeMealsData, mealLogsData, userDayMealsData, equivalenceAdjustmentsData, ingredientAdjustmentsData, snacksData, snackLogsData, foodsData, userFoodsData, changeRequestsData];
-            for (const res of responses) {
-                if (res.error) throw res.error;
-            }
-
-            const allFoods = shouldFetchFoods
-                ? [
-                    ...(foodsData.data || []),
-                    ...((userFoodsData.data || []).map(f => ({ ...f, is_user_created: true })))
-                ]
-                : (foodsCacheRef.current.foods || []);
-
-            if (shouldFetchFoods) {
-                foodsCacheRef.current = { userId, foods: allFoods };
-            }
-
-            setAllAvailableFoods(allFoods);
-
-            const changeRequests = changeRequestsData.data || [];
-
-            const enrichIngredients = (ingredients) => {
-                if (!ingredients || !Array.isArray(ingredients)) return [];
-                return ingredients.map(ing => {
-                    const isUserCreated = ing.is_user_created || ing.user_created_food_id;
-                    const foodIdKey = isUserCreated ? ing.user_created_food_id : ing.food_id;
-                    
-                    const detailedFood = allFoods.find(f => f.id === foodIdKey && f.is_user_created === !!isUserCreated);
-                    
-                    return {
-                        ...ing,
-                        food: detailedFood || ing.food 
-                    };
-                });
-            };
-            
-            const enrichedPlannedMeals = (plannedMealsData.data || []).map(pm => {
-                const newPm = { ...pm };
-                if (newPm.diet_plan_recipe) {
-                    if (newPm.diet_plan_recipe.recipe) {
-                        newPm.diet_plan_recipe.recipe.recipe_ingredients = enrichIngredients(newPm.diet_plan_recipe.recipe.recipe_ingredients);
-                    }
-                    newPm.diet_plan_recipe.custom_ingredients = enrichIngredients(newPm.diet_plan_recipe.custom_ingredients);
-                }
-                if (newPm.private_recipe) {
-                    newPm.private_recipe.private_recipe_ingredients = enrichIngredients(newPm.private_recipe.private_recipe_ingredients);
-                }
-                return newPm;
-            });
-
-            setPlannedMeals(enrichedPlannedMeals);
-
-            const processedDietPlanRecipes = (dietPlanRecipesData.data || []).map(r => {
-                if (r.recipe) {
-                    r.recipe.recipe_ingredients = enrichIngredients(r.recipe.recipe_ingredients || []);
-                }
-                r.custom_ingredients = enrichIngredients(r.custom_ingredients || []);
-                
-                const request = changeRequests.find(cr => cr.diet_plan_recipe_id === r.id && !cr.requested_changes_private_recipe_id);
-
-                return {
-                    ...r,
-                    dnd_id: `recipe-${r.id}`,
-                    type: 'recipe',
-                    is_private: false,
-                    changeRequest: request
-                };
-            });
-
-            const processedPrivateRecipes = (privateRecipesData.data || []).map(r => {
-                r.private_recipe_ingredients = enrichIngredients(r.private_recipe_ingredients || []);
-                
-                const request = changeRequests.find(cr => cr.requested_changes_private_recipe_id === r.id);
-
-                return {
-                    ...r,
-                    dnd_id: `private-${r.id}`,
-                    type: 'private_recipe',
-                    is_private: true,
-                    changeRequest: request
-                };
-            });
-
-            setPlanRecipes([...processedDietPlanRecipes, ...processedPrivateRecipes]);
-
-            const processedFreeMeals = freeMealsData.data.map(fm => {
-                const unifiedIngredients = fm.free_recipe.free_recipe_ingredients.map(ing => {
-                    const isUserCreated = !!ing.user_created_food;
-                    const foodDetails = ing.food || ing.user_created_food;
-                    return {
-                      ...ing,
-                      food: foodDetails,
-                      food_id: foodDetails?.id,
-                      is_user_created: isUserCreated,
-                    };
-                  });
-
-                return {
-                    ...fm.free_recipe,
-                    free_recipe_ingredients: enrichIngredients(unifiedIngredients),
-                    occurrence_id: fm.id,
-                    meal_date: fm.meal_date,
-                    day_meal_id: fm.day_meal_id,
-                    day_meal: fm.day_meal,
-                    dnd_id: `free-${fm.id}`,
-                    type: 'free_recipe',
-                }
-            });
-            setFreeMeals(processedFreeMeals);
-
-            const processedSnacks = snacksData.data.map(s => ({
-                ...s.snack,
-                snack_ingredients: enrichIngredients(s.snack.snack_ingredients),
-                occurrence_id: s.id,
-                meal_date: s.meal_date,
-                day_meal_id: s.day_meal_id,
-                dnd_id: `snack-${s.id}`,
-                type: 'snack',
-            }));
-            setSnacks(processedSnacks);
-            setSnackLogs(snackLogsData.data || []);
-
-            setMealLogs(mealLogsData.data || []);
-            setUserDayMeals(userDayMealsData.data || []);
-            
-            setEquivalenceAdjustments(equivalenceAdjustmentsData.data || []);
-            setDailyIngredientAdjustments(ingredientAdjustmentsData.data || []);
-
-            setAdjustments(equivalenceAdjustmentsData.data || []);
-            
-        } catch (err) {
-            setError(`Error al cargar los datos del plan: ${err.message}`);
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
-    }, [userId, activePlan, weekDates, setPlannedMeals]);
-
-    useEffect(() => {
-        fetchAndSetPlanItems();
-    }, [fetchAndSetPlanItems]);
-
-    // Realtime subscription logic for plan items
-    useEffect(() => {
-        if (!userId) return;
-
-        const tablesToListen = [
-            'daily_meal_logs',
-            'planned_meals',
-            'free_recipe_occurrences',
-            'snack_occurrences',
-            'daily_snack_logs',
-            'daily_ingredient_adjustments',
-            'equivalence_adjustments',
-            'diet_plan_recipes',
-            'private_recipes',
-            'snacks'
+        const allFoods = [
+          ...(foodsRes.data || []),
+          ...((userFoodsRes.data || []).map((f) => ({ ...f, is_user_created: true }))),
         ];
+        const enrichIngredients = buildIngredientEnricher(allFoods);
+        const changeRequests = changeRequestsRes.data || [];
 
-        const handleUpdate = () => {
-            console.log('Realtime update detected, refreshing plan items...');
-            fetchAndSetPlanItems();
-        };
+        const processedDietPlanRecipes = (dietPlanRecipesRes.data || []).map((r) => {
+          const recipeIngredients = enrichIngredients(r.recipe?.recipe_ingredients || []);
+          const customIngredients = enrichIngredients(r.custom_ingredients || []);
+          const request = changeRequests.find((cr) => cr.diet_plan_recipe_id === r.id && !cr.requested_changes_private_recipe_id);
 
-        tablesToListen.forEach(table => {
-            const key = `plan_items_${table}_${userId}`;
-            subscribe(key, {
-                event: '*',
-                schema: 'public',
-                table: table,
-                filter: `user_id=eq.${userId}`
-            }, handleUpdate);
+          return {
+            ...r,
+            recipe: r.recipe ? { ...r.recipe, recipe_ingredients: recipeIngredients } : r.recipe,
+            custom_ingredients: customIngredients,
+            dnd_id: `recipe-${r.id}`,
+            type: 'recipe',
+            is_private: false,
+            changeRequest: request,
+          };
         });
 
-        return () => {
-            tablesToListen.forEach(table => {
-                const key = `plan_items_${table}_${userId}`;
-                unregister(key, handleUpdate);
-            });
+        const processedPrivateRecipes = (privateRecipesRes.data || []).map((r) => {
+          const privateIngredients = enrichIngredients(r.private_recipe_ingredients || []);
+          const request = changeRequests.find((cr) => cr.requested_changes_private_recipe_id === r.id);
+
+          return {
+            ...r,
+            private_recipe_ingredients: privateIngredients,
+            dnd_id: `private-${r.id}`,
+            type: 'private_recipe',
+            is_private: true,
+            changeRequest: request,
+          };
+        });
+
+        staticData = {
+          allFoods,
+          planRecipes: [...processedDietPlanRecipes, ...processedPrivateRecipes],
+          userDayMeals: userDayMealsRes.data || [],
         };
-    }, [userId, fetchAndSetPlanItems, subscribe, unregister]);
 
+        staticCacheRef.current = { key: staticKey, data: staticData };
+        if (refreshStatic) {
+          for (const key of rangeCacheRef.current.keys()) {
+            if (key.startsWith(`${staticKey}:`)) rangeCacheRef.current.delete(key);
+          }
+        }
+      }
 
-    return { 
-        planRecipes, 
-        setPlanRecipes, 
-        freeMeals, 
-        setFreeMeals, 
-        mealLogs, 
-        setMealLogs, 
-        userDayMeals, 
-        adjustments, 
-        setAdjustments,
-        equivalenceAdjustments,
-        setEquivalenceAdjustments,
-        dailyIngredientAdjustments,
-        setDailyIngredientAdjustments,
-        fetchAndSetPlanItems, 
-        loading, 
-        error, 
-        snacks, 
-        setSnacks, 
-        snackLogs, 
-        setSnackLogs,
-        allAvailableFoods
+      const [plannedMealsRes, freeMealsRes, mealLogsRes, equivalenceAdjustmentsRes, ingredientAdjustmentsRes, snackOccurrencesRes, snackLogsRes] = await Promise.all([
+        supabase.from('planned_meals').select(`
+          *,
+          diet_plan_recipe:diet_plan_recipes(*, recipe:recipes(*, recipe_ingredients(*, food(*))), custom_ingredients:diet_plan_recipe_ingredients(*, food(*)), day_meal:day_meals(*)),
+          private_recipe:private_recipes(*, private_recipe_ingredients(*, food(*)), day_meal:day_meals(*))
+        `).eq('user_id', userId).eq('diet_plan_id', activePlan.id).gte('plan_date', startDate).lte('plan_date', endDate),
+        supabase.from('free_recipe_occurrences').select(`
+          *,
+          free_recipe:free_recipes!inner(*, free_recipe_ingredients!inner(id, grams, food:food_id(*), user_created_food:user_created_foods(*))),
+          day_meal:day_meals(*)
+        `).eq('user_id', userId).gte('meal_date', startDate).lte('meal_date', endDate),
+        supabase.from('daily_meal_logs')
+          .select('log_date, diet_plan_recipe_id, private_recipe_id, free_recipe_occurrence_id, user_day_meal_id, id')
+          .eq('user_id', userId)
+          .gte('log_date', startDate)
+          .lte('log_date', endDate),
+        supabase.from('equivalence_adjustments').select('*').eq('user_id', userId).gte('log_date', startDate).lte('log_date', endDate),
+        supabase.from('daily_ingredient_adjustments').select('*, equivalence_adjustment:equivalence_adjustments!inner(id, log_date, user_id, target_user_day_meal_id)').eq('equivalence_adjustment.user_id', userId).gte('equivalence_adjustment.log_date', startDate).lte('equivalence_adjustment.log_date', endDate),
+        supabase.from('snack_occurrences').select('*, snack:snacks(*, snack_ingredients(*, food:food_id(*), user_created_food:user_created_foods(*)))').eq('user_id', userId).gte('meal_date', startDate).lte('meal_date', endDate),
+        supabase.from('daily_snack_logs').select('*').eq('user_id', userId).gte('log_date', startDate).lte('log_date', endDate),
+      ]);
+
+      const rangeResponses = [plannedMealsRes, freeMealsRes, mealLogsRes, equivalenceAdjustmentsRes, ingredientAdjustmentsRes, snackOccurrencesRes, snackLogsRes];
+      for (const res of rangeResponses) {
+        if (res.error) throw res.error;
+      }
+
+      const enrichIngredients = buildIngredientEnricher(staticData?.allFoods || []);
+
+      const processedPlannedMeals = (plannedMealsRes.data || []).map((pm) => {
+        const nextPm = { ...pm };
+
+        if (nextPm.diet_plan_recipe) {
+          const recipeIngredients = enrichIngredients(nextPm.diet_plan_recipe.recipe?.recipe_ingredients || []);
+          const customIngredients = enrichIngredients(nextPm.diet_plan_recipe.custom_ingredients || []);
+
+          nextPm.diet_plan_recipe = {
+            ...nextPm.diet_plan_recipe,
+            recipe: nextPm.diet_plan_recipe.recipe
+              ? { ...nextPm.diet_plan_recipe.recipe, recipe_ingredients: recipeIngredients }
+              : nextPm.diet_plan_recipe.recipe,
+            custom_ingredients: customIngredients,
+          };
+        }
+
+        if (nextPm.private_recipe) {
+          nextPm.private_recipe = {
+            ...nextPm.private_recipe,
+            private_recipe_ingredients: enrichIngredients(nextPm.private_recipe.private_recipe_ingredients || []),
+          };
+        }
+
+        return nextPm;
+      });
+
+      const processedFreeMeals = (freeMealsRes.data || []).map((fm) => {
+        const unifiedIngredients = (fm.free_recipe?.free_recipe_ingredients || []).map((ing) => {
+          const foodDetails = ing.food || ing.user_created_food;
+          return {
+            ...ing,
+            food: foodDetails,
+            food_id: foodDetails?.id,
+            is_user_created: !!ing.user_created_food,
+          };
+        });
+
+        return {
+          ...fm.free_recipe,
+          free_recipe_ingredients: enrichIngredients(unifiedIngredients),
+          occurrence_id: fm.id,
+          meal_date: fm.meal_date,
+          day_meal_id: fm.day_meal_id,
+          day_meal: fm.day_meal,
+          dnd_id: `free-${fm.id}`,
+          type: 'free_recipe',
+        };
+      });
+
+      const processedSnacks = (snackOccurrencesRes.data || []).map((s) => ({
+        ...s.snack,
+        snack_ingredients: enrichIngredients(s.snack?.snack_ingredients || []),
+        occurrence_id: s.id,
+        meal_date: s.meal_date,
+        day_meal_id: s.day_meal_id,
+        dnd_id: `snack-${s.id}`,
+        type: 'snack',
+      }));
+
+      const rangeData = {
+        plannedMeals: processedPlannedMeals,
+        freeMeals: processedFreeMeals,
+        mealLogs: mealLogsRes.data || [],
+        equivalenceAdjustments: equivalenceAdjustmentsRes.data || [],
+        dailyIngredientAdjustments: ingredientAdjustmentsRes.data || [],
+        snacks: processedSnacks,
+        snackLogs: snackLogsRes.data || [],
+      };
+
+      rangeCacheRef.current.set(rangeKey, rangeData);
+      if (rangeCacheRef.current.size > 30) {
+        const oldestKey = rangeCacheRef.current.keys().next().value;
+        if (oldestKey) rangeCacheRef.current.delete(oldestKey);
+      }
+
+      applyProcessedData({
+        staticData,
+        rangeData,
+      });
+    } catch (err) {
+      setError(`Error al cargar los datos del plan: ${err.message}`);
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, [activePlan, applyProcessedData, userId, weekDates]);
+
+  useEffect(() => {
+    fetchAndSetPlanItems();
+  }, [fetchAndSetPlanItems]);
+
+  useEffect(() => {
+    if (!userId || !activePlan?.id) return;
+
+    const subscriptions = [
+      { table: 'daily_meal_logs', filter: `user_id=eq.${userId}`, staticRefresh: false },
+      { table: 'planned_meals', filter: `user_id=eq.${userId}`, staticRefresh: false },
+      { table: 'free_recipe_occurrences', filter: `user_id=eq.${userId}`, staticRefresh: false },
+      { table: 'snack_occurrences', filter: `user_id=eq.${userId}`, staticRefresh: false },
+      { table: 'daily_snack_logs', filter: `user_id=eq.${userId}`, staticRefresh: false },
+      { table: 'daily_ingredient_adjustments', filter: null, staticRefresh: false },
+      { table: 'equivalence_adjustments', filter: `user_id=eq.${userId}`, staticRefresh: false },
+      { table: 'diet_plan_recipes', filter: `diet_plan_id=eq.${activePlan.id}`, staticRefresh: true },
+      { table: 'private_recipes', filter: `diet_plan_id=eq.${activePlan.id}`, staticRefresh: true },
+      { table: 'snacks', filter: `user_id=eq.${userId}`, staticRefresh: true },
+      { table: 'diet_change_requests', filter: `user_id=eq.${userId}`, staticRefresh: true },
+    ];
+
+    const scheduleRefresh = (refreshStatic) => {
+      if (refreshStatic) pendingStaticRefreshRef.current = true;
+      if (realtimeDebounceRef.current) clearTimeout(realtimeDebounceRef.current);
+
+      realtimeDebounceRef.current = setTimeout(() => {
+        const mustRefreshStatic = pendingStaticRefreshRef.current;
+        pendingStaticRefreshRef.current = false;
+        fetchAndSetPlanItems({ force: true, refreshStatic: mustRefreshStatic, silent: true });
+      }, 220);
     };
+
+    const unsubscribers = [];
+    subscriptions.forEach(({ table, filter, staticRefresh }) => {
+      const key = `plan_items_${table}_${userId}_${activePlan.id}`;
+      const listener = () => scheduleRefresh(staticRefresh);
+      subscribe(key, {
+        event: '*',
+        schema: 'public',
+        table,
+        ...(filter ? { filter } : {}),
+      }, listener);
+      unsubscribers.push({ key, listener });
+    });
+
+    return () => {
+      if (realtimeDebounceRef.current) clearTimeout(realtimeDebounceRef.current);
+      unsubscribers.forEach(({ key, listener }) => {
+        unregister(key, listener);
+      });
+    };
+  }, [activePlan?.id, fetchAndSetPlanItems, subscribe, unregister, userId]);
+
+  return {
+    planRecipes,
+    setPlanRecipes,
+    freeMeals,
+    setFreeMeals,
+    mealLogs,
+    setMealLogs,
+    userDayMeals,
+    adjustments,
+    setAdjustments,
+    equivalenceAdjustments,
+    setEquivalenceAdjustments,
+    dailyIngredientAdjustments,
+    setDailyIngredientAdjustments,
+    fetchAndSetPlanItems,
+    loading,
+    error,
+    snacks,
+    setSnacks,
+    snackLogs,
+    setSnackLogs,
+    allAvailableFoods,
+  };
 };
