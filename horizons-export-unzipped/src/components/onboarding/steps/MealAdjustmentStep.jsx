@@ -235,13 +235,16 @@ const MealAdjustmentStep = ({ onNext, isLoading: isStepLoading }) => {
       }
 
       try {
+        const clientName = user?.full_name?.trim();
+        const planName = clientName ? `Dieta de ${clientName}` : 'Dieta de Cliente';
+
         const result = await assignDietFromOnboarding(user.id, {
             dailyCalories,
             macrosPct,
             meals,
             template,
             recipeOverrides: localRecipeOverrides,
-            planName: "Mi Plan de Nutrición"
+            planName
         });
 
         if (result && result.success) {

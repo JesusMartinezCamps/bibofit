@@ -249,12 +249,12 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
         onClick={() => handleDateClick(day)}
       >
           {/* ---------- DAY NUMBER + REMINDER ICONS (CODex STYLE) ---------- */}
-          <div className="flex items-start justify-between mb-1">
+          <div className="relative flex items-start justify-end mb-1 min-h-6">
 
             {/* Number */}
             <span
               className={cn(
-                "text-sm w-6 h-6 flex items-center justify-center rounded-full",
+                "absolute left-1/2 -translate-x-1/2 text-sm w-6 h-6 flex items-center justify-center rounded-full",
                 !isCurrentMonth && "text-gray-600",
                 isCurrentMonth && isToday && "bg-green-400/20 text-green-400 border border-green-400/20",
                 isCurrentMonth && !isToday && "text-white"
@@ -378,7 +378,7 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
                 <motion.div
                   key={chipKey}
                   className={cn(
-                    "event-chip flex items-center justify-center text-[11px] sm:text-xs truncate",
+                    "event-chip flex items-center justify-center text-[11px] sm:text-xs truncate pointer-events-none sm:pointer-events-auto",
                     event.type === 'workout' && "bg-red-500/20 text-red-200 border border-red-500/40",
                     event.type === 'weight' && "bg-purple-500/20 text-purple-200 border border-purple-500/40",
                     event.type === 'diet_log' && `border ${classes}`
@@ -387,6 +387,7 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   onClick={(e) => {
+                    if (typeof window !== 'undefined' && window.innerWidth < 640) return;
                     e.stopPropagation();
                     if (event.type === 'weight') {
                       setSelectedWeightDate(day);
@@ -434,7 +435,7 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
               : `/plan/dieta/${userId}/${format(selectedDate, 'yyyy-MM-dd')}`
           )}
           variant="outline-diet"
-          className="flex-grow"
+          className="flex-grow bg-green-800/20"
         >
           <Apple className="w-6 h-6 mr-2" />Plan de Dieta
         </Button>
@@ -442,7 +443,7 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
         <Button
           onClick={() => navigate(!isClientView ? `/admin/manage-training/${userId}` : '/plan/entreno')}
           variant="outline-training"
-          className="flex-grow"
+          className="flex-grow bg-red-800/20"
         >
           <Dumbbell className="w-6 h-6 mr-2" />Plan de Entreno
         </Button>
@@ -455,6 +456,7 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
           setIsWeightLogOpen(true);
         }}
         variant="outline-weight"
+        className="bg-purple-800/20"
       >
         {!isClientView ? 'Añadirle un Registro de Peso' : 'Añadir Registro de Peso'}
       </Button>
@@ -463,6 +465,7 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
         <Button
           onClick={handleOpenNewReminder}
           variant="outline-reminder"
+          className="bg-orange-800/20"
         >
           <PlusCircle className="w-6 h-6 mr-2" />Añadir Recordatorio
         </Button>
