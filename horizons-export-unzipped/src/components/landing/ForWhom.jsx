@@ -2,7 +2,7 @@ import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Check } from 'lucide-react';
 
-const ForWhom = () => {
+const ForWhom = ({ audience, onAudienceChange }) => {
     return (
         <section id="for-whom" className="py-24 bg-[#16191d]">
             <div className="container mx-auto px-4 md:px-6">
@@ -12,7 +12,7 @@ const ForWhom = () => {
                 </div>
 
                 <div className="max-w-4xl mx-auto">
-                    <Tabs defaultValue="coach" className="w-full">
+                    <Tabs value={audience} onValueChange={onAudienceChange} className="w-full">
                         <TabsList className="grid w-full grid-cols-2 bg-[#1a1e23] border border-gray-800 p-1 mb-8">
                             <TabsTrigger value="client" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white text-gray-400">Para Clientes</TabsTrigger>
                             <TabsTrigger value="coach" className="data-[state=active]:bg-green-500 data-[state=active]:text-black text-gray-400">Para Entrenadores</TabsTrigger>
