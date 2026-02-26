@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/customSupabaseClient';
 import { getStepConfig } from './onboardingConfig';
 import { calculateAndSaveMetabolism } from '@/lib/metabolismCalculator';
@@ -174,6 +175,18 @@ export const onboardingService = {
   },
   
   async resetOnboarding(userId) {
+     // Validate admin permissions before resetting onboarding
+     const { data: roleData } = await supabase
+       .from('user_roles')
+       .select('roles(role)')
+       .eq('user_id', userId)
+       .single();
+
+     if (roleData?.roles?.role !== 'admin') {
+       console.log(`[SECURITY AUDIT] Unauthorized onboarding reset attempt by User ID: ${userId} at ${new Date().toISOString()}`);
+       throw new Error("Solo administradores pueden reiniciar el onboarding");
+     }
+
      const { error } = await supabase
       .from('profiles')
       .update({

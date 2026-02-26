@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Helmet } from 'react-helmet';
@@ -39,6 +40,15 @@ const ProfilePage = () => {
   };
   
   const handleResetOnboarding = async () => {
+      if (user?.role !== 'admin') {
+          toast({ 
+              title: "Error de permisos", 
+              description: "Solo administradores pueden reiniciar el onboarding", 
+              variant: "destructive" 
+          });
+          return;
+      }
+
       try {
           await onboardingService.resetOnboarding(user.id);
           toast({ title: "Onboarding reiniciado", description: "Recargando aplicación..." });
@@ -98,13 +108,16 @@ const ProfilePage = () => {
             <h1 className="text-4xl md:text-5xl font-bold text-white">{profileTitle}</h1>
             <ProfileTypeSubtitle role={user?.role} />
             <div className="flex flex-col items-center justify-center gap-2 mt-4">
-              <Button 
-                  variant="link" 
-                  className="text-gray-500 hover:text-green-400 text-xs h-auto py-1" 
-                  onClick={handleResetOnboarding}
-              >
-                  <RotateCcw className="w-3 h-3 mr-1" /> Repetir Onboarding
-              </Button>
+              {/* Botón restringido solo para administradores por seguridad y control de flujo */}
+              {user?.role === 'admin' && (
+                <Button 
+                    variant="link" 
+                    className="text-gray-500 hover:text-green-400 text-xs h-auto py-1" 
+                    onClick={handleResetOnboarding}
+                >
+                    <RotateCcw className="w-3 h-3 mr-1" /> Repetir Onboarding
+                </Button>
+              )}
               <Button 
                   variant="link" 
                   className="text-gray-500 hover:text-emerald-400 text-xs h-auto py-1" 
