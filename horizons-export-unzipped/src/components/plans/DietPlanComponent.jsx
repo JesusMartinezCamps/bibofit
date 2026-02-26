@@ -1,14 +1,13 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { supabase } from '@/lib/supabaseClient';
 import { useToast } from '@/components/ui/use-toast';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, Calendar, List, User, ArrowLeft, ArrowRight, Settings, AlertTriangle, ShoppingCart, BookCopy, HeartPulse, ShieldAlert, Weight, StickyNote } from 'lucide-react';
+import { Loader2, Calendar, List, ArrowLeft, ArrowRight, AlertTriangle, ShoppingCart, HeartPulse, ShieldAlert, Weight, StickyNote } from 'lucide-react';
 import WeightLogDialog from '@/components/shared/WeightLogDialog';
 import { useAuth } from '@/contexts/AuthContext';
 import WeeklyDietPlanner from '@/components/shared/WeeklyDietPlanner/WeeklyDietPlanner';
-import { format, addDays, subDays, isValid, parseISO, isToday, isSameDay, eachDayOfInterval, isBefore, isAfter, startOfDay, formatDistanceStrict, differenceInCalendarDays } from 'date-fns';
+import { format, addDays, subDays, isValid, parseISO, isToday, isSameDay, isBefore, isAfter, startOfDay, differenceInCalendarDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import AddRecipeToPlanDialog from './AddRecipeToPlanDialog';
 import InfoBadge from '@/components/shared/InfoBadge';
@@ -16,63 +15,22 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import MacroVisualizer from '@/components/shared/MacroVisualizer/MacroVisualizer';
 import WeekVisualizer from '@/components/shared/WeekVisualizer';
-import { calculateMacros } from '@/lib/macroCalculator';
 import ContentStateToggle from '@/components/shared/ContentStateToggle';
 import ReminderFormDialog from '@/components/admin/reminders/ReminderFormDialog';
 import AssignRecipeDialog from './AssignRecipeDialog';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import SwipeIndicator from '@/components/shared/SwipeIndicator';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useDietTimelineEvents } from './hooks/useDietTimelineEvents';
+import { useDietPlanHeaderData } from './hooks/useDietPlanHeaderData';
+import { useDietMacros } from './hooks/useDietMacros';
 
 const DateTimeline = ({ currentDate, setCurrentDate, navigate, isAdminView, userId, refreshTrigger }) => {
-    const [timelineEvents, setTimelineEvents] = useState({});
-
     const weekDates = useMemo(() => {
         const start = subDays(currentDate, 3);
         return Array.from({ length: 7 }, (_, i) => addDays(start, i));
     }, [currentDate]);
-
-    useEffect(() => {
-        const fetchTimelineEvents = async () => {
-            if (!userId || weekDates.length === 0) return;
-            const startDate = format(weekDates[0], 'yyyy-MM-dd');
-            const endDate = format(weekDates[weekDates.length - 1], 'yyyy-MM-dd');
-            
-            const [remindersRes, weightLogsRes, mealLogsRes, snackLogsRes] = await Promise.all([
-                isAdminView ? supabase.from('reminders').select('start_date, end_date').eq('user_id', userId).eq('type', 'event').gte('start_date', startDate).lte('end_date', endDate) : Promise.resolve({ data: [] }),
-                supabase.from('weight_logs').select('logged_on').eq('user_id', userId).gte('logged_on', startDate).lte('logged_on', endDate),
-                supabase.from('daily_meal_logs').select('log_date, free_recipe_occurrence_id').eq('user_id', userId).gte('log_date', startDate).lte('log_date', endDate),
-                supabase.from('daily_snack_logs').select('log_date').eq('user_id', userId).gte('log_date', startDate).lte('log_date', endDate)
-            ]);
-
-            const events = {};
-            const addEvent = (date, type, isFreeRecipe = false) => {
-                const dateString = format(parseISO(date), 'yyyy-MM-dd');
-                if (!events[dateString]) {
-                    events[dateString] = { reminders: 0, weight: 0, diet_logs: [], snacks: 0 };
-                }
-                if (type === 'reminder') events[dateString].reminders++;
-                if (type === 'weight') events[dateString].weight++;
-                if (type === 'diet_log') events[dateString].diet_logs.push({ isFree: isFreeRecipe });
-                if (type === 'snack') events[dateString].snacks++;
-            };
-
-            (remindersRes.data || []).forEach(r => {
-                const eventInterval = { start: parseISO(r.start_date), end: r.end_date ? parseISO(r.end_date) : parseISO(r.start_date) };
-                if (isValid(eventInterval.start) && isValid(eventInterval.end)) {
-                  const dates = eachDayOfInterval(eventInterval);
-                  dates.forEach(d => addEvent(d.toISOString(), 'reminder'));
-                }
-            });
-            (weightLogsRes.data || []).forEach(l => addEvent(l.logged_on, 'weight'));
-            (mealLogsRes.data || []).forEach(l => addEvent(l.log_date, 'diet_log', l.free_recipe_occurrence_id !== null));
-            (snackLogsRes.data || []).forEach(l => addEvent(l.log_date, 'snack'));
-
-            setTimelineEvents(events);
-        };
-
-        fetchTimelineEvents();
-    }, [weekDates, userId, isAdminView, refreshTrigger]);
+    const timelineEvents = useDietTimelineEvents({ userId, weekDates, isAdminView, refreshTrigger });
 
     const handleDateClick = (date) => {
         setCurrentDate(date);
@@ -141,31 +99,33 @@ const DietPlanComponent = () => {
   };
 
   const [currentDate, setCurrentDate] = useState(getInitialDate());
-  const [data, setData] = useState(null);
-  const [activePlan, setActivePlan] = useState(null);
-  const [planStatus, setPlanStatus] = useState({ hasPlans: false, closestPlanLabel: null });
-  const [loading, setLoading] = useState(true);
   const [isWeightLogOpen, setIsWeightLogOpen] = useState(false);
   const [viewMode, setViewMode] = useState('list');
   const [isAddRecipeOpen, setIsAddRecipeOpen] = useState(false);
   const [mealToAddTo, setMealToAddTo] = useState(null);
   const [mealDateToAddTo, setMealDateToAddTo] = useState(null);
   const [addRecipeMode, setAddRecipeMode] = useState('all');
-  const [targetMacros, setTargetMacros] = useState({ calories: 0, proteins: 0, carbs: 0, fats: 0 });
-  const [consumedMacros, setConsumedMacros] = useState({ calories: 0, proteins: 0, carbs: 0, fats: 0 });
-  const [loadingMacros, setLoadingMacros] = useState(true);
   const [timelineRefreshTrigger, setTimelineRefreshTrigger] = useState(0);
-  const [reminders, setReminders] = useState([]);
   const [isReminderFormOpen, setIsReminderFormOpen] = useState(false);
   const [editingReminder, setEditingReminder] = useState(null);
   const [isAssignRecipeOpen, setIsAssignRecipeOpen] = useState(false);
   const [recipeToAssign, setRecipeToAssign] = useState(null);
   const [plannedMeals, setPlannedMeals] = useState([]);
-  const [weightForDay, setWeightForDay] = useState(null);
   
   const isAdminView = authUser?.id !== userId;
   const logDate = format(currentDate, 'yyyy-MM-dd');
   const plannerRef = useRef(null);
+
+  const { data, setData, activePlan, planStatus, loading, reminders, weightForDay, setWeightForDay, refreshHeaderData } =
+    useDietPlanHeaderData({ userId, logDate, isAdminView, toast });
+  const { targetMacros, consumedMacros, loadingMacros, refreshConsumedMacros, applyMacroDelta } = useDietMacros({
+    data,
+    activePlan,
+    userId,
+    logDate,
+    viewMode,
+    toast,
+  });
 
   const clientName = useMemo(() => data?.profile?.full_name || 'Cliente', [data]);
 
@@ -196,170 +156,6 @@ const DietPlanComponent = () => {
     }
   });
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setPlanStatus({ hasPlans: false, closestPlanLabel: null });
-    
-    try {
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select(`
-          full_name,
-          tdee_kcal,
-          user_medical_conditions(medical_conditions(id, name, description)),
-          user_sensitivities(sensitivities(id, name, description))
-        `)
-        .eq('user_id', userId)
-        .single();
-      if (profileError) throw profileError;
-
-      const { data: dietPlan, error: planError } = await supabase
-        .from('diet_plans')
-        .select(`
-          id, name, start_date, end_date, protein_pct, carbs_pct, fat_pct,
-          sensitivities:diet_plan_sensitivities(sensitivities(id, name, description)), 
-          medical_conditions:diet_plan_medical_conditions(medical_conditions(id, name, description))
-        `)
-        .eq('user_id', userId)
-        .eq('is_active', true)
-        .lte('start_date', logDate)
-        .gte('end_date', logDate)
-        .maybeSingle();
-      
-      if (planError && planError.code !== 'PGRST116') {
-        throw planError;
-      }
-      
-      if (!dietPlan) {
-          const { data: allPlans, error: allPlansError } = await supabase
-              .from('diet_plans')
-              .select('start_date')
-              .eq('user_id', userId)
-              .order('start_date', { ascending: true });
-          
-          if (!allPlansError && allPlans && allPlans.length > 0) {
-              const logDateObj = parseISO(logDate);
-              const sortedByDistance = allPlans.sort((a, b) => {
-                  const distA = Math.abs(parseISO(a.start_date) - logDateObj);
-                  const distB = Math.abs(parseISO(b.start_date) - logDateObj);
-                  return distA - distB;
-              });
-              
-              setPlanStatus({
-                  hasPlans: true,
-                  closestPlanLabel: sortedByDistance[0].start_date
-              });
-          }
-      }
-      
-      setActivePlan(dietPlan);
-
-      let calorieOverrides = [];
-      if (dietPlan) {
-        const { data: overridesData, error: overridesError } = await supabase
-          .from('diet_plan_calorie_overrides')
-          .select('created_at, manual_calories')
-          .eq('diet_plan_id', dietPlan.id);
-        if (overridesError) throw overridesError;
-        calorieOverrides = overridesData || [];
-      }
-
-      const { data: weightForDayData, error: weightDayError } = await supabase.from('weight_logs').select('*, satiety_levels(name, emoji)').eq('user_id', userId).eq('logged_on', logDate).maybeSingle();
-      if (weightDayError && weightDayError.code !== 'PGRST116') throw weightDayError;
-      setWeightForDay(weightForDayData);
-
-      let closestWeightData = weightForDayData;
-      let interpolatedWeightVal = null;
-      let previousWeightLog = null;
-      let nextWeightLog = null;
-
-      if (!weightForDayData) {
-        const [prevRes, nextRes] = await Promise.all([
-            supabase.from('weight_logs')
-                .select('*, satiety_levels(name, emoji)')
-                .eq('user_id', userId)
-                .lt('logged_on', logDate)
-                .order('logged_on', { ascending: false })
-                .limit(1)
-                .maybeSingle(),
-            supabase.from('weight_logs')
-                .select('*, satiety_levels(name, emoji)')
-                .eq('user_id', userId)
-                .gt('logged_on', logDate)
-                .order('logged_on', { ascending: true })
-                .limit(1)
-                .maybeSingle()
-        ]);
-
-        const prevWeight = prevRes.data;
-        const nextWeight = nextRes.data;
-
-        previousWeightLog = prevWeight;
-        nextWeightLog = nextWeight;
-
-        if (prevWeight && nextWeight) {
-            const prevDate = parseISO(prevWeight.logged_on);
-            const nextDate = parseISO(nextWeight.logged_on);
-            const currDate = parseISO(logDate);
-            
-            const diffPrev = Math.abs(differenceInCalendarDays(currDate, prevDate));
-            const diffNext = Math.abs(differenceInCalendarDays(nextDate, currDate));
-            
-            closestWeightData = diffPrev <= diffNext ? prevWeight : nextWeight;
-
-            const totalDays = differenceInCalendarDays(nextDate, prevDate);
-            const weightDiff = nextWeight.weight_kg - prevWeight.weight_kg;
-            const daysFromPrev = differenceInCalendarDays(currDate, prevDate);
-            
-            if (totalDays > 0) {
-                interpolatedWeightVal = Number(prevWeight.weight_kg) + (weightDiff * (daysFromPrev / totalDays));
-            }
-        } else if (prevWeight) {
-            closestWeightData = prevWeight;
-        } else if (nextWeight) {
-            closestWeightData = nextWeight;
-        }
-      }
-
-      if (isAdminView) {
-        const { data: remindersData, error: remindersError } = await supabase
-          .from('reminders')
-          .select('*')
-          .eq('user_id', userId)
-          .in('category', ['Dieta', 'Personal'])
-          .lte('start_date', logDate)
-          .gte('end_date', logDate);
-        if (remindersError) throw remindersError;
-        setReminders(remindersData || []);
-      }
-
-      const [preferredRes, nonPreferredRes, individualRes] = await Promise.all([
-        supabase.from('preferred_foods').select('food(id, name)').eq('user_id', userId),
-        supabase.from('non_preferred_foods').select('food(id, name)').eq('user_id', userId),
-        supabase.from('user_individual_food_restrictions').select('food(id, name)').eq('user_id', userId)
-      ]);
-
-      setData({ 
-          profile: profileData, 
-          closestWeight: closestWeightData,
-          interpolatedWeight: interpolatedWeightVal,
-          previousWeightLog,
-          nextWeightLog,
-          calorieOverrides,
-          preferences: {
-              preferred: preferredRes.data?.map(p => p.food) || [],
-              nonPreferred: nonPreferredRes.data?.map(p => p.food) || [],
-              individual: individualRes.data?.map(p => p.food) || []
-          }
-      });
-
-    } catch (err) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
-    } finally {
-      setLoading(false);
-    }
-  }, [userId, toast, logDate, isAdminView]);
-
   const onWeightLogAdded = useCallback((newLog) => {
     if (newLog) {
         const isCurrentDayLog = format(parseISO(newLog.logged_on), 'yyyy-MM-dd') === logDate;
@@ -373,18 +169,14 @@ const DietPlanComponent = () => {
             nextWeightLog: null
           }));
         } else {
-             fetchData();
+             refreshHeaderData();
         }
     } else {
         setWeightForDay(null);
-        fetchData(); 
+        refreshHeaderData();
     }
     setTimelineRefreshTrigger(prev => prev + 1);
-  }, [logDate, fetchData]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  }, [logDate, refreshHeaderData, setData, setWeightForDay]);
 
   useEffect(() => {
     const newDate = getInitialDate();
@@ -448,144 +240,19 @@ const DietPlanComponent = () => {
     });
   };
 
-const calculateTargetMacros = useCallback(() => {
-    if (!data?.profile || !activePlan) {
-        setTargetMacros({ calories: 0, proteins: 0, carbs: 0, fats: 0 });
-        return;
-    }
-
-    const applicableOverride = data.calorieOverrides
-        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
-
-    const totalCalories = applicableOverride ? applicableOverride.manual_calories : (data.profile.tdee_kcal || 0);
-    
-    const proteinPct = activePlan.protein_pct || 0;
-    const carbsPct = activePlan.carbs_pct || 0;
-    const fatPct = activePlan.fat_pct || 0;
-
-    const proteinGrams = (totalCalories * (proteinPct / 100)) / 4;
-    const carbGrams = (totalCalories * (carbsPct / 100)) / 4;
-    const fatGrams = (totalCalories * (fatPct / 100)) / 9;
-
-    setTargetMacros({
-        calories: totalCalories,
-        proteins: proteinGrams,
-        carbs: carbGrams,
-        fats: fatGrams,
-    });
-}, [data, activePlan]);
-
-const fetchConsumedMacros = useCallback(async (isInitialLoad = false) => {
-    if (viewMode !== 'list' || !userId || !activePlan) {
-        setConsumedMacros({ calories: 0, proteins: 0, carbs: 0, fats: 0 });
-        setLoadingMacros(false);
-        return;
-    }
-    if (isInitialLoad) setLoadingMacros(true);
-    try {
-        const [
-            { data: consumedLogs, error: logsError },
-            { data: snackLogs, error: snackLogsError }
-        ] = await Promise.all([
-            supabase.from('daily_meal_logs').select('diet_plan_recipe_id, private_recipe_id, free_recipe_occurrence_id').eq('user_id', userId).eq('log_date', logDate),
-            supabase.from('daily_snack_logs').select('snack_occurrence_id').eq('user_id', userId).eq('log_date', logDate)
-        ]);
-
-        if (logsError) throw logsError;
-        if (snackLogsError) throw snackLogsError;
-        
-        if ((!consumedLogs || consumedLogs.length === 0) && (!snackLogs || snackLogs.length === 0)) {
-             setConsumedMacros({ calories: 0, proteins: 0, carbs: 0, fats: 0 });
-             setLoadingMacros(false);
-             return;
-        }
-
-        const dietPlanRecipeIds = consumedLogs.map(l => l.diet_plan_recipe_id).filter(Boolean);
-        const privateRecipeIds = consumedLogs.map(l => l.private_recipe_id).filter(Boolean);
-        const freeRecipeOccurrenceIds = consumedLogs.map(l => l.free_recipe_occurrence_id).filter(Boolean);
-        const snackOccurrenceIds = snackLogs.map(l => l.snack_occurrence_id).filter(Boolean);
-
-        const [
-            { data: dietPlanIngredients, error: dprError },
-            { data: privateRecipeIngredients, error: prError },
-            { data: freeRecipeOccurrences, error: froError },
-            { data: snackOccurrences, error: soError },
-            { data: allFoods, error: foodError },
-            { data: equivalenceAdjustments, error: eqAdjError },
-        ] = await Promise.all([
-            supabase.from('diet_plan_recipe_ingredients').select('*, food(*)').in('diet_plan_recipe_id', dietPlanRecipeIds),
-            supabase.from('private_recipe_ingredients').select('*, food(*)').in('private_recipe_id', privateRecipeIds),
-            supabase.from('free_recipe_occurrences').select('*, free_recipe:free_recipes(*, free_recipe_ingredients(*, food(*)))').in('id', freeRecipeOccurrenceIds),
-            supabase.from('snack_occurrences').select('*, snack:snacks(*, snack_ingredients(*, food(*)))').in('id', snackOccurrenceIds),
-            supabase.from('food').select('*'),
-            supabase.from('equivalence_adjustments').select('id').eq('user_id', userId).eq('log_date', logDate),
-        ]);
-
-        if (dprError || prError || froError || soError || foodError || eqAdjError) throw dprError || prError || froError || soError || foodError || eqAdjError;
-
-        let ingredientAdjustments = [];
-        if (equivalenceAdjustments && equivalenceAdjustments.length > 0) {
-            const { data: adjData, error: adjError } = await supabase
-                .from('daily_ingredient_adjustments')
-                .select('*')
-                .in('equivalence_adjustment_id', equivalenceAdjustments.map(ea => ea.id));
-            if (adjError) throw adjError;
-            ingredientAdjustments = adjData || [];
-        }
-
-        const freeRecipeIngredients = freeRecipeOccurrences.flatMap(occurrence => 
-            occurrence.free_recipe.free_recipe_ingredients.map(ing => ({...ing, food: ing.food}))
-        );
-
-        const snackIngredients = snackOccurrences.flatMap(occurrence =>
-            occurrence.snack.snack_ingredients.map(ing => ({...ing, food: ing.food}))
-        );
-
-        const adjustedDietPlanIngredients = dietPlanIngredients.map(ing => {
-            const adjustment = ingredientAdjustments.find(adj => adj.diet_plan_recipe_id === ing.diet_plan_recipe_id && adj.food_id === ing.food_id);
-            return adjustment ? { ...ing, grams: adjustment.adjusted_grams } : ing;
-        });
-        
-        const adjustedPrivateRecipeIngredients = privateRecipeIngredients.map(ing => {
-            const adjustment = ingredientAdjustments.find(adj => adj.private_recipe_id === ing.private_recipe_id && adj.food_id === ing.food_id);
-            return adjustment ? { ...ing, grams: adjustment.adjusted_grams } : ing;
-        });
-
-        const allConsumedIngredients = [
-            ...adjustedDietPlanIngredients,
-            ...adjustedPrivateRecipeIngredients,
-            ...freeRecipeIngredients,
-            ...snackIngredients
-        ];
-        
-        const totalConsumed = calculateMacros(allConsumedIngredients, allFoods);
-        setConsumedMacros(totalConsumed);
-    } catch (error) {
-        console.error("Error fetching consumed macros:", error);
-        toast({ title: "Error", description: "No se pudieron calcular las macros consumidas.", variant: "destructive" });
-    } finally {
-        if (isInitialLoad) setLoadingMacros(false);
-    }
-}, [userId, activePlan, logDate, toast, viewMode]);
-
     const handlePlanUpdate = useCallback((updatePayload) => {
         if (updatePayload?.macroDelta && viewMode === 'list') {
-            setConsumedMacros(prev => ({
-                calories: Math.max(0, (prev?.calories || 0) + (updatePayload.macroDelta.calories || 0)),
-                proteins: Math.max(0, (prev?.proteins || 0) + (updatePayload.macroDelta.proteins || 0)),
-                carbs: Math.max(0, (prev?.carbs || 0) + (updatePayload.macroDelta.carbs || 0)),
-                fats: Math.max(0, (prev?.fats || 0) + (updatePayload.macroDelta.fats || 0)),
-            }));
+            applyMacroDelta(updatePayload.macroDelta);
         } else {
-            fetchConsumedMacros();
+            refreshConsumedMacros();
         }
     setTimelineRefreshTrigger(prev => prev + 1);
-}, [fetchConsumedMacros, viewMode]);
+}, [applyMacroDelta, refreshConsumedMacros, viewMode]);
 
 const handleReminderSave = () => {
     setIsReminderFormOpen(false);
     setEditingReminder(null);
-    fetchData();
+    refreshHeaderData();
 };
 
 const handleEditReminder = (reminder) => {
@@ -598,14 +265,6 @@ const handleDayClickInVisualizer = (date) => {
         plannerRef.current.scrollToDay(date);
     }
 };
-
-useEffect(() => {
-    calculateTargetMacros();
-}, [calculateTargetMacros]);
-
-useEffect(() => {
-    fetchConsumedMacros(true);
-}, [logDate, activePlan, viewMode]);
 
 const combinedPlanRestrictions = useMemo(() => {
     if (!data?.profile && !activePlan) return null;
