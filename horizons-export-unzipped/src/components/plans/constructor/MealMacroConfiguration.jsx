@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Slider } from '@/components/ui/slider';
-import { Info, Save, Loader2, Lock } from 'lucide-react';
+import { Info, Save, Loader2, Lock, RotateCcw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
@@ -102,6 +102,26 @@ const adjustMacroSequential = (meals, macro, mealId, newValue) => {
   return updated;
 };
 
+const buildBalancedMeals = (meals) => {
+  const count = meals.length;
+  if (count === 0) return meals;
+
+  const base = Math.floor(100 / count);
+  const remainder = 100 % count;
+
+  return meals.map((meal, index) => {
+    const extra = index < remainder ? 1 : 0;
+    const share = base + extra;
+
+    return {
+      ...meal,
+      protein_pct: share,
+      carbs_pct: share,
+      fat_pct: share
+    };
+  });
+};
+
 /* ============================================================
    FILA DE UNA COMIDA
    ============================================================ */
@@ -169,6 +189,7 @@ const TotalRow = React.memo(({ mealTotals, gramTotals, floating = false }) => (
         : "bg-gray-900/80 border-gray-700"
     )}>
     <span className="font-bold text-lg text-white">TOTAL</span>
+    
     <span />
     <div className="relative flex items-center justify-between bg-gray-800/50 rounded-lg border border-gray-700 px-3 h-10">
       <span className={cn("font-bold text-lg font-numeric", mealTotals.protein_pct !== 100 ? 'text-yellow-400' : 'text-green-400')}>
@@ -237,27 +258,7 @@ const MealMacroConfiguration = ({
         const totalF = sortedMeals.reduce((acc, m) => acc + (m.fat_pct || 0), 0);
 
         if (totalP !== 100 || totalC !== 100 || totalF !== 100) {
-            
-            const count = sortedMeals.length;
-            if (count > 0) {
-                const base = Math.floor(100 / count);
-                const remainder = 100 % count;
-
-                sortedMeals = sortedMeals.map((meal, index) => {
-                    // Distribute remainder to first few meals
-                    const extra = index < remainder ? 1 : 0;
-                    const share = base + extra;
-
-                    return {
-                        ...meal,
-                        // If the incoming value was 0, null or caused imbalance, overwrite it.
-                        // We use the balanced share.
-                        protein_pct: share,
-                        carbs_pct: share,
-                        fat_pct: share
-                    };
-                });
-            }
+            sortedMeals = buildBalancedMeals(sortedMeals);
         }
         
         if (!_.isEqual(sortedMeals, localMeals)) {
@@ -373,6 +374,17 @@ const MealMacroConfiguration = ({
     setIsSaving(false);
   };
 
+  const handleResetBalanced = useCallback(() => {
+    if (readOnly) return;
+
+    setLocalMeals((currentMeals) => {
+      const balancedMeals = buildBalancedMeals(currentMeals);
+      if (onConfigChange) onConfigChange(balancedMeals);
+      if (onChange) onChange(balancedMeals);
+      return balancedMeals;
+    });
+  }, [onConfigChange, onChange, readOnly]);
+
   const isInteractive = forceUnlock || canUseAutoFrame;
 
   return (
@@ -393,7 +405,7 @@ const MealMacroConfiguration = ({
                     {(readOnly || !isInteractive) && <Lock className="w-4 h-4 text-gray-500" />}
                 </CardTitle>
                 <CardDescription className="mt-2">
-                  Distribuye los porcentajes de cada macro entre las comidas del día.
+                  Deslizando la barra superior, se modifica la barra de abajo. Siempre cuadra al 100%
                 </CardDescription>
               </div>
 
@@ -426,9 +438,14 @@ const MealMacroConfiguration = ({
                     </div>
                 </div>
             )}
-
+            <div className="flex justify-end pb-6">
+              <Button variant="outline" className="w-[25%] border-0 color-cyan-200  bg-transparent hover:bg-cyan-700/60 hover:text-cyan-300" onClick={handleResetBalanced} disabled={localMeals.length === 0 || isSaving}>
+                <RotateCcw className="mr-2 h-4 w-4" />
+                  Reset
+              </Button>
+            </div>
             <div className="hidden md:grid grid-cols-1 md:grid-cols-5 gap-4 px-4 text-sm text-gray-400 font-semibold mb-2 mt-4 uppercase tracking-wider z-10 py-2">
-              <span>Comida</span>
+              <span>Comida</span> 
               <span className="text-center">Kcal</span>
               <span className="pl-1">Proteínas</span>
               <span className="pl-1">Carbohidratos</span>
@@ -471,10 +488,12 @@ const MealMacroConfiguration = ({
                             <Lock className="w-3 h-3"/> Actualiza a Premium para guardar
                         </div>
                     ) : (
-                        <Button onClick={handleSave} disabled={!canSave || !hasChanges || isSaving}>
-                        { isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        <div className="flex items-center gap-2">
+                          <Button onClick={handleSave} disabled={!canSave || !hasChanges || isSaving}>
+                            { isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                             Guardar
-                        </Button>
+                          </Button>
+                        </div>
                     )}
               </CardFooter>
             )}

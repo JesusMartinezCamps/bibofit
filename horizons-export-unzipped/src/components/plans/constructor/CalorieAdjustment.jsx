@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Save, Loader2, RefreshCw, History, Activity, Calculator } from 'lucide-react';
-import { format } from 'date-fns';
+import { Save, Loader2, History, Activity, Calculator } from 'lucide-react';
+import { format, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { supabase as supabaseClient } from '@/lib/supabaseClient'; 
@@ -46,6 +46,7 @@ const CalorieAdjustment = ({
     const [localOverrides, setLocalOverrides] = useState([]);
     const [loading, setLoading] = useState(false);
     const [actionLoading, setActionLoading] = useState(false);
+    const [activeSelection, setActiveSelection] = useState(null);
 
     // Refs for optimization
     const prevCaloriesRef = useRef(null);
@@ -54,7 +55,7 @@ const CalorieAdjustment = ({
     // -------------------------------------------------------------------------
     // DATA FETCHING
     // -------------------------------------------------------------------------
-    const fetchOverrides = async () => {
+    const fetchOverrides = useCallback(async () => {
         if (!userId) return;
 
         try {
@@ -69,7 +70,9 @@ const CalorieAdjustment = ({
 
             if (error) throw error;
 
-            setLocalOverrides(data || []);
+            const safeData = data || [];
+            setLocalOverrides(safeData);
+            return safeData;
         } catch (error) {
             console.error("❌ Error fetching overrides:", error);
             toast({ 
@@ -80,19 +83,26 @@ const CalorieAdjustment = ({
         } finally {
             setLoading(false);
         }
-    };
+
+        return [];
+    }, [supabase, toast, userId]);
 
     // Initial load
     useEffect(() => {
         fetchOverrides();
-    }, [userId]);
+    }, [fetchOverrides]);
 
     // -------------------------------------------------------------------------
     // LOGIC & CALCULATIONS
     // -------------------------------------------------------------------------
     
-    // Active override is always the most recent one (index 0)
-    const activeOverride = localOverrides.length > 0 ? localOverrides[0] : null;
+    const latestOverride = localOverrides.length > 0 ? localOverrides[0] : null;
+    const selectedOverride = activeSelection?.type === 'override'
+        ? localOverrides.find((item) => item.id === activeSelection.overrideId) || null
+        : null;
+    const activeOverride = activeSelection?.type === 'system'
+        ? null
+        : (selectedOverride || latestOverride);
 
     // Calculate Effective TDEE (Manual override OR System calculated)
     const effectiveTdee = activeOverride ? activeOverride.manual_calories : calculatedTdee;
@@ -119,6 +129,14 @@ const CalorieAdjustment = ({
         }
     }, [activeOverride, onOverridesUpdate]);
 
+    useEffect(() => {
+        if (activeSelection?.type !== 'override') return;
+        const selectedExists = localOverrides.some((item) => item.id === activeSelection.overrideId);
+        if (!selectedExists) {
+            setActiveSelection(localOverrides.length > 0 ? null : { type: 'system' });
+        }
+    }, [activeSelection, localOverrides]);
+
     // -------------------------------------------------------------------------
     // ACTIONS
     // -------------------------------------------------------------------------
@@ -139,26 +157,53 @@ const CalorieAdjustment = ({
 
         try {
             setActionLoading(true);
-            
-            // Construct Payload
-            // Fix: Removed incorrect columns if any existed, kept standard schema
-            const payload = {
-                user_id: userId,
-                manual_calories: calories,
-                diet_plan_id: dietPlanId || null
-            };
-            
-            const { error } = await supabase
-                .from('diet_plan_calorie_overrides')
-                .insert([payload]);
 
-            if (error) throw error;
+            const now = new Date();
+            const existingSameDay = localOverrides.find((override) => {
+                if (!override?.created_at) return false;
+                return isSameDay(new Date(override.created_at), now);
+            });
+
+            if (existingSameDay) {
+                const { error } = await supabase
+                    .from('diet_plan_calorie_overrides')
+                    .update({
+                        manual_calories: calories,
+                        diet_plan_id: dietPlanId || null
+                    })
+                    .eq('id', existingSameDay.id)
+                    .eq('user_id', userId);
+
+                if (error) throw error;
+                setActiveSelection({ type: 'override', overrideId: existingSameDay.id });
+            } else {
+                const payload = {
+                    user_id: userId,
+                    manual_calories: calories,
+                    diet_plan_id: dietPlanId || null
+                };
+
+                const { data: createdRow, error } = await supabase
+                    .from('diet_plan_calorie_overrides')
+                    .insert([payload])
+                    .select('id')
+                    .single();
+
+                if (error) throw error;
+                if (createdRow?.id) {
+                    setActiveSelection({ type: 'override', overrideId: createdRow.id });
+                }
+            }
 
             setManualCalories('');
-            toast({ title: "Ajuste guardado", description: "El nuevo objetivo calórico ha sido establecido." });
-            
-            // Refresh list
-            await fetchOverrides(); 
+            toast({
+                title: "Ajuste guardado",
+                description: existingSameDay
+                    ? "Se actualizó el ajuste manual del día actual."
+                    : "El nuevo objetivo calórico ha sido establecido."
+            });
+
+            await fetchOverrides();
 
         } catch (error) {
              console.error("❌ Error saving override:", error);
@@ -195,41 +240,22 @@ const CalorieAdjustment = ({
     // -------------------------------------------------------------------------
     // STYLES & RENDER
     // -------------------------------------------------------------------------
+    const targetAccent = isSystemTarget ? 'purple' : 'green';
     const targetBorderColor = isSystemTarget ? 'border-l-purple-500' : 'border-l-green-500';
-    const targetTextColor = isSystemTarget ? 'text-purple-500' : 'text-green-500';
-    const tdeeCardBorder = isSystemTarget ? 'border-l-4 border-l-purple-500' : 'border-l-4 border-l-gray-800/50';
+    const targetTextColor = isSystemTarget ? 'text-purple-400' : 'text-green-400';
+    const targetBadgeClass = isSystemTarget
+        ? 'bg-purple-500/10 text-purple-300 border-purple-500/30'
+        : 'bg-green-500/10 text-green-300 border-green-500/30';
     const hasInputValue = manualCalories && !isNaN(parseInt(manualCalories, 10)) && parseInt(manualCalories, 10) > 0;
 
     return (
         <TooltipProvider>
-            <div className="space-y-6 bg-slate-900/50 p-6 rounded-xl border border-gray-800">
-                {/* System TDEE Display */}
-                <div className={cn(
-                    "flex items-center justify-between p-4 bg-gray-950/50 rounded-lg border-y border-r border-gray-800/50 transition-colors duration-300",
-                    tdeeCardBorder
-                )}>
-                    <div>
-                        <h3 className="text-gray-400 text-sm font-medium flex items-center gap-2">
-                            <Calculator className="w-4 h-4" />
-                            TDEE Calculado (por Bibofit)
-                        </h3>
-                        <div className="flex items-baseline gap-2 mt-1">
-                            <span className="text-xl font-bold text-white font-numeric">
-                                {calculatedTdee}
-                            </span>
-                            <span className="text-sm text-gray-500">kcal</span>
-                        </div>
-                    </div>
-                    {isSystemTarget && (
-                         <Badge className="bg-purple-500/10 text-purple-400 border-purple-500/20 px-2 py-1 text-xs">
-                            Usado como Objetivo
-                         </Badge>
-                    )}
-                </div>
-
+            <div className="space-y-4 rounded-lg border border-gray-700 bg-gray-900/30 p-4">
+                
                 {/* Active Target Display */}
                 <div className={cn(
-                    "p-5 bg-gradient-to-r from-gray-900 to-gray-800 border-l-4 rounded-lg shadow-lg relative overflow-hidden transition-colors duration-300",
+                    "p-5 bg-gradient-to-r border-l-4 rounded-lg shadow-lg relative overflow-hidden transition-colors duration-300",
+                    targetAccent === 'purple' ? 'from-purple-950/20 to-gray-900' : 'from-green-950/20 to-gray-900',
                     targetBorderColor
                 )}>
                      <div className="absolute top-0 right-0 p-4 opacity-5">
@@ -240,15 +266,9 @@ const CalorieAdjustment = ({
                         <div className="flex items-center justify-between mb-2">
                             <h3 className={cn("text-sm font-bold uppercase tracking-wider flex items-center gap-2", targetTextColor)}>
                                 Objetivo Vigente
-                                {activeOverride ? (
-                                    <Badge variant="outline" className="bg-green-500/10 border-green-500/20 text-green-400 px-2 py-0 text-[10px] h-5">
-                                        Manual
-                                    </Badge>
-                                ) : (
-                                    <Badge variant="outline" className="bg-purple-500/10 text-purple-400 border-purple-500/20 px-2 py-0 text-[10px] h-5">
-                                        Sistema
-                                    </Badge>
-                                )}
+                                <Badge variant="outline" className={cn("px-2 py-0 text-[10px] h-5", targetBadgeClass)}>
+                                    {activeOverride ? "Manual" : "Sistema"}
+                                </Badge>
                             </h3>
                         </div>
                         
@@ -269,6 +289,37 @@ const CalorieAdjustment = ({
                         )}
                     </div>
                 </div>
+                
+                {/* Source Cards */}
+                <div className="grid grid-cols-1 gap-3 bg-violet-700/10">
+                    <button
+                        type="button"
+                        onClick={() => setActiveSelection({ type: 'system' })}
+                        className={cn(
+                            "rounded-lg border bg-gray-900/50 p-4 text-left transition-all",
+                            isSystemTarget
+                                ? "border-purple-500/50 shadow-sm shadow-purple-900/30"
+                                : "border-gray-700 hover:border-purple-500/30"
+                        )}
+                    >
+                        <h3 className="text-gray-300 text-sm font-medium flex items-center gap-2">
+                            <Calculator className="w-4 h-4" />
+                            TDEE Calculado por Bibofit
+
+                        {isSystemTarget && (
+                            <Badge className=" bg-purple-500/10 text-purple-300 border-purple-500/30 text-[10px] h-5 px-2">
+                                Activo
+                            </Badge>
+                        )}
+                        </h3>
+                        
+                        <div className="mt-2 flex items-baseline gap-2">
+                            <span className="text-2xl font-bold text-white font-numeric">{calculatedTdee}</span>
+                            <span className="text-xs text-gray-500">kcal</span>
+                        </div>
+                    </button>
+                </div>
+
 
                 {/* Input Section */}
                 <div className="space-y-3 pt-2">
@@ -281,7 +332,7 @@ const CalorieAdjustment = ({
                                 value={manualCalories} 
                                 onChange={e => setManualCalories(e.target.value)} 
                                 className={cn(
-                                    "bg-gray-900 border-gray-700 text-white placeholder:text-gray-600 pl-10 h-11 text-lg font-numeric transition-colors focus:border-green-500 focus:ring-1 focus:ring-green-500", 
+                                    "bg-gray-900 border-gray-700 text-white placeholder:text-gray-600 pl-10 h-11 text-lg font-numeric transition-colors focus:border-green-500 focus:ring-1 focus:ring-green-500",
                                     readOnly && "cursor-not-allowed opacity-50"
                                 )}
                                 disabled={readOnly || actionLoading}
@@ -313,7 +364,7 @@ const CalorieAdjustment = ({
                 <div className="pt-6 border-t border-gray-800 space-y-4">
                     <h5 className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
                         <History className="w-3.5 h-3.5" />
-                        Historial de Ajustes
+                        Historial de Ajustes (clic para activar)
                     </h5>
 
                     <CalorieAdjustmentHistory 
@@ -321,6 +372,8 @@ const CalorieAdjustment = ({
                         loading={loading}
                         onDelete={handleDelete}
                         readOnly={readOnly}
+                        activeOverrideId={activeOverride?.id || null}
+                        onSelectOverride={(overrideId) => setActiveSelection({ type: 'override', overrideId })}
                     />
                 </div>
             </div>

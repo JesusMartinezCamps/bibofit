@@ -52,11 +52,11 @@ const PWAInstallPrompt = () => {
               </div>
               
               <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4 tracking-tight">
-                Install Bibofit on your device
+                Añadir Bibofit a la Pantalla de Inicio
               </h2>
               
               <p className="text-gray-300 text-sm sm:text-base mb-8 leading-relaxed">
-                Añade la app a tu pantalla de inicio para disfrutar de una experiencia nativa, más rápida, sin distracciones y con acceso offline.
+                Sin instalacación, guárda la App en Inicio para tener un Acceso Rápido a Bibofit
               </p>
               
               <div className="flex flex-col gap-3 w-full">
