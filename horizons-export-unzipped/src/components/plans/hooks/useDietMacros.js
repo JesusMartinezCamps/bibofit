@@ -13,7 +13,7 @@ export const useDietMacros = ({ data, activePlan, userId, logDate, viewMode, toa
       return;
     }
 
-    const applicableOverride = data.calorieOverrides.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+    const applicableOverride = [...(data.calorieOverrides || [])].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
     const totalCalories = applicableOverride ? applicableOverride.manual_calories : data.profile.tdee_kcal || 0;
 
     const proteinPct = activePlan.protein_pct || 0;
@@ -62,36 +62,68 @@ export const useDietMacros = ({ data, activePlan, userId, logDate, viewMode, toa
         const snackOccurrenceIds = snackLogs.map((l) => l.snack_occurrence_id).filter(Boolean);
 
         const [
-          { data: dietPlanIngredients, error: dprError },
-          { data: privateRecipeIngredients, error: prError },
-          { data: freeRecipeOccurrences, error: froError },
-          { data: snackOccurrences, error: soError },
-          { data: allFoods, error: foodError },
-          { data: equivalenceAdjustments, error: eqAdjError },
+          dietPlanIngredientsRes,
+          privateRecipeIngredientsRes,
+          freeRecipeOccurrencesRes,
+          snackOccurrencesRes,
+          equivalenceAdjustmentsRes,
         ] = await Promise.all([
-          supabase.from('diet_plan_recipe_ingredients').select('*, food(*)').in('diet_plan_recipe_id', dietPlanRecipeIds),
-          supabase.from('private_recipe_ingredients').select('*, food(*)').in('private_recipe_id', privateRecipeIds),
-          supabase
-            .from('free_recipe_occurrences')
-            .select('*, free_recipe:free_recipes(*, free_recipe_ingredients(*, food(*)))')
-            .in('id', freeRecipeOccurrenceIds),
-          supabase
-            .from('snack_occurrences')
-            .select('*, snack:snacks(*, snack_ingredients(*, food(*)))')
-            .in('id', snackOccurrenceIds),
-          supabase.from('food').select('*'),
+          dietPlanRecipeIds.length > 0
+            ? supabase
+                .from('diet_plan_recipe_ingredients')
+                .select('diet_plan_recipe_id, food_id, grams, food(id, proteins, total_carbs, total_fats, food_unit)')
+                .in('diet_plan_recipe_id', dietPlanRecipeIds)
+            : Promise.resolve({ data: [], error: null }),
+          privateRecipeIds.length > 0
+            ? supabase
+                .from('private_recipe_ingredients')
+                .select('private_recipe_id, food_id, grams, food(id, proteins, total_carbs, total_fats, food_unit)')
+                .in('private_recipe_id', privateRecipeIds)
+            : Promise.resolve({ data: [], error: null }),
+          freeRecipeOccurrenceIds.length > 0
+            ? supabase
+                .from('free_recipe_occurrences')
+                .select(
+                  'id, free_recipe:free_recipes(id, free_recipe_ingredients(id, grams, food(id, proteins, total_carbs, total_fats, food_unit)))'
+                )
+                .in('id', freeRecipeOccurrenceIds)
+            : Promise.resolve({ data: [], error: null }),
+          snackOccurrenceIds.length > 0
+            ? supabase
+                .from('snack_occurrences')
+                .select('id, snack:snacks(id, snack_ingredients(id, grams, food(id, proteins, total_carbs, total_fats, food_unit)))')
+                .in('id', snackOccurrenceIds)
+            : Promise.resolve({ data: [], error: null }),
           supabase.from('equivalence_adjustments').select('id').eq('user_id', userId).eq('log_date', logDate),
         ]);
 
-        if (dprError || prError || froError || soError || foodError || eqAdjError) {
-          throw dprError || prError || froError || soError || foodError || eqAdjError;
+        if (
+          dietPlanIngredientsRes.error ||
+          privateRecipeIngredientsRes.error ||
+          freeRecipeOccurrencesRes.error ||
+          snackOccurrencesRes.error ||
+          equivalenceAdjustmentsRes.error
+        ) {
+          throw (
+            dietPlanIngredientsRes.error ||
+            privateRecipeIngredientsRes.error ||
+            freeRecipeOccurrencesRes.error ||
+            snackOccurrencesRes.error ||
+            equivalenceAdjustmentsRes.error
+          );
         }
 
+        const dietPlanIngredients = dietPlanIngredientsRes.data || [];
+        const privateRecipeIngredients = privateRecipeIngredientsRes.data || [];
+        const freeRecipeOccurrences = freeRecipeOccurrencesRes.data || [];
+        const snackOccurrences = snackOccurrencesRes.data || [];
+        const equivalenceAdjustments = equivalenceAdjustmentsRes.data || [];
+
         let ingredientAdjustments = [];
-        if (equivalenceAdjustments && equivalenceAdjustments.length > 0) {
+        if (equivalenceAdjustments.length > 0) {
           const { data: adjData, error: adjError } = await supabase
             .from('daily_ingredient_adjustments')
-            .select('*')
+            .select('equivalence_adjustment_id, diet_plan_recipe_id, private_recipe_id, food_id, adjusted_grams')
             .in('equivalence_adjustment_id', equivalenceAdjustments.map((ea) => ea.id));
           if (adjError) throw adjError;
           ingredientAdjustments = adjData || [];
@@ -104,17 +136,26 @@ export const useDietMacros = ({ data, activePlan, userId, logDate, viewMode, toa
           occurrence.snack.snack_ingredients.map((ing) => ({ ...ing, food: ing.food }))
         );
 
+        const dietAdjustmentMap = new Map(
+          ingredientAdjustments
+            .filter((adj) => adj.diet_plan_recipe_id && adj.food_id)
+            .map((adj) => [`${adj.diet_plan_recipe_id}-${adj.food_id}`, adj.adjusted_grams])
+        );
+        const privateAdjustmentMap = new Map(
+          ingredientAdjustments
+            .filter((adj) => adj.private_recipe_id && adj.food_id)
+            .map((adj) => [`${adj.private_recipe_id}-${adj.food_id}`, adj.adjusted_grams])
+        );
+
         const adjustedDietPlanIngredients = dietPlanIngredients.map((ing) => {
-          const adjustment = ingredientAdjustments.find(
-            (adj) => adj.diet_plan_recipe_id === ing.diet_plan_recipe_id && adj.food_id === ing.food_id
-          );
+          const adjustedGrams = dietAdjustmentMap.get(`${ing.diet_plan_recipe_id}-${ing.food_id}`);
+          const adjustment = adjustedGrams !== undefined ? { adjusted_grams: adjustedGrams } : null;
           return adjustment ? { ...ing, grams: adjustment.adjusted_grams } : ing;
         });
 
         const adjustedPrivateRecipeIngredients = privateRecipeIngredients.map((ing) => {
-          const adjustment = ingredientAdjustments.find(
-            (adj) => adj.private_recipe_id === ing.private_recipe_id && adj.food_id === ing.food_id
-          );
+          const adjustedGrams = privateAdjustmentMap.get(`${ing.private_recipe_id}-${ing.food_id}`);
+          const adjustment = adjustedGrams !== undefined ? { adjusted_grams: adjustedGrams } : null;
           return adjustment ? { ...ing, grams: adjustment.adjusted_grams } : ing;
         });
 
@@ -125,7 +166,7 @@ export const useDietMacros = ({ data, activePlan, userId, logDate, viewMode, toa
           ...snackIngredients,
         ];
 
-        setConsumedMacros(calculateMacros(allConsumedIngredients, allFoods));
+        setConsumedMacros(calculateMacros(allConsumedIngredients));
       } catch (error) {
         console.error('Error fetching consumed macros:', error);
         toast({ title: 'Error', description: 'No se pudieron calcular las macros consumidas.', variant: 'destructive' });
