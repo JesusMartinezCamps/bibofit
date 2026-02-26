@@ -1,9 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Briefcase } from 'lucide-react';
+import AudienceToggle from '@/components/landing/AudienceToggle';
 
-const HowItWorks = () => {
-  const [audience, setAudience] = useState('user'); // "user" | "coach"
+const HowItWorks = ({ audience, onAudienceChange }) => {
 
   const steps = useMemo(() => {
     if (audience === 'coach') {
@@ -85,7 +84,7 @@ const HowItWorks = () => {
           </h2>
           <p className="text-gray-400 mb-6">{header.subtitle}</p>
 
-          <RoleToggle value={audience} onChange={setAudience} />
+          <AudienceToggle value={audience} onChange={onAudienceChange} />
         </div>
 
         <div className="relative">
@@ -118,47 +117,5 @@ const HowItWorks = () => {
     </section>
   );
 };
-
-function RoleToggle({ value, onChange }) {
-  return (
-    <div className="flex justify-center">
-      <div className="relative inline-flex items-center rounded-2xl border border-white/10 bg-white/5 p-1 backdrop-blur">
-        <motion.div
-          layout
-          className="absolute top-1 bottom-1 rounded-xl bg-white/10"
-          style={{
-            left: value === 'user' ? -2 : '48%',
-            width: value === 'user' ? 'calc(50%)' : 'calc(50%)',
-          }}
-          transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-        />
-
-        <button
-          type="button"
-          onClick={() => onChange('user')}
-          className={`relative z-10 flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500/60 ${
-            value === 'user' ? 'text-white' : 'text-gray-400 hover:text-gray-200'
-          }`}
-          aria-pressed={value === 'user'}
-        >
-          <User className="h-4 w-4" />
-          Soy usuario
-        </button>
-
-        <button
-          type="button"
-          onClick={() => onChange('coach')}
-          className={`relative z-10 flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500/60 ${
-            value === 'coach' ? 'text-white' : 'text-gray-400 hover:text-gray-200'
-          }`}
-          aria-pressed={value === 'coach'}
-        >
-          <Briefcase className="h-4 w-4" />
-          Soy entrenador
-        </button>
-      </div>
-    </div>
-  );
-}
 
 export default HowItWorks;
