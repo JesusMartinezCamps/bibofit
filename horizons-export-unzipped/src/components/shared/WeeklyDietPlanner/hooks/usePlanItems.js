@@ -301,10 +301,28 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
         type: 'snack',
       }));
 
+      const currentPlanRecipeIds = new Set(
+        (staticData?.planRecipes || [])
+          .filter((item) => item.type === 'recipe' && !item.is_private)
+          .map((item) => Number(item.id))
+      );
+      const shouldIncludeLogs = !!activePlan?.is_active;
+
+      const filteredMealLogs = (shouldIncludeLogs ? (mealLogsRes.data || []) : [])
+        .filter((log) => currentPlanRecipeIds.has(Number(log.diet_plan_recipe_id)))
+        .map((log) => ({
+          log_date: log.log_date,
+          diet_plan_recipe_id: log.diet_plan_recipe_id,
+          private_recipe_id: log.private_recipe_id,
+          free_recipe_occurrence_id: log.free_recipe_occurrence_id,
+          user_day_meal_id: log.user_day_meal_id,
+          id: log.id,
+        }));
+
       const rangeData = {
         plannedMeals: processedPlannedMeals,
         freeMeals: processedFreeMeals,
-        mealLogs: mealLogsRes.data || [],
+        mealLogs: filteredMealLogs,
         equivalenceAdjustments: equivalenceAdjustmentsRes.data || [],
         dailyIngredientAdjustments: ingredientAdjustmentsRes.data || [],
         snacks: processedSnacks,
