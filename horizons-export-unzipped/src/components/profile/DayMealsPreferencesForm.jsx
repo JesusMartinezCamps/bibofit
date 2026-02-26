@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useToast } from '@/components/ui/use-toast';
 import { Loader2, Trash2, PlusCircle, CheckCircle2 } from 'lucide-react';
@@ -13,6 +13,22 @@ const DayMealsPreferencesForm = ({ userId }) => {
   const [allDayMeals, setAllDayMeals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState('idle'); // 'idle', 'saving', 'saved', 'error'
+
+  const findDefaultMeal = useCallback((meals) => {
+    if (!Array.isArray(meals) || meals.length === 0) return null;
+
+    const breakfastByExactName = meals.find(
+      (meal) => meal.name?.trim().toLowerCase() === 'desayuno'
+    );
+    if (breakfastByExactName) return breakfastByExactName;
+
+    const breakfastByPartialName = meals.find(
+      (meal) => meal.name?.toLowerCase().includes('desayuno')
+    );
+    if (breakfastByPartialName) return breakfastByPartialName;
+
+    return [...meals].sort((a, b) => a.display_order - b.display_order)[0];
+  }, []);
 
   const fetchDayMeals = useCallback(async () => {
     if (!userId) return;
@@ -30,22 +46,56 @@ const DayMealsPreferencesForm = ({ userId }) => {
       if (userMealsRes.error) throw userMealsRes.error;
       if (allMealsRes.error) throw allMealsRes.error;
 
-      const sortedUserMeals = (userMealsRes.data || []).sort((a, b) => a.day_meals.display_order - b.day_meals.display_order);
+      const allMeals = allMealsRes.data || [];
+      let sortedUserMeals = (userMealsRes.data || []).sort((a, b) => a.day_meals.display_order - b.day_meals.display_order);
+
+      // Business rule: there must be at least one default meal, preferably "Desayuno".
+      if (sortedUserMeals.length === 0 && allMeals.length > 0) {
+        const defaultMeal = findDefaultMeal(allMeals);
+        if (defaultMeal) {
+          const { data: insertedMeal, error: insertError } = await supabase
+            .from('user_day_meals')
+            .insert({
+              user_id: userId,
+              day_meal_id: defaultMeal.id,
+              preferences: '',
+              diet_plan_id: null,
+            })
+            .select('id')
+            .single();
+
+          if (insertError) throw insertError;
+
+          sortedUserMeals = [{
+            id: insertedMeal.id,
+            user_id: userId,
+            day_meal_id: defaultMeal.id,
+            preferences: '',
+            diet_plan_id: null,
+            day_meals: {
+              name: defaultMeal.name,
+              description: defaultMeal.description,
+              display_order: defaultMeal.display_order,
+            },
+          }];
+        }
+      }
+
       setDayMeals(sortedUserMeals);
-      setAllDayMeals(allMealsRes.data || []);
+      setAllDayMeals(allMeals);
     } catch (error) {
       console.error("Error fetching day meals:", error);
       toast({ title: 'Error', description: 'No se pudieron cargar las comidas del día.', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
-  }, [userId, toast]);
+  }, [userId, toast, findDefaultMeal]);
 
   useEffect(() => {
     fetchDayMeals();
   }, [fetchDayMeals]);
 
-  const performSave = async (currentMeals) => {
+  const performSave = useCallback(async (currentMeals) => {
     if (!userId) return;
     setSaveStatus('saving');
     try {
@@ -124,13 +174,18 @@ const DayMealsPreferencesForm = ({ userId }) => {
         setSaveStatus('error');
         toast({ title: 'Error', description: 'No se pudieron guardar los cambios.', variant: 'destructive' });
     }
-  };
+  }, [userId, toast]);
 
-  // Create the debounced function once
-  const debouncedSave = useCallback(
-    debounce((meals) => performSave(meals), 1000),
-    [userId]
+  const debouncedSave = useMemo(
+    () => debounce((meals) => performSave(meals), 1000),
+    [performSave]
   );
+
+  useEffect(() => {
+    return () => {
+      debouncedSave.cancel();
+    };
+  }, [debouncedSave]);
 
   const updateMeals = (newMeals) => {
       setDayMeals(newMeals);
@@ -160,7 +215,17 @@ const DayMealsPreferencesForm = ({ userId }) => {
     updateMeals(newMealsList);
   };
 
-  const handleRemoveMeal = (mealId) => {
+  const handleRemoveMeal = (mealId, index) => {
+    if (index === 0) {
+      toast({ title: 'Aviso', description: 'La primera comida del día no se puede eliminar.' });
+      return;
+    }
+
+    if (dayMeals.length <= 1) {
+      toast({ title: 'Aviso', description: 'Debe quedar al menos una comida.' });
+      return;
+    }
+
     const newMealsList = dayMeals.filter(meal => meal.day_meal_id !== mealId);
     updateMeals(newMealsList);
   };
@@ -205,7 +270,7 @@ const DayMealsPreferencesForm = ({ userId }) => {
       <p className="text-sm text-gray-400 -mt-4">Configura las comidas que realizas a lo largo del día y tus preferencias para cada una.</p>
       
       <div className="space-y-4">
-        {dayMeals.map(meal => {
+        {dayMeals.map((meal, index) => {
           const availableOptions = allDayMeals.filter(
             (option) => option.id === meal.day_meal_id || !dayMeals.some(dm => dm.day_meal_id === option.id)
           );
@@ -217,6 +282,8 @@ const DayMealsPreferencesForm = ({ userId }) => {
           const placeholderText = description 
             ? `${meal.day_meals.name} - ${description}`
             : `Preferencias para ${meal.day_meals.name}...`;
+
+          const isDeleteDisabled = index === 0 || dayMeals.length <= 1;
 
           return (
             <div key={key} className="p-4 bg-gray-800/50 rounded-lg border border-gray-700 space-y-3">
@@ -234,7 +301,13 @@ const DayMealsPreferencesForm = ({ userId }) => {
                     ))}
                   </SelectContent>
                 </Select>
-                <Button variant="ghost" size="icon" onClick={() => handleRemoveMeal(meal.day_meal_id)} className="text-red-400 hover:bg-red-500/10 hover:text-red-300">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleRemoveMeal(meal.day_meal_id, index)}
+                  disabled={isDeleteDisabled}
+                  className="text-red-400 hover:bg-red-500/10 hover:text-red-300 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
@@ -251,7 +324,7 @@ const DayMealsPreferencesForm = ({ userId }) => {
 
       <div className="flex justify-end items-center pt-4">
         <Button type="button" variant="outline" onClick={handleAddMeal} className="border-dashed border-yellow-500 text-yellow-300 bg-yellow-900/20 hover:bg-yellow-500/20 hover:text-yellow-300">
-          <PlusCircle className="mr-2 h-4 w-4" /> Añadir Comida
+          <PlusCircle className="mr-2 h-4 w-4" /> Añadir Momento del día
         </Button>
       </div>
     </div>
