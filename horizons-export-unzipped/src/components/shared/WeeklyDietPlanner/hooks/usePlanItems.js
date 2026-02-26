@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/customSupabaseClient';
 import { format } from 'date-fns';
 import { useRealtime } from '@/contexts/RealtimeProvider';
@@ -21,8 +21,8 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
     const [dailyIngredientAdjustments, setDailyIngredientAdjustments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [userRestrictions, setUserRestrictions] = useState({ sensitivities: [], conditions: [] });
     const [allAvailableFoods, setAllAvailableFoods] = useState([]);
+    const foodsCacheRef = useRef({ userId: null, foods: [] });
     
     const { subscribe, unregister } = useRealtime();
 
@@ -40,6 +40,7 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
             const lastDay = weekDates[weekDates.length - 1];
             const startDate = format(firstDay, 'yyyy-MM-dd');
             const endDate = format(lastDay, 'yyyy-MM-dd');
+            const shouldFetchFoods = foodsCacheRef.current.userId !== userId || !foodsCacheRef.current.foods?.length;
 
             const [
                 plannedMealsData,
@@ -50,8 +51,6 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
                 userDayMealsData,
                 equivalenceAdjustmentsData,
                 ingredientAdjustmentsData,
-                userSensitivitiesData,
-                userMedicalConditionsData,
                 snacksData,
                 snackLogsData,
                 foodsData,
@@ -83,7 +82,11 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
                     day_meal:day_meals(*)
                 `).eq('user_id', userId).gte('meal_date', startDate).lte('meal_date', endDate),
 
-                supabase.from('daily_meal_logs').select('log_date, diet_plan_recipe_id, private_recipe_id, free_recipe_occurrence_id, user_day_meal_id, id').eq('user_id', userId),
+                supabase.from('daily_meal_logs')
+                    .select('log_date, diet_plan_recipe_id, private_recipe_id, free_recipe_occurrence_id, user_day_meal_id, id')
+                    .eq('user_id', userId)
+                    .gte('log_date', startDate)
+                    .lte('log_date', endDate),
                 
                 supabase.from('user_day_meals')
                     .select('*, day_meal:day_meals(*)')
@@ -95,31 +98,41 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
                 
                 supabase.from('daily_ingredient_adjustments').select('*, equivalence_adjustment:equivalence_adjustments!inner(id, log_date, user_id, target_user_day_meal_id)').eq('equivalence_adjustment.user_id', userId).gte('equivalence_adjustment.log_date', startDate).lte('equivalence_adjustment.log_date', endDate),
 
-                supabase.from('user_sensitivities').select('sensitivity_id').eq('user_id', userId),
-                supabase.from('user_medical_conditions').select('condition_id').eq('user_id', userId),
                 supabase.from('snack_occurrences').select('*, snack:snacks(*, snack_ingredients(*, food:food_id(*), user_created_food:user_created_foods(*)))').eq('user_id', userId).gte('meal_date', startDate).lte('meal_date', endDate),
                 supabase.from('daily_snack_logs').select('*').eq('user_id', userId).gte('log_date', startDate).lte('log_date', endDate),
-                supabase.from('food').select(`
-                    *, 
-                    food_sensitivities(sensitivity:sensitivities(*)), 
-                    food_medical_conditions(relation_type, condition:medical_conditions(*)), 
-                    food_vitamins(mg_per_100g, vitamin:vitamins(*)), 
-                    food_minerals(mg_per_100g, mineral:minerals(*)), 
-                    food_to_food_groups(food_group:food_groups(*))
-                `),
-                supabase.from('user_created_foods').select('*').eq('user_id', userId).not('status', 'eq', 'rejected'),
+                shouldFetchFoods
+                    ? supabase.from('food').select(`
+                        *, 
+                        food_sensitivities(sensitivity:sensitivities(*)), 
+                        food_medical_conditions(relation_type, condition:medical_conditions(*)), 
+                        food_vitamins(mg_per_100g, vitamin:vitamins(*)), 
+                        food_minerals(mg_per_100g, mineral:minerals(*)), 
+                        food_to_food_groups(food_group:food_groups(*))
+                    `)
+                    : Promise.resolve({ data: [], error: null }),
+                shouldFetchFoods
+                    ? supabase.from('user_created_foods').select('*').eq('user_id', userId).not('status', 'eq', 'rejected')
+                    : Promise.resolve({ data: [], error: null }),
                 supabase.from('diet_change_requests').select('*').eq('user_id', userId).eq('status', 'pending'),
             ]);
 
             // Error handling for all promises
-            const responses = [plannedMealsData, dietPlanRecipesData, privateRecipesData, freeMealsData, mealLogsData, userDayMealsData, equivalenceAdjustmentsData, ingredientAdjustmentsData, userSensitivitiesData, userMedicalConditionsData, snacksData, snackLogsData, foodsData, userFoodsData, changeRequestsData];
+            const responses = [plannedMealsData, dietPlanRecipesData, privateRecipesData, freeMealsData, mealLogsData, userDayMealsData, equivalenceAdjustmentsData, ingredientAdjustmentsData, snacksData, snackLogsData, foodsData, userFoodsData, changeRequestsData];
             for (const res of responses) {
                 if (res.error) throw res.error;
             }
 
-            const foods = foodsData.data || [];
-            const userFoods = (userFoodsData.data || []).map(f => ({ ...f, is_user_created: true }));
-            const allFoods = [...foods, ...userFoods];
+            const allFoods = shouldFetchFoods
+                ? [
+                    ...(foodsData.data || []),
+                    ...((userFoodsData.data || []).map(f => ({ ...f, is_user_created: true })))
+                ]
+                : (foodsCacheRef.current.foods || []);
+
+            if (shouldFetchFoods) {
+                foodsCacheRef.current = { userId, foods: allFoods };
+            }
+
             setAllAvailableFoods(allFoods);
 
             const changeRequests = changeRequestsData.data || [];
@@ -233,11 +246,6 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
 
             setAdjustments(equivalenceAdjustmentsData.data || []);
             
-            setUserRestrictions({
-                sensitivities: userSensitivitiesData.data?.map(s => s.sensitivity_id) || [],
-                conditions: userMedicalConditionsData.data?.map(c => c.condition_id) || [],
-            });
-
         } catch (err) {
             setError(`Error al cargar los datos del plan: ${err.message}`);
             console.error(err);
@@ -308,7 +316,6 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
         fetchAndSetPlanItems, 
         loading, 
         error, 
-        userRestrictions, 
         snacks, 
         setSnacks, 
         snackLogs, 

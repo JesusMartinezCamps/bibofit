@@ -20,7 +20,7 @@ import ReminderFormDialog from '@/components/admin/reminders/ReminderFormDialog'
 import AssignRecipeDialog from './AssignRecipeDialog';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import SwipeIndicator from '@/components/shared/SwipeIndicator';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useDietTimelineEvents } from './hooks/useDietTimelineEvents';
 import { useDietPlanHeaderData } from './hooks/useDietPlanHeaderData';
 import { useDietMacros } from './hooks/useDietMacros';
@@ -111,10 +111,15 @@ const DietPlanComponent = () => {
   const [isAssignRecipeOpen, setIsAssignRecipeOpen] = useState(false);
   const [recipeToAssign, setRecipeToAssign] = useState(null);
   const [plannedMeals, setPlannedMeals] = useState([]);
+  const [weekSummaryByDate, setWeekSummaryByDate] = useState({});
   
   const isAdminView = authUser?.id !== userId;
   const logDate = format(currentDate, 'yyyy-MM-dd');
   const plannerRef = useRef(null);
+  const visualizerWeekDates = useMemo(
+    () => Array.from({ length: 7 }, (_, i) => addDays(currentDate, i)),
+    [currentDate]
+  );
 
   const { data, setData, activePlan, planStatus, loading, reminders, weightForDay, setWeightForDay, refreshHeaderData } =
     useDietPlanHeaderData({ userId, logDate, isAdminView, toast });
@@ -179,11 +184,11 @@ const DietPlanComponent = () => {
   }, [logDate, refreshHeaderData, setData, setWeightForDay]);
 
   useEffect(() => {
-    const newDate = getInitialDate();
-    if (newDate.getTime() !== currentDate.getTime()) {
-      setCurrentDate(newDate);
-    }
-  }, [paramDate, currentDate]);
+    if (!paramDate) return;
+    const parsed = parseISO(paramDate);
+    if (!isValid(parsed)) return;
+    setCurrentDate(prev => (parsed.getTime() === prev.getTime() ? prev : parsed));
+  }, [paramDate]);
 
   const handleOpenAddRecipe = (meal, date, mode = 'all') => {
     setMealToAddTo(meal);
@@ -261,8 +266,9 @@ const handleEditReminder = (reminder) => {
 };
 
 const handleDayClickInVisualizer = (date) => {
-    if (plannerRef.current) {
-        plannerRef.current.scrollToDay(date);
+    handleDateChange(date);
+    if (viewMode === 'week' && plannerRef.current) {
+        requestAnimationFrame(() => plannerRef.current?.scrollToDay(date));
     }
 };
 
@@ -362,8 +368,8 @@ const combinedPlanRestrictions = useMemo(() => {
     if (viewMode === 'week') {
         return (
             <WeekVisualizer
-                weekDates={plannerRef.current?.getWeekDates() || []}
-                plannedMeals={plannedMeals}
+                weekDates={visualizerWeekDates}
+                daySummaries={weekSummaryByDate}
                 onDayClick={handleDayClickInVisualizer}
                 currentDate={currentDate}
                 isSticky={isSticky}
@@ -396,12 +402,9 @@ const combinedPlanRestrictions = useMemo(() => {
       <SwipeIndicator isSwiping={isSwiping && swipeDirection === 'left'} offset={swipeOffset} />
       <SwipeIndicator isSwiping={isSwiping && swipeDirection === 'right'} offset={swipeOffset} variant="calendar-edge" />
 
-      <AnimatePresence mode="wait">
-        <motion.div
-            key={logDate}
+      <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.2 }}
             className="space-y-2 sm:space-y-6 sm:p-1 relative"
         >
@@ -625,12 +628,12 @@ const combinedPlanRestrictions = useMemo(() => {
                       plannedMeals={plannedMeals}
                       setPlannedMeals={setPlannedMeals}
                       userRestrictions={combinedPlanRestrictions}
+                      onWeekSummaryChange={setWeekSummaryByDate}
                   />
                   )}
               </CardContent>
           </Card>
         </motion.div>
-      </AnimatePresence>
 
       <WeightLogDialog 
         open={isWeightLogOpen} 
