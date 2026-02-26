@@ -193,8 +193,8 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
       }
 
       const items = ingredients.map((ing, index) => {
-        const foodId = ing.food_id || ing.user_created_food_id;
-        const isUserCreated = !!ing.user_created_food_id;
+        const foodId = ing.food_id;
+        const isUserCreated = !!ing.is_user_created;
         
         // Fallback to ing.food which now has deep data from our updated queries
         const fullFood = allFoods?.find(f => String(f.id) === String(foodId) && f.is_user_created === isUserCreated);

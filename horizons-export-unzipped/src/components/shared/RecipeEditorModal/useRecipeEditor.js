@@ -162,8 +162,8 @@ export const useRecipeEditor = ({ recipeToEdit, onSaveSuccess, isAdminView, user
     const computedRecommendations = [];
 
     ingredients.forEach((ing) => {
-      const foodId = ing.food?.id || ing.food_id || ing.user_created_food_id;
-      const isUserCreated = !!(ing.is_user_created || ing.user_created_food_id || ing.food?.is_user_created);
+      const foodId = ing.food?.id || ing.food_id;
+      const isUserCreated = !!(ing.is_user_created || ing.food?.is_user_created);
 
       const food = ing.food || allFoods.find(f =>
         String(f.id) === String(foodId) && !!f.is_user_created === isUserCreated
@@ -202,7 +202,10 @@ export const useRecipeEditor = ({ recipeToEdit, onSaveSuccess, isAdminView, user
   };
   
   const handleAddIngredient = (newIngredientData) => {
-      const food = allFoods.find(f => f.id === newIngredientData.food_id && !f.is_user_created);
+      const food = allFoods.find(f =>
+        String(f.id) === String(newIngredientData.food_id) &&
+        !!f.is_user_created === !!newIngredientData.is_user_created
+      );
       const newIngredient = {
           ...newIngredientData,
           food: food,

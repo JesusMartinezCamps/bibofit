@@ -197,7 +197,7 @@ const ListView = ({
 
         if (ingredients && ingredients.length > 0) {
             return ingredients.some(ing => {
-                const foodName = ing.food?.name || ing.user_created_food?.name || foodById.get(ing.food_id || ing.user_created_food_id)?.name || '';
+                const foodName = ing.food?.name || ing.user_created_food?.name || foodById.get(ing.food_id)?.name || '';
                 return normalizeText(foodName).includes(normalizedQuery);
             });
         }
@@ -343,7 +343,7 @@ const ListView = ({
                         const unsafeFoodsSet = new Set();
 
                         ingredients.forEach(ing => {
-                            const food = foodById.get(ing.food_id || ing.user_created_food_id);
+                            const food = foodById.get(ing.food_id);
                             if (!food) return;
                             
                             if (restrictionSets.nonPreferred.has(food.id)) unsafeFoodsSet.add(food.name);

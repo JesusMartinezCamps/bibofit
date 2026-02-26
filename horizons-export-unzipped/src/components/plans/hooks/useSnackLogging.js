@@ -90,8 +90,7 @@ export const useSnackLogging = ({ userId, onSaveSuccess, mealDate, preselectedMe
             // 2. Insert ingredients
             const ingredientData = ingredients.map(ing => ({
                 snack_id: newSnack.id,
-                food_id: ing.is_user_created ? null : ing.food_id,
-                user_created_food_id: ing.is_user_created ? ing.food_id : null,
+                food_id: ing.food_id,
                 grams: ing.quantity,
                 status: 'approved',
             }));

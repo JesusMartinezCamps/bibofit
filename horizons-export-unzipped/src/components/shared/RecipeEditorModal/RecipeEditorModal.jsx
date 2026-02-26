@@ -96,8 +96,8 @@ const RecipeEditorModal = ({
             }
 
             const populatedIngredients = ingredientsSource.map(ing => {
-                const isUserCreated = !!(ing.user_created_food_id || (ing.food && ing.food.is_user_created));
-                const foodId = isUserCreated ? ing.user_created_food_id : ing.food_id;
+                const isUserCreated = !!(ing.is_user_created || (ing.food && ing.food.is_user_created));
+                const foodId = ing.food_id;
                 
                 const foodDetails = combinedFoods.find(f => 
                     String(f.id) === String(foodId) && 
@@ -250,18 +250,11 @@ const RecipeEditorModal = ({
       // If actively blocked by conflicts:
       if (hasCriticalConflicts) return "Resolver conflictos";
       
-      // If we had initial conflicts (or ingredient changes that imply customization of a base recipe that might have had issues)
-      // AND we have successfully resolved them (because hasCriticalConflicts is false here).
-      if (hasChanges && (hasInitialConflicts || hasIngredientChanges)) {
-          // If it's a template, we just say "Guardar cambios" because we update in place
-          return isTemplate ? "Guardar cambios" : "Crear variante";
-      }
-      
       if (!hasChanges) return "Sin cambios";
-      
+
       if (isTemplate) return "Guardar cambios";
-      return hasIngredientChanges ? "Guardar como nueva receta" : "Guardar cambios";
-  }, [hasCriticalConflicts, hasChanges, hasInitialConflicts, hasIngredientChanges, isTemplate]);
+      return "Crear variante";
+  }, [hasCriticalConflicts, hasChanges, isTemplate]);
 
   // Button is disabled if:
   // 1. Submitting

@@ -62,7 +62,7 @@ const PlanRecipeCard = ({ recipe, onEdit, onDelete, allFoods, userRestrictions, 
         const conditionIds = new Set(conditions.map(c => String(typeof c === 'object' ? c.id : c)));
 
         ingredients.forEach(ing => {
-            const foodId = ing.food_id || ing.user_created_food_id;
+            const foodId = ing.food_id;
             // Use localAllFoods to handle cases where global allFoods is empty
             const food = localAllFoods.find(f => String(f.id) === String(foodId));
             if (!food) return;
@@ -108,7 +108,7 @@ const PlanRecipeCard = ({ recipe, onEdit, onDelete, allFoods, userRestrictions, 
     
     const ingredientList = useMemo(() => {
         return ingredients.map((ing, index) => {
-            const foodId = ing.food_id || ing.user_created_food_id;
+            const foodId = ing.food_id;
             const food = localAllFoods.find(f => String(f.id) === String(foodId)) || ing.food;
             
             if (!food) return null;

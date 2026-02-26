@@ -60,8 +60,8 @@ const FreeMealRequestsPage = () => {
           ...ing,
           food_name: ing.food?.name || ing.user_created_food?.name,
           food_unit: ing.food?.food_unit || ing.user_created_food?.food_unit,
-          food_id: ing.food_id || ing.user_created_food_id,
-          is_user_created: !!ing.user_created_food_id,
+          food_id: ing.food_id,
+          is_user_created: !!ing.is_user_created,
           grams: ing.grams
         }))
       }));

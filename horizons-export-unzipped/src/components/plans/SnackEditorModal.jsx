@@ -26,7 +26,7 @@ const SnackEditorModal = ({ open, onOpenChange, snackToEdit, onOpenEquivalence, 
           food_name: food?.name || 'Ingrediente Desconocido',
           quantity: ing.grams,
           food_unit: food?.food_unit || 'gramos',
-          is_user_created: !!ing.user_created_food_id,
+          is_user_created: !!ing.is_user_created,
           food: food // Attach the full food object
         };
       });

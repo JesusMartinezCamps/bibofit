@@ -119,8 +119,8 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
     useEffect(() => {
       if (open && freeMeal) {
           setIngredients((freeMeal.ingredients || []).map(ing => {
-              const isUserCreated = !!ing.user_created_food_id;
-              const foodId = isUserCreated ? ing.user_created_food_id : ing.food_id;
+              const isUserCreated = !!ing.is_user_created;
+              const foodId = ing.food_id;
               const foodGroupId = ing.food?.food_to_food_groups?.[0]?.food_group_id || null;
               
               return {
@@ -138,8 +138,8 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
       if (!currentFreeMeal) return null;
       
       const ingredientsForView = (currentFreeMeal.ingredients || []).map(ing => {
-        const isUserCreated = !!ing.user_created_food_id;
-        const foodId = isUserCreated ? ing.user_created_food_id : ing.food_id;
+        const isUserCreated = !!ing.is_user_created;
+        const foodId = ing.food_id;
         // Use food from allFoods if available (to get full data like groups), otherwise fallback to ing.food
         const food = allFoods.find(f => String(f.id) === String(foodId) && f.is_user_created === isUserCreated) || ing.food;
         return { ...ing, food };
@@ -303,8 +303,7 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
 
             const newIngredients = ingredients.map(ing => ({
                 free_recipe_id: newRecipe.id,
-                food_id: !ing.is_user_created ? parseInt(ing.food_id) : null,
-                user_created_food_id: ing.is_user_created ? parseInt(ing.food_id) : null,
+                food_id: parseInt(ing.food_id),
                 grams: parseFloat(ing.quantity),
                 status: 'approved'
             }));
@@ -323,8 +322,7 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
                     food:food_id(
                         *, 
                         food_to_food_groups(food_group_id)
-                    ),
-                    user_created_food:user_created_food_id(*)
+                    )
                     )
                 `)
                 .eq('id', newRecipe.id)
@@ -346,8 +344,7 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
             
             const newIngredients = ingredients.map(ing => ({
               free_recipe_id: currentFreeMeal.id,
-              food_id: !ing.is_user_created ? parseInt(ing.food_id) : null,
-              user_created_food_id: ing.is_user_created ? parseInt(ing.food_id) : null,
+              food_id: parseInt(ing.food_id),
               grams: parseFloat(ing.quantity),
               status: 'approved'
             }));
@@ -374,8 +371,7 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
                   food:food_id(
                     *, 
                     food_to_food_groups(food_group_id)
-                  ),
-                  user_created_food:user_created_food_id(*)
+                  )
                 )
               `)
               .eq('id', currentFreeMeal.id)

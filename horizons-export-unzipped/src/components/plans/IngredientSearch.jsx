@@ -51,7 +51,7 @@ const IngredientSearch = ({ selectedIngredients, onIngredientAdded, availableFoo
       .filter(food =>
         food.name && 
         normalizeText(food.name).includes(normalizedTerm) &&
-        !selectedIngredients.some(ing => ing.food_id === food.id && !ing.is_user_created)
+        !selectedIngredients.some(ing => String(ing.food_id) === String(food.id))
       )
       .map(food => ({
         ...food,

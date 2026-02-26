@@ -4,8 +4,7 @@ export const applyTemporaryChanges = async ({ formData, ingredients, recipeToEdi
     try {
         // Normalize ingredients to ensure consistent structure
         const normalizedIngredients = ingredients.map(ing => ({
-            food_id: ing.is_user_created ? null : ing.food_id,
-            user_created_food_id: ing.is_user_created ? ing.food_id : null,
+            food_id: ing.food_id,
             grams: ing.grams || ing.quantity || 0,
             is_user_created: ing.is_user_created,
             food: ing.food
@@ -357,8 +356,7 @@ export const saveFreeRecipe = async ({ recipeId, userId, formData, ingredients }
         // Insert new ingredients
         const newIngredientsData = ingredients.map(ing => ({
             free_recipe_id: recipeId,
-            food_id: ing.is_user_created ? null : ing.food_id,
-            user_created_food_id: ing.is_user_created ? ing.food_id : null,
+            food_id: ing.food_id,
             grams: ing.grams || ing.quantity || 0,
         }));
 
