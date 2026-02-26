@@ -67,6 +67,7 @@ const MacroDistribution = ({
     );
     const [macrosPct, setMacrosPct] = useState(initialMacrosPct);
     const debounceTimeout = useRef(null);
+    const isOnboardingPath = location.pathname.startsWith('/assign-diet-plan');
     const [open, setOpen] = useState(true); 
 
     useEffect(() => {
@@ -77,6 +78,13 @@ const MacroDistribution = ({
     useEffect(() => {
         if (shouldStartClosed) setOpen(false);
     }, [shouldStartClosed]);
+
+    // Ensure onboarding always starts with the section expanded.
+    useEffect(() => {
+        if (isOnboardingPath) {
+            setOpen(true);
+        }
+    }, [isOnboardingPath]);
 
     const handleMacroChange = (macro, value) => {
         if (readOnly) {

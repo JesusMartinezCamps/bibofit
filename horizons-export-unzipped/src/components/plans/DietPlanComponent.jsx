@@ -25,12 +25,12 @@ import { useDietTimelineEvents } from './hooks/useDietTimelineEvents';
 import { useDietPlanHeaderData } from './hooks/useDietPlanHeaderData';
 import { useDietMacros } from './hooks/useDietMacros';
 
-const DateTimeline = ({ currentDate, setCurrentDate, navigate, isAdminView, userId, refreshTrigger }) => {
+const DateTimeline = ({ currentDate, setCurrentDate, navigate, isAdminView, userId, refreshTrigger, activePlanId }) => {
     const weekDates = useMemo(() => {
         const start = subDays(currentDate, 3);
         return Array.from({ length: 7 }, (_, i) => addDays(start, i));
     }, [currentDate]);
-    const timelineEvents = useDietTimelineEvents({ userId, weekDates, isAdminView, refreshTrigger });
+    const timelineEvents = useDietTimelineEvents({ userId, weekDates, isAdminView, refreshTrigger, activePlanId });
 
     const handleDateClick = (date) => {
         setCurrentDate(date);
@@ -448,7 +448,7 @@ const combinedPlanRestrictions = useMemo(() => {
                 </div>
                 )}
                 
-                <DateTimeline currentDate={currentDate} setCurrentDate={handleDateChange} navigate={navigate} isAdminView={isAdminView} userId={userId} refreshTrigger={timelineRefreshTrigger} />
+                <DateTimeline currentDate={currentDate} setCurrentDate={handleDateChange} navigate={navigate} isAdminView={isAdminView} userId={userId} refreshTrigger={timelineRefreshTrigger} activePlanId={activePlan?.id} />
           </div>
 
           <Card className="bg-slate-900/50 border-gray-700 text-white overflow-hidden shadow-xl">

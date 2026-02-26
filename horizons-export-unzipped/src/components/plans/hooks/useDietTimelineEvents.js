@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { format, parseISO, isValid, eachDayOfInterval } from 'date-fns';
 import { supabase } from '@/lib/supabaseClient';
 
-export const useDietTimelineEvents = ({ userId, weekDates, isAdminView, refreshTrigger }) => {
+export const useDietTimelineEvents = ({ userId, weekDates, isAdminView, refreshTrigger, activePlanId }) => {
   const [timelineEvents, setTimelineEvents] = useState({});
 
   useEffect(() => {
@@ -25,7 +25,13 @@ export const useDietTimelineEvents = ({ userId, weekDates, isAdminView, refreshT
         supabase.from('weight_logs').select('logged_on').eq('user_id', userId).gte('logged_on', startDate).lte('logged_on', endDate),
         supabase
           .from('daily_meal_logs')
-          .select('log_date, free_recipe_occurrence_id')
+          .select(`
+            log_date,
+            free_recipe_occurrence_id,
+            diet_plan_recipe:diet_plan_recipe_id(diet_plan_id),
+            private_recipe:private_recipe_id(diet_plan_id),
+            free_recipe_occurrence:free_recipe_occurrence_id(free_recipe:free_recipe_id(diet_plan_id))
+          `)
           .eq('user_id', userId)
           .gte('log_date', startDate)
           .lte('log_date', endDate),
@@ -55,14 +61,23 @@ export const useDietTimelineEvents = ({ userId, weekDates, isAdminView, refreshT
         }
       });
       (weightLogsRes.data || []).forEach((l) => addEvent(l.logged_on, 'weight'));
-      (mealLogsRes.data || []).forEach((l) => addEvent(l.log_date, 'diet_log', l.free_recipe_occurrence_id !== null));
+      const targetPlanId = Number(activePlanId);
+      (mealLogsRes.data || [])
+        .filter((l) => {
+          if (!targetPlanId) return false;
+          const recipePlanId = Number(l.diet_plan_recipe?.diet_plan_id);
+          const privatePlanId = Number(l.private_recipe?.diet_plan_id);
+          const freePlanId = Number(l.free_recipe_occurrence?.free_recipe?.diet_plan_id);
+          return recipePlanId === targetPlanId || privatePlanId === targetPlanId || freePlanId === targetPlanId;
+        })
+        .forEach((l) => addEvent(l.log_date, 'diet_log', l.free_recipe_occurrence_id !== null));
       (snackLogsRes.data || []).forEach((l) => addEvent(l.log_date, 'snack'));
 
       setTimelineEvents(events);
     };
 
     fetchTimelineEvents();
-  }, [weekDates, userId, isAdminView, refreshTrigger]);
+  }, [weekDates, userId, isAdminView, refreshTrigger, activePlanId]);
 
   return timelineEvents;
 };

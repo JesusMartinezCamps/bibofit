@@ -5,6 +5,9 @@ import { useAuth } from '@/contexts/AuthContext';
 export function usePWAInstallPrompt() {
   const { user } = useAuth();
   const isAuthenticated = !!user;
+  const hasCompletedOnboarding = !!user?.onboarding_completed_at;
+  const userDismissedAtKey = user?.id ? `pwaInstallDismissedAt:${user.id}` : null;
+  const legacyDismissedAtKey = 'pwaInstallDismissedAt';
   const [installPrompt, setInstallPrompt] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
@@ -23,20 +26,35 @@ export function usePWAInstallPrompt() {
   }, []);
 
   useEffect(() => {
-    const dismissedAt = localStorage.getItem('pwaInstallDismissedAt');
-    if (dismissedAt) {
-      const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
-      const timePassed = Date.now() - parseInt(dismissedAt, 10);
-      
-      if (timePassed < thirtyDaysInMs) {
-        setIsDismissed(true);
-      } else {
-        localStorage.removeItem('pwaInstallDismissed');
-        localStorage.removeItem('pwaInstallDismissedAt');
-        setIsDismissed(false);
-      }
+    if (!userDismissedAtKey) {
+      setIsDismissed(false);
+      return;
     }
-  }, []);
+
+    // Backward compatibility: migrate old global key to per-user key once.
+    const legacyDismissedAt = localStorage.getItem(legacyDismissedAtKey);
+    if (legacyDismissedAt && !localStorage.getItem(userDismissedAtKey)) {
+      localStorage.setItem(userDismissedAtKey, legacyDismissedAt);
+      localStorage.removeItem(legacyDismissedAtKey);
+      localStorage.removeItem('pwaInstallDismissed');
+    }
+
+    const dismissedAt = localStorage.getItem(userDismissedAtKey);
+    if (!dismissedAt) {
+      setIsDismissed(false);
+      return;
+    }
+
+    const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
+    const timePassed = Date.now() - parseInt(dismissedAt, 10);
+    
+    if (timePassed < thirtyDaysInMs) {
+      setIsDismissed(true);
+    } else {
+      localStorage.removeItem(userDismissedAtKey);
+      setIsDismissed(false);
+    }
+  }, [userDismissedAtKey]);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => {
@@ -67,8 +85,9 @@ export function usePWAInstallPrompt() {
   };
 
   const handleDismiss = () => {
-    localStorage.setItem('pwaInstallDismissed', 'true');
-    localStorage.setItem('pwaInstallDismissedAt', Date.now().toString());
+    if (userDismissedAtKey) {
+      localStorage.setItem(userDismissedAtKey, Date.now().toString());
+    }
     setIsDismissed(true);
     setInstallPrompt(null);
   };
@@ -76,7 +95,7 @@ export function usePWAInstallPrompt() {
   const isStandalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
   const isIosStandalone = window.navigator.standalone === true;
 
-  const showPrompt = isAuthenticated && isMobile && !isDismissed && installPrompt !== null && !isInstalled && !isStandalone && !isIosStandalone;
+  const showPrompt = isAuthenticated && hasCompletedOnboarding && isMobile && !isDismissed && installPrompt !== null && !isInstalled && !isStandalone && !isIosStandalone;
 
   return {
     showPrompt,

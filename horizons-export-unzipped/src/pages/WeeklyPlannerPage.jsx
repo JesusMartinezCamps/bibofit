@@ -39,7 +39,8 @@ const WeeklyPlannerPage = () => {
     const [recipeToEdit, setRecipeToEdit] = useState(null);
     const [isEditorOpen, setIsEditorOpen] = useState(false);
 
-    const today = new Date();
+    const todayRef = useRef(new Date());
+    const today = todayRef.current;
 
     const fetchPlannerData = useCallback(async () => {
         setLoading(true);
@@ -86,15 +87,46 @@ const WeeklyPlannerPage = () => {
             } else {
                 setPlannedMeals([]);
             }
+
+            return plan || null;
         } catch (error) {
             toast({ title: "Error", description: `No se pudo cargar el planificador: ${error.message}`, variant: "destructive" });
+            return null;
         } finally {
             setLoading(false);
         }
     }, [userId, toast]);
 
-    const fetchLogs = useCallback(async () => {
-        const { data: logs, error } = await supabase.from('daily_meal_logs').select('*').eq('user_id', userId);
+    const fetchLogs = useCallback(async (planIdOverride = null) => {
+        const targetPlanId = planIdOverride || activePlan?.id;
+        console.log("aqui")
+        if (!targetPlanId || activePlan?.is_active === false) {
+            setSelectedMealLogs(new Set());
+            setSelectionCounts({});
+            return;
+        }
+
+        const { data: planRecipes, error: planRecipesError } = await supabase
+            .from('diet_plan_recipes')
+            .select('id')
+            .eq('diet_plan_id', targetPlanId);
+        if (planRecipesError) {
+            console.error("Error fetching diet_plan_recipes:", planRecipesError);
+            return;
+        }
+
+        const validRecipeIds = (planRecipes || []).map((r) => r.id).filter(Boolean);
+        if (validRecipeIds.length === 0) {
+            setSelectedMealLogs(new Set());
+            setSelectionCounts({});
+            return;
+        }
+
+        const { data: logs, error } = await supabase
+            .from('daily_meal_logs')
+            .select('*')
+            .eq('user_id', userId)
+            .in('diet_plan_recipe_id', validRecipeIds);
         if (error) {
             console.error("Error fetching logs:", error);
             return;
@@ -116,13 +148,16 @@ const WeeklyPlannerPage = () => {
 
         setSelectedMealLogs(newSelectedMealLogs);
         setSelectionCounts(newSelectionCounts);
-    }, [userId, today]);
+    }, [userId, activePlan?.id, activePlan?.is_active]);
     
     useEffect(() => {
         const next7Days = Array.from({ length: 7 }).map((_, i) => addDays(today, i));
         setDays(next7Days);
-        fetchPlannerData();
-        fetchLogs();
+        const load = async () => {
+            const plan = await fetchPlannerData();
+            await fetchLogs(plan?.id || null);
+        };
+        load();
     }, [fetchPlannerData, fetchLogs]);
 
     const handleAddRecipeClick = (day, meal) => {
@@ -136,8 +171,11 @@ const WeeklyPlannerPage = () => {
     };
 
     const handleRecipeAdded = () => {
-        fetchPlannerData();
-        fetchLogs();
+        const reload = async () => {
+            const plan = await fetchPlannerData();
+            await fetchLogs(plan?.id || null);
+        };
+        reload();
         setIsAddRecipeOpen(false);
     };
 
@@ -220,7 +258,6 @@ const WeeklyPlannerPage = () => {
                                 if (!isValid(day)) return null;
                                 const dayOfWeek = getDay(day) === 0 ? 7 : getDay(day);
                                 const dayMeals = plannedMeals.filter(m => m.day_of_week === dayOfWeek);
-
                                 return (
                                     <Card key={format(day, 'yyyy-MM-dd')} className="bg-slate-800/60 border-slate-700 text-white flex flex-col">
                                         <CardHeader className="text-center pb-2">
