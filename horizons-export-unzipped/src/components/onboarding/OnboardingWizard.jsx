@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import OnboardingModal from './OnboardingModal';
 
@@ -30,7 +30,9 @@ const OnboardingWizard = ({ isOpen: propIsOpen }) => {
     isLoading,
     isFirstStep,
     isLastStep,
-    isOpen: contextIsOpen
+    isOpen: contextIsOpen,
+    isRepeatingOnboarding,
+    cancelOnboarding
   } = useOnboarding();
 
   // Local state to track if the modal for the current step has been dismissed
@@ -145,7 +147,20 @@ const OnboardingWizard = ({ isOpen: propIsOpen }) => {
               </span>
           )}
 
-           <div className="w-10" />
+           <div className="w-10 flex justify-end">
+            {isRepeatingOnboarding && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={cancelOnboarding}
+                className="text-gray-400 hover:text-white hover:bg-gray-800"
+                aria-label="Cerrar onboarding"
+                disabled={isLoading}
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            )}
+           </div>
       </div>
 
       {/* Progress Bar */}

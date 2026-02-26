@@ -11,21 +11,36 @@ const FoodPreferencesForm = ({ userId, onSaveStatusChange }) => {
   const [foods, setFoods] = useState([]);
   const [preferredFoods, setPreferredFoods] = useState([]);
   const [nonPreferredFoods, setNonPreferredFoods] = useState([]);
+  const [selectedMedicalConditions, setSelectedMedicalConditions] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
       if (!userId) return;
       setLoading(true);
       try {
-        const [foodsRes, prefRes, nonPrefRes] = await Promise.all([
-            supabase.from('food').select('id, name').order('name'),
+        const [foodsRes, prefRes, nonPrefRes, conditionsRes] = await Promise.all([
+            supabase.from('food').select(`
+              id,
+              name,
+              food_to_food_groups(
+                food_group_id,
+                food_groups(id, name)
+              ),
+              food_medical_conditions(
+                condition_id,
+                relation_type,
+                medical_conditions(id, name)
+              )
+            `).order('name'),
             supabase.from('preferred_foods').select('food_id, food(id, name)').eq('user_id', userId),
-            supabase.from('non_preferred_foods').select('food_id, food(id, name)').eq('user_id', userId)
+            supabase.from('non_preferred_foods').select('food_id, food(id, name)').eq('user_id', userId),
+            supabase.from('user_medical_conditions').select('condition_id').eq('user_id', userId)
         ]);
 
         if (foodsRes.data) setFoods(foodsRes.data);
         if (prefRes.data) setPreferredFoods(prefRes.data.map(pf => pf.food).filter(Boolean));
         if (nonPrefRes.data) setNonPreferredFoods(nonPrefRes.data.map(npf => npf.food).filter(Boolean));
+        if (conditionsRes.data) setSelectedMedicalConditions(conditionsRes.data.map(condition => condition.condition_id));
       } catch (error) {
         console.error("Error fetching food preferences:", error);
       } finally {
@@ -54,6 +69,7 @@ const FoodPreferencesForm = ({ userId, onSaveStatusChange }) => {
             selectedFoods={preferredFoods} 
             setSelectedFoods={setPreferredFoods} 
             allFoods={foods} 
+            selectedConditionIds={selectedMedicalConditions}
         />
         <FoodPreferenceSelector 
             userId={userId} 
@@ -62,6 +78,7 @@ const FoodPreferencesForm = ({ userId, onSaveStatusChange }) => {
             selectedFoods={nonPreferredFoods} 
             setSelectedFoods={setNonPreferredFoods} 
             allFoods={foods} 
+            selectedConditionIds={selectedMedicalConditions}
         />
     </div>
   );

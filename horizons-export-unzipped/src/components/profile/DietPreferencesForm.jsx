@@ -36,7 +36,6 @@ const DietPreferencesForm = ({ userId: propUserId, onUpdate }) => {
   const [selectedMedicalConditions, setSelectedMedicalConditions] = useState([]);
   
   const [allergicFoodIds, setAllergicFoodIds] = useState([]);
-  const [restrictedByConditionFoodIds, setRestrictedByConditionFoodIds] = useState([]);
 
   const [dietTypes, setDietTypes] = useState([]);
   const [dietGoals, setDietGoals] = useState([]);
@@ -67,7 +66,19 @@ const DietPreferencesForm = ({ userId: propUserId, onUpdate }) => {
         supabase.from('user_medical_conditions').select('condition_id').eq('user_id', userId),
         supabase.from('diet_types').select('id, name'),
         supabase.from('diet_goals').select('id, name, description').order('name'),
-        supabase.from('food').select('id, name').order('name'),
+        supabase.from('food').select(`
+          id,
+          name,
+          food_to_food_groups(
+            food_group_id,
+            food_groups(id, name)
+          ),
+          food_medical_conditions(
+            condition_id,
+            relation_type,
+            medical_conditions(id, name)
+          )
+        `).order('name'),
         supabase.from('preferred_foods').select('food_id, food(id, name)').eq('user_id', userId),
         supabase.from('non_preferred_foods').select('food_id, food(id, name)').eq('user_id', userId),
       ]);
@@ -112,21 +123,12 @@ const DietPreferencesForm = ({ userId: propUserId, onUpdate }) => {
   useEffect(() => {
     const fetchRestrictedFoods = async () => {
       const sensitivityIds = selectedSensitivities.map(s => s.sensitivity_id);
-      const conditionIds = selectedMedicalConditions;
-
       let allergicIds = [];
       if (sensitivityIds.length > 0) {
         const { data, error } = await supabase.from('food_sensitivities').select('food_id').in('sensitivity_id', sensitivityIds);
         if (!error) allergicIds = data.map(item => item.food_id);
       }
       setAllergicFoodIds(allergicIds);
-
-      let conditionIdsRestricted = [];
-      if (conditionIds.length > 0) {
-        const { data, error } = await supabase.from('food_medical_conditions').select('food_id').in('condition_id', conditionIds);
-        if (!error) conditionIdsRestricted = data.map(item => item.food_id);
-      }
-      setRestrictedByConditionFoodIds(conditionIdsRestricted);
     };
     fetchRestrictedFoods();
   }, [selectedSensitivities, selectedMedicalConditions]);
@@ -226,11 +228,10 @@ const DietPreferencesForm = ({ userId: propUserId, onUpdate }) => {
     .filter(food => 
       !preferredFoods.some(pf => pf.id === food.id) && 
       !nonPreferredFoods.some(npf => npf.id === food.id) &&
-      !allergicFoodIds.includes(food.id) &&
-      !restrictedByConditionFoodIds.includes(food.id)
+      !allergicFoodIds.includes(food.id)
     )
     .map(food => ({ value: String(food.id), label: food.name })), 
-  [foods, preferredFoods, nonPreferredFoods, allergicFoodIds, restrictedByConditionFoodIds]);
+  [foods, preferredFoods, nonPreferredFoods, allergicFoodIds]);
 
   const selectedGoalDescription = useMemo(() => {
       const goal = dietGoals.find(g => g.id === formData.diet_goal_id);
@@ -351,8 +352,8 @@ const DietPreferencesForm = ({ userId: propUserId, onUpdate }) => {
 
         <FormBlock title="Gustos por Alimentos" icon={Apple} color="green-red">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FoodPreferenceSelector userId={userId} foodOptions={foodOptions} selectedFoods={preferredFoods} setSelectedFoods={setPreferredFoods} allFoods={foods} type="preferred" />
-                <FoodPreferenceSelector userId={userId} foodOptions={foodOptions} selectedFoods={nonPreferredFoods} setSelectedFoods={setNonPreferredFoods} allFoods={foods} type="non-preferred" />
+                <FoodPreferenceSelector userId={userId} foodOptions={foodOptions} selectedFoods={preferredFoods} setSelectedFoods={setPreferredFoods} allFoods={foods} type="preferred" selectedConditionIds={selectedMedicalConditions} />
+                <FoodPreferenceSelector userId={userId} foodOptions={foodOptions} selectedFoods={nonPreferredFoods} setSelectedFoods={setNonPreferredFoods} allFoods={foods} type="non-preferred" selectedConditionIds={selectedMedicalConditions} />
             </div>
         </FormBlock>
       </div>

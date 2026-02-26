@@ -18,6 +18,9 @@ export const OnboardingProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const [isOnboardingCompleted, setIsOnboardingCompleted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [isRepeatingOnboarding, setIsRepeatingOnboarding] = useState(false);
+  const [repeatDraftData, setRepeatDraftData] = useState({});
+  const [repeatBaselineSnapshot, setRepeatBaselineSnapshot] = useState(null);
 
   // New State for exposed data
   const [onboardingState, setOnboardingState] = useState({
@@ -27,7 +30,7 @@ export const OnboardingProvider = ({ children }) => {
   });
 
   // Task 3: Helper function to save step ID to DB
-  const saveOnboardingStep = async (stepId) => {
+  const saveOnboardingStep = useCallback(async (stepId) => {
     if (!user) return;
     try {
       await supabase
@@ -38,7 +41,7 @@ export const OnboardingProvider = ({ children }) => {
       console.error("Error saving onboarding step:", err);
       // Optional: show silent error toast if needed, but keeping it non-blocking
     }
-  };
+  }, [user]);
 
   // Helper to refresh onboarding state data
   const refreshOnboardingState = useCallback(async () => {
@@ -117,7 +120,7 @@ export const OnboardingProvider = ({ children }) => {
 
     init();
     return () => { mounted = false; };
-  }, [user?.id, refreshOnboardingState]);
+  }, [user, refreshOnboardingState]);
 
   const currentStepIndex = ONBOARDING_STEPS.findIndex(s => s.id === currentStepId);
   const safeIndex = currentStepIndex === -1 ? 0 : currentStepIndex;
@@ -126,15 +129,220 @@ export const OnboardingProvider = ({ children }) => {
   const isFirstStep = safeIndex === 0;
   const isLastStep = safeIndex === ONBOARDING_STEPS.length - 1;
 
+  const captureRepeatBaselineSnapshot = useCallback(async () => {
+    if (!user?.id) return null;
+
+    const [
+      profileRes,
+      dietPreferencesRes,
+      userDayMealsRes,
+      userSensitivitiesRes,
+      userMedicalConditionsRes,
+      preferredFoodsRes,
+      nonPreferredFoodsRes,
+      assignmentProgressRes,
+      overridesRes,
+      dietPlansRes
+    ] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('full_name, phone, birth_date, sex, height_cm, current_weight_kg, activity_level_id, tdee_kcal, onboarding_step_id')
+        .eq('user_id', user.id)
+        .maybeSingle(),
+      supabase
+        .from('diet_preferences')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle(),
+      supabase
+        .from('user_day_meals')
+        .select('*')
+        .eq('user_id', user.id)
+        .is('diet_plan_id', null),
+      supabase
+        .from('user_sensitivities')
+        .select('*')
+        .eq('user_id', user.id),
+      supabase
+        .from('user_medical_conditions')
+        .select('*')
+        .eq('user_id', user.id),
+      supabase
+        .from('preferred_foods')
+        .select('*')
+        .eq('user_id', user.id),
+      supabase
+        .from('non_preferred_foods')
+        .select('*')
+        .eq('user_id', user.id),
+      supabase
+        .from('assignment_progress')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle(),
+      supabase
+        .from('diet_plan_calorie_overrides')
+        .select('*')
+        .eq('user_id', user.id),
+      supabase
+        .from('diet_plans')
+        .select('id, is_active')
+        .eq('user_id', user.id)
+        .eq('is_template', false)
+    ]);
+
+    const queryErrors = [
+      profileRes.error,
+      dietPreferencesRes.error,
+      userDayMealsRes.error,
+      userSensitivitiesRes.error,
+      userMedicalConditionsRes.error,
+      preferredFoodsRes.error,
+      nonPreferredFoodsRes.error,
+      assignmentProgressRes.error,
+      overridesRes.error,
+      dietPlansRes.error
+    ].filter(Boolean);
+
+    if (queryErrors.length > 0) {
+      throw queryErrors[0];
+    }
+
+    return {
+      profile: profileRes.data || null,
+      dietPreferences: dietPreferencesRes.data || null,
+      userDayMeals: userDayMealsRes.data || [],
+      userSensitivities: userSensitivitiesRes.data || [],
+      userMedicalConditions: userMedicalConditionsRes.data || [],
+      preferredFoods: preferredFoodsRes.data || [],
+      nonPreferredFoods: nonPreferredFoodsRes.data || [],
+      assignmentProgress: assignmentProgressRes.data || null,
+      overrides: overridesRes.data || [],
+      dietPlans: dietPlansRes.data || []
+    };
+  }, [user?.id]);
+
+  const restoreRepeatBaselineSnapshot = useCallback(async () => {
+    if (!user?.id || !repeatBaselineSnapshot) return;
+
+    const snapshot = repeatBaselineSnapshot;
+
+    const { profile } = snapshot;
+    if (profile) {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: profile.full_name ?? '',
+          phone: profile.phone ?? null,
+          birth_date: profile.birth_date ?? null,
+          sex: profile.sex ?? null,
+          height_cm: profile.height_cm ?? null,
+          current_weight_kg: profile.current_weight_kg ?? null,
+          activity_level_id: profile.activity_level_id ?? null,
+          tdee_kcal: profile.tdee_kcal ?? null,
+          onboarding_step_id: profile.onboarding_step_id || 'completion'
+        })
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+    }
+
+    await supabase.from('diet_preferences').delete().eq('user_id', user.id);
+    if (snapshot.dietPreferences) {
+      const { error } = await supabase
+        .from('diet_preferences')
+        .insert(snapshot.dietPreferences);
+      if (error) throw error;
+    }
+
+    await supabase.from('user_day_meals').delete().eq('user_id', user.id).is('diet_plan_id', null);
+    if (snapshot.userDayMeals.length > 0) {
+      const { error } = await supabase.from('user_day_meals').insert(snapshot.userDayMeals);
+      if (error) throw error;
+    }
+
+    await supabase.from('user_sensitivities').delete().eq('user_id', user.id);
+    if (snapshot.userSensitivities.length > 0) {
+      const { error } = await supabase.from('user_sensitivities').insert(snapshot.userSensitivities);
+      if (error) throw error;
+    }
+
+    await supabase.from('user_medical_conditions').delete().eq('user_id', user.id);
+    if (snapshot.userMedicalConditions.length > 0) {
+      const { error } = await supabase.from('user_medical_conditions').insert(snapshot.userMedicalConditions);
+      if (error) throw error;
+    }
+
+    await supabase.from('preferred_foods').delete().eq('user_id', user.id);
+    if (snapshot.preferredFoods.length > 0) {
+      const { error } = await supabase.from('preferred_foods').insert(snapshot.preferredFoods);
+      if (error) throw error;
+    }
+
+    await supabase.from('non_preferred_foods').delete().eq('user_id', user.id);
+    if (snapshot.nonPreferredFoods.length > 0) {
+      const { error } = await supabase.from('non_preferred_foods').insert(snapshot.nonPreferredFoods);
+      if (error) throw error;
+    }
+
+    if (snapshot.assignmentProgress) {
+      const { error } = await supabase
+        .from('assignment_progress')
+        .upsert(snapshot.assignmentProgress, { onConflict: 'user_id' });
+      if (error) throw error;
+    } else {
+      await supabase.from('assignment_progress').delete().eq('user_id', user.id);
+    }
+
+    await supabase.from('diet_plan_calorie_overrides').delete().eq('user_id', user.id);
+    if (snapshot.overrides.length > 0) {
+      const { error } = await supabase
+        .from('diet_plan_calorie_overrides')
+        .insert(snapshot.overrides);
+      if (error) throw error;
+    }
+
+    const snapshotPlanMap = new Map(snapshot.dietPlans.map(plan => [plan.id, plan.is_active]));
+    const { data: currentPlans, error: currentPlansError } = await supabase
+      .from('diet_plans')
+      .select('id, is_active')
+      .eq('user_id', user.id)
+      .eq('is_template', false);
+
+    if (currentPlansError) throw currentPlansError;
+
+    for (const currentPlan of currentPlans || []) {
+      const desiredState = snapshotPlanMap.has(currentPlan.id) ? snapshotPlanMap.get(currentPlan.id) : false;
+      if (currentPlan.is_active === desiredState) continue;
+
+      const { error } = await supabase
+        .from('diet_plans')
+        .update({ is_active: desiredState })
+        .eq('id', currentPlan.id)
+        .eq('user_id', user.id);
+      if (error) throw error;
+    }
+  }, [repeatBaselineSnapshot, user?.id]);
+
   const nextStep = useCallback(async (data = null) => {
     try {
       setIsLoading(true);
       setError(null);
-      
+
+      if (isRepeatingOnboarding) {
+        const hasDataToSave = data && Object.keys(data).length > 0;
+        if (hasDataToSave) {
+          setRepeatDraftData(prev => ({ ...prev, [currentStep.id]: data }));
+        }
+        if (currentStep.nextStepId) {
+          setCurrentStepId(currentStep.nextStepId);
+        }
+        return true;
+      }
+
       const hasDataToSave = data && Object.keys(data).length > 0;
       const tableName = currentStep.tableName;
 
-      // 1. Save Step Data
       if (hasDataToSave && tableName) {
         await onboardingService.saveStepData(user.id, currentStep.id, data, tableName);
       } else {
@@ -142,11 +350,9 @@ export const OnboardingProvider = ({ children }) => {
       }
 
       await refreshUser();
-      await refreshOnboardingState(); // Refresh local state after step save
+      await refreshOnboardingState();
 
-      // 2. Advance to next step and save ID
       if (currentStep.nextStepId) {
-        // Task 3: Call helper to save step ID to DB before updating local state
         await saveOnboardingStep(currentStep.nextStepId);
         setCurrentStepId(currentStep.nextStepId);
       }
@@ -162,35 +368,75 @@ export const OnboardingProvider = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [currentStep, user, refreshUser, refreshOnboardingState, toast]);
+  }, [currentStep, user, refreshUser, refreshOnboardingState, toast, isRepeatingOnboarding, saveOnboardingStep]);
 
   const previousStep = useCallback(async () => {
     const currentIndex = ONBOARDING_STEPS.findIndex(s => s.id === currentStepId);
     if (currentIndex > 0) {
       const prevStep = ONBOARDING_STEPS[currentIndex - 1];
-      
-      // Task 5: Save previous step ID to DB when going back
+
+      if (isRepeatingOnboarding) {
+        setCurrentStepId(prevStep.id);
+        return;
+      }
+
       setIsLoading(true);
       try {
-          await saveOnboardingStep(prevStep.id);
-          setCurrentStepId(prevStep.id);
+        await saveOnboardingStep(prevStep.id);
+        setCurrentStepId(prevStep.id);
       } catch (error) {
-          console.error("Error going back:", error);
+        console.error("Error going back:", error);
       } finally {
-          setIsLoading(false);
+        setIsLoading(false);
       }
     }
-  }, [currentStepId]);
+  }, [currentStepId, saveOnboardingStep, isRepeatingOnboarding]);
 
   const closeOnboardingModal = useCallback(() => {
     setIsOpen(false);
   }, []);
+
+  const cancelOnboarding = useCallback(async () => {
+    if (!isRepeatingOnboarding) {
+      setIsOpen(false);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      await restoreRepeatBaselineSnapshot();
+      await refreshUser();
+      await refreshOnboardingState();
+      setCurrentStepId(ONBOARDING_STEPS[0].id);
+      setRepeatDraftData({});
+      setRepeatBaselineSnapshot(null);
+      setIsRepeatingOnboarding(false);
+      setIsOpen(false);
+    } catch (err) {
+      setError(err.message || 'Error cancelando onboarding');
+      toast({
+        title: "Error",
+        description: "No se pudieron descartar los cambios del onboarding.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isRepeatingOnboarding, refreshOnboardingState, refreshUser, restoreRepeatBaselineSnapshot, toast]);
 
   const completeOnboarding = useCallback(async () => {
     if (!user) return false;
     
     try {
       setIsLoading(true);
+
+      if (isRepeatingOnboarding) {
+        for (const step of ONBOARDING_STEPS) {
+          const pendingData = repeatDraftData[step.id];
+          if (!pendingData || Object.keys(pendingData).length === 0) continue;
+          await onboardingService.saveStepData(user.id, step.id, pendingData, step.tableName || 'profiles');
+        }
+      }
       
       // Update BOTH onboarding_completed_at and onboarding_step_id to 'completion'
       const updates = {
@@ -209,6 +455,9 @@ export const OnboardingProvider = ({ children }) => {
       await refreshUser();
       
       setIsOnboardingCompleted(true);
+      setIsRepeatingOnboarding(false);
+      setRepeatDraftData({});
+      setRepeatBaselineSnapshot(null);
       navigate('/dashboard');
       closeOnboardingModal();
       
@@ -219,7 +468,37 @@ export const OnboardingProvider = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [user, closeOnboardingModal, navigate, refreshUser]);
+  }, [user, closeOnboardingModal, navigate, refreshUser, isRepeatingOnboarding, repeatDraftData]);
+
+  useEffect(() => {
+    if (!isOpen || !isOnboardingCompleted || isRepeatingOnboarding || !user?.id) return;
+
+    let isMounted = true;
+    const initRepeatSession = async () => {
+      try {
+        const snapshot = await captureRepeatBaselineSnapshot();
+        if (!isMounted) return;
+        setRepeatBaselineSnapshot(snapshot);
+        setRepeatDraftData({});
+        setCurrentStepId(ONBOARDING_STEPS[0].id);
+        setIsRepeatingOnboarding(true);
+      } catch (err) {
+        if (!isMounted) return;
+        setError(err.message || 'Error iniciando repetición de onboarding');
+        setIsOpen(false);
+        toast({
+          title: "Error",
+          description: "No se pudo iniciar la repetición del onboarding.",
+          variant: "destructive"
+        });
+      }
+    };
+
+    initRepeatSession();
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen, isOnboardingCompleted, isRepeatingOnboarding, user?.id, captureRepeatBaselineSnapshot, toast]);
 
   const value = {
     currentStep,
@@ -236,7 +515,9 @@ export const OnboardingProvider = ({ children }) => {
     previousStep,
     completeOnboarding,
     closeOnboardingModal,
+    cancelOnboarding,
     isOnboardingActive: isOpen,
+    isRepeatingOnboarding,
     onboardingState, // Exposed State
     refreshOnboardingState, // Helper if needed manually
     saveOnboardingStep // Exposed helper
