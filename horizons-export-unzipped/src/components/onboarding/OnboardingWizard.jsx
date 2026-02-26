@@ -31,7 +31,7 @@ const OnboardingWizard = ({ isOpen: propIsOpen }) => {
     isFirstStep,
     isLastStep,
     isOpen: contextIsOpen,
-    isRepeatingOnboarding,
+    hasCompletedOnboardingOnce,
     cancelOnboarding
   } = useOnboarding();
 
@@ -148,7 +148,7 @@ const OnboardingWizard = ({ isOpen: propIsOpen }) => {
           )}
 
            <div className="w-10 flex justify-end">
-            {isRepeatingOnboarding && (
+            {hasCompletedOnboardingOnce && (
               <Button
                 variant="ghost"
                 size="icon"

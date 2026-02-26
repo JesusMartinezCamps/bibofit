@@ -405,6 +405,13 @@ export const OnboardingProvider = ({ children }) => {
     try {
       setIsLoading(true);
       await restoreRepeatBaselineSnapshot();
+      const { error: completionError } = await supabase
+        .from('profiles')
+        .update({ onboarding_step_id: 'completion' })
+        .eq('user_id', user.id);
+
+      if (completionError) throw completionError;
+
       await refreshUser();
       await refreshOnboardingState();
       setCurrentStepId(ONBOARDING_STEPS[0].id);
@@ -422,7 +429,7 @@ export const OnboardingProvider = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [isRepeatingOnboarding, refreshOnboardingState, refreshUser, restoreRepeatBaselineSnapshot, toast]);
+  }, [isRepeatingOnboarding, refreshOnboardingState, refreshUser, restoreRepeatBaselineSnapshot, toast, user?.id]);
 
   const completeOnboarding = useCallback(async () => {
     if (!user) return false;
@@ -509,6 +516,7 @@ export const OnboardingProvider = ({ children }) => {
     isLoading,
     error,
     isOnboardingCompleted,
+    hasCompletedOnboardingOnce: isOnboardingCompleted,
     isOpen,
     setIsOpen,
     nextStep,

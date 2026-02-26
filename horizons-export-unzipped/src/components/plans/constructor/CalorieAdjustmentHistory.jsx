@@ -33,7 +33,9 @@ const CalorieAdjustmentHistory = ({
     overrides = [], 
     loading = false, 
     onDelete, 
-    readOnly = false 
+    readOnly = false,
+    activeOverrideId = null,
+    onSelectOverride
 }) => {
     
     // DEBUGGING: Log received props to verify data flow
@@ -83,15 +85,26 @@ const CalorieAdjustmentHistory = ({
     return (
         <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
             {sortedOverrides.map((override, index) => {
-                // Since list is sorted by created_at DESC, index 0 is always the active/latest
-                const isActive = index === 0;
+                const isDefaultActive = index === 0;
+                const isActive = activeOverrideId ? override.id === activeOverrideId : isDefaultActive;
                 
                 return (
                     <Card 
-                        key={override.id} 
+                        key={override.id}
+                        role={onSelectOverride ? "button" : undefined}
+                        tabIndex={onSelectOverride ? 0 : undefined}
+                        onClick={() => onSelectOverride?.(override.id)}
+                        onKeyDown={(event) => {
+                            if (!onSelectOverride) return;
+                            if (event.key === 'Enter' || event.key === ' ') {
+                                event.preventDefault();
+                                onSelectOverride(override.id);
+                            }
+                        }}
                         className={cn(
                             "border-gray-800 bg-gray-900/40 transition-all hover:bg-gray-900/60 group",
-                            isActive && "border-green-500/30 bg-green-500/5 shadow-sm shadow-green-900/10"
+                            onSelectOverride && "cursor-pointer",
+                            isActive && "border-green-500/40 bg-green-500/10 shadow-sm shadow-green-900/20"
                         )}
                     >
                         <CardContent className="p-3 pl-4 flex items-center justify-between">
@@ -127,6 +140,7 @@ const CalorieAdjustmentHistory = ({
                                         <Button 
                                             variant="ghost" 
                                             size="icon" 
+                                            onClick={(event) => event.stopPropagation()}
                                             className="text-red-500 hover:text-red-400 hover:bg-red-950/30 transition-colors h-8 w-8"
                                         >
                                             <Trash2 className="w-4 h-4" />
