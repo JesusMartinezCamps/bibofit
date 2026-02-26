@@ -15,30 +15,61 @@ export const useDietPlanHeaderData = ({ userId, logDate, isAdminView, toast }) =
     setPlanStatus({ hasPlans: false, closestPlanLabel: null });
 
     try {
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select(`
-          full_name,
-          tdee_kcal,
-          user_medical_conditions(medical_conditions(id, name, description)),
-          user_sensitivities(sensitivities(id, name, description))
-        `)
-        .eq('user_id', userId)
-        .single();
+      const [
+        profileRes,
+        planRes,
+        weightDayRes,
+        preferredRes,
+        nonPreferredRes,
+        individualRes,
+        remindersRes,
+      ] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select(`
+            full_name,
+            tdee_kcal,
+            user_medical_conditions(medical_conditions(id, name, description)),
+            user_sensitivities(sensitivities(id, name, description))
+          `)
+          .eq('user_id', userId)
+          .single(),
+        supabase
+          .from('diet_plans')
+          .select(`
+            id, name, start_date, end_date, protein_pct, carbs_pct, fat_pct,
+            sensitivities:diet_plan_sensitivities(sensitivities(id, name, description)),
+            medical_conditions:diet_plan_medical_conditions(medical_conditions(id, name, description))
+          `)
+          .eq('user_id', userId)
+          .eq('is_active', true)
+          .lte('start_date', logDate)
+          .gte('end_date', logDate)
+          .maybeSingle(),
+        supabase
+          .from('weight_logs')
+          .select('*, satiety_levels(name, emoji)')
+          .eq('user_id', userId)
+          .eq('logged_on', logDate)
+          .maybeSingle(),
+        supabase.from('preferred_foods').select('food(id, name)').eq('user_id', userId),
+        supabase.from('non_preferred_foods').select('food(id, name)').eq('user_id', userId),
+        supabase.from('user_individual_food_restrictions').select('food(id, name)').eq('user_id', userId),
+        isAdminView
+          ? supabase
+              .from('reminders')
+              .select('*')
+              .eq('user_id', userId)
+              .in('category', ['Dieta', 'Personal'])
+              .lte('start_date', logDate)
+              .gte('end_date', logDate)
+          : Promise.resolve({ data: [], error: null }),
+      ]);
+
+      const { data: profileData, error: profileError } = profileRes;
       if (profileError) throw profileError;
 
-      const { data: dietPlan, error: planError } = await supabase
-        .from('diet_plans')
-        .select(`
-          id, name, start_date, end_date, protein_pct, carbs_pct, fat_pct,
-          sensitivities:diet_plan_sensitivities(sensitivities(id, name, description)),
-          medical_conditions:diet_plan_medical_conditions(medical_conditions(id, name, description))
-        `)
-        .eq('user_id', userId)
-        .eq('is_active', true)
-        .lte('start_date', logDate)
-        .gte('end_date', logDate)
-        .maybeSingle();
+      const { data: dietPlan, error: planError } = planRes;
 
       if (planError && planError.code !== 'PGRST116') {
         throw planError;
@@ -78,12 +109,7 @@ export const useDietPlanHeaderData = ({ userId, logDate, isAdminView, toast }) =
         calorieOverrides = overridesData || [];
       }
 
-      const { data: weightForDayData, error: weightDayError } = await supabase
-        .from('weight_logs')
-        .select('*, satiety_levels(name, emoji)')
-        .eq('user_id', userId)
-        .eq('logged_on', logDate)
-        .maybeSingle();
+      const { data: weightForDayData, error: weightDayError } = weightDayRes;
       if (weightDayError && weightDayError.code !== 'PGRST116') throw weightDayError;
       setWeightForDay(weightForDayData);
 
@@ -142,23 +168,11 @@ export const useDietPlanHeaderData = ({ userId, logDate, isAdminView, toast }) =
         }
       }
 
-      if (isAdminView) {
-        const { data: remindersData, error: remindersError } = await supabase
-          .from('reminders')
-          .select('*')
-          .eq('user_id', userId)
-          .in('category', ['Dieta', 'Personal'])
-          .lte('start_date', logDate)
-          .gte('end_date', logDate);
-        if (remindersError) throw remindersError;
-        setReminders(remindersData || []);
+      if (remindersRes.error) throw remindersRes.error;
+      setReminders(remindersRes.data || []);
+      if (preferredRes.error || nonPreferredRes.error || individualRes.error) {
+        throw preferredRes.error || nonPreferredRes.error || individualRes.error;
       }
-
-      const [preferredRes, nonPreferredRes, individualRes] = await Promise.all([
-        supabase.from('preferred_foods').select('food(id, name)').eq('user_id', userId),
-        supabase.from('non_preferred_foods').select('food(id, name)').eq('user_id', userId),
-        supabase.from('user_individual_food_restrictions').select('food(id, name)').eq('user_id', userId),
-      ]);
 
       setData({
         profile: profileData,
