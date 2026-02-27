@@ -15,7 +15,7 @@ const IngredientLayoutSelector = ({ value, onChange }) => {
             variant="outline"
             onClick={() => onChange(option.id)}
             className={cn(
-              'h-auto flex flex-col items-start p-3 border-slate-700 text-left whitespace-normal',
+              'h-auto flex flex-col items-start p-3 bg-green-200/5 hover:bg-green-600/20 hover:text-green-100 border-slate-700 text-left whitespace-normal',
               isActive && 'border-green-500 bg-green-500/10 text-green-300'
             )}
           >

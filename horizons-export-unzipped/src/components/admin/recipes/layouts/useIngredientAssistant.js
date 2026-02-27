@@ -2,17 +2,14 @@ import { useMemo } from 'react';
 import { calculateMacros } from '@/lib/macroCalculator';
 import { INGREDIENT_LAYOUTS } from './layoutTypes';
 
-const HEALTH_GROUP_KEYWORDS = [
-  'fruta',
-  'verdura',
-  'hortaliza',
-  'semilla',
-  'fruto seco',
-  'legumbre',
-  'cereal',
-  'integral',
-  'procesado sano',
-];
+// Mirrors PRESERVATION_PRIORITY from supabase/functions/_shared/auto-balance/core.ts
+const HEALTH_PRIORITY_GROUPS = {
+  'Verduras y Hortalizas': 5,
+  Frutas: 5,
+  Legumbres: 4,
+  'Frutos secos': 3,
+  Semillas: 3,
+};
 
 const MACRO_GROUP_HINTS = {
   protein: ['carne', 'pescado', 'huevo', 'lacteo', 'proteina', 'legumbre'],
@@ -104,9 +101,47 @@ const buildGroupCoverage = (ingredients = []) => {
   return groups;
 };
 
+const buildPriorityCoverage = (ingredients = []) => {
+  const priorityEntries = Object.keys(HEALTH_PRIORITY_GROUPS).map((name) => ({
+    raw: name,
+    normalized: name.toLowerCase(),
+  }));
+  const coveredNormalized = new Set();
+
+  ingredients.forEach((ing) => {
+    getFoodGroups(ing.food).forEach((groupName) => {
+      const lowerName = groupName.toLowerCase();
+      const exact = priorityEntries.find((priorityName) => priorityName.normalized === lowerName);
+      if (exact) coveredNormalized.add(exact.normalized);
+    });
+  });
+
+  const covered = priorityEntries
+    .filter((entry) => coveredNormalized.has(entry.normalized))
+    .map((entry) => entry.raw);
+  const missing = priorityEntries
+    .filter((entry) => !coveredNormalized.has(entry.normalized))
+    .map((entry) => entry.raw);
+  const completionPct = priorityEntries.length === 0
+    ? 0
+    : Math.round((covered.length / priorityEntries.length) * 100);
+
+  return {
+    coveredPriorityGroupNames: covered,
+    missingPriorityGroupNames: missing,
+    completionPct,
+    targetCount: priorityEntries.length,
+  };
+};
+
 const hasGroupKeyword = (food, keywords) => {
   const groupNames = getFoodGroups(food).map((name) => name.toLowerCase());
   return groupNames.some((groupName) => keywords.some((keyword) => groupName.includes(keyword)));
+};
+
+const hasPriorityGroup = (food) => {
+  const groupNames = getFoodGroups(food).map((name) => name.toLowerCase());
+  return groupNames.some((groupName) => Object.keys(HEALTH_PRIORITY_GROUPS).some((priority) => priority.toLowerCase() === groupName));
 };
 
 const getMicronutrientCount = (food) => {
@@ -141,7 +176,7 @@ const buildFoodScore = ({ food, layout, restrictions, groupCoverage, macroNeeds 
 
   const preferredBoost = restrictions.preferredFoods.has(String(food.id)) ? 18 : 0;
   const micronutrientScore = getMicronutrientCount(food) * 3;
-  const healthGroupBoost = hasGroupKeyword(food, HEALTH_GROUP_KEYWORDS) ? 12 : 0;
+  const healthGroupBoost = hasPriorityGroup(food) ? 12 : 0;
 
   const groupNoveltyBoost = getFoodGroups(food).some((groupName) => !groupCoverage.has(groupName.toLowerCase())) ? 8 : 0;
 
@@ -154,9 +189,11 @@ const buildFoodScore = ({ food, layout, restrictions, groupCoverage, macroNeeds 
   const fatsNeedBoost = macroNeeds.fatsGap > 0 ? Math.max(0, fatsDensity) * 0.7 : 0;
 
   if (layout === INGREDIENT_LAYOUTS.HEALTH) {
+    const priorityName = getFoodGroups(food).find((groupName) => HEALTH_PRIORITY_GROUPS[groupName] !== undefined);
+    const preservationBoost = priorityName ? HEALTH_PRIORITY_GROUPS[priorityName] * 3 : 0;
     return {
-      total: preferredBoost + micronutrientScore + healthGroupBoost + groupNoveltyBoost + proteinNeedBoost * 0.2,
-      reason: 'Mayor densidad de micronutrientes y mejor diversidad de grupos.',
+      total: preferredBoost + micronutrientScore + healthGroupBoost + groupNoveltyBoost + preservationBoost + proteinNeedBoost * 0.2,
+      reason: 'Refuerza cobertura de familias prioritarias y densidad de micronutrientes.',
     };
   }
 
@@ -221,13 +258,23 @@ export const useIngredientAssistant = ({
     const healthCoverage = {
       coveredGroups: Array.from(groupCoverage),
       micronutrientIngredientCount: ingredients.filter((ing) => getMicronutrientCount(ing.food) > 0).length,
+      ...buildPriorityCoverage(ingredients),
     };
+
+    const selectedFoodIds = ingredients.reduce((acc, ing) => {
+      const foodId = String(ing.food_id || ing.food?.id || '');
+      if (!foodId) return acc;
+      acc[foodId] = (acc[foodId] || 0) + 1;
+      return acc;
+    }, {});
 
     return {
       topSuggestions,
       macroLanes,
       healthCoverage,
       macroNeeds,
+      selectedFoodIds,
+      healthPriorityGroups: HEALTH_PRIORITY_GROUPS,
     };
   }, [layout, ingredients, allFoods, mealTargetMacros, planRestrictions]);
 };

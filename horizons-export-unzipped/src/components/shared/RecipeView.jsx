@@ -593,6 +593,7 @@ const RecipeView = ({
   mealTargetMacros,
   disableAutoBalance = false,
   enableStickyMacros = true,
+  headerSlot = null,
   isTemplate = false, // New prop
   quickEditIngredientKey = null,
   onQuickEditConsumed
@@ -998,6 +999,12 @@ const RecipeView = ({
             <Badge variant="outline" className="border-purple-500 text-purple-400 bg-purple-900/20">
                 Modo Plantilla
             </Badge>
+        </div>
+      )}
+
+      {headerSlot && (
+        <div className="relative z-10">
+          {headerSlot}
         </div>
       )}
 
