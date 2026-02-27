@@ -107,7 +107,7 @@ const RecipeImageUpload = ({ value, onChange, disabled }) => {
           <Button
             type="button"
             variant="outline"
-            className="bg-[#1a1e23] border-gray-700 hover:bg-gray-800 text-gray-200 w-fit"
+            className="bg-[#1a1e23] border-gray-700 hover:bg-gray-800 hover:text-gray-100 text-gray-200 w-fit"
             onClick={() => fileInputRef.current?.click()}
             disabled={disabled}
           >

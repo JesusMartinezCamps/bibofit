@@ -33,7 +33,7 @@ const recipeSchema = z.object({
   })).min(1, 'Añade al menos un ingrediente'),
 });
 
-const RecipeFormContainer = ({ selectedRecipe, onSave }) => {
+const RecipeFormContainer = ({ selectedRecipe, onSave, resetSignal = 0 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [allFoods, setAllFoods] = useState([]);
   const [macros, setMacros] = useState({ calories: 0, proteins: 0, carbs: 0, fats: 0 });
@@ -95,7 +95,7 @@ const RecipeFormContainer = ({ selectedRecipe, onSave }) => {
       });
       setImageFile(null);
     }
-  }, [selectedRecipe, reset]);
+  }, [selectedRecipe, reset, resetSignal]);
 
   const handleIngredientsChange = useCallback((newIngredients) => {
     setValue('ingredients', newIngredients, { shouldValidate: true });
@@ -111,6 +111,7 @@ const RecipeFormContainer = ({ selectedRecipe, onSave }) => {
       let recipeId = selectedRecipe?.id;
 
       // 1. Upsert Recipe
+      let savedRecipe = null;
       if (selectedRecipe) {
         const { data: updatedRecipe, error } = await supabase
           .from('recipes')
@@ -125,6 +126,7 @@ const RecipeFormContainer = ({ selectedRecipe, onSave }) => {
           .single();
         if (error) throw error;
         recipeId = updatedRecipe.id;
+        savedRecipe = updatedRecipe;
       } else {
         const { data: { user } } = await supabase.auth.getUser();
         const { data: newRecipe, error } = await supabase
@@ -140,6 +142,7 @@ const RecipeFormContainer = ({ selectedRecipe, onSave }) => {
           .single();
         if (error) throw error;
         recipeId = newRecipe.id;
+        savedRecipe = newRecipe;
       }
 
       // 2. Upload Image if new file selected
@@ -209,7 +212,18 @@ const RecipeFormContainer = ({ selectedRecipe, onSave }) => {
         description: `Receta ${selectedRecipe ? 'actualizada' : 'creada'} correctamente.`,
       });
       
-      if (onSave) onSave();
+      if (onSave) {
+        const { data: freshRecipe } = await supabase
+          .from('recipes')
+          .select(`
+            *,
+            recipe_ingredients:recipe_ingredients(*, food:food(name)),
+            recipe_sensitivities:recipe_sensitivities(*, sensitivities:sensitivities(id, name))
+          `)
+          .eq('id', recipeId)
+          .single();
+        onSave(freshRecipe || savedRecipe);
+      }
 
     } catch (error) {
       console.error(error);
@@ -281,7 +295,7 @@ const RecipeFormContainer = ({ selectedRecipe, onSave }) => {
         {errors.ingredients && <p className="text-red-500 text-xs mt-1">{errors.ingredients.message}</p>}
 
         <div className="flex justify-end">
-          <Button type="submit" disabled={isFormDisabled} className="bg-green-600 hover:bg-green-700 text-white">
+          <Button type="submit" disabled={isFormDisabled} className="bg-green-600/60 hover:bg-green-700 text-white">
             {isFormDisabled ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
             {isUploading ? 'Subiendo Imagen...' : isSubmitting ? 'Guardando...' : selectedRecipe ? 'Guardar Cambios' : 'Crear Receta'}
           </Button>

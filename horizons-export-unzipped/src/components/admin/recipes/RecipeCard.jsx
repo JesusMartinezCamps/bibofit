@@ -76,7 +76,8 @@ const RecipeCard = ({
   onCardClick,
   isPlanner = false,
   userRestrictions,
-  highlight = ''
+  highlight = '',
+  selected = false
 }) => {
   // Calculate macros using the robust utility
   // Prioritize DB macros if available, otherwise calculate from ingredients
@@ -102,6 +103,7 @@ const RecipeCard = ({
 
   const handleAddClick = (e) => {
     e.stopPropagation();
+    if (!onAdd) return;
     if (hasConflicts && onEditConflict) {
       onEditConflict(recipe, conflicts);
     } else {
@@ -112,7 +114,7 @@ const RecipeCard = ({
   const themeClasses = {
       green: {
           badge: "bg-green-900/20 text-green-400 border-green-500/30",
-          button: "bg-green-600 hover:bg-green-500 text-white",
+          button: "bg-green-600/30 hover:bg-green-500 text-white",
           buttonConflict: "bg-red-600 hover:bg-red-500 text-white",
           border: "border-gray-800 hover:border-green-500/50"
       },
@@ -126,9 +128,19 @@ const RecipeCard = ({
 
   return (
     <Card 
+        style={
+          recipe.image_url
+            ? {
+                backgroundImage: `linear-gradient(rgba(2, 6, 23, 0.9), rgba(2, 6, 23, 0.55)), url(${recipe.image_url})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+              }
+            : undefined
+        }
         className={cn(
             "bg-[#12161d] transition-all duration-300 flex flex-col h-full group cursor-pointer relative overflow-hidden border",
-            themeClasses.border
+            themeClasses.border,
+            selected && "ring-2 ring-green-400/80 border-green-400"
         )}
         onClick={() => onCardClick && onCardClick(recipe)}
     >
@@ -224,19 +236,21 @@ const RecipeCard = ({
             </div>
         </div>
 
-        <Button 
-            className={cn(
-                "w-full h-9 text-sm font-medium shadow-lg shadow-black/20",
-                hasConflicts && onEditConflict ? themeClasses.buttonConflict : themeClasses.button
-            )}
-            onClick={handleAddClick}
-        >
-            {hasConflicts && onEditConflict ? (
-                <span className="flex items-center gap-2"><AlertTriangle className="w-4 h-4" /> Revisar Conflictos</span>
-            ) : (
-                addButtonText
-            )}
-        </Button>
+        {onAdd && (
+          <Button 
+              className={cn(
+                  "w-full h-9 text-sm font-medium shadow-lg shadow-black/20",
+                  hasConflicts && onEditConflict ? themeClasses.buttonConflict : themeClasses.button
+              )}
+              onClick={handleAddClick}
+          >
+              {hasConflicts && onEditConflict ? (
+                  <span className="flex items-center gap-2"><AlertTriangle className="w-4 h-4" /> Revisar Conflictos</span>
+              ) : (
+                  addButtonText
+              )}
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );
