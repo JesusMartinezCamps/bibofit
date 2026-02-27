@@ -81,6 +81,32 @@ const IngredientBuilder = ({
     [localIngredients, setLocalIngredients]
   );
 
+  const handleRemoveOneFoodById = useCallback(
+    (foodId) => {
+      const indexToRemove = [...localIngredients]
+        .map((ing, index) => ({ ing, index }))
+        .reverse()
+        .find(({ ing }) => String(ing.food_id || ing.food?.id) === String(foodId))?.index;
+
+      if (indexToRemove === undefined) return;
+      const updatedIngredients = localIngredients.filter((_, index) => index !== indexToRemove);
+      setLocalIngredients(updatedIngredients);
+    },
+    [localIngredients, setLocalIngredients]
+  );
+
+  const handleToggleFoodFromMacroLane = useCallback(
+    (food) => {
+      const exists = localIngredients.some((ing) => String(ing.food_id || ing.food?.id) === String(food.id));
+      if (exists) {
+        handleRemoveOneFoodById(food.id);
+      } else {
+        handleAddFoodFromAssistant(food);
+      }
+    },
+    [localIngredients, handleAddFoodFromAssistant, handleRemoveOneFoodById]
+  );
+
   const handleListIngredientsReplace = useCallback(
     (updatedIngredients) => {
       const normalized = updatedIngredients.map((ing) => ({
@@ -182,20 +208,26 @@ const IngredientBuilder = ({
       <MacrosLayout
         {...commonProps}
         assistant={assistant}
-        onPickFood={handleAddFoodFromAssistant}
+        onToggleFood={handleToggleFoodFromMacroLane}
       />
     );
   };
   
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h4 className="text-lg font-semibold text-[#5ebe7d]">Constructor de Ingredientes</h4>
+      <div className="rounded-lg border border-slate-700 bg-slate-900/70 p-4 space-y-3">
+        <div className="flex justify-between items-center">
+          <h4 className="text-lg font-semibold text-[#5ebe7d]">Constructor de Ingredientes</h4>
+        </div>
+        <p className="text-xs text-slate-300">
+          Header del asistente: selecciona el layout desde aquí. Debajo se renderiza la zona dinámica según la perspectiva elegida.
+        </p>
+        <IngredientLayoutSelector value={layout} onChange={setLayout} />
       </div>
 
-      <IngredientLayoutSelector value={layout} onChange={setLayout} />
-
-      {renderLayout()}
+      <div className="rounded-lg border border-slate-800 bg-slate-950/40 p-3">
+        {renderLayout()}
+      </div>
 
       <div className="flex flex-col sm:flex-row gap-2 mt-3">
         <Button 

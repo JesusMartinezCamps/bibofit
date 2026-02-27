@@ -1,23 +1,34 @@
 import React from 'react';
-import { Button } from '@/components/ui/button';
 import AssistantRecommendationPanel from './AssistantRecommendationPanel';
 import IngredientTableLayout from './IngredientTableLayout';
+import { cn } from '@/lib/utils';
 
-const MacroLane = ({ title, gap, foods, onPickFood }) => {
+const MacroLane = ({ title, foods, selectedFoodIds, onToggleFood }) => {
   return (
     <div className="rounded-lg border border-slate-700 bg-slate-900/70 p-3 space-y-2">
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold text-slate-100">{title}</p>
-        <p className="text-xs text-slate-300">Gap: {Math.round(gap || 0)}g</p>
       </div>
       <div className="space-y-1">
         {foods.map((item) => (
-          <div key={item.food.id} className="flex items-center justify-between gap-2">
-            <p className="text-xs text-slate-200 truncate">{item.food.name}</p>
-            <Button type="button" size="sm" variant="outline" className="h-7 border-blue-700 text-blue-300" onClick={() => onPickFood(item.food)}>
-              Añadir
-            </Button>
-          </div>
+          <button
+            key={item.food.id}
+            type="button"
+            onClick={() => onToggleFood(item.food)}
+            className={cn(
+              'w-full rounded-md border px-2 py-2 text-left transition-colors',
+              selectedFoodIds[String(item.food.id)]
+                ? 'border-green-600 bg-green-700/20 text-green-200'
+                : 'border-slate-700 bg-slate-900/60 text-slate-200 hover:border-blue-600 hover:bg-blue-700/10'
+            )}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs truncate">{item.food.name}</p>
+              <span className="text-[11px]">
+                {selectedFoodIds[String(item.food.id)] ? `Quitar (${selectedFoodIds[String(item.food.id)]})` : 'Añadir'}
+              </span>
+            </div>
+          </button>
         ))}
       </div>
     </div>
@@ -26,7 +37,7 @@ const MacroLane = ({ title, gap, foods, onPickFood }) => {
 
 const MacrosLayout = ({
   assistant,
-  onPickFood,
+  onToggleFood,
   ingredients,
   allFoods,
   availableFoods,
@@ -39,17 +50,31 @@ const MacrosLayout = ({
 }) => {
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-        <MacroLane title="Fila Proteínas" gap={assistant.macroNeeds.proteinGap} foods={assistant.macroLanes.protein} onPickFood={onPickFood} />
-        <MacroLane title="Fila Carbohidratos" gap={assistant.macroNeeds.carbsGap} foods={assistant.macroLanes.carbs} onPickFood={onPickFood} />
-        <MacroLane title="Fila Grasas" gap={assistant.macroNeeds.fatsGap} foods={assistant.macroLanes.fats} onPickFood={onPickFood} />
-      </div>
       <AssistantRecommendationPanel
         title="Asistente Macros"
-        subtitle="Recomendación de alimentos limpios en P/C/G priorizando tus favoritos."
-        suggestions={assistant.topSuggestions.slice(0, 4)}
-        onPickFood={onPickFood}
+        subtitle="Esta vista te permite cuadrar proteínas, carbohidratos y grasas con interacción rápida: pulsa cualquier alimento de las filas para añadirlo o quitarlo."
+        infoOnly={true}
       />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+        <MacroLane
+          title="Fila Proteínas"
+          foods={assistant.macroLanes.protein}
+          selectedFoodIds={assistant.selectedFoodIds}
+          onToggleFood={onToggleFood}
+        />
+        <MacroLane
+          title="Fila Carbohidratos"
+          foods={assistant.macroLanes.carbs}
+          selectedFoodIds={assistant.selectedFoodIds}
+          onToggleFood={onToggleFood}
+        />
+        <MacroLane
+          title="Fila Grasas"
+          foods={assistant.macroLanes.fats}
+          selectedFoodIds={assistant.selectedFoodIds}
+          onToggleFood={onToggleFood}
+        />
+      </div>
       <IngredientTableLayout
         ingredients={ingredients}
         allFoods={allFoods}

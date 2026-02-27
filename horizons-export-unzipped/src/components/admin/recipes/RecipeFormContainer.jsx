@@ -1,126 +1,221 @@
-
-import React, { useState, useEffect, useCallback } from 'react';
-import { useForm, FormProvider } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Button } from '@/components/ui/button';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Loader2, Save } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabaseClient';
-import IngredientBuilder from './IngredientBuilder';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
+import { calculateMacros } from '@/lib/macroCalculator';
+import RecipeView from '@/components/shared/RecipeView';
+import IngredientSearch from '@/components/plans/IngredientSearch';
 import RecipeImageUpload from './RecipeImageUpload';
 import { useRecipeImageUpload } from './hooks/useRecipeImageUpload';
 
-const recipeSchema = z.object({
-  name: z.string().min(1, 'El nombre es requerido'),
-  prep_time_min: z.preprocess(
-    (val) => (val === '' || val === null ? null : Number(val)),
-    z.number().int().positive().nullable()
-  ),
-  difficulty: z.string().nullable().optional(),
-  instructions: z.string().nullable().optional(),
-  ingredients: z.array(z.object({
-    food_id: z.string().min(1, 'Selecciona un alimento'),
-    grams: z.preprocess(
-      (val) => Number(val),
-      z.number().min(0, 'La cantidad debe ser positiva')
-    ),
-    local_id: z.string(),
-  })).min(1, 'Añade al menos un ingrediente'),
-});
+const EMPTY_RESTRICTIONS = {
+  sensitivities: [],
+  medical_conditions: [],
+  individual_food_restrictions: [],
+  preferred_foods: [],
+  non_preferred_foods: [],
+};
+
+const normalizeIngredient = (ing) => {
+  const idValue = ing.local_id || ing.id || crypto.randomUUID();
+  const rawQuantity = ing.grams ?? ing.quantity ?? '';
+  const isEmpty = rawQuantity === '' || rawQuantity === null || rawQuantity === undefined;
+
+  return {
+    local_id: String(idValue),
+    id: ing.id,
+    food_id: String(ing.food_id || ing.food?.id || ''),
+    grams: isEmpty ? '' : rawQuantity,
+    quantity: isEmpty ? '' : rawQuantity,
+    food_group_id: ing.food_group_id || ing.food?.food_to_food_groups?.[0]?.food_group_id || null,
+    food: ing.food,
+  };
+};
 
 const RecipeFormContainer = ({ selectedRecipe, onSave, resetSignal = 0 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSearchingIngredient, setIsSearchingIngredient] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(true);
   const [allFoods, setAllFoods] = useState([]);
-  const [macros, setMacros] = useState({ calories: 0, proteins: 0, carbs: 0, fats: 0 });
+  const [allVitamins, setAllVitamins] = useState([]);
+  const [allMinerals, setAllMinerals] = useState([]);
+  const [allFoodGroups, setAllFoodGroups] = useState([]);
+  const [recipeData, setRecipeData] = useState({
+    name: '',
+    prep_time_min: '',
+    difficulty: 'Fácil',
+    instructions: '',
+    image_url: null,
+  });
+  const [ingredients, setIngredients] = useState([]);
   const [imageFile, setImageFile] = useState(null);
   const { toast } = useToast();
-  
   const { uploadRecipeImage, isUploading } = useRecipeImageUpload();
 
-  const methods = useForm({
-    resolver: zodResolver(recipeSchema),
-    defaultValues: {
-      name: '',
-      prep_time_min: '',
-      difficulty: '',
-      instructions: '',
-      ingredients: [],
-    },
-  });
+  const fetchInitialData = useCallback(async () => {
+    setIsLoadingData(true);
+    try {
+      const [foodsRes, vitaminsRes, mineralsRes, foodGroupsRes] = await Promise.all([
+        supabase
+          .from('food')
+          .select('*, food_sensitivities(*, sensitivities(id, name)), food_medical_conditions(condition_id, relation_type), food_to_food_groups(food_group_id, food_group:food_groups(id, name)), food_vitamins(vitamin_id, vitamins(id, name)), food_minerals(mineral_id, minerals(id, name))')
+          .order('name'),
+        supabase.from('vitamins').select('id, name'),
+        supabase.from('minerals').select('id, name'),
+        supabase.from('food_groups').select('id, name'),
+      ]);
 
-  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = methods;
-  const ingredients = watch('ingredients');
-  const difficultyValue = watch('difficulty');
+      if (foodsRes.error) throw foodsRes.error;
+      if (vitaminsRes.error) throw vitaminsRes.error;
+      if (mineralsRes.error) throw mineralsRes.error;
+      if (foodGroupsRes.error) throw foodGroupsRes.error;
+
+      setAllFoods(foodsRes.data || []);
+      setAllVitamins(vitaminsRes.data || []);
+      setAllMinerals(mineralsRes.data || []);
+      setAllFoodGroups(foodGroupsRes.data || []);
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: `No se pudo cargar la data inicial: ${error.message}`,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoadingData(false);
+    }
+  }, [toast]);
 
   useEffect(() => {
-    const fetchInitialData = async () => {
-      const { data: foodsData, error: foodsError } = await supabase
-        .from('food')
-        .select('*, food_sensitivities(*, sensitivities(id, name)), food_medical_conditions(condition_id, relation_type), food_to_food_groups(food_group_id, food_group:food_groups(id, name)), food_vitamins(vitamin_id, vitamins(id, name)), food_minerals(mineral_id, minerals(id, name))')
-        .order('name');
-        
-      if (foodsError) console.error('Error fetching foods:', foodsError);
-      else setAllFoods(foodsData || []);
-    };
     fetchInitialData();
-  }, []);
+  }, [fetchInitialData]);
 
   useEffect(() => {
     if (selectedRecipe) {
-      reset({
+      const baseIngredients = selectedRecipe.recipe_ingredients || selectedRecipe.ingredients || [];
+      setRecipeData({
         name: selectedRecipe.name || '',
-        prep_time_min: selectedRecipe.prep_time_min || '',
-        difficulty: selectedRecipe.difficulty || '', 
+        prep_time_min: selectedRecipe.prep_time_min ?? '',
+        difficulty: selectedRecipe.difficulty || 'Fácil',
         instructions: selectedRecipe.instructions || '',
-        ingredients: selectedRecipe.recipe_ingredients?.map(ing => ({
-          food_id: String(ing.food_id),
-          grams: ing.grams,
-          local_id: ing.id ? String(ing.id) : Math.random().toString(),
-          food_group_id: ing.food_group_id
-        })) || [],
+        image_url: selectedRecipe.image_url || null,
       });
+      setIngredients(baseIngredients.map(normalizeIngredient));
       setImageFile(selectedRecipe.image_url || null);
-    } else {
-      reset({
-        name: '',
-        prep_time_min: '',
-        difficulty: '',
-        instructions: '',
-        ingredients: [{ local_id: Date.now().toString(), food_id: '', grams: '' }],
-      });
-      setImageFile(null);
+      return;
     }
-  }, [selectedRecipe, reset, resetSignal]);
 
-  const handleIngredientsChange = useCallback((newIngredients) => {
-    setValue('ingredients', newIngredients, { shouldValidate: true });
-  }, [setValue]);
+    setRecipeData({
+      name: '',
+      prep_time_min: '',
+      difficulty: 'Fácil',
+      instructions: '',
+      image_url: null,
+    });
+    setIngredients([]);
+    setImageFile(null);
+  }, [selectedRecipe, resetSignal]);
 
-  const handleMacrosChange = useCallback((newMacros) => {
-    setMacros(newMacros);
+  const normalizedIngredientsForMacros = useMemo(
+    () =>
+      ingredients.map((ing) => ({
+        ...ing,
+        grams: ing.grams === '' || ing.grams === null ? 0 : Number(ing.grams),
+      })),
+    [ingredients]
+  );
+
+  const macros = useMemo(
+    () => calculateMacros(normalizedIngredientsForMacros, allFoods),
+    [normalizedIngredientsForMacros, allFoods]
+  );
+
+  const recipeForView = useMemo(() => {
+    const imageUrl =
+      typeof imageFile === 'string'
+        ? imageFile
+        : recipeData.image_url || selectedRecipe?.image_url || null;
+
+    return {
+      ...recipeData,
+      image_url: imageUrl,
+      ingredients,
+    };
+  }, [recipeData, ingredients, imageFile, selectedRecipe]);
+
+  const handleFormChange = useCallback((e) => {
+    const { name, value } = e.target;
+    setRecipeData((prev) => ({ ...prev, [name]: value }));
   }, []);
 
-  const onSubmit = async (data) => {
+  const handleIngredientsChange = useCallback((newIngredients) => {
+    setIngredients(newIngredients.map(normalizeIngredient));
+  }, []);
+
+  const handleRemoveIngredient = useCallback((ingredientToRemove) => {
+    const ingredientId = ingredientToRemove.local_id || ingredientToRemove.id;
+    setIngredients((prev) =>
+      prev.filter((ing) => String(ing.local_id || ing.id) !== String(ingredientId))
+    );
+  }, []);
+
+  const handleIngredientAdded = useCallback((newIngredientData) => {
+    const selectedFood = allFoods.find((food) => String(food.id) === String(newIngredientData.food_id));
+    const fallbackQuantity = selectedFood?.food_unit === 'unidades' ? 1 : 100;
+    const quantity = newIngredientData.quantity || fallbackQuantity;
+
+    const ingredientToAdd = normalizeIngredient({
+      local_id: crypto.randomUUID(),
+      food_id: String(newIngredientData.food_id),
+      grams: quantity,
+      quantity,
+      food: selectedFood,
+      food_group_id: selectedFood?.food_to_food_groups?.[0]?.food_group_id || null,
+    });
+
+    setIngredients((prev) => [...prev, ingredientToAdd]);
+    setIsSearchingIngredient(false);
+  }, [allFoods]);
+
+  const onSubmit = async () => {
+    if (!recipeData.name?.trim()) {
+      toast({
+        title: 'Error',
+        description: 'El nombre de la receta es obligatorio.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const validIngredients = ingredients.filter((ing) => ing.food_id);
+    if (validIngredients.length === 0) {
+      toast({
+        title: 'Error',
+        description: 'Añade al menos un ingrediente.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       let recipeId = selectedRecipe?.id;
-
-      // 1. Upsert Recipe
       let savedRecipe = null;
+
+      const payload = {
+        name: recipeData.name.trim(),
+        prep_time_min:
+          recipeData.prep_time_min === '' || recipeData.prep_time_min === null
+            ? null
+            : Number(recipeData.prep_time_min),
+        difficulty: recipeData.difficulty || null,
+        instructions: recipeData.instructions || null,
+      };
+
       if (selectedRecipe) {
         const { data: updatedRecipe, error } = await supabase
           .from('recipes')
-          .update({
-            name: data.name,
-            prep_time_min: data.prep_time_min || null,
-            difficulty: data.difficulty,
-            instructions: data.instructions,
-          })
+          .update(payload)
           .eq('id', selectedRecipe.id)
           .select()
           .single();
@@ -128,15 +223,12 @@ const RecipeFormContainer = ({ selectedRecipe, onSave, resetSignal = 0 }) => {
         recipeId = updatedRecipe.id;
         savedRecipe = updatedRecipe;
       } else {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: authData } = await supabase.auth.getUser();
         const { data: newRecipe, error } = await supabase
           .from('recipes')
           .insert({
-            name: data.name,
-            prep_time_min: data.prep_time_min || null,
-            difficulty: data.difficulty,
-            instructions: data.instructions,
-            created_by: user?.id
+            ...payload,
+            created_by: authData?.user?.id,
           })
           .select()
           .single();
@@ -145,12 +237,10 @@ const RecipeFormContainer = ({ selectedRecipe, onSave, resetSignal = 0 }) => {
         savedRecipe = newRecipe;
       }
 
-      // 2. Upload Image if new file selected
       if (imageFile instanceof File) {
         const { success, imageUrl, error: uploadError } = await uploadRecipeImage(recipeId, imageFile);
         if (success && imageUrl) {
           await supabase.from('recipes').update({ image_url: imageUrl }).eq('id', recipeId);
-          toast({ title: 'Imagen subida', description: 'La imagen se subió correctamente.' });
         } else {
           toast({
             title: 'Advertencia',
@@ -159,45 +249,35 @@ const RecipeFormContainer = ({ selectedRecipe, onSave, resetSignal = 0 }) => {
           });
         }
       } else if (imageFile === null && selectedRecipe?.image_url) {
-         // User removed existing image
-         await supabase.from('recipes').update({ image_url: null }).eq('id', recipeId);
+        await supabase.from('recipes').update({ image_url: null }).eq('id', recipeId);
       }
 
-      // 3. Upsert Ingredients
       await supabase.from('recipe_ingredients').delete().eq('recipe_id', recipeId);
-      
-      const ingredientsToInsert = data.ingredients.map(ing => ({
+
+      const ingredientsToInsert = validIngredients.map((ing) => ({
         recipe_id: recipeId,
-        food_id: parseInt(ing.food_id),
-        grams: parseFloat(ing.grams),
+        food_id: parseInt(ing.food_id, 10),
+        grams: Number(ing.grams || 0),
       }));
-      
+
       const { error: insertError } = await supabase.from('recipe_ingredients').insert(ingredientsToInsert);
       if (insertError) throw insertError;
 
-      // 4. Update Sensitivities
-      const foodIds = data.ingredients.map(ing => ing.food_id);
       const uniqueSensitivityIds = new Set();
-      
-      if (allFoods.length > 0) {
-        foodIds.forEach(foodId => {
-          const food = allFoods.find(f => String(f.id) === String(foodId));
-          if (food && food.food_sensitivities) {
-            food.food_sensitivities.forEach(fs => uniqueSensitivityIds.add(fs.sensitivity_id));
-          }
-        });
-      }
+      validIngredients.forEach((ingredient) => {
+        const food = allFoods.find((item) => String(item.id) === String(ingredient.food_id));
+        food?.food_sensitivities?.forEach((fs) => uniqueSensitivityIds.add(fs.sensitivity_id));
+      });
 
       await supabase.from('recipe_sensitivities').delete().eq('recipe_id', recipeId);
       if (uniqueSensitivityIds.size > 0) {
-        const sensitivitiesToInsert = Array.from(uniqueSensitivityIds).map(id => ({
+        const sensitivitiesToInsert = Array.from(uniqueSensitivityIds).map((id) => ({
           recipe_id: recipeId,
           sensitivity_id: id,
         }));
         await supabase.from('recipe_sensitivities').insert(sensitivitiesToInsert);
       }
 
-      // 5. Update Macros Cache
       await supabase.from('recipe_macros').delete().eq('recipe_id', recipeId);
       await supabase.from('recipe_macros').insert({
         recipe_id: recipeId,
@@ -207,26 +287,23 @@ const RecipeFormContainer = ({ selectedRecipe, onSave, resetSignal = 0 }) => {
         fats: macros.fats,
       });
 
+      const { data: freshRecipe } = await supabase
+        .from('recipes')
+        .select(`
+          *,
+          recipe_ingredients:recipe_ingredients(*, food:food(name)),
+          recipe_sensitivities:recipe_sensitivities(*, sensitivities:sensitivities(id, name))
+        `)
+        .eq('id', recipeId)
+        .single();
+
       toast({
         title: '¡Éxito!',
         description: `Receta ${selectedRecipe ? 'actualizada' : 'creada'} correctamente.`,
       });
-      
-      if (onSave) {
-        const { data: freshRecipe } = await supabase
-          .from('recipes')
-          .select(`
-            *,
-            recipe_ingredients:recipe_ingredients(*, food:food(name)),
-            recipe_sensitivities:recipe_sensitivities(*, sensitivities:sensitivities(id, name))
-          `)
-          .eq('id', recipeId)
-          .single();
-        onSave(freshRecipe || savedRecipe);
-      }
 
+      if (onSave) onSave(freshRecipe || savedRecipe);
     } catch (error) {
-      console.error(error);
       toast({
         title: 'Error',
         description: `No se pudo guardar la receta: ${error.message}`,
@@ -237,71 +314,69 @@ const RecipeFormContainer = ({ selectedRecipe, onSave, resetSignal = 0 }) => {
     }
   };
 
-  const isFormDisabled = isSubmitting || isUploading;
+  if (isLoadingData) {
+    return (
+      <div className="flex justify-center items-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin text-[#5ebe7d]" />
+      </div>
+    );
+  }
+
+  if (isSearchingIngredient) {
+    return (
+      <div className="space-y-4">
+        <IngredientSearch
+          selectedIngredients={ingredients}
+          availableFoods={allFoods}
+          userRestrictions={EMPTY_RESTRICTIONS}
+          onBack={() => setIsSearchingIngredient(false)}
+          onIngredientAdded={handleIngredientAdded}
+        />
+      </div>
+    );
+  }
 
   return (
-    <FormProvider {...methods}>
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="name">Nombre de la Receta</Label>
-            <Input id="name" {...register('name')} placeholder="Ej: Pollo con arroz" className="input-field" disabled={isFormDisabled} />
-            {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
-          </div>
-          
-          <div className="space-y-2 md:col-span-2">
-            <RecipeImageUpload 
-              value={imageFile} 
-              onChange={setImageFile} 
-              disabled={isFormDisabled}
-            />
-          </div>
+    <div className="space-y-4">
+      <RecipeView
+        recipe={recipeForView}
+        allFoods={allFoods}
+        allVitamins={allVitamins}
+        allMinerals={allMinerals}
+        allFoodGroups={allFoodGroups}
+        macros={macros}
+        userRestrictions={EMPTY_RESTRICTIONS}
+        isEditing={true}
+        onFormChange={handleFormChange}
+        onIngredientsChange={handleIngredientsChange}
+        onRemoveIngredient={handleRemoveIngredient}
+        onAddIngredientClick={() => setIsSearchingIngredient(true)}
+        disableAutoBalance={true}
+        headerSlot={
+          <RecipeImageUpload
+            value={imageFile}
+            onChange={setImageFile}
+            disabled={isSubmitting || isUploading}
+          />
+        }
+      />
 
-          <div className="space-y-2">
-            <Label htmlFor="prep_time_min">Tiempo (min)</Label>
-            <Input id="prep_time_min" type="number" {...register('prep_time_min')} placeholder="Ej: 30" className="input-field" disabled={isFormDisabled} />
-            {errors.prep_time_min && <p className="text-red-500 text-xs mt-1">{errors.prep_time_min.message}</p>}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="difficulty">Dificultad</Label>
-            <Select 
-                onValueChange={(value) => setValue('difficulty', value)} 
-                value={difficultyValue || ''}
-                disabled={isFormDisabled}
-            >
-              <SelectTrigger className="input-field">
-                <SelectValue placeholder="Selecciona dificultad" />
-              </SelectTrigger>
-              <SelectContent className="bg-[#1a1e23] border-gray-700 text-white">
-                <SelectItem value="Fácil">Fácil</SelectItem>
-                <SelectItem value="Media">Media</SelectItem>
-                <SelectItem value="Difícil">Difícil</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="instructions">Instrucciones</Label>
-            <Textarea id="instructions" {...register('instructions')} rows={5} placeholder="Describe los pasos de la receta..." className="input-field" disabled={isFormDisabled} />
-          </div>
-        </div>
-
-        <IngredientBuilder
-          ingredients={ingredients}
-          onIngredientsChange={handleIngredientsChange}
-          availableFoods={allFoods}
-          onMacrosChange={handleMacrosChange}
-          displayMode="inform"
-        />
-        {errors.ingredients && <p className="text-red-500 text-xs mt-1">{errors.ingredients.message}</p>}
-
-        <div className="flex justify-end">
-          <Button type="submit" disabled={isFormDisabled} className="bg-green-600/60 hover:bg-green-700 text-white">
-            {isFormDisabled ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            {isUploading ? 'Subiendo Imagen...' : isSubmitting ? 'Guardando...' : selectedRecipe ? 'Guardar Cambios' : 'Crear Receta'}
-          </Button>
-        </div>
-      </form>
-    </FormProvider>
+      <div className="flex justify-end">
+        <Button
+          type="button"
+          disabled={isSubmitting || isUploading}
+          onClick={onSubmit}
+          className="bg-green-600/60 hover:bg-green-700 text-white"
+        >
+          {isSubmitting || isUploading ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="mr-2 h-4 w-4" />
+          )}
+          {isUploading ? 'Subiendo Imagen...' : isSubmitting ? 'Guardando...' : selectedRecipe ? 'Guardar Cambios' : 'Crear Receta'}
+        </Button>
+      </div>
+    </div>
   );
 };
 

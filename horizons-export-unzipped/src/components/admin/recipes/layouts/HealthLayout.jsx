@@ -17,17 +17,26 @@ const HealthLayout = ({
 }) => {
   return (
     <div className="space-y-3">
-      <div className="rounded-lg border border-emerald-700/50 bg-emerald-900/10 p-3">
+      <div className="rounded-lg border border-emerald-700/50 bg-green-900/10 p-3">
         <p className="text-sm text-emerald-300 font-medium">
-          Cobertura Salud: {assistant.healthCoverage.micronutrientIngredientCount} ingredientes con micronutrientes
+          Cobertura Salud: {assistant.healthCoverage.completionPct}% ({assistant.healthCoverage.coveredPriorityGroupNames.length}/{assistant.healthCoverage.targetCount} familias)
         </p>
         <p className="text-xs text-slate-300 mt-1">
-          Grupos cubiertos: {assistant.healthCoverage.coveredGroups.length > 0 ? assistant.healthCoverage.coveredGroups.join(', ') : 'Aún no hay grupos'}
+          Una comida completa en este layout es incluir al menos 1 alimento de cada familia prioritaria.
         </p>
+        {assistant.healthCoverage.missingPriorityGroupNames.length > 0 ? (
+          <p className="text-xs text-emerald-200/90 mt-2">
+            Te faltan por cubrir: {assistant.healthCoverage.missingPriorityGroupNames.join(', ')}. Vas bien, sigue sumando variedad.
+          </p>
+        ) : (
+          <p className="text-xs text-emerald-200/90 mt-2">
+            Excelente, ya cubres todas las familias prioritarias.
+          </p>
+        )}
       </div>
       <AssistantRecommendationPanel
         title="Asistente Salud"
-        subtitle="Prioriza vitaminas, minerales y diversidad de grupos sin romper patologías ni preferencias."
+        subtitle="Prioriza familias (Verduras y Hortalizas, Frutas, Legumbres, Frutos secos, Semillas) junto con micronutrientes. El objetivo es animarte a completar la cobertura, no penalizarte."
         suggestions={assistant.topSuggestions.slice(0, 6)}
         onPickFood={onPickFood}
       />
