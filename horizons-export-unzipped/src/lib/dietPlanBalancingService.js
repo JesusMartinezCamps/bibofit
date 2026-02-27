@@ -83,21 +83,38 @@ export const validatePayloadBeforeSending = (payload) => {
     errors.push(`Invalid meals: must be a non-empty array.`);
   } else {
     payload.meals.forEach((meal, index) => {
-        if (!meal.day_meal_id) errors.push(`Meal at index ${index} missing day_meal_id`);
+        const mealId = Number(meal.day_meal_id);
+        if (!Number.isInteger(mealId) || mealId <= 0) {
+          errors.push(`Meal at index ${index} has invalid day_meal_id: ${meal.day_meal_id}`);
+          return;
+        }
 
         const hasRecipesPayload = Array.isArray(meal.recipes) && meal.recipes.length > 0;
-        const hasRecipeIdsPayload = Array.isArray(meal.recipe_ids) && meal.recipe_ids.length > 0;
-
-        if (!hasRecipesPayload && !hasRecipeIdsPayload) {
-             errors.push(`Meal (ID: ${meal.day_meal_id}) has no recipes assigned. Please add recipes to the template before assigning.`);
+        if (!hasRecipesPayload) {
+             errors.push(`Meal (ID: ${meal.day_meal_id}) has no detailed recipes assigned.`);
             return;
         }
 
         if (hasRecipesPayload) {
             meal.recipes.forEach((recipe, recipeIndex) => {
-                if (!recipe?.recipe_id) {
+                const recipeId = Number(recipe?.recipe_id);
+                if (!Number.isInteger(recipeId) || recipeId <= 0) {
                     errors.push(`Meal (ID: ${meal.day_meal_id}) recipe at index ${recipeIndex} missing recipe_id`);
                 }
+                const ingredients = Array.isArray(recipe?.ingredients) ? recipe.ingredients : [];
+                if (ingredients.length === 0) {
+                    errors.push(`Meal (ID: ${meal.day_meal_id}) recipe ${recipe?.recipe_id} has no ingredients`);
+                }
+                ingredients.forEach((ingredient, ingredientIndex) => {
+                    const foodId = Number(ingredient?.food_id);
+                    const grams = Number(ingredient?.grams ?? ingredient?.quantity ?? 0);
+                    if (!Number.isInteger(foodId) || foodId <= 0) {
+                        errors.push(`Meal (ID: ${meal.day_meal_id}) recipe ${recipe?.recipe_id} ingredient ${ingredientIndex} invalid food_id`);
+                    }
+                    if (!Number.isFinite(grams) || grams <= 0) {
+                        errors.push(`Meal (ID: ${meal.day_meal_id}) recipe ${recipe?.recipe_id} ingredient ${ingredientIndex} invalid grams`);
+                    }
+                });
             });
         }
     });
@@ -133,7 +150,7 @@ export const buildMacroBalancingParams = ({
   mealTargets,
   startDate,
   endDate,
-  groupedRecipes = {} // Expects { mealId: [id1, id2] }
+  groupedRecipes = {} // Expects { mealId: [{ source_row_id, recipe_id, ingredients: [] }] }
 }) => {
   
   if (DEBUG_MODE) {
@@ -145,31 +162,25 @@ export const buildMacroBalancingParams = ({
         // Ensure day_meal_id is used. 
         // If m.id is string "1", "2", etc, it might need conversion.
         // Assuming m.day_meal_id is the reliable DB ID.
-        let mealId = m.day_meal_id || m.dayMealId;
-        
-        // Fallback for string IDs if day_meal_id is missing (rare)
-        if (!mealId && m.id) {
-             mealId = parseInt(m.id, 10);
+        const rawMealId = m.day_meal_id ?? m.dayMealId ?? m.id;
+        const mealId = Number(rawMealId);
+        if (!Number.isInteger(mealId) || mealId <= 0) {
+            throw new Error(`Invalid day_meal_id detected while building payload: ${rawMealId}`);
         }
 
         const groupedMealRecipes = groupedRecipes[mealId] || [];
-        const hasDetailedRecipes = groupedMealRecipes.length > 0 && typeof groupedMealRecipes[0] === 'object';
-        const recipeIds = hasDetailedRecipes ? [] : groupedMealRecipes;
-        const recipes = hasDetailedRecipes
-            ? groupedMealRecipes.map((recipe) => ({
-                source_row_id: Number(recipe.source_row_id),
-                recipe_id: Number(recipe.recipe_id),
-                ingredients: Array.isArray(recipe.ingredients) ? recipe.ingredients : []
-            }))
-            : [];
+        const recipes = groupedMealRecipes.map((recipe) => ({
+            source_row_id: recipe.source_row_id != null ? Number(recipe.source_row_id) : undefined,
+            recipe_id: Number(recipe.recipe_id),
+            ingredients: Array.isArray(recipe.ingredients) ? recipe.ingredients : []
+        }));
         
         if (DEBUG_MODE) {
-            console.log(`   Meal ID: ${mealId} -> Recipes:`, hasDetailedRecipes ? recipes : recipeIds);
+            console.log(`   Meal ID: ${mealId} -> Recipes:`, recipes);
         }
 
         return {
-            day_meal_id: Number(mealId),
-            recipe_ids: recipeIds, // Backward-compatible
+            day_meal_id: mealId,
             recipes, // Detailed payload with effective ingredients (overrides-safe)
             protein_pct: Number(m.protein_pct || 0),
             carbs_pct: Number(m.carbs_pct || 0),

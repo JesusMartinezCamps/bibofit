@@ -238,24 +238,6 @@ const MealAdjustmentStep = ({ onNext, isLoading: isStepLoading }) => {
       const startTime = Date.now();
       let isSuccess = false;
 
-      // Deactivate existing active plans before creating the new one
-      try {
-          const { data: activePlans, error: fetchError } = await supabase
-              .from('diet_plans')
-              .select('id')
-              .eq('user_id', user.id)
-              .eq('is_active', true);
-              
-          if (!fetchError && activePlans && activePlans.length > 0) {
-              await supabase
-                  .from('diet_plans')
-                  .update({ is_active: false })
-                  .in('id', activePlans.map(p => p.id));
-          }
-      } catch (e) {
-          console.error("Error deactivating existing plans:", e);
-      }
-
       try {
         const clientName = user?.full_name?.trim();
         const planName = clientName ? `Dieta de ${clientName}` : 'Dieta de Cliente';
@@ -271,6 +253,18 @@ const MealAdjustmentStep = ({ onNext, isLoading: isStepLoading }) => {
 
         if (result && result.success) {
             isSuccess = true;
+            // Deactivate previous active plans only after the new assignment succeeded.
+            // Keep the newly created plan active.
+            try {
+                await supabase
+                    .from('diet_plans')
+                    .update({ is_active: false })
+                    .eq('user_id', user.id)
+                    .eq('is_active', true)
+                    .neq('id', result.planId);
+            } catch (e) {
+                console.error("Error deactivating previous active plans:", e);
+            }
         } else {
             throw new Error("No se pudo crear el plan.");
         }

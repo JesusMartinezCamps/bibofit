@@ -1,8 +1,7 @@
 import { supabase } from '@/lib/supabaseClient';
 import { 
     buildMacroBalancingParams, 
-    callMacroBalancingEdgeFunction, 
-    fetchRecipesForTemplate
+    callMacroBalancingEdgeFunction
 } from './dietPlanBalancingService';
 import { saveDietPlanRecipeIngredients, calculateMacros, saveRecipeMacros } from '@/lib/macroCalculator';
 import { format } from 'date-fns';
@@ -293,10 +292,8 @@ export const assignDietPlanToUser = async (userId, planData, isOnboarding = fals
         const fullTemplateRecipesRaw = await fetchFullTemplateRecipes(template.id);
         const fullTemplateRecipes = applyRecipeOverrides(fullTemplateRecipesRaw, recipeOverrides);
 
-        // 2. Resolve recipes for payload (respect overrides when present)
-        const groupedRecipes = recipeOverrides
-        ? buildGroupedRecipesFromTemplateRecipes(fullTemplateRecipes)
-        : await fetchRecipesForTemplate(template.id);
+        // 2. Build detailed recipes payload (single schema contract for edge balancing)
+        const groupedRecipes = buildGroupedRecipesFromTemplateRecipes(fullTemplateRecipes);
         
         // 3. Build Payload and Call Edge Function
         const payload = buildMacroBalancingParams({

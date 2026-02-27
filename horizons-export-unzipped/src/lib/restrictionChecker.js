@@ -127,8 +127,34 @@ export const getConflictInfo = (food, userRestrictions) => {
     return null;
 };
 
+export const prefetchSubstitutionMappings = async (sourceFoodIds = []) => {
+    const normalizedIds = [...new Set((sourceFoodIds || [])
+        .map(id => Number(id))
+        .filter(id => Number.isFinite(id) && id > 0))];
+
+    if (normalizedIds.length === 0) return new Map();
+
+    const { data: mappings, error } = await supabase
+        .from('food_substitution_mappings')
+        .select('*')
+        .in('source_food_id', normalizedIds)
+        .order('confidence_score', { ascending: false });
+
+    if (error) throw error;
+
+    const bySourceFoodId = new Map();
+    (mappings || []).forEach((mapping) => {
+        const sourceId = Number(mapping?.source_food_id);
+        if (!Number.isFinite(sourceId)) return;
+        if (!bySourceFoodId.has(sourceId)) bySourceFoodId.set(sourceId, []);
+        bySourceFoodId.get(sourceId).push(mapping);
+    });
+
+    return bySourceFoodId;
+};
+
 // New function handling substitutions
-export const getConflictWithSubstitutions = async (food, userRestrictions, allFoods) => {
+export const getConflictWithSubstitutions = async (food, userRestrictions, allFoods, preloadedMappingsBySourceId = null) => {
     const basicConflict = getConflictInfo(food, userRestrictions);
     
     // Si no hay conflicto o es una preferencia positiva, retornamos rápido
@@ -137,14 +163,19 @@ export const getConflictWithSubstitutions = async (food, userRestrictions, allFo
     }
     
     try {
-        // Obtener mapeos de sustitución de Supabase
-        const { data: mappings, error } = await supabase
-            .from('food_substitution_mappings')
-            .select('*')
-            .eq('source_food_id', food.id)
-            .order('confidence_score', { ascending: false });
-
-        if (error) throw error;
+        // Use preloaded mappings when available to avoid N+1 queries.
+        const sourceFoodId = Number(food?.id);
+        const mappings = preloadedMappingsBySourceId instanceof Map
+            ? (preloadedMappingsBySourceId.get(sourceFoodId) || [])
+            : await (async () => {
+                const { data, error } = await supabase
+                    .from('food_substitution_mappings')
+                    .select('*')
+                    .eq('source_food_id', food.id)
+                    .order('confidence_score', { ascending: false });
+                if (error) throw error;
+                return data || [];
+            })();
 
         const substitutions = (mappings || []).filter((sub) => mappingAppliesToConflict(sub, basicConflict));
 
