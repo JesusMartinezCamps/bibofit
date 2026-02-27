@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabaseClient';
+import { invokeAutoBalanceDietPlans } from '@/lib/autoBalanceClient';
 
 const DEBUG_MODE = true; // Debug flag
 
@@ -54,7 +55,7 @@ export const fetchRecipesForTemplate = async (templateId) => {
  */
 export const validatePayloadBeforeSending = (payload) => {
   const errors = [];
-  const requiredFields = ['user_id', 'template_id', 'tdee', 'macro_distribution', 'meals', 'start_date', 'end_date'];
+  const requiredFields = ['user_id', 'tdee', 'macro_distribution', 'meals'];
 
   // 1. Check required fields
   requiredFields.forEach(field => {
@@ -189,31 +190,7 @@ export const callMacroBalancingEdgeFunction = async (payload) => {
   }
 
   try {
-    const { data, error } = await supabase.functions.invoke(FUNCTION_NAME, {
-      body: payload
-    });
-
-    if (error) {
-        console.group("❌ Edge Function Invocation Error");
-        console.error("Message:", error.message);
-        console.groupEnd();
-
-        let detailedMsg = error.message;
-        try {
-            if(error.context && typeof error.context.json === 'function') {
-                const body = await error.context.json();
-                console.error("❌ Edge Function Response Body:", body);
-                
-                if (body.error_code === "no_recipes_found_in_payload") {
-                    detailedMsg = "El plan enviado no contiene recetas asignadas para balancear. Por favor verifica la plantilla.";
-                } else if(body.error) {
-                    detailedMsg = body.error;
-                }
-            }
-        } catch(e) {}
-
-        throw new Error(`Error del servidor: ${detailedMsg}`);
-    }
+    const data = await invokeAutoBalanceDietPlans(payload);
 
     if (DEBUG_MODE) {
         console.group("✅ Edge Function Success Response");

@@ -8,6 +8,7 @@ import { addDays, format, parseISO, isSameDay } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import { invokeAutoBalanceEquivalence } from '@/lib/autoBalanceClient';
 
 const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sourceLogId, onSuccess, sourceItemMacros }) => {
   const { toast } = useToast();
@@ -150,10 +151,6 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
       if (adjustmentError) throw adjustmentError;
 
       // 3. Identify Recipes
-      const dateObj = parseISO(selectedMeal.date);
-      const jsDay = dateObj.getDay(); 
-      const isoDow = jsDay === 0 ? 7 : jsDay;
-
       // Diet Plan Recipes
       const { data: planRecipes } = await supabase
         .from('diet_plan_recipes')
@@ -164,7 +161,7 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
       // Private Recipes
       const { data: plannedPrivate } = await supabase
         .from('planned_meals')
-        .select('id')
+        .select('private_recipe_id')
         .eq('user_id', user.id)
         .eq('diet_plan_id', selectedMeal.diet_plan_id)
         .eq('plan_date', selectedMeal.date)
@@ -195,13 +192,8 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
       }
 
       // 4. Invoke Edge Function (Aligned Structure)
-      const { data: funcData, error: invokeError } = await supabase.functions.invoke('auto-balance-equivalence', {
-          body: payload
-      });
-
-      console.log('4. Edge Function Response:', funcData, invokeError);
-
-      if (invokeError) throw new Error('Error en el balanceo automático: ' + invokeError.message);
+      const funcData = await invokeAutoBalanceEquivalence(payload);
+      console.log('4. Edge Function Response:', funcData);
       if (funcData && !funcData.success) throw new Error('Error interno en balanceo: ' + (funcData.error || 'Unknown error'));
 
       toast({ title: 'Éxito', description: 'Equivalencia aplicada y recetas ajustadas.' });
