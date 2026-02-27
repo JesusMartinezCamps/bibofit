@@ -17,19 +17,23 @@ const EMPTY_RESTRICTIONS = {
   non_preferred_foods: [],
 };
 
-const normalizeIngredient = (ing) => {
+const normalizeIngredient = (ing, availableFoods = []) => {
   const idValue = ing.local_id || ing.id || crypto.randomUUID();
   const rawQuantity = ing.grams ?? ing.quantity ?? '';
   const isEmpty = rawQuantity === '' || rawQuantity === null || rawQuantity === undefined;
+  const foodId = String(ing.food_id || ing.food?.id || '');
+  const resolvedFood =
+    availableFoods.find((food) => String(food.id) === foodId) || ing.food;
 
   return {
     local_id: String(idValue),
     id: ing.id,
-    food_id: String(ing.food_id || ing.food?.id || ''),
+    food_id: foodId,
     grams: isEmpty ? '' : rawQuantity,
     quantity: isEmpty ? '' : rawQuantity,
-    food_group_id: ing.food_group_id || ing.food?.food_to_food_groups?.[0]?.food_group_id || null,
-    food: ing.food,
+    food_group_id:
+      ing.food_group_id || resolvedFood?.food_to_food_groups?.[0]?.food_group_id || null,
+    food: resolvedFood,
   };
 };
 
@@ -100,7 +104,7 @@ const RecipeFormContainer = ({ selectedRecipe, onSave, resetSignal = 0 }) => {
         instructions: selectedRecipe.instructions || '',
         image_url: selectedRecipe.image_url || null,
       });
-      setIngredients(baseIngredients.map(normalizeIngredient));
+      setIngredients(baseIngredients.map((ingredient) => normalizeIngredient(ingredient, allFoods)));
       setImageFile(selectedRecipe.image_url || null);
       return;
     }
@@ -114,7 +118,7 @@ const RecipeFormContainer = ({ selectedRecipe, onSave, resetSignal = 0 }) => {
     });
     setIngredients([]);
     setImageFile(null);
-  }, [selectedRecipe, resetSignal]);
+  }, [selectedRecipe, resetSignal, allFoods]);
 
   const normalizedIngredientsForMacros = useMemo(
     () =>
@@ -149,8 +153,8 @@ const RecipeFormContainer = ({ selectedRecipe, onSave, resetSignal = 0 }) => {
   }, []);
 
   const handleIngredientsChange = useCallback((newIngredients) => {
-    setIngredients(newIngredients.map(normalizeIngredient));
-  }, []);
+    setIngredients(newIngredients.map((ingredient) => normalizeIngredient(ingredient, allFoods)));
+  }, [allFoods]);
 
   const handleRemoveIngredient = useCallback((ingredientToRemove) => {
     const ingredientId = ingredientToRemove.local_id || ingredientToRemove.id;
@@ -171,7 +175,7 @@ const RecipeFormContainer = ({ selectedRecipe, onSave, resetSignal = 0 }) => {
       quantity,
       food: selectedFood,
       food_group_id: selectedFood?.food_to_food_groups?.[0]?.food_group_id || null,
-    });
+    }, allFoods);
 
     setIngredients((prev) => [...prev, ingredientToAdd]);
     setIsSearchingIngredient(false);
@@ -291,7 +295,7 @@ const RecipeFormContainer = ({ selectedRecipe, onSave, resetSignal = 0 }) => {
         .from('recipes')
         .select(`
           *,
-          recipe_ingredients:recipe_ingredients(*, food:food(name)),
+          recipe_ingredients:recipe_ingredients(*, food:food(id, name, food_unit, proteins, total_carbs, total_fats, food_to_food_groups(food_group_id, food_group:food_groups(id, name)), food_vitamins(vitamin_id, vitamins(id, name)), food_minerals(mineral_id, minerals(id, name)))),
           recipe_sensitivities:recipe_sensitivities(*, sensitivities:sensitivities(id, name))
         `)
         .eq('id', recipeId)
