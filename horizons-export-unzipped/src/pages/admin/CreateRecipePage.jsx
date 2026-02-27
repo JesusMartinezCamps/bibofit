@@ -13,31 +13,25 @@ const CreateRecipePage = () => {
   const location = useLocation();
   const initialRecipeToEdit = location.state?.recipeToEdit || null;
   const [selectedRecipe, setSelectedRecipe] = useState(initialRecipeToEdit);
-  const [formKey, setFormKey] = useState(Date.now());
+  const [listRefreshToken, setListRefreshToken] = useState(0);
+  const [formResetSignal, setFormResetSignal] = useState(0);
   const [mobileView, setMobileView] = useState('form');
 
-  // Update function: when save completes, we don't clear the selected recipe immediately if we want to keep editing, 
-  // or we can refresh the list. For smoother UX, we keep the form mounted but trigger a refresh in the list.
-  // However, the requirement says "update without requiring full page reload".
-  // Best approach: Clear selection to reset to "New Mode" OR keep selected to allow further edits.
-  // Usually "Save" implies finishing. Let's clear selection to return to "Create New" state or just refresh the list data.
-  
-  const handleRecipeActionComplete = useCallback(() => {
-    // We trigger a re-render of the list to show updated data, but we can choose to keep the form open or reset it.
-    // If we want to reset to "Create New" after save:
-    setSelectedRecipe(null);
-    setFormKey(Date.now()); 
+  const handleRecipeActionComplete = useCallback((savedRecipe) => {
+    setListRefreshToken((prev) => prev + 1);
+    if (savedRecipe?.id) {
+      setSelectedRecipe(savedRecipe);
+    }
   }, []);
 
-  const handleSelectRecipe = (recipe) => {
-    setSelectedRecipe(recipe);
-    setFormKey(Date.now());
+  const handleToggleSelectRecipe = (recipe) => {
+    setSelectedRecipe((prev) => (prev?.id === recipe.id ? null : recipe));
     setMobileView('form');
   };
 
   const handleCreateNew = () => {
     setSelectedRecipe(null);
-    setFormKey(Date.now());
+    setFormResetSignal((prev) => prev + 1);
   };
 
   const breadcrumbItems = [
@@ -60,11 +54,9 @@ const CreateRecipePage = () => {
           <div className={cn("w-full md:w-[30%]", mobileView === 'form' && 'hidden md:block')}>
             <div className="h-full flex flex-col bg-slate-900/50 p-4 rounded-lg border border-slate-800 overflow-hidden">
                 <RecipeListContainer
-                  onSelectRecipe={handleSelectRecipe}
+                  onSelectRecipe={handleToggleSelectRecipe}
                   selectedRecipeId={selectedRecipe?.id}
-                  onActionComplete={handleRecipeActionComplete} 
-                  // Pass a key that updates when an action completes to force list refresh
-                  key={`search-${formKey}`}                
+                  refreshToken={listRefreshToken}
                 />
             </div>
           </div>
@@ -87,9 +79,9 @@ const CreateRecipePage = () => {
                 )}
               </div>
               <RecipeFormContainer
-                key={formKey}
                 selectedRecipe={selectedRecipe} 
                 onSave={handleRecipeActionComplete}
+                resetSignal={formResetSignal}
               />
             </div>
           </div>

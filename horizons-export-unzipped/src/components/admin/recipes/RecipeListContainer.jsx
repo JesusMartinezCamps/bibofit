@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { Input } from '@/components/ui/input';
-import { Loader2, X } from 'lucide-react';
+import { Loader2, Trash2, X } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
-import RecipeTemplateCard from '@/components/admin/recipes/RecipeTemplateCard';
+import { Button } from '@/components/ui/button';
+import RecipeCard from '@/components/admin/recipes/RecipeCard';
 
-const RecipeListContainer = ({ onSelectRecipe, selectedRecipeId, onDeleteRecipe }) => {
+const RecipeListContainer = ({ onSelectRecipe, selectedRecipeId, onDeleteRecipe, refreshToken = 0 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [allRecipes, setAllRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -40,7 +41,7 @@ const RecipeListContainer = ({ onSelectRecipe, selectedRecipeId, onDeleteRecipe 
 
   useEffect(() => {
     fetchInitialData();
-  }, [fetchInitialData]);
+  }, [fetchInitialData, refreshToken]);
 
   const handleDelete = async (recipe) => {
     try {
@@ -54,6 +55,9 @@ const RecipeListContainer = ({ onSelectRecipe, selectedRecipeId, onDeleteRecipe 
         if (error) throw error;
         setAllRecipes(prev => prev.filter(r => r.id !== recipe.id));
         toast({ title: 'Receta eliminada', description: 'La plantilla ha sido eliminada correctamente.' });
+      }
+      if (selectedRecipeId === recipe.id) {
+        onSelectRecipe(recipe);
       }
     } catch (error) {
       console.error(error);
@@ -123,12 +127,29 @@ const RecipeListContainer = ({ onSelectRecipe, selectedRecipeId, onDeleteRecipe 
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                   >
-                    <RecipeTemplateCard
+                    <div className="relative">
+                      <RecipeCard
                         recipe={recipe}
-                        onSelect={onSelectRecipe}
-                        isSelected={selectedRecipeId === recipe.id}
-                        onDelete={handleDelete}
-                    />
+                        onAdd={onSelectRecipe}
+                        onCardClick={onSelectRecipe}
+                        addButtonText={selectedRecipeId === recipe.id ? 'Deseleccionar' : 'Seleccionar'}
+                        themeColor="green"
+                        highlight={searchTerm}
+                        selected={selectedRecipeId === recipe.id}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-3 top-3 h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-900/30"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(recipe);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </motion.div>
                 ))}
               </div>
