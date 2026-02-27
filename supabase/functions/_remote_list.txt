@@ -1,0 +1,9 @@
+
+  
+   ID                                   | NAME                          | SLUG                          | STATUS | VERSION | UPDATED_AT (UTC)    
+  --------------------------------------|-------------------------------|-------------------------------|--------|---------|---------------------
+   a694e068-b48c-44be-9a08-ddf7f0a2738d | auto-balance-macros           | auto-balance-macros           | ACTIVE | 46      | 2025-12-26 19:40:42 
+   b56c6567-45dd-4cc9-9b74-f24ba82da2cc | auto-balance-macros-batch     | auto-balance-macros-batch     | ACTIVE | 11      | 2025-12-26 20:18:32 
+   829585b8-1ebe-489c-b6d7-3713f1536595 | auto-balance-macros-dietPlans | auto-balance-macros-dietPlans | ACTIVE | 6       | 2026-02-13 10:04:52 
+   98768399-fe40-48e3-950b-b400b4b7db1a | auto-balance-equivalence      | auto-balance-equivalence      | ACTIVE | 10      | 2026-01-13 12:52:21 
+   1bef37f0-0cec-41cd-a8cd-469734a1743b | get-substitutions-for-food    | get-substitutions-for-food    | ACTIVE | 1       | 2026-02-26 18:00:30 
