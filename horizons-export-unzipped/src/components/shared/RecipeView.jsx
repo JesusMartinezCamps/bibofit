@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { getConflictInfo } from '@/lib/restrictionChecker.js';
 import { useAuth } from '@/contexts/AuthContext';
+import { invokeAutoBalanceRecipe } from '@/lib/autoBalanceClient';
 import { supabase } from '@/lib/customSupabaseClient';
 import { useToast } from '@/components/ui/use-toast';
 import IngredientSearch from '@/components/plans/IngredientSearch';
@@ -844,16 +845,12 @@ const RecipeView = ({
         const ingredientsForFunction = recipe.ingredients.map(ing => ({
             food_id: Number(ing.food_id || ing.food?.id),
             quantity: Number(ing.grams || ing.quantity) || 0,
-            food_group_id: ing.food_group_id ? Number(ing.food_group_id) : (
-              ing.food?.food_to_food_groups?.[0]?.food_group?.id ||
-              allFoods?.find(f => String(f.id) === String(ing.food_id || ing.food?.id))?.food_to_food_groups?.[0]?.food_group_id || null
-            )
         })).filter(ing => ing.food_id);
 
-        const { data, error } = await supabase.functions.invoke('auto-balance-macros', {
-            body: { ingredients: ingredientsForFunction, targets: activeTargets, allFoods, allFoodGroups },
+        const data = await invokeAutoBalanceRecipe({
+            ingredients: ingredientsForFunction,
+            targets: activeTargets,
         });
-        if (error) throw error;
         if (data.balancedIngredients) {
             const newIngredients = recipe.ingredients.map(ing => {
                 const balanced = data.balancedIngredients.find(b => String(b.food_id) === String(ing.food_id || ing.food?.id));

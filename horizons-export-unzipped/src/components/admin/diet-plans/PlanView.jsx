@@ -10,6 +10,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import MealTargetMacros from '@/components/shared/MealTargetMacros';
 import { format } from 'date-fns';
+import { invokeAutoBalanceBatch } from '@/lib/autoBalanceClient';
 
 const MealSection = ({ meal, recipes, onAdd, onEdit, onDelete, allFoods, userRestrictions, userDayMeal, onAutoBalance, isBalancing, planUserId, readOnly = false }) => (
     <div key={meal.id} className="bg-slate-900/50 p-4 rounded-lg border border-gray-800">
@@ -208,16 +209,12 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOn
         setIsBalancing(true);
         try {
             const recipeIds = momentRecipes.map(r => ({ id: r.id, is_private: r.is_private }));
-            const { data, error } = await supabase.functions.invoke('auto-balance-macros-batch', {
-                body: {
-                    moment_id: momentId,
-                    recipe_ids: recipeIds,
-                    date: format(new Date(), 'yyyy-MM-dd'),
-                    user_id: userId,
-                }
+            const data = await invokeAutoBalanceBatch({
+                moment_id: momentId,
+                recipe_ids: recipeIds,
+                date: format(new Date(), 'yyyy-MM-dd'),
+                user_id: userId,
             });
-
-            if (error) throw error;
 
             if (data.success) {
                 toast({

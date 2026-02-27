@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Bot, Loader2, Plus } from 'lucide-react';
-import { supabase } from '@/lib/supabaseClient';
+import { invokeAutoBalanceRecipe } from '@/lib/autoBalanceClient';
 import { useToast } from '@/components/ui/use-toast';
 import TotalsRow from './TotalsRow';
 import TargetMacrosRow from './TargetMacrosRow';
@@ -24,7 +24,6 @@ const IngredientBuilder = ({
   
   const {
     allFoods,
-    allFoodGroups,
     localIngredients,
     setLocalIngredients,
     handleIngredientChange,
@@ -64,18 +63,11 @@ const IngredientBuilder = ({
       const ingredientsForFunction = localIngredients.map(ing => ({
         food_id: Number(ing.food_id),
         quantity: Number(ing.quantity) || 0,
-        food_group_id: ing.food_group_id ? Number(ing.food_group_id) : null
       })).filter(ing => ing.food_id);
-      const { data, error } = await supabase.functions.invoke('auto-balance-macros', {
-        body: {
-          ingredients: ingredientsForFunction,
-          targets: mealTargetMacros,
-          allFoods: allFoods,
-          allFoodGroups: allFoodGroups
-        },
+      const data = await invokeAutoBalanceRecipe({
+        ingredients: ingredientsForFunction,
+        targets: mealTargetMacros
       });
-
-      if (error) throw error;
 
       if (data.balancedIngredients) {
          const balanced = data.balancedIngredients.map(ing => ({

@@ -5,6 +5,7 @@ import { format, addMonths } from 'date-fns';
 import { saveDietPlanRecipeIngredients, calculateMacros, saveRecipeMacros } from '@/lib/macroCalculator';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { invokeAutoBalanceDietPlans } from '@/lib/autoBalanceClient';
 
 export const useAssignPlan = ({ open, onOpenChange, onSuccess, preselectedClient, template, mode = 'adminAssign', forcedUserId }) => {
     const { toast } = useToast();
@@ -384,11 +385,10 @@ export const useAssignPlan = ({ open, onOpenChange, onSuccess, preselectedClient
                         meals: mealsPayload
                     };
         
-                    const { data: batchResult, error: batchError } = await supabase.functions.invoke('auto-balance-macros-dietPlans', {
-                        body: payload
-                    });
-    
-                    if (batchError) {
+                    let batchResult = null;
+                    try {
+                        batchResult = await invokeAutoBalanceDietPlans(payload);
+                    } catch (batchError) {
                         console.error("Error calculating macros via edge function:", batchError);
                         toast({ title: 'Advertencia', description: 'Hubo un problema calculando las cantidades automáticas. Se usarán las cantidades originales.', variant: 'warning' });
                     }
