@@ -57,6 +57,19 @@ const applyRecipeOverrides = (fullTemplateRecipes = [], recipeOverrides = null) 
     return fullTemplateRecipes.map(recipe => overrideMap.get(recipe.id) || recipe);
 };
 
+const normalizeRecipeIngredientsForBalancing = (recipe) => {
+    const sourceIngredients = recipe?.custom_ingredients?.length > 0
+        ? recipe.custom_ingredients
+        : recipe?.recipe?.recipe_ingredients || [];
+
+    return (sourceIngredients || [])
+        .map((ingredient) => ({
+            food_id: ingredient?.food_id || ingredient?.food?.id,
+            grams: parseFloat(ingredient?.grams || ingredient?.quantity || 0),
+        }))
+        .filter((ingredient) => ingredient.food_id && ingredient.grams > 0);
+};
+
 const buildGroupedRecipesFromTemplateRecipes = (templateRecipes = []) => {
     return templateRecipes.reduce((acc, recipe) => {
         const mealId = recipe.day_meal_id;
@@ -65,7 +78,13 @@ const buildGroupedRecipesFromTemplateRecipes = (templateRecipes = []) => {
         if (!acc[mealId]) acc[mealId] = [];
 
         const recipeId = recipe.recipe_id || recipe.recipe?.id;
-        if (recipeId) acc[mealId].push(recipeId);
+        if (!recipeId) return acc;
+
+        acc[mealId].push({
+            source_row_id: recipe.id,
+            recipe_id: recipeId,
+            ingredients: normalizeRecipeIngredientsForBalancing(recipe)
+        });
 
         return acc;
     }, {});
@@ -158,7 +177,7 @@ const createUserDietFromTemplate = async (userId, planData, templateRecipes, edg
             // Since template recipes might be reused, we need to be careful.
             // The edge function should return enough info to match. 
             // For now, mapping by original recipe_id for the specific day_meal context
-            const key = `${res.day_meal_id}-${res.recipe_id}`;
+            const key = `${res.day_meal_id}-${res.source_row_id || res.recipe_id}`;
             adjustedRecipeMap.set(key, res.ingredients);
         });
     }
@@ -167,10 +186,13 @@ const createUserDietFromTemplate = async (userId, planData, templateRecipes, edg
         // Determine ingredients: Auto-balanced vs Original
         let ingredientsToSave = [];
         
-        const balanceKey = `${recipe.day_meal_id}-${recipe.recipe_id}`;
+        const balanceKeyByRow = `${recipe.day_meal_id}-${recipe.id}`;
+        const balanceKeyByRecipe = `${recipe.day_meal_id}-${recipe.recipe_id || recipe.recipe?.id}`;
         
-        if (adjustedRecipeMap.has(balanceKey)) {
-            ingredientsToSave = adjustedRecipeMap.get(balanceKey);
+        if (adjustedRecipeMap.has(balanceKeyByRow)) {
+            ingredientsToSave = adjustedRecipeMap.get(balanceKeyByRow);
+        } else if (adjustedRecipeMap.has(balanceKeyByRecipe)) {
+            ingredientsToSave = adjustedRecipeMap.get(balanceKeyByRecipe);
         } else {
             // Fallback to original ingredients (Custom overrides -> Original Recipe Ingredients)
             ingredientsToSave = recipe.custom_ingredients?.length > 0 
