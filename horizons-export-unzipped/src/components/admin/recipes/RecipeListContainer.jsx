@@ -20,7 +20,7 @@ const RecipeListContainer = ({ onSelectRecipe, selectedRecipeId, onDeleteRecipe,
         .from('recipes')
         .select(`
           *,
-          recipe_ingredients:recipe_ingredients(*, food:food(name)),
+          recipe_ingredients:recipe_ingredients(*, food:food(id, name, food_unit, proteins, total_carbs, total_fats, food_to_food_groups(food_group_id, food_group:food_groups(id, name)), food_vitamins(vitamin_id, vitamins(id, name)), food_minerals(mineral_id, minerals(id, name)))),
           recipe_sensitivities:recipe_sensitivities(*, sensitivities:sensitivities(id, name))
         `)
         .order('name', { ascending: true });
