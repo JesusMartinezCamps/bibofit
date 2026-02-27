@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider } from '@/contexts/AuthContext';
@@ -34,6 +33,7 @@ import ManageFatTypes from '@/pages/admin/ManageFatTypes';
 import ManageCarbTypes from '@/pages/admin/ManageCarbTypes';
 import PlanTemplatesPage from '@/pages/admin/PlanTemplatesPage';
 import FoodRestrictionsPage from '@/pages/admin/FoodRestrictionsPage';
+import FoodSubstitutionRulesPage from '@/pages/admin/FoodSubstitutionRulesPage';
 import RemindersManagerPage from '@/pages/admin/RemindersManagerPage';
 import UsersManagerPage from '@/pages/admin/UsersManagerPage';
 import CentersManagementPage from '@/pages/admin/CentersManagementPage';
@@ -171,6 +171,7 @@ const AppRoutes = () => {
       <Route path="/admin-panel/content/diet-requests" element={<ProtectedRoute><RoleProtected allowedRoles={['admin', 'coach']}><DietChangeRequestsPage /></RoleProtected></ProtectedRoute>} />
       <Route path="/admin-panel/content/plan-templates" element={<ProtectedRoute><RoleProtected allowedRoles={['admin', 'coach']}><PlanTemplatesPage /></RoleProtected></ProtectedRoute>} />
       <Route path="/admin-panel/content/food-restrictions" element={<ProtectedRoute adminOnly><FoodRestrictionsPage /></ProtectedRoute>} />
+      <Route path="/admin-panel/content/food-substitutions" element={<ProtectedRoute adminOnly><FoodSubstitutionRulesPage /></ProtectedRoute>} />
       <Route path="/admin-panel/content/users-manager" element={<ProtectedRoute adminOnly><UsersManagerPage /></ProtectedRoute>} />
       <Route path="/admin-panel/content/centers" element={<ProtectedRoute adminOnly><CentersManagementPage /></ProtectedRoute>} />
       <Route path="/admin-panel/reminders" element={<ProtectedRoute adminOnly><RemindersManagerPage /></ProtectedRoute>} />

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Helmet } from 'react-helmet';
 import LandingNavbar from '@/components/landing/LandingNavbar';
 import HeroSection from '@/components/landing/HeroSection';
@@ -14,8 +14,6 @@ import LandingFooter from '@/components/landing/LandingFooter';
 import WhatsAppButton from '@/components/landing/WhatsAppButton';
 
 const HomePage = () => {
-    const [audience, setAudience] = useState('coach');
-
     return (
         <div className="min-h-screen bg-[#1a1e23] font-sans selection:bg-green-500/30 text-white">
             <Helmet>
@@ -27,10 +25,10 @@ const HomePage = () => {
             
             <main>
                 <HeroSection />
-                <ProblemSolution audience={audience} onAudienceChange={setAudience} />
-                <FeaturesGrid audience={audience} onAudienceChange={setAudience} />
-                <HowItWorks audience={audience} onAudienceChange={setAudience} />
-                <ForWhom audience={audience} onAudienceChange={setAudience} />
+                <ProblemSolution />
+                <FeaturesGrid />
+                <HowItWorks />
+                <ForWhom />
                 {/* <Testimonials /> */}
                 <PricingPreview />
                 <FAQPreview />
