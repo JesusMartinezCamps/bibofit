@@ -84,10 +84,21 @@ export const validatePayloadBeforeSending = (payload) => {
   } else {
     payload.meals.forEach((meal, index) => {
         if (!meal.day_meal_id) errors.push(`Meal at index ${index} missing day_meal_id`);
-        
-        // Task 3 (Updated): Check for empty recipe_ids array
-        if (!meal.recipe_ids || !Array.isArray(meal.recipe_ids) || meal.recipe_ids.length === 0) {
+
+        const hasRecipesPayload = Array.isArray(meal.recipes) && meal.recipes.length > 0;
+        const hasRecipeIdsPayload = Array.isArray(meal.recipe_ids) && meal.recipe_ids.length > 0;
+
+        if (!hasRecipesPayload && !hasRecipeIdsPayload) {
              errors.push(`Meal (ID: ${meal.day_meal_id}) has no recipes assigned. Please add recipes to the template before assigning.`);
+            return;
+        }
+
+        if (hasRecipesPayload) {
+            meal.recipes.forEach((recipe, recipeIndex) => {
+                if (!recipe?.recipe_id) {
+                    errors.push(`Meal (ID: ${meal.day_meal_id}) recipe at index ${recipeIndex} missing recipe_id`);
+                }
+            });
         }
     });
   }
@@ -141,15 +152,25 @@ export const buildMacroBalancingParams = ({
              mealId = parseInt(m.id, 10);
         }
 
-        const recipeIds = groupedRecipes[mealId] || [];
+        const groupedMealRecipes = groupedRecipes[mealId] || [];
+        const hasDetailedRecipes = groupedMealRecipes.length > 0 && typeof groupedMealRecipes[0] === 'object';
+        const recipeIds = hasDetailedRecipes ? [] : groupedMealRecipes;
+        const recipes = hasDetailedRecipes
+            ? groupedMealRecipes.map((recipe) => ({
+                source_row_id: Number(recipe.source_row_id),
+                recipe_id: Number(recipe.recipe_id),
+                ingredients: Array.isArray(recipe.ingredients) ? recipe.ingredients : []
+            }))
+            : [];
         
         if (DEBUG_MODE) {
-            console.log(`   Meal ID: ${mealId} -> Recipe IDs: [${recipeIds.join(', ')}]`);
+            console.log(`   Meal ID: ${mealId} -> Recipes:`, hasDetailedRecipes ? recipes : recipeIds);
         }
 
         return {
             day_meal_id: Number(mealId),
-            recipe_ids: recipeIds, // Only IDs
+            recipe_ids: recipeIds, // Backward-compatible
+            recipes, // Detailed payload with effective ingredients (overrides-safe)
             protein_pct: Number(m.protein_pct || 0),
             carbs_pct: Number(m.carbs_pct || 0),
             fat_pct: Number(m.fat_pct || 0)

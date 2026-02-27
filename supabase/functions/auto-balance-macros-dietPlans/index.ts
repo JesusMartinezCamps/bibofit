@@ -4,6 +4,12 @@ import { createAdminClient } from "../_shared/auto-balance/adapters.ts";
 import { balanceRecipesWithSharedContext } from "../_shared/auto-balance/core-autobalance-recipe.ts";
 import type { BalanceRecipeRequest } from "../_shared/auto-balance/types.ts";
 
+type MealRecipeInput = {
+  source_row_id?: number | string;
+  recipe_id: number | string;
+  ingredients?: Array<{ food_id: number | string; grams?: number | string; quantity?: number | string }>;
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -35,7 +41,15 @@ Deno.serve(async (req) => {
     }
 
     const allRecipeIds = [...new Set(
-      meals.flatMap((meal: any) => Array.isArray(meal?.recipe_ids) ? meal.recipe_ids.map(String) : []),
+      meals.flatMap((meal: any) => {
+        const fromDetailed = Array.isArray(meal?.recipes)
+          ? meal.recipes.map((recipe: MealRecipeInput) => String(recipe?.recipe_id ?? ""))
+          : [];
+        const fromLegacy = Array.isArray(meal?.recipe_ids)
+          ? meal.recipe_ids.map(String)
+          : [];
+        return [...fromDetailed, ...fromLegacy].filter(Boolean);
+      }),
     )];
 
     if (!allRecipeIds.length) {
@@ -60,14 +74,37 @@ Deno.serve(async (req) => {
       const target = mealTargetsById.get(dayMealId);
       if (!target) continue;
 
-      const mealRecipes: BalanceRecipeRequest[] = (Array.isArray(meal?.recipe_ids) ? meal.recipe_ids.map(String) : [])
-        .map((recipeId: string) => recipesById.get(recipeId))
-        .filter(Boolean)
-        .map((recipe: any) => ({
-          recipe_id: recipe.id,
-          is_private: false,
-          ingredients: recipe.recipe_ingredients || [],
-        }));
+      const detailedRecipes = Array.isArray(meal?.recipes) ? meal.recipes : [];
+      const detailedByRecipeId = new Map(
+        detailedRecipes
+          .filter((recipe: MealRecipeInput) => recipe?.recipe_id != null)
+          .map((recipe: MealRecipeInput) => [String(recipe.recipe_id), recipe]),
+      );
+
+      const orderedRecipeIds = Array.from(new Set([
+        ...detailedRecipes.map((recipe: MealRecipeInput) => String(recipe?.recipe_id ?? "")).filter(Boolean),
+        ...(Array.isArray(meal?.recipe_ids) ? meal.recipe_ids.map(String) : []),
+      ]));
+
+      const mealRecipes: (BalanceRecipeRequest & { source_row_id?: number | string })[] = orderedRecipeIds
+        .map((recipeId: string) => {
+          const detailed = detailedByRecipeId.get(recipeId);
+          const dbRecipe = recipesById.get(recipeId);
+          const providedIngredients = Array.isArray(detailed?.ingredients)
+            ? detailed.ingredients
+            : [];
+          const ingredients = providedIngredients.length > 0
+            ? providedIngredients
+            : (dbRecipe?.recipe_ingredients || []);
+
+          return {
+            recipe_id: recipeId,
+            source_row_id: detailed?.source_row_id,
+            is_private: false,
+            ingredients,
+          };
+        })
+        .filter((recipe) => Array.isArray(recipe.ingredients) && recipe.ingredients.length > 0);
 
       if (!mealRecipes.length) continue;
 
@@ -79,8 +116,9 @@ Deno.serve(async (req) => {
       });
 
       results.push(
-        ...balancedByRecipe.map((balancedRecipe) => ({
+        ...balancedByRecipe.map((balancedRecipe, index) => ({
           recipe_id: balancedRecipe.recipe_id,
+          source_row_id: mealRecipes[index]?.source_row_id,
           day_meal_id: meal.day_meal_id,
           ingredients: balancedRecipe.ingredients.map((ingredient) => ({ food_id: ingredient.food_id, grams: ingredient.grams })),
         })),
