@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { assignDietPlanToUser } from '@/lib/dietAssignmentService';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabaseClient';
+import { getConflictWithSubstitutions } from '@/lib/restrictionChecker';
 
 
 const fetchClientRestrictions = async (userId) => {
@@ -111,23 +112,147 @@ const buildRecipeOverrideMap = (templateRecipes = []) => {
   return map;
 };
 
+const fetchAllFoodsForSubstitutions = async () => {
+  const { data, error } = await supabase
+    .from('food')
+    .select(`
+      *,
+      food_sensitivities(sensitivity_id),
+      food_medical_conditions(*)
+    `);
+
+  if (error) throw error;
+  return data || [];
+};
+
+const cloneRecipe = (recipe) => {
+  if (typeof structuredClone === 'function') {
+    return structuredClone(recipe);
+  }
+
+  return JSON.parse(JSON.stringify(recipe));
+};
+
+const applyAutoSubstitutionsToRecipe = async ({
+  recipe,
+  clientRestrictions,
+  allFoods,
+  analysisCache
+}) => {
+  const updatedRecipe = cloneRecipe(recipe);
+  const foodsById = new Map(allFoods.map(food => [food.id, food]));
+  const autoApplied = [];
+  let hasChanges = false;
+
+  if (updatedRecipe.custom_ingredients?.length > 0) {
+    for (let index = 0; index < updatedRecipe.custom_ingredients.length; index += 1) {
+      const ingredient = updatedRecipe.custom_ingredients[index];
+      const food = ingredient?.food;
+      if (!food?.id) continue;
+
+      let analysis = analysisCache.get(food.id);
+      if (!analysis) {
+        analysis = await getConflictWithSubstitutions(food, clientRestrictions, allFoods);
+        analysisCache.set(food.id, analysis);
+      }
+
+      if (!analysis?.hasConflict || !analysis?.autoSubstitution) continue;
+
+      const targetFood = foodsById.get(analysis.autoSubstitution.target_food_id);
+      if (!targetFood) continue;
+
+      updatedRecipe.custom_ingredients[index] = {
+        ...ingredient,
+        food_id: targetFood.id,
+        food: targetFood
+      };
+
+      autoApplied.push({
+        recipeId: recipe.id,
+        recipeName: recipe.custom_name || recipe.recipe?.name || recipe.name || 'Receta',
+        sourceFoodName: food.name,
+        targetFoodName: targetFood.name
+      });
+      hasChanges = true;
+    }
+  } else if (updatedRecipe.recipe?.recipe_ingredients?.length > 0) {
+    for (let index = 0; index < updatedRecipe.recipe.recipe_ingredients.length; index += 1) {
+      const ingredient = updatedRecipe.recipe.recipe_ingredients[index];
+      const food = ingredient?.food;
+      if (!food?.id) continue;
+
+      let analysis = analysisCache.get(food.id);
+      if (!analysis) {
+        analysis = await getConflictWithSubstitutions(food, clientRestrictions, allFoods);
+        analysisCache.set(food.id, analysis);
+      }
+
+      if (!analysis?.hasConflict || !analysis?.autoSubstitution) continue;
+
+      const targetFood = foodsById.get(analysis.autoSubstitution.target_food_id);
+      if (!targetFood) continue;
+
+      updatedRecipe.recipe.recipe_ingredients[index] = {
+        ...ingredient,
+        food_id: targetFood.id,
+        food: targetFood
+      };
+
+      autoApplied.push({
+        recipeId: recipe.id,
+        recipeName: recipe.custom_name || recipe.recipe?.name || recipe.name || 'Receta',
+        sourceFoodName: food.name,
+        targetFoodName: targetFood.name
+      });
+      hasChanges = true;
+    }
+  }
+
+  return {
+    updatedRecipe,
+    hasChanges,
+    autoApplied
+  };
+};
+
 export const useOnboardingDietAssignment = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const { toast } = useToast();
  const prepareConflictResolutionData = async ({ userId, template }) => {
-    const [clientRestrictions, templateRecipes] = await Promise.all([
+    const [clientRestrictions, templateRecipes, allFoods] = await Promise.all([
       fetchClientRestrictions(userId),
-      fetchTemplateRecipesWithFoods(template?.id)
+      fetchTemplateRecipesWithFoods(template?.id),
+      fetchAllFoodsForSubstitutions()
     ]);
 
-    const conflicts = buildConflictsMap(templateRecipes, clientRestrictions);
+    const recipeOverrides = buildRecipeOverrideMap(templateRecipes);
+    const analysisCache = new Map();
+    const autoSubstitutionsApplied = [];
+
+    for (const recipe of templateRecipes) {
+      const { updatedRecipe, hasChanges, autoApplied } = await applyAutoSubstitutionsToRecipe({
+        recipe,
+        clientRestrictions,
+        allFoods,
+        analysisCache
+      });
+
+      if (hasChanges) {
+        recipeOverrides.set(recipe.id, updatedRecipe);
+        autoSubstitutionsApplied.push(...autoApplied);
+      }
+    }
+
+    const resolvedRecipes = Array.from(recipeOverrides.values());
+    const conflicts = buildConflictsMap(resolvedRecipes, clientRestrictions);
 
     return {
       conflicts,
       clientRestrictions,
       templateRecipes,
-      recipeOverrides: buildRecipeOverrideMap(templateRecipes),
+      recipeOverrides,
+      autoSubstitutionsApplied,
       planRestrictionsForEditor: {
         sensitivities: (clientRestrictions.sensitivities || []).map(s => s.id),
         conditions: (clientRestrictions.conditions || []).map(c => c.id)

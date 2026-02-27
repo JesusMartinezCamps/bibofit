@@ -1,3 +1,6 @@
+
+import { supabase } from '@/lib/supabaseClient';
+
 export const getConflictInfo = (food, userRestrictions) => {
     if (!food || !userRestrictions) {
         return null;
@@ -22,7 +25,8 @@ export const getConflictInfo = (food, userRestrictions) => {
     if (userRestrictions.sensitivities?.length > 0 && food.food_sensitivities?.length > 0) {
         const userSensitivityIds = userRestrictions.sensitivities
         .map(extractId)
-        .filter(id => id !== undefined && id !== null);      const foodSensitivity = food.food_sensitivities.find(fs => {
+        .filter(id => id !== undefined && id !== null);      
+        const foodSensitivity = food.food_sensitivities.find(fs => {
           const sensitivity = fs.sensitivities || fs.sensitivity;
           const sensitivityId = sensitivity?.id ?? fs.sensitivity_id;
           return sensitivityId !== undefined && userSensitivityIds.includes(sensitivityId);
@@ -72,4 +76,57 @@ export const getConflictInfo = (food, userRestrictions) => {
     }
   
     return null;
+};
+
+// New function handling substitutions
+export const getConflictWithSubstitutions = async (food, userRestrictions, allFoods) => {
+    const basicConflict = getConflictInfo(food, userRestrictions);
+    
+    // Si no hay conflicto o es una preferencia positiva, retornamos rápido
+    if (!basicConflict || basicConflict.type === 'preferred' || basicConflict.type === 'condition_recommend') {
+        return { hasConflict: false };
+    }
+    
+    try {
+        // Obtener mapeos de sustitución de Supabase
+        const { data: mappings, error } = await supabase
+            .from('food_substitution_mappings')
+            .select('*')
+            .eq('source_food_id', food.id)
+            .order('confidence_score', { ascending: false });
+
+        if (error) throw error;
+
+        const substitutions = mappings || [];
+
+        // Filtrar sustituciones para asegurar que el target NO tenga conflictos
+        const safeSubstitutions = substitutions.filter(sub => {
+            const targetFood = allFoods?.find(f => f.id === sub.target_food_id);
+            if (!targetFood) return false;
+            
+            const targetConflict = getConflictInfo(targetFood, userRestrictions);
+            // Solo es seguro si no hay conflicto, o si el conflicto es "preferido" / "recomendado"
+            return !targetConflict || targetConflict.type === 'preferred' || targetConflict.type === 'condition_recommend';
+        });
+
+        const autoSub = safeSubstitutions.find(s => s.is_automatic && s.confidence_score >= 85);
+
+        return {
+            hasConflict: true,
+            conflict: basicConflict,
+            substitutions: safeSubstitutions,
+            autoSubstitution: autoSub,
+            requiresReview: !autoSub
+        };
+    } catch (err) {
+        console.error("Error fetching substitutions:", err);
+        // Fallback: tratar como revisión manual si falla la DB
+        return {
+            hasConflict: true,
+            conflict: basicConflict,
+            substitutions: [],
+            autoSubstitution: null,
+            requiresReview: true
+        };
+    }
 };

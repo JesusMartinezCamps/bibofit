@@ -312,6 +312,13 @@ const MealAdjustmentStep = ({ onNext, isLoading: isStepLoading }) => {
         setClientRestrictions(conflictData.clientRestrictions);
         setPlanRestrictionsForEditor(conflictData.planRestrictionsForEditor);
         setRecipeOverrides(conflictData.recipeOverrides);
+        
+        if ((conflictData.autoSubstitutionsApplied || []).length > 0) {
+            toast({
+                title: "Sustituciones automáticas aplicadas",
+                description: `Se ajustaron ${(conflictData.autoSubstitutionsApplied || []).length} ingredientes según tus restricciones.`
+            });
+        }
 
         if (Object.keys(conflictData.conflicts).length > 0) {
             setConflicts(conflictData.conflicts);

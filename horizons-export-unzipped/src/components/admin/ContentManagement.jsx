@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Utensils, Egg, Wheat, Fish, Leaf, Droplets, Dna, Bot, Store, BookCopy, LayoutGrid, Dumbbell, Activity, ShieldAlert, UtensilsCrossed, Users, Building } from 'lucide-react';
+import { Utensils, Egg, Wheat, Fish, Leaf, Droplets, Dna, Bot, Store, BookCopy, LayoutGrid, Dumbbell, Activity, ShieldAlert, UtensilsCrossed, Users, Building, ArrowLeftRight } from 'lucide-react';
 import { useNotifications } from '@/contexts/NotificationsContext';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -112,6 +112,7 @@ const ContentManagement = () => {
 
                         <SectionHeader title="Seguridad" />
                         <ContentButton icon={ShieldAlert} title="Gestor de Restricciones" to="/admin-panel/content/food-restrictions" />
+                        <ContentButton icon={ArrowLeftRight} title="Normas de Sustitución" to="/admin-panel/content/food-substitutions" />
                     </>
                 )}
 
