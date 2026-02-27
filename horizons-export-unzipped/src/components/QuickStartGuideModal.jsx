@@ -1,16 +1,15 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronRight, SlidersHorizontal, ChevronLeft, CheckCircle, Search, Calendar, ShoppingCart, ListTodo, Apple, Wand2, Sparkles, ArrowRightLeft } from 'lucide-react';
+import { X, ChevronRight, SlidersHorizontal, ChevronLeft, CheckCircle, Search, Calendar, ShoppingCart, ListTodo, Apple, Wand2, ArrowRightLeft, Lightbulb } from 'lucide-react';
 import { useQuickStartGuide } from '@/contexts/QuickStartGuideContext';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 const steps = [
   {
-    title: '¡Bienvenido a Bibofit!',
-    subtitle: 'Una guía rápida para que domines la app',
-    description: 'Recuerda: Siempre puedes volver a esta guía desde tu Perfil.',
-    icon: Sparkles,
+    title: 'Guía rápida de Usuario!',
+    subtitle: 'Siempre puedes volver a esta guía desde tu Perfil',
+    icon: Lightbulb,
     color: 'text-amber-400',
     bg: 'bg-amber-400/10',
     isCover: true
@@ -24,14 +23,19 @@ const steps = [
   },
   {
     title: 'Gestos Rápidos',
-    description: 'Desliza en el Dashboard: a la izquierda para abrir tu Plan de Dieta y a la derecha para abrir tu Plan de Entreno. Desde los planes, puedes deslizar para volver rápidamente al Dashboard.',
+    description: (
+      <>
+        Bibofit permite que edites cualquier receta a tu gusto. <br />
+        La dieta que no se disfruta es imposible de seguir
+      </>
+    ),
     icon: ArrowRightLeft,
     color: 'text-fuchsia-400',
     bg: 'bg-fuchsia-400/10'
   },
   {
-    title: 'Crea nuevas variantes',
-    description: 'Puedes personalizar a tu gusto las recetas de Bibofit. La dieta que no se disfruta es imposible de seguir',
+    title: 'edita cualquier receta',
+    description: 'Bibofit permite que edites cualquier receta a tu gusto. La dieta que no se disfruta es imposible de seguir',
     icon: SlidersHorizontal,
     color: 'text-orange-400',
     bg: 'bg-orange-400/10'

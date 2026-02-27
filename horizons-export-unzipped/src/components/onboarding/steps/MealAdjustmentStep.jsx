@@ -8,6 +8,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { useOnboardingDietAssignment } from '@/hooks/useOnboardingDietAssignment';
 import ConflictResolutionDialog from '@/components/admin/diet-plans/ConflictResolutionDialog';
 import LoadingScreen from '@/components/shared/LoadingScreen';
+import { getConflictInfo } from '@/lib/restrictionChecker';
 
 const MealAdjustmentStep = ({ onNext, isLoading: isStepLoading }) => {
   const { user } = useAuth();
@@ -198,6 +199,19 @@ const MealAdjustmentStep = ({ onNext, isLoading: isStepLoading }) => {
       });
 
       setConflicts(prev => {
+          const criticalTypes = new Set(['condition_avoid', 'sensitivity', 'non-preferred']);
+          const ingredients = updatedRecipe?.custom_ingredients?.length > 0
+              ? updatedRecipe.custom_ingredients
+              : (updatedRecipe?.ingredients || updatedRecipe?.recipe?.recipe_ingredients || []);
+
+          const activeConflictReasons = new Set();
+          ingredients.forEach((ing) => {
+              const info = getConflictInfo(ing?.food, clientRestrictions);
+              if (info && criticalTypes.has(info.type)) {
+                  activeConflictReasons.add(info.reason || 'Conflicto');
+              }
+          });
+
           const newConflicts = { ...prev };
           Object.keys(newConflicts).forEach(key => {
               newConflicts[key] = newConflicts[key].filter(r => r.id !== updatedRecipe.id);
@@ -205,6 +219,14 @@ const MealAdjustmentStep = ({ onNext, isLoading: isStepLoading }) => {
                   delete newConflicts[key];
               }
           });
+
+          activeConflictReasons.forEach((reason) => {
+              if (!newConflicts[reason]) newConflicts[reason] = [];
+              if (!newConflicts[reason].some((r) => r.id === updatedRecipe.id)) {
+                  newConflicts[reason].push(updatedRecipe);
+              }
+          });
+
           return newConflicts;
       });
   };
