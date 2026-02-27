@@ -42,3 +42,16 @@ pnpm-debug.log*
 # =========================
 .cache/
 .turbo/
+
+# =========================
+# Supabase (IMPORTANT)
+# =========================
+
+# Carpeta de link local del CLI (NO se versiona)
+.supabase/
+
+# Archivos temporales internos de Supabase
+**/supabase/.temp/
+
+# Si aparece Supabase dentro del export del front (NO es el real)
+horizons-export-unzipped/supabase/

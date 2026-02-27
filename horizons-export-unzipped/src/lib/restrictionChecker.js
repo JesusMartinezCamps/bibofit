@@ -1,6 +1,44 @@
 
 import { supabase } from '@/lib/supabaseClient';
 
+const normalizeRelationType = (value) => {
+    const relation = (value || '').toLowerCase();
+    if (['to_avoid', 'evitar', 'avoid'].includes(relation)) return 'avoid';
+    if (['recommended', 'recomendado', 'recommend', 'recomendar', 'to_recommend'].includes(relation)) return 'recommend';
+    return relation || null;
+};
+
+const mappingAppliesToConflict = (mapping, conflict) => {
+    const contexts = mapping?.metadata?.conflict_contexts;
+
+    // Backward-compatible: mappings without explicit context apply to any conflict.
+    if (!Array.isArray(contexts) || contexts.length === 0) {
+        return true;
+    }
+
+    return contexts.some((ctx) => {
+        if (!ctx || typeof ctx !== 'object') return false;
+
+        if (ctx.type === 'sensitivity') {
+            return conflict?.type === 'sensitivity' && Number(ctx.sensitivity_id) === Number(conflict.sensitivity_id);
+        }
+
+        if (ctx.type === 'medical_condition') {
+            if (
+                (conflict?.type !== 'condition_avoid' && conflict?.type !== 'condition_recommend') ||
+                Number(ctx.condition_id) !== Number(conflict.condition_id)
+            ) {
+                return false;
+            }
+
+            const ctxRelation = normalizeRelationType(ctx.relation_type);
+            return !ctxRelation || ctxRelation === normalizeRelationType(conflict.condition_relation);
+        }
+
+        return false;
+    });
+};
+
 export const getConflictInfo = (food, userRestrictions) => {
     if (!food || !userRestrictions) {
         return null;
@@ -35,7 +73,8 @@ export const getConflictInfo = (food, userRestrictions) => {
         const sensitivity = foodSensitivity.sensitivities || foodSensitivity.sensitivity;
         return {
           type: 'sensitivity',
-          reason: `Sensibilidad: ${sensitivity?.name || foodSensitivity.sensitivity_name || 'Desconocida'}`
+          reason: `Sensibilidad: ${sensitivity?.name || foodSensitivity.sensitivity_name || 'Desconocida'}`,
+          sensitivity_id: sensitivity?.id ?? foodSensitivity.sensitivity_id ?? null
         };
       }
     }
@@ -58,7 +97,12 @@ export const getConflictInfo = (food, userRestrictions) => {
       
       if (toAvoid) {
         const condition = toAvoid.medical_conditions || toAvoid.condition;
-        return { type: 'condition_avoid', reason: `Evitar por: ${condition?.name || toAvoid.condition_name || 'Condición'}` };
+        return {
+          type: 'condition_avoid',
+          reason: `Evitar por: ${condition?.name || toAvoid.condition_name || 'Condición'}`,
+          condition_id: condition?.id ?? toAvoid.condition_id ?? null,
+          condition_relation: normalizeRelationType(toAvoid.relation_type)
+        };
       }
 
       const toRecommend = food.food_medical_conditions.find(fmc => {
@@ -71,7 +115,12 @@ export const getConflictInfo = (food, userRestrictions) => {
 
       if (toRecommend) {
         const condition = toRecommend.medical_conditions || toRecommend.condition;
-        return { type: 'condition_recommend', reason: `Recomendado por: ${condition?.name || 'Condición'}` };
+        return {
+          type: 'condition_recommend',
+          reason: `Recomendado por: ${condition?.name || 'Condición'}`,
+          condition_id: condition?.id ?? toRecommend.condition_id ?? null,
+          condition_relation: normalizeRelationType(toRecommend.relation_type)
+        };
       }
     }
   
@@ -97,7 +146,7 @@ export const getConflictWithSubstitutions = async (food, userRestrictions, allFo
 
         if (error) throw error;
 
-        const substitutions = mappings || [];
+        const substitutions = (mappings || []).filter((sub) => mappingAppliesToConflict(sub, basicConflict));
 
         // Filtrar sustituciones para asegurar que el target NO tenga conflictos
         const safeSubstitutions = substitutions.filter(sub => {
