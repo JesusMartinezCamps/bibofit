@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { assignDietPlanToUser } from '@/lib/dietAssignmentService';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabaseClient';
-import { getConflictInfo, getConflictWithSubstitutions } from '@/lib/restrictionChecker';
+import { getConflictInfo, getConflictWithSubstitutions, prefetchSubstitutionMappings } from '@/lib/restrictionChecker';
 
 
 const fetchClientRestrictions = async (userId) => {
@@ -173,7 +173,8 @@ const applyAutoSubstitutionsToRecipe = async ({
   recipe,
   clientRestrictions,
   allFoods,
-  analysisCache
+  analysisCache,
+  substitutionsBySourceFoodId
 }) => {
   const updatedRecipe = cloneRecipe(recipe);
   const foodsById = new Map(allFoods.map(food => [food.id, food]));
@@ -188,7 +189,12 @@ const applyAutoSubstitutionsToRecipe = async ({
 
       let analysis = analysisCache.get(food.id);
       if (!analysis) {
-        analysis = await getConflictWithSubstitutions(food, clientRestrictions, allFoods);
+        analysis = await getConflictWithSubstitutions(
+          food,
+          clientRestrictions,
+          allFoods,
+          substitutionsBySourceFoodId
+        );
         analysisCache.set(food.id, analysis);
       }
 
@@ -222,7 +228,12 @@ const applyAutoSubstitutionsToRecipe = async ({
 
       let analysis = analysisCache.get(food.id);
       if (!analysis) {
-        analysis = await getConflictWithSubstitutions(food, clientRestrictions, allFoods);
+        analysis = await getConflictWithSubstitutions(
+          food,
+          clientRestrictions,
+          allFoods,
+          substitutionsBySourceFoodId
+        );
         analysisCache.set(food.id, analysis);
       }
 
@@ -271,13 +282,29 @@ export const useOnboardingDietAssignment = () => {
     const recipeOverrides = buildRecipeOverrideMap(templateRecipes);
     const analysisCache = new Map();
     const autoSubstitutionsApplied = [];
+    const allTemplateFoodIds = templateRecipes.flatMap((recipe) => {
+      const source = recipe.custom_ingredients?.length > 0
+        ? recipe.custom_ingredients
+        : recipe.recipe?.recipe_ingredients || [];
+      return source
+        .map((ingredient) => ingredient?.food_id || ingredient?.food?.id)
+        .filter(Boolean);
+    });
+
+    let substitutionsBySourceFoodId = new Map();
+    try {
+      substitutionsBySourceFoodId = await prefetchSubstitutionMappings(allTemplateFoodIds);
+    } catch (e) {
+      console.error('Error preloading substitution mappings, falling back to per-food lookup:', e);
+    }
 
     for (const recipe of templateRecipes) {
       const { updatedRecipe, hasChanges, autoApplied } = await applyAutoSubstitutionsToRecipe({
         recipe,
         clientRestrictions,
         allFoods,
-        analysisCache
+        analysisCache,
+        substitutionsBySourceFoodId
       });
 
       if (hasChanges) {

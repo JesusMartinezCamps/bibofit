@@ -75,23 +75,15 @@ Deno.serve(async (req) => {
       if (!target) continue;
 
       const detailedRecipes = Array.isArray(meal?.recipes) ? meal.recipes : [];
-      const detailedByRecipeId = new Map(
-        detailedRecipes
-          .filter((recipe: MealRecipeInput) => recipe?.recipe_id != null)
-          .map((recipe: MealRecipeInput) => [String(recipe.recipe_id), recipe]),
-      );
+      const legacyRecipeIds = Array.isArray(meal?.recipe_ids) ? meal.recipe_ids.map(String).filter(Boolean) : [];
 
-      const orderedRecipeIds = Array.from(new Set([
-        ...detailedRecipes.map((recipe: MealRecipeInput) => String(recipe?.recipe_id ?? "")).filter(Boolean),
-        ...(Array.isArray(meal?.recipe_ids) ? meal.recipe_ids.map(String) : []),
-      ]));
-
-      const mealRecipes: (BalanceRecipeRequest & { source_row_id?: number | string })[] = orderedRecipeIds
-        .map((recipeId: string) => {
-          const detailed = detailedByRecipeId.get(recipeId);
+      const mealRecipesFromDetailed: (BalanceRecipeRequest & { source_row_id?: number | string })[] = detailedRecipes
+        .filter((recipe: MealRecipeInput) => recipe?.recipe_id != null)
+        .map((recipe: MealRecipeInput) => {
+          const recipeId = String(recipe.recipe_id);
           const dbRecipe = recipesById.get(recipeId);
-          const providedIngredients = Array.isArray(detailed?.ingredients)
-            ? detailed.ingredients
+          const providedIngredients = Array.isArray(recipe?.ingredients)
+            ? recipe.ingredients
             : [];
           const ingredients = providedIngredients.length > 0
             ? providedIngredients
@@ -99,12 +91,35 @@ Deno.serve(async (req) => {
 
           return {
             recipe_id: recipeId,
-            source_row_id: detailed?.source_row_id,
+            source_row_id: recipe?.source_row_id,
             is_private: false,
             ingredients,
           };
         })
         .filter((recipe) => Array.isArray(recipe.ingredients) && recipe.ingredients.length > 0);
+
+      // Keep backward compatibility with legacy recipe_ids, but avoid duplicating entries
+      // already represented in detailed payload by the same source recipe id.
+      const representedDetailedIds = new Set(
+        mealRecipesFromDetailed.map((recipe) => String(recipe.recipe_id)),
+      );
+
+      const mealRecipesFromLegacy: (BalanceRecipeRequest & { source_row_id?: number | string })[] = legacyRecipeIds
+        .filter((recipeId) => !representedDetailedIds.has(recipeId))
+        .map((recipeId: string) => {
+          const dbRecipe = recipesById.get(recipeId);
+          return {
+            recipe_id: recipeId,
+            is_private: false,
+            ingredients: dbRecipe?.recipe_ingredients || [],
+          };
+        })
+        .filter((recipe) => Array.isArray(recipe.ingredients) && recipe.ingredients.length > 0);
+
+      const mealRecipes: (BalanceRecipeRequest & { source_row_id?: number | string })[] = [
+        ...mealRecipesFromDetailed,
+        ...mealRecipesFromLegacy,
+      ];
 
       if (!mealRecipes.length) continue;
 

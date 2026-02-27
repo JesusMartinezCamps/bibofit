@@ -351,27 +351,44 @@ export const useAssignPlan = ({ open, onOpenChange, onSuccess, preselectedClient
                     if (!acc[mealId]) acc[mealId] = [];
                     
                     const recipeId = recipe.recipe_id;
+                    const ingredientsSource = recipe.custom_ingredients?.length > 0
+                        ? recipe.custom_ingredients
+                        : recipe.recipe?.recipe_ingredients || [];
+                    const normalizedIngredients = (ingredientsSource || [])
+                        .map((ingredient) => ({
+                            food_id: Number(ingredient?.food_id || ingredient?.food?.id),
+                            grams: Number(ingredient?.grams ?? ingredient?.quantity ?? 0),
+                        }))
+                        .filter((ingredient) => Number.isInteger(ingredient.food_id) && ingredient.food_id > 0 && Number.isFinite(ingredient.grams) && ingredient.grams > 0);
+
                     acc[mealId].push({
                         templateRecipeId: recipe.id,
-                        recipeId: recipeId
+                        recipeId: recipeId,
+                        ingredients: normalizedIngredients
                     });
                     return acc;
                 }, {});
 
                 const mealsPayload = mealConfigs.map(config => {
                     const recipesForThisMoment = recipesByMeal[config.day_meal_id] || [];
-                    const recipeIds = recipesForThisMoment.map(r => r.recipeId);
+                    const recipes = recipesForThisMoment
+                        .filter((r) => Number.isInteger(Number(r.recipeId)) && Array.isArray(r.ingredients) && r.ingredients.length > 0)
+                        .map((r) => ({
+                            source_row_id: Number(r.templateRecipeId),
+                            recipe_id: Number(r.recipeId),
+                            ingredients: r.ingredients
+                        }));
                     
                     return {
                         day_meal_id: config.day_meal_id,
                         protein_pct: config.protein_pct,
                         carbs_pct: config.carbs_pct,
                         fat_pct: config.fat_pct,
-                        recipe_ids: recipeIds
+                        recipes
                     };
                 });
                 
-                const hasRecipesToProcess = mealsPayload.some(m => m.recipe_ids.length > 0);
+                const hasRecipesToProcess = mealsPayload.some(m => m.recipes.length > 0);
 
                 if (hasRecipesToProcess) {
                     const payload = {
