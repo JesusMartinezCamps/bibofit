@@ -19,14 +19,15 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import ProfileTypeSubtitle from '@/components/profile/ProfileTypeSubtitle';
-import { onboardingService } from '@/lib/onboarding/onboardingService';
 import { useQuickStartGuide } from '@/contexts/QuickStartGuideContext';
+import { useOnboarding } from '@/hooks/useOnboarding';
 
 const ProfilePage = () => {
   const { signOut, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const { openGuide } = useQuickStartGuide();
+  const { startRepeatOnboarding } = useOnboarding();
   const profileName = user?.full_name?.trim();
   const profileTitle = profileName ? profileName : 'Mi Perfil';
 
@@ -40,26 +41,14 @@ const ProfilePage = () => {
   };
   
   const handleResetOnboarding = async () => {
-      if (user?.role !== 'admin') {
-          toast({ 
-              title: "Error de permisos", 
-              description: "Solo administradores pueden reiniciar el onboarding", 
-              variant: "destructive" 
-          });
-          return;
-      }
-
       try {
-          await onboardingService.resetOnboarding(user.id);
-          toast({ title: "Onboarding reiniciado", description: "Recargando aplicación..." });
-          
-          setTimeout(() => {
-             window.location.href = '/'; 
-          }, 500);
-          
+          const started = await startRepeatOnboarding();
+          if (started) {
+            toast({ title: "Onboarding iniciado", description: "Puedes repetir, saltar al ajuste final o cerrar sin perder estabilidad." });
+          }
       } catch (error) {
           console.error(error);
-          toast({ title: "Error", description: "No se pudo reiniciar el onboarding", variant: "destructive" });
+          toast({ title: "Error", description: "No se pudo iniciar la repetición del onboarding", variant: "destructive" });
       }
   };
 
@@ -108,16 +97,13 @@ const ProfilePage = () => {
             <h1 className="text-4xl md:text-5xl font-bold text-white">{profileTitle}</h1>
             <ProfileTypeSubtitle role={user?.role} />
             <div className="flex flex-col items-center justify-center gap-2 mt-4">
-              {/* Botón restringido solo para administradores por seguridad y control de flujo */}
-              {user?.role === 'admin' && (
-                <Button 
-                    variant="link" 
-                    className="text-gray-500 hover:text-green-400 text-xs h-auto py-1" 
-                    onClick={handleResetOnboarding}
-                >
-                    <RotateCcw className="w-3 h-3 mr-1" /> Repetir Onboarding
-                </Button>
-              )}
+              <Button 
+                  variant="link" 
+                  className="text-gray-500 hover:text-green-400 text-xs h-auto py-1" 
+                  onClick={handleResetOnboarding}
+              >
+                  <RotateCcw className="w-3 h-3 mr-1" /> Repetir Onboarding
+              </Button>
               <Button 
                   variant="link" 
                   className="text-gray-500 hover:text-emerald-400 text-xs h-auto py-1" 

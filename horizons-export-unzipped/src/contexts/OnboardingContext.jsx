@@ -396,24 +396,63 @@ export const OnboardingProvider = ({ children }) => {
     setIsOpen(false);
   }, []);
 
-  const cancelOnboarding = useCallback(async () => {
-    if (!isRepeatingOnboarding) {
-      setIsOpen(false);
-      return;
-    }
+  const startRepeatOnboarding = useCallback(async () => {
+    if (!user?.id) return false;
 
     try {
+      setError(null);
+      const status = await onboardingService.getOnboardingStatus(user.id);
+      const hasCompletedAtLeastOnce = Boolean(status?.onboarding_completed_at);
+
+      if (!hasCompletedAtLeastOnce) {
+        toast({
+          title: "Onboarding no completado",
+          description: "Debes completar el onboarding al menos una vez antes de repetirlo.",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      setIsOnboardingCompleted(true);
+      setCurrentStepId(ONBOARDING_STEPS[0].id);
+      setIsOpen(true);
+      return true;
+    } catch (err) {
+      setError(err.message || 'Error iniciando repetición de onboarding');
+      toast({
+        title: "Error",
+        description: "No se pudo iniciar la repetición del onboarding.",
+        variant: "destructive"
+      });
+      return false;
+    }
+  }, [toast, user?.id]);
+
+  const cancelOnboarding = useCallback(async () => {
+    try {
       setIsLoading(true);
-      await restoreRepeatBaselineSnapshot();
+      if (isRepeatingOnboarding) {
+        await restoreRepeatBaselineSnapshot();
+      }
+
+      const completionUpdates = {
+        onboarding_step_id: 'completion'
+      };
+
+      if (!isOnboardingCompleted) {
+        completionUpdates.onboarding_completed_at = new Date().toISOString();
+      }
+
       const { error: completionError } = await supabase
         .from('profiles')
-        .update({ onboarding_step_id: 'completion' })
+        .update(completionUpdates)
         .eq('user_id', user.id);
 
       if (completionError) throw completionError;
 
       await refreshUser();
       await refreshOnboardingState();
+      setIsOnboardingCompleted(true);
       setCurrentStepId(ONBOARDING_STEPS[0].id);
       setRepeatDraftData({});
       setRepeatBaselineSnapshot(null);
@@ -429,7 +468,13 @@ export const OnboardingProvider = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [isRepeatingOnboarding, refreshOnboardingState, refreshUser, restoreRepeatBaselineSnapshot, toast, user?.id]);
+  }, [isOnboardingCompleted, isRepeatingOnboarding, refreshOnboardingState, refreshUser, restoreRepeatBaselineSnapshot, toast, user?.id]);
+
+  const jumpToMealAdjustment = useCallback(() => {
+    if (!isRepeatingOnboarding) return false;
+    setCurrentStepId('meal-adjustment');
+    return true;
+  }, [isRepeatingOnboarding]);
 
   const completeOnboarding = useCallback(async () => {
     if (!user) return false;
@@ -524,6 +569,8 @@ export const OnboardingProvider = ({ children }) => {
     completeOnboarding,
     closeOnboardingModal,
     cancelOnboarding,
+    startRepeatOnboarding,
+    jumpToMealAdjustment,
     isOnboardingActive: isOpen,
     isRepeatingOnboarding,
     onboardingState, // Exposed State

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronLeft, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import OnboardingModal from './OnboardingModal';
 
@@ -32,7 +32,9 @@ const OnboardingWizard = ({ isOpen: propIsOpen }) => {
     isLastStep,
     isOpen: contextIsOpen,
     hasCompletedOnboardingOnce,
-    cancelOnboarding
+    cancelOnboarding,
+    jumpToMealAdjustment,
+    isRepeatingOnboarding
   } = useOnboarding();
 
   // Local state to track if the modal for the current step has been dismissed
@@ -109,6 +111,10 @@ const OnboardingWizard = ({ isOpen: propIsOpen }) => {
   // Access modal content directly from the centralized config
   const activeModalContent = currentStep.modalContent;
   const shouldShowModal = Boolean(currentStep.showModal && activeModalContent && !isModalDismissed);
+  const canJumpToMealAdjustment = hasCompletedOnboardingOnce
+    && isRepeatingOnboarding
+    && currentStep.id !== 'meal-adjustment'
+    && currentStep.id !== 'completion';
 
   // If it's the completion step, just render it directly (it has its own full-screen layout)
   if (currentStep.id === 'completion') {
@@ -147,7 +153,19 @@ const OnboardingWizard = ({ isOpen: propIsOpen }) => {
               </span>
           )}
 
-           <div className="w-10 flex justify-end">
+           <div className="min-w-[5.5rem] flex justify-end gap-1">
+            {canJumpToMealAdjustment && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={jumpToMealAdjustment}
+                className="text-gray-400 hover:text-white hover:bg-gray-800"
+                aria-label="Ir al ajuste final"
+                disabled={isLoading}
+              >
+                <ChevronRight className="h-5 w-5" />
+              </Button>
+            )}
             {hasCompletedOnboardingOnce && (
               <Button
                 variant="ghost"
