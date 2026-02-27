@@ -11,10 +11,10 @@ const ContentButton = ({ icon: Icon, title, to, hasPending, count, disabled }) =
     return (
         <button
             onClick={() => navigate(to)}
-            className="relative flex flex-col items-center justify-center p-6 w-full text-center rounded-xl bg-gradient-to-br from-slate-900 via-slate-850 to-emerald-950 border border-emerald-900/30 shadow-lg transition-all duration-500 ease-out hover:from-slate-800 hover:via-emerald-950 hover:to-emerald-900 hover:border-emerald-600/40 hover:shadow-emerald-500/20 group"
+            className="relative flex flex-col items-center justify-center p-6 w-full text-center rounded-xl bg-gradient-to-br from-indigo-800/50 via-slate-850 to-cyan-950 border border-cyan-900/30 shadow-lg transition-all duration-500 ease-out hover:from-indigo-800 hover:via-cyan-950 hover:to-cyan-900 hover:border-cyan-600/40 hover:shadow-cyan-500/20 group"
 
         >
-            <Icon className="w-10 h-10 mb-3 text-green-400 group-hover:scale-110 transition-transform" />
+            <Icon className="w-10 h-10 mb-3 text-cyan-500 group-hover:scale-110 transition-transform" />
             <span className="text-white font-semibold">{title}</span>
             {hasPending && (
                 <div className="absolute top-3 right-3">
@@ -33,7 +33,7 @@ const ContentButton = ({ icon: Icon, title, to, hasPending, count, disabled }) =
 const SectionHeader = ({ title, visible = true }) => (
     visible ? (
         <h2
-            className="text-2xl font-bold mb-4 text-green-300 col-span-1 md:col-span-2 lg:col-span-3 mt-4 first:mt-0"
+            className="text-2xl font-bold mb-4 text-white col-span-1 md:col-span-2 lg:col-span-3 mt-4 first:mt-0"
         >
             {title}
         </h2>
