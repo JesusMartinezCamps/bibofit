@@ -12,7 +12,7 @@ export const useIngredientBuilder = (initialIngredients = [], onIngredientsChang
     useEffect(() => {
         const fetchInitialData = async () => {
             const [foodsRes, foodGroupsRes] = await Promise.all([
-                supabase.from('food').select('*, food_unit, food_sensitivities(sensitivity_id, sensitivities(name)), food_medical_conditions(condition_id, relation_type), food_to_food_groups(food_group_id), food_vitamins(vitamin_id, vitamins(name)), food_minerals(mineral_id, minerals(name))'),
+                supabase.from('food').select('*, food_unit, food_sensitivities(sensitivity_id, sensitivities(id, name)), food_medical_conditions(condition_id, relation_type), food_to_food_groups(food_group_id, food_group:food_groups(id, name)), food_vitamins(vitamin_id, vitamins(id, name)), food_minerals(mineral_id, minerals(id, name))'),
                 supabase.from('food_groups').select('*')
             ]);
             setAllFoods(foodsRes.data || []);

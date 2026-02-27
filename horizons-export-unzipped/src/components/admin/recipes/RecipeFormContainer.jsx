@@ -61,7 +61,7 @@ const RecipeFormContainer = ({ selectedRecipe, onSave, resetSignal = 0 }) => {
     const fetchInitialData = async () => {
       const { data: foodsData, error: foodsError } = await supabase
         .from('food')
-        .select('*, food_sensitivities(*, sensitivities(name))')
+        .select('*, food_sensitivities(*, sensitivities(id, name)), food_medical_conditions(condition_id, relation_type), food_to_food_groups(food_group_id, food_group:food_groups(id, name)), food_vitamins(vitamin_id, vitamins(id, name)), food_minerals(mineral_id, minerals(id, name))')
         .order('name');
         
       if (foodsError) console.error('Error fetching foods:', foodsError);
