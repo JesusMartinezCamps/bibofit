@@ -95,7 +95,7 @@ export const balanceRecipeCore = (
   const CAL_TOL = 0.05;
 
   const MAX_STEP_GRAMS = options.stepGrams ?? 75;
-  const MAX_STEP_UNITS = 1;
+  const MAX_STEP_UNITS = 3;
 
   const ALPHA_PRES = 0.05;
   const BETA_ROLE = 0.02;

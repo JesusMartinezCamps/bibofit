@@ -75,6 +75,7 @@ const AdminRecipeModal = ({
         userId, 
         planRestrictions: forcedRestrictions || initialPlanRestrictions, 
         allFoodsData: allFoods,
+        isTemporaryEdit,
         key: editorKey 
     });
     

@@ -21,7 +21,7 @@ const calculateRecipeNutrients = (ingredients, allFoodsData) => {
     };
 };
 
-export const useAdminRecipeEditor = ({ recipeToEdit, onSaveSuccess, userId, planRestrictions, allFoodsData, key: stateKey = 0 }) => {
+export const useAdminRecipeEditor = ({ recipeToEdit, onSaveSuccess, userId, planRestrictions, allFoodsData, isTemporaryEdit = false, key: stateKey = 0 }) => {
     const { toast } = useToast();
     const [recipeData, setRecipeData] = useState(null);
     const [ingredients, setIngredients] = useState([]);
@@ -33,8 +33,32 @@ export const useAdminRecipeEditor = ({ recipeToEdit, onSaveSuccess, userId, plan
 
     const isNewRecipeFromTemplate = useMemo(() => recipeToEdit && !recipeToEdit.is_customized && recipeToEdit.recipe, [recipeToEdit]);
 
+    const mapInMemoryIngredients = useCallback((sourceIngredients = []) => {
+        return (sourceIngredients || []).map((ing, index) => {
+            const foodId = ing?.food_id ?? ing?.food?.id;
+            const fallbackFood = allFoodsData.find((f) => String(f.id) === String(foodId));
+            return {
+                ...ing,
+                id: ing?.id ?? `tmp-${index}`,
+                food_id: foodId,
+                grams: Number(ing?.grams ?? ing?.quantity ?? 0),
+                food: ing?.food || fallbackFood || null,
+                local_id: ing?.local_id || ing?.id || `tmp-local-${index}`,
+            };
+        }).filter((ing) => ing.food_id != null);
+    }, [allFoodsData]);
+
     const fetchIngredients = useCallback(async () => {
         if (!recipeToEdit) return [];
+
+        if (isTemporaryEdit) {
+            const inMemoryIngredients = recipeToEdit?.custom_ingredients?.length > 0
+                ? recipeToEdit.custom_ingredients
+                : (recipeToEdit?.ingredients?.length > 0
+                    ? recipeToEdit.ingredients
+                    : recipeToEdit?.recipe?.recipe_ingredients || []);
+            return mapInMemoryIngredients(inMemoryIngredients);
+        }
         
         let ingredientsData = [];
         let error;
@@ -64,7 +88,7 @@ export const useAdminRecipeEditor = ({ recipeToEdit, onSaveSuccess, userId, plan
             ...ing,
             local_id: ing.id || Math.random().toString(),
         }));
-    }, [recipeToEdit, toast]);
+    }, [recipeToEdit, toast, isTemporaryEdit, mapInMemoryIngredients]);
 
     useEffect(() => {
         // Reset editor state whenever the caller indicates we should reinitialize (e.g., modal reopen)
@@ -95,10 +119,10 @@ export const useAdminRecipeEditor = ({ recipeToEdit, onSaveSuccess, userId, plan
                 };
             } else { // Template
                 initialRecipeData = {
-                    name: recipeToEdit.recipe.name,
-                    instructions: recipeToEdit.recipe.instructions,
-                    prep_time_min: recipeToEdit.recipe.prep_time_min,
-                    difficulty: recipeToEdit.recipe.difficulty,
+                    name: recipeToEdit.custom_name || recipeToEdit.name || recipeToEdit.recipe?.name,
+                    instructions: recipeToEdit.custom_instructions || recipeToEdit.instructions || recipeToEdit.recipe?.instructions,
+                    prep_time_min: recipeToEdit.custom_prep_time_min ?? recipeToEdit.prep_time_min ?? recipeToEdit.recipe?.prep_time_min,
+                    difficulty: recipeToEdit.custom_difficulty || recipeToEdit.difficulty || recipeToEdit.recipe?.difficulty,
                 };
             }
             setRecipeData(initialRecipeData);

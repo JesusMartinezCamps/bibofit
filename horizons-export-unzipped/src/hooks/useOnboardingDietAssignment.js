@@ -2,15 +2,28 @@ import React, { useState } from 'react';
 import { assignDietPlanToUser } from '@/lib/dietAssignmentService';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabaseClient';
-import { getConflictWithSubstitutions } from '@/lib/restrictionChecker';
+import { getConflictInfo, getConflictWithSubstitutions } from '@/lib/restrictionChecker';
 
 
 const fetchClientRestrictions = async (userId) => {
   if (!userId) {
-    return { sensitivities: [], conditions: [] };
+    return {
+      sensitivities: [],
+      conditions: [],
+      medical_conditions: [],
+      individual_food_restrictions: [],
+      preferred_foods: [],
+      non_preferred_foods: []
+    };
   }
 
-  const [{ data: sensitivities, error: sensError }, { data: conditions, error: condError }] = await Promise.all([
+  const [
+    { data: sensitivities, error: sensError },
+    { data: conditions, error: condError },
+    { data: individualRestrictions, error: individualError },
+    { data: preferredFoods, error: preferredError },
+    { data: nonPreferredFoods, error: nonPreferredError }
+  ] = await Promise.all([
     supabase
       .from('user_sensitivities')
       .select('sensitivities(id, name)')
@@ -18,15 +31,40 @@ const fetchClientRestrictions = async (userId) => {
     supabase
       .from('user_medical_conditions')
       .select('medical_conditions(id, name)')
+      .eq('user_id', userId),
+    supabase
+      .from('user_individual_food_restrictions')
+      .select('food(id, name)')
+      .eq('user_id', userId),
+    supabase
+      .from('preferred_foods')
+      .select('food(id, name)')
+      .eq('user_id', userId),
+    supabase
+      .from('non_preferred_foods')
+      .select('food(id, name)')
       .eq('user_id', userId)
   ]);
 
   if (sensError) throw sensError;
   if (condError) throw condError;
+  if (individualError) throw individualError;
+  if (preferredError) throw preferredError;
+  if (nonPreferredError) throw nonPreferredError;
+
+  const normalizedSensitivities = (sensitivities || []).map(s => s.sensitivities).filter(Boolean);
+  const normalizedConditions = (conditions || []).map(c => c.medical_conditions).filter(Boolean);
+  const normalizedIndividualRestrictions = (individualRestrictions || []).map(i => i.food).filter(Boolean);
+  const normalizedPreferredFoods = (preferredFoods || []).map(i => i.food).filter(Boolean);
+  const normalizedNonPreferredFoods = (nonPreferredFoods || []).map(i => i.food).filter(Boolean);
 
   return {
-    sensitivities: (sensitivities || []).map(s => s.sensitivities).filter(Boolean),
-    conditions: (conditions || []).map(c => c.medical_conditions).filter(Boolean)
+    sensitivities: normalizedSensitivities,
+    conditions: normalizedConditions,
+    medical_conditions: normalizedConditions,
+    individual_food_restrictions: normalizedIndividualRestrictions,
+    preferred_foods: normalizedPreferredFoods,
+    non_preferred_foods: normalizedNonPreferredFoods
   };
 };
 
@@ -37,14 +75,15 @@ const fetchTemplateRecipesWithFoods = async (templateId) => {
     .from('diet_plan_recipes')
     .select(`
       *,
+      day_meal:day_meal_id(id, name, display_order),
       recipe:recipe_id(
         *,
         recipe_ingredients(
           *,
           food(
             *,
-            food_sensitivities(sensitivity_id),
-            food_medical_conditions(*)
+            food_sensitivities(sensitivity_id, sensitivities(id, name)),
+            food_medical_conditions(*, medical_conditions(id, name))
           )
         )
       ),
@@ -52,8 +91,8 @@ const fetchTemplateRecipesWithFoods = async (templateId) => {
         *,
         food(
           *,
-          food_sensitivities(sensitivity_id),
-          food_medical_conditions(*)
+          food_sensitivities(sensitivity_id, sensitivities(id, name)),
+          food_medical_conditions(*, medical_conditions(id, name))
         )
       )
     `)
@@ -65,41 +104,25 @@ const fetchTemplateRecipesWithFoods = async (templateId) => {
 
 const buildConflictsMap = (templateRecipes = [], clientRestrictions = { sensitivities: [], conditions: [] }) => {
   const newConflicts = {};
-
-  const clientSensitivityIds = new Set((clientRestrictions.sensitivities || []).map(s => s.id));
-  const clientConditionIds = new Set((clientRestrictions.conditions || []).map(c => c.id));
+  const criticalConflictTypes = new Set(['condition_avoid', 'sensitivity', 'non-preferred']);
 
   templateRecipes.forEach(recipe => {
     const ingredientsSource = recipe.custom_ingredients?.length > 0
       ? recipe.custom_ingredients
       : recipe.recipe?.recipe_ingredients || [];
 
-    const ingredients = ingredientsSource.map(i => i?.food).filter(Boolean);
+    ingredientsSource.forEach((ingredient) => {
+      const food = ingredient?.food;
+      if (!food) return;
 
-    ingredients.forEach(food => {
-      (food.food_sensitivities || []).forEach(fs => {
-        if (clientSensitivityIds.has(fs.sensitivity_id)) {
-          const restriction = (clientRestrictions.sensitivities || []).find(s => s.id === fs.sensitivity_id);
-          if (restriction) {
-            if (!newConflicts[restriction.name]) newConflicts[restriction.name] = [];
-            if (!newConflicts[restriction.name].some(r => r.id === recipe.id)) {
-              newConflicts[restriction.name].push(recipe);
-            }
-          }
-        }
-      });
+      const conflict = getConflictInfo(food, clientRestrictions);
+      if (!conflict || !criticalConflictTypes.has(conflict.type)) return;
 
-      (food.food_medical_conditions || []).forEach(fmc => {
-        if (clientConditionIds.has(fmc.condition_id) && (fmc.relation_type === 'to_avoid' || fmc.relation_type === 'evitar')) {
-          const restriction = (clientRestrictions.conditions || []).find(c => c.id === fmc.condition_id);
-          if (restriction) {
-            if (!newConflicts[restriction.name]) newConflicts[restriction.name] = [];
-            if (!newConflicts[restriction.name].some(r => r.id === recipe.id)) {
-              newConflicts[restriction.name].push(recipe);
-            }
-          }
-        }
-      });
+      const restrictionKey = conflict.reason || 'Conflicto';
+      if (!newConflicts[restrictionKey]) newConflicts[restrictionKey] = [];
+      if (!newConflicts[restrictionKey].some(r => r.id === recipe.id)) {
+        newConflicts[restrictionKey].push(recipe);
+      }
     });
   });
 
@@ -133,6 +156,19 @@ const cloneRecipe = (recipe) => {
   return JSON.parse(JSON.stringify(recipe));
 };
 
+const normalizeIngredientQuantityForTargetFood = (ingredient, targetFood) => {
+  const sourceUnit = ingredient?.food?.food_unit || 'gramos';
+  const targetUnit = targetFood?.food_unit || 'gramos';
+  const currentQty = Number(ingredient?.grams ?? ingredient?.quantity ?? 0);
+  const hasCurrentQty = Number.isFinite(currentQty) && currentQty > 0;
+
+  if (sourceUnit === targetUnit) {
+    return hasCurrentQty ? currentQty : (targetUnit === 'unidades' ? 1 : 100);
+  }
+
+  return targetUnit === 'unidades' ? 1 : 100;
+};
+
 const applyAutoSubstitutionsToRecipe = async ({
   recipe,
   clientRestrictions,
@@ -160,11 +196,14 @@ const applyAutoSubstitutionsToRecipe = async ({
 
       const targetFood = foodsById.get(analysis.autoSubstitution.target_food_id);
       if (!targetFood) continue;
+      const normalizedQty = normalizeIngredientQuantityForTargetFood(ingredient, targetFood);
 
       updatedRecipe.custom_ingredients[index] = {
         ...ingredient,
         food_id: targetFood.id,
-        food: targetFood
+        food: targetFood,
+        grams: normalizedQty,
+        quantity: normalizedQty
       };
 
       autoApplied.push({
@@ -191,11 +230,14 @@ const applyAutoSubstitutionsToRecipe = async ({
 
       const targetFood = foodsById.get(analysis.autoSubstitution.target_food_id);
       if (!targetFood) continue;
+      const normalizedQty = normalizeIngredientQuantityForTargetFood(ingredient, targetFood);
 
       updatedRecipe.recipe.recipe_ingredients[index] = {
         ...ingredient,
         food_id: targetFood.id,
-        food: targetFood
+        food: targetFood,
+        grams: normalizedQty,
+        quantity: normalizedQty
       };
 
       autoApplied.push({
@@ -254,8 +296,11 @@ export const useOnboardingDietAssignment = () => {
       recipeOverrides,
       autoSubstitutionsApplied,
       planRestrictionsForEditor: {
-        sensitivities: (clientRestrictions.sensitivities || []).map(s => s.id),
-        conditions: (clientRestrictions.conditions || []).map(c => c.id)
+        sensitivities: clientRestrictions.sensitivities || [],
+        medical_conditions: clientRestrictions.medical_conditions || clientRestrictions.conditions || [],
+        individual_food_restrictions: clientRestrictions.individual_food_restrictions || [],
+        preferred_foods: clientRestrictions.preferred_foods || [],
+        non_preferred_foods: clientRestrictions.non_preferred_foods || []
       }
     };
   };
