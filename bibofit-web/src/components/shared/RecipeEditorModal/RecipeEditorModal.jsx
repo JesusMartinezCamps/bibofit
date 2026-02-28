@@ -32,7 +32,9 @@ const RecipeEditorModal = ({
     adjustments = null, 
     readOnly = false,
     isEditable: propIsEditable,
-    isTemplate = false // New prop to distinguish template context
+    isTemplate = false,
+    // Backward-compatible alias. Prefer `isTemplate` in callers.
+    isTemplatePlan = false
 }) => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -178,7 +180,7 @@ const RecipeEditorModal = ({
       planRestrictions, 
       initialConflicts,
       allFoods,
-      isTemplate // Pass template context to hook
+      isTemplate: isTemplate || isTemplatePlan
   });
 
   const isEditable = propIsEditable !== undefined ? propIsEditable : hookIsEditable;
@@ -248,15 +250,17 @@ const RecipeEditorModal = ({
   const criticalConflicts = conflicts?.filter(c => ['condition_avoid', 'sensitivity', 'non-preferred', 'individual_restriction'].includes(c.type)) || [];
   const hasCriticalConflicts = criticalConflicts.length > 0;
   
+  const effectiveIsTemplate = isTemplate || isTemplatePlan;
+
   const saveButtonText = useMemo(() => {
       // If actively blocked by conflicts:
       if (hasCriticalConflicts) return "Resolver conflictos";
       
       if (!hasChanges) return "Sin cambios";
 
-      if (isTemplate) return "Guardar cambios";
+      if (effectiveIsTemplate) return "Guardar cambios";
       return "Crear variante";
-  }, [hasCriticalConflicts, hasChanges, isTemplate]);
+  }, [hasCriticalConflicts, hasChanges, effectiveIsTemplate]);
 
   // Button is disabled if:
   // 1. Submitting
@@ -281,7 +285,7 @@ const RecipeEditorModal = ({
 
   // Determine if we should disable auto-balance in RecipeView
   // Disabled if no changes, no premium, OR if it's a template (templates don't have personal targets usually)
-  const shouldDisableAutoBalance = !hasIngredientChanges || !canUseAutoFrame || isTemplate;
+  const shouldDisableAutoBalance = !hasIngredientChanges || !canUseAutoFrame || effectiveIsTemplate;
 
   return (
     <>
@@ -340,7 +344,7 @@ const RecipeEditorModal = ({
                     disableAutoBalance={shouldDisableAutoBalance}
                     onAutoBalanceBlocked={!canUseAutoFrame ? handleBlockedFeature : undefined}
                     enableStickyMacros={true}
-                    isTemplate={isTemplate}
+                    isTemplate={effectiveIsTemplate}
                     quickEditIngredientKey={quickEditIngredientKey}
                     onQuickEditConsumed={() => setQuickEditIngredientKey(null)}
                   />

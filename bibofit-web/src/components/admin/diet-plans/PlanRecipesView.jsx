@@ -283,8 +283,7 @@ const PlanRecipesView = ({ plan, onUpdate, readOnly = false, clientRestrictions 
                 recipeToEdit={recipeToView}
                 planRestrictions={planRestrictions}
                 onSaveSuccess={handleEditorSaveSuccess}
-                isTemplatePlan={plan.is_template}
-                isAdding={isAddingRecipe}
+                isTemplate={plan.is_template}
                 isAdminView={true}
                 readOnly={readOnly}
             />

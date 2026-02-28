@@ -653,10 +653,10 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
         }
     }, [toast, setSnacks, onPlanUpdate]);
 
-    const handleSnackCardClick = (snack) => {
+    const handleSnackCardClick = useCallback((snack) => {
         setSnackToEdit(snack);
         setIsSnackEditorOpen(true);
-    };
+    }, []);
 
     const groupedByMeal = useMemo(() => {
         const dailyPlanRecipes = planRecipes.map(r => {
@@ -960,7 +960,6 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
                     recipeToEdit={recipeToEdit}
                     onSaveSuccess={handleEditorSave}
                     isAdminView={isAdminView}
-                    dietPlanRecipeId={recipeToEdit?.id}
                     userId={userId}
                     planRestrictions={userRestrictions}
                     adjustments={recipeAdjustment}
