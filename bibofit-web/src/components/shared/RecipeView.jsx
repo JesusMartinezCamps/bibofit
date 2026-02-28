@@ -5,7 +5,9 @@ import {
   ChefHat,
   Clock,
   Loader2,
+  Minus,
   PlusCircle,
+  Plus,
   ThumbsUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -27,6 +29,22 @@ import {
   calculateRecipeConflicts,
   resolveRecipeImageUrl,
 } from '@/components/shared/recipe-view/recipeViewUtils';
+
+const clampMultiplier = (value) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return 1;
+  return Math.min(20, Math.max(1, Math.round(parsed)));
+};
+
+const scaleMacrosByMultiplier = (macros, multiplier) => {
+  if (!macros) return macros;
+  return {
+    calories: (macros.calories || 0) * multiplier,
+    proteins: (macros.proteins || 0) * multiplier,
+    carbs: (macros.carbs || 0) * multiplier,
+    fats: (macros.fats || 0) * multiplier,
+  };
+};
 
 const RecipeView = ({
   recipe,
@@ -69,6 +87,8 @@ const RecipeView = ({
   const [fetchedTargets, setFetchedTargets] = useState(null);
   const [replacingIngredient, setReplacingIngredient] = useState(null);
   const [quantityEditorIngredient, setQuantityEditorIngredient] = useState(null);
+  const [servingMultiplier, setServingMultiplier] = useState(1);
+  const [showMultiplierEasterEgg, setShowMultiplierEasterEgg] = useState(false);
 
   const safeFoods = allFoods || [];
   const safeVitamins = allVitamins || [];
@@ -76,6 +96,20 @@ const RecipeView = ({
   const safeFoodGroups = allFoodGroups || [];
 
   const recipeImageUrl = useMemo(() => resolveRecipeImageUrl(recipe), [recipe]);
+  const scaledTotalMacros = useMemo(
+    () => scaleMacrosByMultiplier(totalMacros, servingMultiplier),
+    [totalMacros, servingMultiplier]
+  );
+
+  useEffect(() => {
+    setServingMultiplier(1);
+  }, [recipe?.id, recipe?.name, recipe?.updated_at, recipe?.created_at]);
+
+  useEffect(() => {
+    if (!showMultiplierEasterEgg) return;
+    const timeoutId = setTimeout(() => setShowMultiplierEasterEgg(false), 2000);
+    return () => clearTimeout(timeoutId);
+  }, [showMultiplierEasterEgg]);
 
   useEffect(() => {
     if (mealTargetMacros || !isEditing || !user || !recipe?.day_meal_id || isTemplate) return;
@@ -332,6 +366,16 @@ const RecipeView = ({
   const showAutoBalance = isEditing && hasIngredients && (mealTargetMacros || recipe?.day_meal_id);
   const canManageIngredientsInView = !!onIngredientsChange && !!onRemoveIngredient;
   const canRenderNativeImageUpload = showImageUpload && typeof onImageUploadChange === 'function';
+  const isMultiplierActive = servingMultiplier !== 1;
+  const handleIncreaseMultiplier = () => {
+    setServingMultiplier((prev) => {
+      if (prev >= 20) {
+        setShowMultiplierEasterEgg(true);
+        return prev;
+      }
+      return clampMultiplier(prev + 1);
+    });
+  };
 
   if (replacingIngredient) {
     return (
@@ -424,40 +468,98 @@ const RecipeView = ({
       {headerSlot && <div className="relative z-10">{headerSlot}</div>}
 
       {showMetaFields && (
-        <div className={cn('grid grid-cols-2 gap-4 rounded-lg relative z-10', isEditing ? 'sm:p-0.5' : 'p-3 bg-slate-800/50')}>
-          <div className="flex items-center gap-1 sm:gap-3">
-            {!isEditing && <ChefHat className="w-5 h-5 text-gray-400" />}
-            <span className="font-semibold text-gray-200">Dificultad:</span>
-            <EditableField
-              value={recipe.difficulty}
-              onChange={(value) => onFormChange({ target: { name: 'difficulty', value } })}
-              isEditing={isEditing}
-              placeholder="No especificada"
-              type="select"
-              options={[
-                { value: 'Fácil', label: 'Fácil' },
-                { value: 'Media', label: 'Media' },
-                { value: 'Difícil', label: 'Difícil' },
-              ]}
-              className={isEditing ? 'py-1 pr-1 pl-2' : ''}
-            />
+        <div
+          className={cn(
+            'grid grid-cols-3 gap-2 sm:gap-3 rounded-lg relative z-10',
+            isEditing ? 'sm:p-0.5' : 'p-3 bg-slate-800/50'
+          )}
+        >
+          <div className={cn('min-w-0', !isEditing && 'flex flex-col items-center justify-center text-center')}>
+            <div className={cn('flex items-center gap-1 sm:gap-2 text-gray-200 font-semibold', !isEditing && 'justify-center')}>
+              {!isEditing && <ChefHat className="w-4 h-4 text-gray-400 shrink-0" />}
+              <span className="truncate">Dificultad</span>
+            </div>
+            <div className="mt-1">
+              <EditableField
+                value={recipe.difficulty}
+                onChange={(value) => onFormChange({ target: { name: 'difficulty', value } })}
+                isEditing={isEditing}
+                placeholder="No especificada"
+                type="select"
+                options={[
+                  { value: 'Fácil', label: 'Fácil' },
+                  { value: 'Media', label: 'Media' },
+                  { value: 'Difícil', label: 'Difícil' },
+                ]}
+                className={isEditing ? 'py-1 pr-1 pl-2' : ''}
+              />
+            </div>
           </div>
-          <div className="flex items-center gap-1 sm:gap-3">
-            {!isEditing && <Clock className="w-5 h-5 text-gray-400" />}
-            <span className="font-semibold text-gray-200">Tiempo:</span>
-            {isEditing ? (
-              <div className="flex items-center">
+
+          <div className={cn('min-w-0', !isEditing && 'flex flex-col items-center justify-center text-center')}>
+            <div className={cn('flex items-center gap-1 sm:gap-2 text-gray-200 font-semibold', !isEditing && 'justify-center')}>
+              {!isEditing && <Clock className="w-4 h-4 text-gray-400 shrink-0" />}
+              <span className="truncate">Tiempo</span>
+            </div>
+            <div className="mt-1">
+              {isEditing ? (
+                <div className="relative inline-flex items-center">
+                  <Input
+                    type="number"
+                    value={recipe.prep_time_min}
+                    onChange={(e) => onFormChange({ target: { name: 'prep_time_min', value: e.target.value } })}
+                    className="input-field bg-transparent border-dashed w-16 text-center p-0.5 pr-7"
+                  />
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none">min</span>
+                </div>
+              ) : (
+                <span className="text-gray-300">{recipe.prep_time_min ? `${recipe.prep_time_min} min` : 'N/A'}</span>
+              )}
+            </div>
+          </div>
+
+          <div className={cn('min-w-0 relative', !isEditing && 'flex flex-col items-center justify-center text-center')}>
+            <div className="text-gray-200 font-semibold">Multiplicador</div>
+            <div className={cn('mt-1 flex items-center gap-1', !isEditing && 'justify-center')}>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 border-slate-600 bg-slate-900/60 hover:bg-slate-800 hover:text-gray-300 text-gray-200 shrink-0"
+                onClick={() => setServingMultiplier((prev) => clampMultiplier(prev - 1))}
+                disabled={servingMultiplier <= 1}
+              >
+                <Minus className="w-4 h-4" />
+              </Button>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none">x</span>
                 <Input
                   type="number"
-                  value={recipe.prep_time_min}
-                  onChange={(e) => onFormChange({ target: { name: 'prep_time_min', value: e.target.value } })}
-                  className="input-field bg-transparent border-dashed w-20 text-center sm:p-0.5"
+                  min={1}
+                  max={20}
+                  value={servingMultiplier}
+                  onChange={(e) => setServingMultiplier(clampMultiplier(e.target.value))}
+                  className="h-7 w-10 text-center pl-4 pr-1 input-field bg-transparent border-dashed font-semibold"
                 />
-                <span className="ml-2 text-gray-300">min</span>
               </div>
-            ) : (
-              <span className="text-gray-300">{recipe.prep_time_min ? `${recipe.prep_time_min} min` : 'N/A'}</span>
-            )}
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 border-slate-600 bg-slate-900/60 hover:bg-slate-800 hover:text-gray-300 text-gray-200 shrink-0"
+                onClick={handleIncreaseMultiplier}
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+            <div
+              className={cn(
+                'absolute -top-8 left-1/2 -translate-x-1/2 rounded-md bg-slate-900/95 border border-cyan-500/30 px-2 py-1 text-[11px] text-cyan-100 whitespace-nowrap shadow-lg transition-all duration-200',
+                showMultiplierEasterEgg ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+              )}
+            >
+              ¡Pero bueno! Suficiente comida así...
+            </div>
           </div>
         </div>
       )}
@@ -488,7 +590,7 @@ const RecipeView = ({
         <h3 className="text-xl font-semibold mb-3 border-b border-gray-700 pb-2 bg-clip-text text-transparent bg-gradient-to-r from-green-300 to-teal-400">
           Macros Totales
         </h3>
-        <MacroSummaryGrid macros={totalMacros} />
+        <MacroSummaryGrid macros={scaledTotalMacros} />
         {isEditing && (mealTargetMacros || fetchedTargets) && !isTemplate && (
           <div className="mt-4">
             <h4 className="text-sm font-semibold text-gray-400 mb-2 uppercase tracking-wider">
@@ -519,6 +621,11 @@ const RecipeView = ({
         </div>
 
         <div className="space-y-4">
+          {isEditing && isMultiplierActive && (
+            <p className="text-xs text-cyan-200/80 rounded-md border border-cyan-500/20 bg-cyan-500/5 px-3 py-2">
+              En edicion, las cantidades se guardan en base x1. El multiplicador solo ajusta la vista para cocinar.
+            </p>
+          )}
           {isEditing ? (
             ingredientsWithDetails.length > 0 ? (
               <div className="space-y-3">
@@ -532,6 +639,7 @@ const RecipeView = ({
                     onReplace={() => setReplacingIngredient(ing)}
                     onQuantityChange={(e) => handleQuantityChange(ing, e.target.value)}
                     allFoodGroups={safeFoodGroups}
+                    multiplier={servingMultiplier}
                   />
                 ))}
               </div>
@@ -557,6 +665,7 @@ const RecipeView = ({
                     onRemove={canManageIngredientsInView ? () => onRemoveIngredient(ing) : undefined}
                     onReplace={canManageIngredientsInView ? () => setReplacingIngredient(ing) : undefined}
                     onQuickEdit={canManageIngredientsInView ? () => setQuantityEditorIngredient(ing) : undefined}
+                    multiplier={servingMultiplier}
                   />
                 ))
               ) : (

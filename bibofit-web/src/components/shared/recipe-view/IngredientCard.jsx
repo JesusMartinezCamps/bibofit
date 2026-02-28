@@ -102,6 +102,13 @@ const StatusDisplay = ({ type, conflicts, recommendations, isEditing }) => {
   return null;
 };
 
+const scaleMacrosByMultiplier = (macros, multiplier) => ({
+  calories: (macros?.calories || 0) * multiplier,
+  proteins: (macros?.proteins || 0) * multiplier,
+  carbs: (macros?.carbs || 0) * multiplier,
+  fats: (macros?.fats || 0) * multiplier,
+});
+
 const IngredientCard = ({
   ingredient,
   isFreeMealView,
@@ -112,6 +119,7 @@ const IngredientCard = ({
   onQuantityChange,
   displayAsBullet = false,
   allFoodGroups,
+  multiplier = 1,
 }) => {
   const { food, quantity, macros, vitamins, minerals, conflictType, conflictDetails, recommendationDetails } = ingredient;
 
@@ -121,7 +129,11 @@ const IngredientCard = ({
     'Otros';
 
   const statusColorClasses = getStatusColorClasses(conflictType);
-  const displayQuantity = quantity === '' || quantity === null || Number.isNaN(quantity) ? 0 : Math.round(Number(quantity));
+  const safeMultiplier = Number.isFinite(Number(multiplier)) ? Math.max(1, Number(multiplier)) : 1;
+  const baseQuantity = quantity === '' || quantity === null || Number.isNaN(Number(quantity)) ? 0 : Number(quantity);
+  const displayQuantity = Math.round(baseQuantity * safeMultiplier);
+  const scaledMacros = scaleMacrosByMultiplier(macros, safeMultiplier);
+  const unitLabel = food.food_unit === 'unidades' ? 'ud' : 'g';
   const canManageIngredient = typeof onRemove === 'function' && typeof onReplace === 'function';
   const hasConflict = ['condition_avoid', 'sensitivity', 'non-preferred'].includes(conflictType);
   const isRecommended = ['condition_recommend', 'preferred'].includes(conflictType);
@@ -255,17 +267,27 @@ const IngredientCard = ({
                   <div className="text-[10px] text-gray-400 truncate mt-0.5">{foodGroupName}</div>
                 </div>
                 <div className="w-2/5 inline-flex items-center justify-end">
-                  <Input
-                    type="number"
-                    value={quantity}
-                    onChange={onQuantityChange}
-                    className="input-field bg-transparent border-dashed w-20 text-center"
-                  />
-                  <span className="text-sm font-normal text-gray-400 ml-1">{food.food_unit === 'unidades' ? 'ud' : 'g'}</span>
+                  <div className="flex flex-col items-end">
+                    <div className="inline-flex items-center">
+                      <Input
+                        type="number"
+                        value={quantity}
+                        onChange={onQuantityChange}
+                        className="input-field bg-transparent border-dashed w-20 text-center"
+                      />
+                      <span className="text-sm font-normal text-gray-400 ml-1">{unitLabel}</span>
+                    </div>
+                    {safeMultiplier !== 1 && (
+                      <span className="text-[10px] text-cyan-300 mt-0.5">
+                        x{safeMultiplier}: {displayQuantity}
+                        {unitLabel}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="w-full">
-                {renderMacros({ macros, isFreeMealView })}
+                {renderMacros({ macros: scaledMacros, isFreeMealView })}
               </div>
             </div>
           ) : (
@@ -295,7 +317,7 @@ const IngredientCard = ({
                 )}
               </div>
 
-              {!isEditing && <div className="mt-2 sm:mt-0 sm:w-auto">{renderMacros({ macros, isFreeMealView })}</div>}
+              {!isEditing && <div className="mt-2 sm:mt-0 sm:w-auto">{renderMacros({ macros: scaledMacros, isFreeMealView })}</div>}
             </div>
           )}
 
