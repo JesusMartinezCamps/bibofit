@@ -166,7 +166,7 @@ const LoginPage = () => {
                 <Button 
                   type="submit" 
                   disabled={isLoading || authLoading} 
-                  className="w-full btn-primary text-white bg-gray-900 border border-gray-700 hover:bg-gray-800 hover:text-white"
+                  className="w-full btn-primary text-white bg-green-500/50 border border-gray-700 hover:bg-green-800 hover:text-white"
                 >
                   {isLoading || authLoading ? (
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
