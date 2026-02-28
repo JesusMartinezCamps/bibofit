@@ -6,7 +6,6 @@ import { supabase } from '@/lib/supabaseClient';
 import { calculateMacros } from '@/lib/macroCalculator';
 import RecipeView from '@/components/shared/RecipeView';
 import IngredientSearch from '@/components/plans/IngredientSearch';
-import RecipeImageUpload from './RecipeImageUpload';
 import { useRecipeImageUpload } from './hooks/useRecipeImageUpload';
 
 const EMPTY_RESTRICTIONS = {
@@ -356,13 +355,10 @@ const RecipeFormContainer = ({ selectedRecipe, onSave, resetSignal = 0 }) => {
         onRemoveIngredient={handleRemoveIngredient}
         onAddIngredientClick={() => setIsSearchingIngredient(true)}
         disableAutoBalance={true}
-        headerSlot={
-          <RecipeImageUpload
-            value={imageFile}
-            onChange={setImageFile}
-            disabled={isSubmitting || isUploading}
-          />
-        }
+        showImageUpload={true}
+        imageUploadValue={imageFile}
+        onImageUploadChange={setImageFile}
+        imageUploadDisabled={isSubmitting || isUploading}
       />
 
       <div className="flex justify-end">
