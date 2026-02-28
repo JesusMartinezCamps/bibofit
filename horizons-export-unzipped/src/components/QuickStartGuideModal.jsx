@@ -188,11 +188,6 @@ const QuickStartGuideModal = () => {
                     {step.subtitle}
                   </motion.p>
 
-                  <motion.div variants={itemVariants} className="mt-4 p-4 bg-white/5 rounded-lg border border-white/10">
-                    <p className="text-gray-400 text-sm">
-                      {step.description}
-                    </p>
-                  </motion.div>
                 </motion.div>
               ) : (
                 <motion.div
