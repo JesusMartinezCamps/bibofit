@@ -377,6 +377,9 @@ const RecipeView = ({
             onChange={(e) => onFormChange({ target: { name: 'name', value: e.target.value } })}
             isEditing
             placeholder="Nombre de la Receta"
+            type="textarea"
+            textareaRows={1}
+            textareaMinHeight="1.2em"
             className="text-3xl font-bold leading-tight whitespace-pre-wrap break-normal resize-none text-center w-full"
           />
         ) : (
