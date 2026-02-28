@@ -128,71 +128,84 @@ const IngredientCard = ({
 
   if (displayAsBullet) {
     return (
-      <li className="border-b border-slate-800/50 last:border-0 relative">
-        {canManageIngredient && (
-          <>
-            <button
-              onMouseDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-              }}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onReplace();
-              }}
-              className="absolute left-1 top-1/2 -translate-y-1/2 bg-blue-600/90 text-white rounded-full p-1 transition-opacity hover:bg-blue-500 z-[60] shadow-lg"
-              title="Reemplazar ingrediente"
-            >
-              <ArrowRightLeft className="w-4 h-4" />
-            </button>
-            <button
-              onMouseDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-              }}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onRemove();
-              }}
-              className="absolute right-1 top-1/2 -translate-y-1/2 bg-red-600/90 text-white rounded-full p-1 transition-opacity hover:bg-red-500 z-[60] shadow-lg"
-              title="Eliminar ingrediente"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </>
-        )}
-
+      <li className="border-b border-slate-800/50 last:border-0">
         <div
           className={cn(
-            'flex items-center justify-between text-sm py-2 rounded-sm transition-colors w-full group relative z-50',
-            onQuickEdit && 'cursor-pointer hover:bg-slate-800/20',
-            canManageIngredient && 'pl-8 pr-8'
+            'grid items-center gap-2 py-2',
+            canManageIngredient
+              ? 'grid-cols-[minmax(2rem,5%)_minmax(0,1fr)_minmax(2rem,5%)]'
+              : 'grid-cols-1'
           )}
-          onClick={() => onQuickEdit && onQuickEdit()}
         >
-          <div className="flex items-center min-w-0 mr-4 w-[90%]">
-            <span
-              className={cn(
-                'text-base truncate transition-colors',
-                hasConflict
-                  ? 'text-red-400 group-hover:text-red-300'
-                  : isRecommended
-                    ? 'text-green-400 group-hover:text-green-300'
-                    : 'group-hover:text-green-300',
-                statusColorClasses.split(' ').find((c) => c.startsWith('text-'))
-              )}
-            >
-              {food.name}
-            </span>
-            <span className="text-gray-500 text-xs ml-2 whitespace-nowrap">
-              ({displayQuantity}
-              {food.food_unit === 'unidades' ? ' ud' : 'g'})
-            </span>
-            {hasConflict && <AlertTriangle className="w-3.5 h-3.5 text-red-500 ml-2 shrink-0" />}
-            {isRecommended && <ThumbsUp className="w-3.5 h-3.5 text-green-500 ml-2 shrink-0" />}
+          {canManageIngredient && (
+            <div className="flex justify-center">
+              <button
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onReplace();
+                }}
+                className="bg-blue-600/90 text-white rounded-full p-1 transition-opacity hover:bg-blue-500 shadow-lg"
+                title="Reemplazar ingrediente"
+              >
+                <ArrowRightLeft className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          <div
+            className={cn(
+              'flex items-center justify-between text-sm rounded-sm transition-colors w-full group min-w-0',
+              onQuickEdit && 'cursor-pointer hover:bg-slate-800/20'
+            )}
+            onClick={() => onQuickEdit && onQuickEdit()}
+          >
+            <div className="flex items-center min-w-0 mr-4 w-full">
+              <span
+                className={cn(
+                  'text-base truncate transition-colors',
+                  hasConflict
+                    ? 'text-red-400 group-hover:text-red-300'
+                    : isRecommended
+                      ? 'text-green-400 group-hover:text-green-300'
+                      : 'group-hover:text-green-300',
+                  statusColorClasses.split(' ').find((c) => c.startsWith('text-'))
+                )}
+              >
+                {food.name}
+              </span>
+              <span className="text-gray-500 text-xs ml-2 whitespace-nowrap">
+                ({displayQuantity}
+                {food.food_unit === 'unidades' ? ' ud' : 'g'})
+              </span>
+              {hasConflict && <AlertTriangle className="w-3.5 h-3.5 text-red-500 ml-2 shrink-0" />}
+              {isRecommended && <ThumbsUp className="w-3.5 h-3.5 text-green-500 ml-2 shrink-0" />}
+            </div>
           </div>
+
+          {canManageIngredient && (
+            <div className="flex justify-center">
+              <button
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onRemove();
+                }}
+                className="bg-red-600/90 text-white rounded-full p-1 transition-opacity hover:bg-red-500 shadow-lg"
+                title="Eliminar ingrediente"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
       </li>
     );
@@ -202,104 +215,127 @@ const IngredientCard = ({
     <div
       data-ingredient-food-id={food.id}
       className={cn(
-        'relative p-3 rounded-lg border transition-all duration-300',
+        'p-3 rounded-lg border transition-all duration-300',
         statusColorClasses
           .split(' ')
           .filter((c) => c.startsWith('bg-') || c.startsWith('border-'))
       )}
     >
-      {canManageIngredient && (
-        <>
-          <button
-            onClick={onReplace}
-            className="absolute left-1 top-1/2 -translate-y-1/2 bg-blue-600/90 text-white rounded-full p-1 transition-opacity hover:bg-blue-500 z-10 shadow-lg"
-            title="Reemplazar ingrediente"
-          >
-            <ArrowRightLeft className="w-4 h-4" />
-          </button>
-          <button
-            onClick={onRemove}
-            className="absolute right-1 top-1/2 -translate-y-1/2 bg-red-600/90 text-white rounded-full p-1 transition-opacity hover:bg-red-500 z-10 shadow-lg"
-            title="Eliminar ingrediente"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </>
-      )}
+      <div
+        className={cn(
+          'grid items-start gap-2',
+          canManageIngredient
+            ? 'grid-cols-[minmax(2rem,5%)_minmax(0,1fr)_minmax(2rem,5%)]'
+            : 'grid-cols-1'
+        )}
+      >
+        {canManageIngredient && (
+          <div className="flex justify-center pt-1">
+            <button
+              onClick={onReplace}
+              className="bg-blue-600/90 text-white rounded-full p-1 transition-opacity hover:bg-blue-500 shadow-lg"
+              title="Reemplazar ingrediente"
+            >
+              <ArrowRightLeft className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
-      {isEditing ? (
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center">
-            <div className={cn('w-3/5 flex flex-col justify-center transition-all', canManageIngredient && 'pl-7')}>
-              <div className="font-semibold" style={{ color: statusColorClasses.split(' ').find((c) => c.startsWith('text-'))?.replace('text-', '') }}>
-                {food.name}
+        <div className="min-w-0">
+          {isEditing ? (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center">
+                <div className="w-3/5 flex flex-col justify-center transition-all min-w-0">
+                  <div
+                    className="font-semibold"
+                    style={{ color: statusColorClasses.split(' ').find((c) => c.startsWith('text-'))?.replace('text-', '') }}
+                  >
+                    {food.name}
+                  </div>
+                  <div className="text-[10px] text-gray-400 truncate mt-0.5">{foodGroupName}</div>
+                </div>
+                <div className="w-2/5 inline-flex items-center justify-end">
+                  <Input
+                    type="number"
+                    value={quantity}
+                    onChange={onQuantityChange}
+                    className="input-field bg-transparent border-dashed w-20 text-center"
+                  />
+                  <span className="text-sm font-normal text-gray-400 ml-1">{food.food_unit === 'unidades' ? 'ud' : 'g'}</span>
+                </div>
               </div>
-              <div className="text-[10px] text-gray-400 truncate mt-0.5">{foodGroupName}</div>
+              <div className="w-full">
+                {renderMacros({ macros, isFreeMealView })}
+              </div>
             </div>
-            <div className="w-2/5 inline-flex items-center justify-end">
-              <Input
-                type="number"
-                value={quantity}
-                onChange={onQuantityChange}
-                className="input-field bg-transparent border-dashed w-20 text-center"
-              />
-              <span className="text-sm font-normal text-gray-400 ml-1">{food.food_unit === 'unidades' ? 'ud' : 'g'}</span>
-            </div>
-          </div>
-          <div className="w-full">
-            {renderMacros({ macros, isFreeMealView })}
-          </div>
-        </div>
-      ) : (
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start">
-          <div className="flex flex-col">
-            <div className={cn('font-semibold flex flex-wrap items-center gap-2', statusColorClasses.split(' ').find((c) => c.startsWith('text-')))}>
-              <span>{food.name}</span>
-              <span className="text-sm font-normal text-gray-400 font-numeric">
-                ({displayQuantity}
-                {food.food_unit === 'unidades' ? ' ud' : 'g'})
-              </span>
+          ) : (
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start">
+              <div className="flex flex-col min-w-0">
+                <div className={cn('font-semibold flex flex-wrap items-center gap-2', statusColorClasses.split(' ').find((c) => c.startsWith('text-')))}>
+                  <span>{food.name}</span>
+                  <span className="text-sm font-normal text-gray-400 font-numeric">
+                    ({displayQuantity}
+                    {food.food_unit === 'unidades' ? ' ud' : 'g'})
+                  </span>
 
-              {!isEditing && hasConflict && (
-                <span className="inline-flex items-center gap-1.5 text-red-400 text-xs font-medium ml-1 px-2 py-0.5 rounded-full bg-red-900/20 border border-red-500/20">
-                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                  <span>{conflictDetails.map((c) => c.restrictionName).join(', ')}</span>
-                </span>
-              )}
+                  {!isEditing && hasConflict && (
+                    <span className="inline-flex items-center gap-1.5 text-red-400 text-xs font-medium ml-1 px-2 py-0.5 rounded-full bg-red-900/20 border border-red-500/20">
+                      <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{conflictDetails.map((c) => c.restrictionName).join(', ')}</span>
+                    </span>
+                  )}
+                </div>
+                {!isEditing && (
+                  <StatusDisplay
+                    type={conflictType}
+                    conflicts={conflictDetails}
+                    recommendations={recommendationDetails}
+                    isEditing={isEditing}
+                  />
+                )}
+              </div>
+
+              {!isEditing && <div className="mt-2 sm:mt-0 sm:w-auto">{renderMacros({ macros, isFreeMealView })}</div>}
             </div>
-            {!isEditing && (
-              <StatusDisplay
-                type={conflictType}
-                conflicts={conflictDetails}
-                recommendations={recommendationDetails}
-                isEditing={isEditing}
-              />
+          )}
+
+          {isEditing && (
+            <StatusDisplay
+              type={conflictType}
+              conflicts={conflictDetails}
+              recommendations={recommendationDetails}
+              isEditing={isEditing}
+            />
+          )}
+        </div>
+
+        {canManageIngredient && (
+          <div className="flex justify-center pt-1">
+            <button
+              onClick={onRemove}
+              className="bg-red-600/90 text-white rounded-full p-1 transition-opacity hover:bg-red-500 shadow-lg"
+              title="Eliminar ingrediente"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        {isEditing && (vitamins.length > 0 || minerals.length > 0) && (
+          <div
+            className={cn(
+              'mt-2 pt-2 border-t border-slate-700/50 flex flex-wrap gap-1.5 col-span-full'
             )}
+          >
+            {vitamins.map((v) => (
+              <NutrientBadge key={`v-${v.id}`} nutrient={v} />
+            ))}
+            {minerals.map((m) => (
+              <NutrientBadge key={`m-${m.id}`} nutrient={m} />
+            ))}
           </div>
-
-          {!isEditing && <div className="mt-2 sm:mt-0 sm:w-auto">{renderMacros({ macros, isFreeMealView })}</div>}
-        </div>
-      )}
-
-      {isEditing && (
-        <StatusDisplay
-          type={conflictType}
-          conflicts={conflictDetails}
-          recommendations={recommendationDetails}
-          isEditing={isEditing}
-        />
-      )}
-
-      {isEditing && (vitamins.length > 0 || minerals.length > 0) && (
-        <div className="mt-2 pt-2 border-t border-slate-700/50 flex flex-wrap gap-1.5">
-          {vitamins.map((v) => (
-            <NutrientBadge key={`v-${v.id}`} nutrient={v} />
-          ))}
-          {minerals.map((m) => (
-            <NutrientBadge key={`m-${m.id}`} nutrient={m} />
-          ))}
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

@@ -18,6 +18,8 @@ const EditableField = ({
   type = 'input',
   options = [],
   className = '',
+  textareaRows = 1,
+  textareaMinHeight = '50px',
 }) => {
   const textareaRef = useRef(null);
 
@@ -45,6 +47,7 @@ const EditableField = ({
     return (
       <Textarea
         ref={textareaRef}
+        rows={textareaRows}
         value={value}
         onChange={handleAutoGrow}
         placeholder={placeholder}
@@ -53,7 +56,7 @@ const EditableField = ({
           className
         )}
         style={{
-          minHeight: '50px',
+          minHeight: textareaMinHeight,
           whiteSpace: 'pre-wrap',
         }}
       />
