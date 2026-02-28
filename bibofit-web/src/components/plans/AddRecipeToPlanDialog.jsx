@@ -3,14 +3,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { supabase } from '@/lib/supabaseClient';
 import { useToast } from '@/components/ui/use-toast';
 import RecipeCard from '@/components/admin/recipes/RecipeCard';
-import { Loader2, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, Loader2, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import RecipeEditorModal from '@/components/shared/RecipeEditorModal/RecipeEditorModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from '@/lib/utils';
 
 const RecipeGroup = ({ group, searchTerm, ...props }) => {
@@ -553,6 +552,7 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
                     isAdminView={isAdminView}
                     userId={userId}
                     planRestrictions={planRestrictions}
+                    isTemplate={isTemplate}
                 />
             )}
         </>

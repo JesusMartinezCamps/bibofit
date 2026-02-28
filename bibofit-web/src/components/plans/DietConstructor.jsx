@@ -293,7 +293,6 @@ const DietConstructor = ({ userId, dietPlan, onPlanUpdate, isTemplate }) => {
                     recipeToEdit={recipeToEdit}
                     onSaveSuccess={handleEditorSave}
                     isAdminView={true}
-                    dietPlanRecipeId={recipeToEdit?.id}
                     userId={userId}
                 />
             )}
