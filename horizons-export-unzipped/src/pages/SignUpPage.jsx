@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { UserPlus } from 'lucide-react';
 import LandingNavbar from '@/components/landing/LandingNavbar';
-import { GoogleLogo, AppleLogo } from '@/pages/LoginPage';
+import { GoogleLogo } from '@/pages/LoginPage';
 
 const SignUpPage = () => {
   const [email, setEmail] = useState('');
@@ -53,13 +53,13 @@ const SignUpPage = () => {
     }
   };
 
-  const handleOAuth = async (provider) => {
+  const handleOAuth = async () => {
     setIsLoading(true);
     try {
-      const result = await signInWithProvider(provider);
+      const result = await signInWithProvider('google');
       if (!result.success) {
         toast({
-          title: `Error con ${provider}`,
+          title: 'Error con Google',
           description: result.error,
           variant: "destructive",
         });
@@ -69,7 +69,7 @@ const SignUpPage = () => {
       }
     } catch (error) {
       toast({
-        title: `Error con ${provider}`,
+        title: 'Error con Google',
         description: 'Ha ocurrido un error inesperado',
         variant: "destructive",
       });
@@ -100,7 +100,7 @@ const SignUpPage = () => {
                   initial={{ scale: 0 }} 
                   animate={{ scale: 1 }} 
                   transition={{ delay: 0.2, type: "spring", stiffness: 200 }} 
-                  className="inline-flex items-center justify-center w-16 h-16 bg-green-500/20 rounded-full mb-4"
+                  className="inline-flex items-center justify-center w-16 h-16 bg-green-500/80 rounded-full mb-4"
                 >
                   <UserPlus className="w-8 h-8 text-black" />
                 </motion.div>
@@ -147,7 +147,7 @@ const SignUpPage = () => {
                 <Button 
                   type="submit" 
                   disabled={isLoading} 
-                  className="w-full btn-primary text-white bg-green-500 hover:bg-green-600"
+                  className="w-full btn-primary text-white bg-green-500/70 hover:bg-green-600"
                 >
                   {isLoading ? (
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
@@ -166,22 +166,14 @@ const SignUpPage = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <Button 
                   variant="outline" 
-                  onClick={() => handleOAuth('google')} 
+                  onClick={handleOAuth} 
                   disabled={isLoading} 
-                  className="text-white bg-gray-900 border border-gray-700 hover:bg-gray-800 hover:text-white w-full"
+                  className="text-white bg-blue-500/30 border border-gray-700 hover:bg-gray-800 hover:text-white w-full"
                 >
                   <GoogleLogo className="mr-2" /> Google
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={() => handleOAuth('apple')} 
-                  disabled={isLoading} 
-                  className="text-white bg-gray-900 border border-gray-700 hover:bg-gray-800 hover:text-white w-full"
-                >
-                  <AppleLogo className="mr-2" /> Apple
                 </Button>
               </div>
 

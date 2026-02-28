@@ -24,20 +24,6 @@ export const GoogleLogo = (props) => (
   </svg>
 );
 
-// AppleLogo.jsx
-export const AppleLogo = (props) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="18"
-    height="18"
-    viewBox="0 0 384 512"
-    fill="currentColor"
-    {...props}
-  >
-    <path d="M318.7 268.7c-.3-36.1 16.1-63.4 49-83.7-18.4-26.9-46.2-41.5-82.2-43.9-34.4-2.3-72 20.1-86.2 20.1-15.1 0-50.2-19.1-77.7-19.1C63.9 142.1 0 205.7 0 300.1c0 54.5 19.9 112 44.5 148.7 21.1 31.4 48.3 66.6 83 65.4 33.4-1.3 46.3-21.4 86.8-21.4 40.3 0 51.7 21.4 86.9 20.7 35.9-.7 58.7-31.9 79.8-63.5 14.3-21.5 20.3-32.4 31.7-56.6-83.2-31.3-78.6-147.4-3.9-174.7zM251.2 97c26.3-31.4 23.9-60.1 23-70.1-23.3 1.3-50.4 15.8-66.5 34.4-17.4 19.8-27.8 44.9-25.6 71.2 25.9 2 49.6-12.9 69.1-35.5z"/>
-  </svg>
-);
-
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -99,13 +85,13 @@ const LoginPage = () => {
     }
   };
 
-  const handleOAuth = async (provider) => {
+  const handleOAuth = async () => {
     setIsLoading(true);
     try {
-      const result = await signInWithProvider(provider);
+      const result = await signInWithProvider('google');
       if (!result.success) {
         toast({
-          title: `Error con ${provider}`,
+          title: 'Error con Google',
           description: result.error,
           variant: "destructive",
         });
@@ -115,7 +101,7 @@ const LoginPage = () => {
       }
     } catch (error) {
       toast({
-        title: `Error con ${provider}`,
+        title: 'Error con Google',
         description: 'Ha ocurrido un error inesperado',
         variant: "destructive",
       });
@@ -199,22 +185,14 @@ const LoginPage = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <Button 
                   variant="outline" 
-                  onClick={() => handleOAuth('google')} 
+                  onClick={handleOAuth} 
                   disabled={isLoading || authLoading} 
-                  className="text-white bg-gray-900 border border-gray-700 hover:bg-gray-800 hover:text-white w-full"
+                  className="text-white bg-blue-500/30 border border-gray-700 hover:bg-gray-800 hover:text-white w-full"
                 >
                   <GoogleLogo className="mr-2" /> Google
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={() => handleOAuth('apple')} 
-                  disabled={isLoading || authLoading} 
-                  className="text-white bg-gray-900 border border-gray-700 hover:bg-gray-800 hover:text-white w-full"
-                >
-                  <AppleLogo className="mr-2" /> Apple
                 </Button>
               </div>
 
