@@ -112,6 +112,7 @@ const DietPlanComponent = () => {
   const [recipeToAssign, setRecipeToAssign] = useState(null);
   const [plannedMeals, setPlannedMeals] = useState([]);
   const [weekSummaryByDate, setWeekSummaryByDate] = useState({});
+  const [focusedWeekDate, setFocusedWeekDate] = useState(getInitialDate());
   
   const isAdminView = authUser?.id !== userId;
   const logDate = format(currentDate, 'yyyy-MM-dd');
@@ -190,6 +191,10 @@ const DietPlanComponent = () => {
     setCurrentDate(prev => (parsed.getTime() === prev.getTime() ? prev : parsed));
   }, [paramDate]);
 
+  useEffect(() => {
+    setFocusedWeekDate(currentDate);
+  }, [currentDate]);
+
   const handleOpenAddRecipe = (meal, date, mode = 'all') => {
     setMealToAddTo(meal);
     setMealDateToAddTo(date);
@@ -266,8 +271,13 @@ const handleEditReminder = (reminder) => {
 };
 
 const handleDayClickInVisualizer = (date) => {
-    handleDateChange(date);
-    if (viewMode === 'week' && plannerRef.current) {
+    if (viewMode !== 'week') {
+        handleDateChange(date);
+        return;
+    }
+
+    setFocusedWeekDate(date);
+    if (plannerRef.current) {
         requestAnimationFrame(() => plannerRef.current?.scrollToDay(date));
     }
 };
@@ -371,7 +381,7 @@ const combinedPlanRestrictions = useMemo(() => {
                 weekDates={visualizerWeekDates}
                 daySummaries={weekSummaryByDate}
                 onDayClick={handleDayClickInVisualizer}
-                currentDate={currentDate}
+                currentDate={focusedWeekDate}
                 isSticky={isSticky}
             />
         );
