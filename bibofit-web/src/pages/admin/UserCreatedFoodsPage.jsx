@@ -6,35 +6,60 @@ import UserList from '@/components/admin/UserCreatedFoods/UserList';
 import FoodsList from '@/components/admin/UserCreatedFoods/FoodsList';
 import TabNavigation from '@/components/admin/UserCreatedFoods/TabNavigation';
 import { useNotifications } from '@/contexts/NotificationsContext';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  rebalanceImpactedFutureMealsForFood,
+  removeFoodFromFutureMealsAndRebalance,
+} from '@/lib/foodModerationImpactService';
 
 const TABS = [
-  { id: 'pending', name: 'Pendientes' },
-  { id: 'approved', name: 'Aprobados' },
-  { id: 'rejected', name: 'Rechazados' },
+  { value: 'pending', label: 'Pendientes' },
+  { value: 'approved', label: 'Aprobados' },
+  { value: 'rejected', label: 'Rechazados' },
+  { value: 'review', label: 'En Revisión' },
 ];
 
 const UserCreatedFoodsPage = () => {
+  const { user } = useAuth();
   const [users, setUsers] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [selectedUser, setSelectedUser] = useState(null);
   const [foods, setFoods] = useState([]);
   const [loadingFoods, setLoadingFoods] = useState(false);
   const [activeTab, setActiveTab] = useState('pending');
+  const [allSensitivities, setAllSensitivities] = useState([]);
+  const [coachClientIds, setCoachClientIds] = useState([]);
   const { toast } = useToast();
   const { pendingFoodCount, refreshPendingRequests } = useNotifications();
 
-  const fetchUsersWithPendingFoods = useCallback(async () => {
+  const isCoach = user?.role === 'coach';
+
+  const mapTabToFoodFilter = (tab) => {
+    if (tab === 'review') return { moderation_status: 'needs_review' };
+    if (tab === 'approved') return ['approved_general', 'approved_private'];
+    return [tab];
+  };
+
+  const fetchUsersByStatus = useCallback(async (tab) => {
     setLoadingUsers(true);
     try {
-      const { data: pendingFoods, error: pendingError } = await supabase
-        .from('food')
-        .select('user_id')
-        .eq('status', 'pending')
-        .not('user_id', 'is', null);
-      if (pendingError) throw pendingError;
+      const filter = mapTabToFoodFilter(tab);
+      let query = supabase.from('food').select('user_id').not('user_id', 'is', null);
+      if (Array.isArray(filter)) query = query.in('status', filter);
+      if (!Array.isArray(filter)) query = query.eq('moderation_status', filter.moderation_status);
+      if (isCoach) {
+        if (coachClientIds.length === 0) {
+          setUsers([]);
+          return;
+        }
+        query = query.in('user_id', coachClientIds);
+      }
+
+      const { data: foodsByStatus, error: foodsError } = await query;
+      if (foodsError) throw foodsError;
 
       const countsByUser = new Map();
-      (pendingFoods || []).forEach((row) => {
+      (foodsByStatus || []).forEach((row) => {
         const userId = row.user_id;
         if (!userId) return;
         countsByUser.set(userId, (countsByUser.get(userId) || 0) + 1);
@@ -67,18 +92,17 @@ const UserCreatedFoodsPage = () => {
     } finally {
       setLoadingUsers(false);
     }
-  }, [toast]);
+  }, [toast, isCoach, coachClientIds]);
 
   const fetchFoodsForUser = useCallback(async (user, tab) => {
     if (!user) return;
     setLoadingFoods(true);
     try {
-      const { data, error } = await supabase
-        .from('food')
-        .select('*')
-        .eq('user_id', user.user_id)
-        .eq('status', tab)
-        .order('created_at', { ascending: false });
+      const filter = mapTabToFoodFilter(tab);
+      let query = supabase.from('food').select('*').eq('user_id', user.user_id);
+      if (Array.isArray(filter)) query = query.in('status', filter);
+      if (!Array.isArray(filter)) query = query.eq('moderation_status', filter.moderation_status);
+      const { data, error } = await query.order('created_at', { ascending: false });
       if (error) throw error;
       setFoods(data || []);
     } catch (error) {
@@ -89,37 +113,227 @@ const UserCreatedFoodsPage = () => {
   }, [toast]);
 
   useEffect(() => {
-    fetchUsersWithPendingFoods();
-  }, [fetchUsersWithPendingFoods]);
+    const fetchCoachClients = async () => {
+      if (!isCoach || !user?.id) return;
+      const { data, error } = await supabase
+        .from('coach_clients')
+        .select('client_id')
+        .eq('coach_id', user.id);
+      if (error) {
+        toast({
+          title: 'Error',
+          description: `No se pudo cargar la lista de clientes: ${error.message}`,
+          variant: 'destructive',
+        });
+        setCoachClientIds([]);
+        return;
+      }
+      setCoachClientIds((data || []).map((row) => row.client_id));
+    };
+    fetchCoachClients();
+  }, [isCoach, user?.id, toast]);
+
+  useEffect(() => {
+    if (isCoach && coachClientIds.length === 0) {
+      setUsers([]);
+      setSelectedUser(null);
+      setFoods([]);
+      return;
+    }
+    fetchUsersByStatus(activeTab);
+    setSelectedUser(null);
+    setFoods([]);
+  }, [activeTab, fetchUsersByStatus, isCoach, coachClientIds]);
+
+  useEffect(() => {
+    const fetchSensitivities = async () => {
+      const { data } = await supabase.from('sensitivities').select('id, name');
+      setAllSensitivities(data || []);
+    };
+    fetchSensitivities();
+  }, []);
 
   const handleSelectUser = (user, tab) => {
     setSelectedUser(user);
     fetchFoodsForUser(user, tab);
   };
 
-  const handleTabChange = (tabId) => {
-    setActiveTab(tabId);
-    setSelectedUser(null);
-    setFoods([]);
-  };
+  const handleTabChange = (tabId) => setActiveTab(tabId);
 
   const handleFoodAction = () => {
-    fetchUsersWithPendingFoods();
+    fetchUsersByStatus(activeTab);
     if (selectedUser) {
       fetchFoodsForUser(selectedUser, activeTab);
     }
     refreshPendingRequests();
   };
 
+  const showRebalanceReportToast = (report, actionLabel) => {
+    if (report.summary.impactedMeals === 0) {
+      toast({
+        title: actionLabel,
+        description: 'No había recetas futuras afectadas. No fue necesario autocuadrar.',
+      });
+      return;
+    }
+
+    if (report.success) {
+      toast({
+        title: actionLabel,
+        description: `Autocuadre aplicado en ${report.summary.succeededGroups}/${report.summary.processedGroups} bloques futuros.`,
+      });
+      return;
+    }
+
+    toast({
+      title: `${actionLabel} con incidencias`,
+      description: `Autocuadre parcial: ${report.summary.succeededGroups}/${report.summary.processedGroups}. Revisión requerida en ${report.summary.failedGroups} bloques.`,
+      variant: 'destructive',
+    });
+  };
+
+  const notifyUser = async ({ userId, title, message, type }) => {
+    try {
+      await supabase.from('user_notifications').insert({
+        user_id: userId,
+        title,
+        message,
+        type,
+        is_read: false,
+      });
+    } catch (error) {
+      console.error('No se pudo crear notificación in-app:', error);
+    }
+  };
+
+  const setReviewState = async (foodId, report, baseStatusForSuccess = 'approved') => {
+    const hasFailures = !report.success || report.summary.failedGroups > 0 || report.errors.length > 0;
+    const nextModerationStatus = hasFailures ? 'needs_review' : baseStatusForSuccess;
+    const reason = hasFailures
+      ? `Pendiente revisión: ${report.summary.failedGroups} bloque(s) con error.`
+      : null;
+    await supabase
+      .from('food')
+      .update({ moderation_status: nextModerationStatus, rejection_reason: reason })
+      .eq('id', foodId);
+    return hasFailures;
+  };
+
+  const handleImport = async (food, type) => {
+    const targetStatus = type === 'general' ? 'approved_general' : 'approved_private';
+    const targetVisibility = type === 'general' ? 'global' : 'private';
+
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      const moderatorId = authData?.user?.id || null;
+
+      const { error } = await supabase
+        .from('food')
+        .update({
+          status: targetStatus,
+          visibility: targetVisibility,
+          moderation_status: 'approved',
+          approved_at: new Date().toISOString(),
+          approved_by: moderatorId,
+          rejected_at: null,
+          rejection_reason: null,
+        })
+        .eq('id', food.id);
+      if (error) throw error;
+
+      const report = await rebalanceImpactedFutureMealsForFood({
+        foodId: food.id,
+        userId: food.user_id,
+      });
+      const needsReview = await setReviewState(food.id, report, 'approved');
+
+      await notifyUser({
+        userId: food.user_id,
+        title: 'Solicitud de alimento revisada',
+        message: needsReview
+          ? `Tu alimento "${food.name}" fue aprobado (${type === 'general' ? 'general' : 'privado'}) pero quedó en revisión por recálculo parcial.`
+          : `Tu alimento "${food.name}" fue aprobado (${type === 'general' ? 'general' : 'privado'}) y ya está disponible.`,
+        type: 'food_request_status',
+      });
+
+      showRebalanceReportToast(report, 'Alimento aprobado');
+      handleFoodAction();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: `No se pudo aprobar el alimento: ${error.message}`,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleReject = async (foodId) => {
+    const food = foods.find((f) => f.id === foodId);
+    if (!food) return;
+
+    try {
+      const { error } = await supabase
+        .from('food')
+        .update({
+          status: 'rejected',
+          moderation_status: 'rejected',
+          rejected_at: new Date().toISOString(),
+        })
+        .eq('id', foodId);
+      if (error) throw error;
+
+      const report = await removeFoodFromFutureMealsAndRebalance({
+        foodId,
+        userId: food.user_id,
+      });
+      const needsReview = await setReviewState(food.id, report, 'rejected');
+
+      await notifyUser({
+        userId: food.user_id,
+        title: 'Solicitud de alimento rechazada',
+        message: needsReview
+          ? `Tu alimento "${food.name}" fue rechazado. Se inició reparación de recetas futuras, pero quedó revisión pendiente.`
+          : `Tu alimento "${food.name}" fue rechazado y se retiró de recetas futuras.`,
+        type: 'food_request_status',
+      });
+
+      showRebalanceReportToast(report, 'Alimento rechazado');
+      handleFoodAction();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: `No se pudo rechazar el alimento: ${error.message}`,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDelete = async (foodId) => {
+    try {
+      const { error } = await supabase.rpc('delete_food_with_dependencies', { p_food_id: foodId });
+      if (error) throw error;
+      toast({ title: 'Éxito', description: 'Alimento eliminado permanentemente.' });
+      handleFoodAction();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: `No se pudo eliminar el alimento: ${error.message}`,
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <>
       <Helmet>
-        <title>Solicitudes de Alimentos - Admin</title>
+        <title>Solicitudes de Alimentos - Gestión</title>
         <meta name="description" content="Gestiona los alimentos creados por los usuarios." />
       </Helmet>
       <div className="p-4 md:p-8">
         <h1 className="text-3xl font-bold mb-2">Solicitudes de Alimentos</h1>
-        <p className="text-gray-400 mb-6">Revisa, aprueba y enlaza los alimentos creados por los clientes.</p>
+        <p className="text-gray-400 mb-6">
+          Revisa, aprueba o rechaza alimentos. Si un recálculo falla, el alimento queda en cola "En Revisión".
+        </p>
         
         <TabNavigation 
           tabs={TABS} 
@@ -141,6 +355,11 @@ const UserCreatedFoodsPage = () => {
             loading={loadingFoods}
             selectedUser={selectedUser}
             activeTab={activeTab}
+            onImport={handleImport}
+            onReject={handleReject}
+            onDelete={handleDelete}
+            allSensitivities={allSensitivities}
+            onActionComplete={handleFoodAction}
             onFoodAction={handleFoodAction}
           />
         </div>

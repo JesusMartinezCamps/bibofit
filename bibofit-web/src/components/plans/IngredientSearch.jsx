@@ -30,6 +30,38 @@ const ConflictBadge = ({ conflict }) => {
   );
 };
 
+const UserFoodStatusBadge = ({ food }) => {
+  if (!food) return null;
+  const isUserCreated = !!food.is_user_created || !!food.user_id;
+  if (!isUserCreated) return null;
+
+  const status = (food.status || '').toLowerCase();
+  const variants = {
+    pending: 'bg-violet-500/20 text-violet-200 border-violet-400/40',
+    approved_private: 'bg-indigo-500/20 text-indigo-200 border-indigo-400/40',
+    approved_general: 'bg-emerald-500/20 text-emerald-200 border-emerald-400/40',
+  };
+
+  const label =
+    status === 'pending'
+      ? 'Privado · Pendiente'
+      : status === 'approved_general'
+        ? 'Global · Aprobado'
+        : 'Privado · Aprobado';
+
+  return (
+    <Badge
+      variant="outline"
+      className={cn(
+        'text-xs font-normal flex items-center gap-1.5',
+        variants[status] || variants.approved_private
+      )}
+    >
+      {label}
+    </Badge>
+  );
+};
+
 const IngredientSearch = ({
   selectedIngredients,
   onIngredientAdded,
@@ -74,7 +106,11 @@ const IngredientSearch = ({
     const results = (availableFoods || [])
       .filter(food =>
         food.name &&
-        !selectedIngredients.some(ing => String(ing.food_id) === String(food.id))
+        !selectedIngredients.some(
+          (ing) =>
+            String(ing.food_id) === String(food.id) &&
+            !!ing.is_user_created === !!food.is_user_created
+        )
       )
       .filter((food) => {
         const searchableText = [
@@ -129,7 +165,9 @@ const IngredientSearch = ({
       quantity: quantity,
       grams: quantity, // Explicitly set grams to match quantity
       is_free: false,
-      food_unit: food_unit
+      food_unit: food_unit,
+      is_user_created: !!food.is_user_created,
+      food,
     };
     onIngredientAdded(newIngredient);
   };
@@ -221,6 +259,7 @@ const IngredientSearch = ({
               >
                 <span className="font-medium text-gray-200">{food.name}</span>
                 <div className="flex items-center gap-2 mt-1 sm:mt-0">
+                  <UserFoodStatusBadge food={food} />
                   {food.conflict && <ConflictBadge conflict={food.conflict} />}
                 </div>
               </div>

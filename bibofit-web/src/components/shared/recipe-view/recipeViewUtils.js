@@ -29,13 +29,18 @@ export const calculateRecipeConflicts = ({
 
   recipe.ingredients.forEach((ing) => {
     let food = ing.food;
+    const isUserCreated = !!ing.is_user_created || !!food?.is_user_created || !!food?.user_id;
 
     if (!food && Array.isArray(allFoods)) {
-      food = allFoods.find((f) => String(f.id) === String(ing.food_id));
+      food = allFoods.find(
+        (f) => String(f.id) === String(ing.food_id) && !!f.is_user_created === isUserCreated
+      );
     }
 
     if (food && Array.isArray(allFoods)) {
-      const fullFood = allFoods.find((f) => String(f.id) === String(food.id));
+      const fullFood = allFoods.find(
+        (f) => String(f.id) === String(food.id) && !!f.is_user_created === isUserCreated
+      );
       if (fullFood) food = fullFood;
     }
 
@@ -77,13 +82,18 @@ export const buildIngredientsWithDetails = ({
   return recipe.ingredients
     .map((ing, originalIndex) => {
       let food = ing.food;
+      const isUserCreated = !!ing.is_user_created || !!food?.is_user_created || !!food?.user_id;
 
       if (!food) {
-        food = allFoods.find((f) => String(f.id) === String(ing.food_id));
+        food = allFoods.find(
+          (f) => String(f.id) === String(ing.food_id) && !!f.is_user_created === isUserCreated
+        );
       }
 
       if (food) {
-        const fullFood = allFoods.find((f) => String(f.id) === String(food.id));
+        const fullFood = allFoods.find(
+          (f) => String(f.id) === String(food.id) && !!f.is_user_created === isUserCreated
+        );
         if (fullFood) food = fullFood;
       }
 
@@ -140,6 +150,7 @@ export const buildIngredientsWithDetails = ({
         conflictType,
         conflictDetails: foodConflicts,
         recommendationDetails: foodRecommendations,
+        is_user_created: isUserCreated,
         food_group_id: food.food_to_food_groups?.[0]?.food_group?.id || ing.food_group_id || null,
       };
     })

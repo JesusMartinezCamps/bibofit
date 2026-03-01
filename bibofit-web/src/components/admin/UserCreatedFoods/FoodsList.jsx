@@ -128,6 +128,9 @@ const FoodsList = ({
         onClose={handleModalClose}
         onActionComplete={onActionComplete}
         allSensitivities={allSensitivities}
+        activeTab={activeTab}
+        onReject={onReject}
+        onDelete={onDelete}
         actionContext={actionContext}
       />
     </>

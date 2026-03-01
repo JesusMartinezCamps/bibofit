@@ -86,6 +86,13 @@ const IngredientRowConflict = ({
   };
 
   const unit = foodDetails?.food_unit === 'unidades' ? 'ud' : 'g';
+  const foodStatus = (foodDetails?.status || '').toLowerCase();
+  const privateBadgeLabel =
+    foodStatus === 'pending'
+      ? 'Privado · Pendiente'
+      : foodStatus === 'approved_general'
+        ? 'Global · Aprobado'
+        : 'Privado · Aprobado';
 
   const borderColor = useMemo(() => {
     if (isUserCreated) return 'border-purple-500/50';
@@ -115,8 +122,18 @@ const IngredientRowConflict = ({
         <div className="flex items-center gap-2 flex-wrap">
             {conflict && <ConflictBadge conflict={conflict} />}
             {isUserCreated && (
-                <Badge variant="outline" className="text-xs font-normal flex items-center gap-1.5 bg-purple-500/20 text-purple-300 border-purple-500/30">
-                    <Pencil size={12} /> Alimento Privado
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    'text-xs font-normal flex items-center gap-1.5',
+                    foodStatus === 'pending'
+                      ? 'bg-violet-500/20 text-violet-200 border-violet-400/40'
+                      : foodStatus === 'approved_general'
+                        ? 'bg-emerald-500/20 text-emerald-200 border-emerald-400/40'
+                        : 'bg-indigo-500/20 text-indigo-200 border-indigo-400/40'
+                  )}
+                >
+                    <Pencil size={12} /> {privateBadgeLabel}
                 </Badge>
             )}
         </div>

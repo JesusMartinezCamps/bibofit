@@ -167,7 +167,7 @@ const AppRoutes = () => {
       <Route path="/admin/manage-antioxidants" element={<ProtectedRoute adminOnly><ManageAntioxidants /></ProtectedRoute>} />
       <Route path="/admin/manage-fat-types" element={<ProtectedRoute adminOnly><ManageFatTypes /></ProtectedRoute>} />
       <Route path="/admin/manage-carb-types" element={<ProtectedRoute adminOnly><ManageCarbTypes /></ProtectedRoute>} />
-      <Route path="/admin-panel/content/food-requests" element={<ProtectedRoute adminOnly><UserCreatedFoodsPage /></ProtectedRoute>} />
+      <Route path="/admin-panel/content/food-requests" element={<ProtectedRoute><RoleProtected allowedRoles={['admin', 'coach']}><UserCreatedFoodsPage /></RoleProtected></ProtectedRoute>} />
       <Route path="/admin-panel/content/free-recipe-requests" element={<ProtectedRoute><RoleProtected allowedRoles={['admin', 'coach']}><FreeMealRequestsPage /></RoleProtected></ProtectedRoute>} />
       <Route path="/admin-panel/content/diet-requests" element={<ProtectedRoute><RoleProtected allowedRoles={['admin', 'coach']}><DietChangeRequestsPage /></RoleProtected></ProtectedRoute>} />
       <Route path="/admin-panel/content/plan-templates" element={<ProtectedRoute><RoleProtected allowedRoles={['admin', 'coach']}><PlanTemplatesPage /></RoleProtected></ProtectedRoute>} />

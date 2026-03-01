@@ -6336,6 +6336,12 @@ CREATE POLICY "Admin full access user subscriptions" ON "public"."user_subscript
 
 
 
+CREATE POLICY "Admins and coaches can insert managed notifications" ON "public"."user_notifications" FOR INSERT WITH CHECK (("public"."is_admin"() OR ("user_id" = "auth"."uid"()) OR (EXISTS ( SELECT 1
+   FROM "public"."coach_clients" "cc"
+  WHERE (("cc"."coach_id" = "auth"."uid"()) AND ("cc"."client_id" = "user_notifications"."user_id"))))));
+
+
+
 CREATE POLICY "Admins can insert templates" ON "public"."diet_plans" FOR INSERT WITH CHECK ("public"."is_admin"());
 
 
@@ -7341,6 +7347,12 @@ CREATE POLICY "Coaches can delete client day meals" ON "public"."user_day_meals"
 
 
 
+CREATE POLICY "Coaches can delete client foods" ON "public"."food" FOR DELETE USING ((EXISTS ( SELECT 1
+   FROM "public"."coach_clients" "cc"
+  WHERE (("cc"."coach_id" = "auth"."uid"()) AND ("cc"."client_id" = "food"."user_id")))));
+
+
+
 CREATE POLICY "Coaches can delete client meal logs" ON "public"."daily_meal_logs" FOR DELETE USING ((EXISTS ( SELECT 1
    FROM "public"."coach_clients"
   WHERE (("coach_clients"."coach_id" = "auth"."uid"()) AND ("coach_clients"."client_id" = "daily_meal_logs"."user_id")))));
@@ -7609,6 +7621,14 @@ CREATE POLICY "Coaches can update client day meals" ON "public"."user_day_meals"
 
 
 
+CREATE POLICY "Coaches can update client foods" ON "public"."food" FOR UPDATE USING ((EXISTS ( SELECT 1
+   FROM "public"."coach_clients" "cc"
+  WHERE (("cc"."coach_id" = "auth"."uid"()) AND ("cc"."client_id" = "food"."user_id"))))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM "public"."coach_clients" "cc"
+  WHERE (("cc"."coach_id" = "auth"."uid"()) AND ("cc"."client_id" = "food"."user_id")))));
+
+
+
 CREATE POLICY "Coaches can update client meal logs" ON "public"."daily_meal_logs" FOR UPDATE USING ((EXISTS ( SELECT 1
    FROM "public"."coach_clients"
   WHERE (("coach_clients"."coach_id" = "auth"."uid"()) AND ("coach_clients"."client_id" = "daily_meal_logs"."user_id")))));
@@ -7755,21 +7775,15 @@ CREATE POLICY "Public read commercial plan targets" ON "public"."commercial_plan
 
 
 
-CREATE POLICY "User or admin can delete conditions" ON "public"."user_medical_conditions" FOR DELETE TO "authenticated" USING ((("user_id" = "auth"."uid"()) OR (EXISTS ( SELECT 1
-   FROM "public"."user_roles"
-  WHERE (("user_roles"."user_id" = "auth"."uid"()) AND ("user_roles"."role_id" = 1))))));
+CREATE POLICY "User or admin can delete conditions" ON "public"."user_medical_conditions" FOR DELETE TO "authenticated" USING ((("user_id" = "auth"."uid"()) OR "public"."is_admin"()));
 
 
 
-CREATE POLICY "User or admin can insert conditions" ON "public"."user_medical_conditions" FOR INSERT TO "authenticated" WITH CHECK ((("user_id" = "auth"."uid"()) OR (EXISTS ( SELECT 1
-   FROM "public"."user_roles"
-  WHERE (("user_roles"."user_id" = "auth"."uid"()) AND ("user_roles"."role_id" = 1))))));
+CREATE POLICY "User or admin can insert conditions" ON "public"."user_medical_conditions" FOR INSERT TO "authenticated" WITH CHECK ((("user_id" = "auth"."uid"()) OR "public"."is_admin"()));
 
 
 
-CREATE POLICY "User or admin can update conditions" ON "public"."user_medical_conditions" FOR UPDATE TO "authenticated" USING ((("user_id" = "auth"."uid"()) OR (EXISTS ( SELECT 1
-   FROM "public"."user_roles"
-  WHERE (("user_roles"."user_id" = "auth"."uid"()) AND ("user_roles"."role_id" = 1))))));
+CREATE POLICY "User or admin can update conditions" ON "public"."user_medical_conditions" FOR UPDATE TO "authenticated" USING ((("user_id" = "auth"."uid"()) OR "public"."is_admin"())) WITH CHECK ((("user_id" = "auth"."uid"()) OR "public"."is_admin"()));
 
 
 

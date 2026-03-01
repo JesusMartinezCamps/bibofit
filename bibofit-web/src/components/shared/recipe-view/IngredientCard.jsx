@@ -102,6 +102,33 @@ const StatusDisplay = ({ type, conflicts, recommendations, isEditing }) => {
   return null;
 };
 
+const FoodStateBadge = ({ food, isUserCreated }) => {
+  if (!food || !isUserCreated) return null;
+
+  const status = (food.status || '').toLowerCase();
+  const variants = {
+    pending: 'bg-violet-500/20 text-violet-200 border-violet-400/40',
+    approved_private: 'bg-indigo-500/20 text-indigo-200 border-indigo-400/40',
+    approved_general: 'bg-emerald-500/20 text-emerald-200 border-emerald-400/40',
+  };
+
+  const label =
+    status === 'pending'
+      ? 'Privado · Pendiente'
+      : status === 'approved_general'
+        ? 'Global · Aprobado'
+        : 'Privado · Aprobado';
+
+  return (
+    <Badge
+      variant="outline"
+      className={cn('text-[10px] px-1.5 py-0 h-5', variants[status] || variants.approved_private)}
+    >
+      {label}
+    </Badge>
+  );
+};
+
 const scaleMacrosByMultiplier = (macros, multiplier) => ({
   calories: (macros?.calories || 0) * multiplier,
   proteins: (macros?.proteins || 0) * multiplier,
@@ -137,6 +164,7 @@ const IngredientCard = ({
   const canManageIngredient = typeof onRemove === 'function' && typeof onReplace === 'function';
   const hasConflict = ['condition_avoid', 'sensitivity', 'non-preferred'].includes(conflictType);
   const isRecommended = ['condition_recommend', 'preferred'].includes(conflictType);
+  const isUserCreated = !!ingredient.is_user_created || !!food.is_user_created || !!food.user_id;
 
   if (displayAsBullet) {
     return (
@@ -194,6 +222,9 @@ const IngredientCard = ({
                 ({displayQuantity}
                 {food.food_unit === 'unidades' ? ' ud' : 'g'})
               </span>
+              <div className="ml-2 shrink-0">
+                <FoodStateBadge food={food} isUserCreated={isUserCreated} />
+              </div>
               {hasConflict && <AlertTriangle className="w-3.5 h-3.5 text-red-500 ml-2 shrink-0" />}
               {isRecommended && <ThumbsUp className="w-3.5 h-3.5 text-green-500 ml-2 shrink-0" />}
             </div>
@@ -299,6 +330,7 @@ const IngredientCard = ({
                     ({displayQuantity}
                     {food.food_unit === 'unidades' ? ' ud' : 'g'})
                   </span>
+                  <FoodStateBadge food={food} isUserCreated={isUserCreated} />
 
                   {!isEditing && hasConflict && (
                     <span className="inline-flex items-center gap-1.5 text-red-400 text-xs font-medium ml-1 px-2 py-0.5 rounded-full bg-red-900/20 border border-red-500/20">

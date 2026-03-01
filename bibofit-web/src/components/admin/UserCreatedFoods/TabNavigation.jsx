@@ -2,11 +2,20 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
-const TabNavigation = ({ tabs, activeTab, onTabChange, pendingCount }) => {
+const TabNavigation = ({ tabs, activeTab, onTabChange, pendingCount, usersWithPending }) => {
+  const normalizedTabs = (tabs || []).map((tab) => ({
+    value: tab.value ?? tab.id,
+    label: tab.label ?? tab.name,
+  }));
+  const legacyPendingCount = Array.isArray(usersWithPending)
+    ? usersWithPending.reduce((acc, item) => acc + (item?.count || 0), 0)
+    : 0;
+  const pendingBadgeCount = pendingCount ?? legacyPendingCount;
+
   return (
     <div className="mb-6 border-b border-gray-700">
       <nav className="-mb-px flex space-x-6" aria-label="Tabs">
-        {tabs.map((tab) => (
+        {normalizedTabs.map((tab) => (
           <button
             key={tab.value}
             onClick={() => onTabChange(tab.value)}
@@ -19,9 +28,9 @@ const TabNavigation = ({ tabs, activeTab, onTabChange, pendingCount }) => {
           >
             <div className="flex items-center gap-2">
               <span>{tab.label}</span>
-              {tab.value === 'pending' && pendingCount > 0 && (
+              {tab.value === 'pending' && pendingBadgeCount > 0 && (
                 <span className="bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                  {pendingCount}
+                  {pendingBadgeCount}
                 </span>
               )}
             </div>

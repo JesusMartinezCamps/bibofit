@@ -321,7 +321,11 @@ export const useRecipeEditor = ({ recipeToEdit, onSaveSuccess, isAdminView, user
   };
   
   const handleAddIngredient = (newIngredientData) => {
-      const food = allFoods.find(f => String(f.id) === String(newIngredientData.food_id));
+      const food = allFoods.find(
+        (f) =>
+          String(f.id) === String(newIngredientData.food_id) &&
+          !!f.is_user_created === !!newIngredientData.is_user_created
+      );
       const newIngredient = {
           ...newIngredientData,
           food: food,
