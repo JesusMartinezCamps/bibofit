@@ -292,7 +292,7 @@ const DayMealsPreferencesForm = ({ userId }) => {
                   value={String(meal.day_meal_id)}
                   onValueChange={(newId) => handleMealTypeChange(meal.day_meal_id, parseInt(newId))}
                 >
-                  <SelectTrigger className="w-48 border-gray-600 bg-gray-900/70">
+                  <SelectTrigger className="w-52 bf-form-control">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -315,7 +315,7 @@ const DayMealsPreferencesForm = ({ userId }) => {
                 placeholder={placeholderText}
                 value={meal.preferences || ''}
                 onChange={(e) => handlePreferenceChange(meal.day_meal_id, e.target.value)}
-                className="bg-gray-900/50 border-gray-600 placeholder:text-gray-500"
+                className="bf-form-control min-h-[110px] placeholder:text-gray-500"
               />
             </div>
           );

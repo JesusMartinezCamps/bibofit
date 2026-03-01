@@ -9,12 +9,11 @@ import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import DatePicker from 'react-datepicker';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { Plus, X, Check, Trash2, Repeat } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import UnifiedDatePicker from '@/components/shared/UnifiedDatePicker';
 
 const DEFAULT_CATEGORIES = ['Dieta', 'Entreno', 'Personal', 'Salud', 'Objetivos', 'Mascotas', 'Viajes', 'Cumpleaños'];
 const DAYS_OF_WEEK = [
@@ -273,7 +272,7 @@ const ReminderFormDialog = ({ isOpen, onOpenChange, onSave, reminder, userId, ne
                           </div>
                       </div>
                       {hasEndDate ? (
-                          <DatePicker
+                          <UnifiedDatePicker
                               selectsRange
                               startDate={startDate}
                               endDate={endDate}
@@ -281,19 +280,17 @@ const ReminderFormDialog = ({ isOpen, onOpenChange, onSave, reminder, userId, ne
                               setStartDate(start);
                               setEndDate(end);
                               }}
-                              dateFormat="dd/MM/yyyy"
-                              locale={es}
-                              className="input-field w-full text-center"
-                              placeholderText="Selecciona inicio y fin"
+                              placeholder="Selecciona inicio y fin"
+                              withPortal
+                              shouldCloseOnSelect={false}
+                              triggerClassName="w-full text-center"
                           />
                       ) : (
-                          <DatePicker
+                          <UnifiedDatePicker
                               selected={startDate}
                               onChange={setStartDate}
-                              dateFormat="dd/MM/yyyy"
-                              locale={es}
-                              className="input-field w-full"
-                              placeholderText="Selecciona una fecha"
+                              placeholder="Selecciona una fecha"
+                              withPortal
                           />
                       )}
                     </div>
@@ -445,14 +442,13 @@ const ReminderFormDialog = ({ isOpen, onOpenChange, onSave, reminder, userId, ne
                             {/* End date for recurrence */}
                             <div className="pt-2">
                                 <Label className="text-xs text-gray-400 block mb-1">Terminar repetición (opcional):</Label>
-                                <DatePicker
+                                <UnifiedDatePicker
                                     selected={recurrenceEndDate}
                                     onChange={setRecurrenceEndDate}
-                                    dateFormat="dd/MM/yyyy"
-                                    locale={es}
                                     isClearable
-                                    placeholderText="Nunca"
-                                    className="input-field w-full h-8 text-sm bg-slate-900"
+                                    placeholder="Nunca"
+                                    withPortal
+                                    triggerClassName="min-h-[40px] bg-slate-900 text-sm"
                                 />
                             </div>
                         </div>

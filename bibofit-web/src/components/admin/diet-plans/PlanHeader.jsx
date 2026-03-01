@@ -13,11 +13,10 @@ import ClassificationManager from '@/components/admin/diet-plans/ClassificationM
 import { Button } from '@/components/ui/button';
 import { AnimatePresence, motion } from 'framer-motion';
 import { format, parseISO } from 'date-fns';
-import { es } from 'date-fns/locale';
-import DatePicker from 'react-datepicker';
 import AssignPlanDialog from './AssignPlanDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import ClassificationBadge from '@/components/admin/diet-plans/ClassificationBadge';
+import UnifiedDatePicker from '@/components/shared/UnifiedDatePicker';
 
 const InfoItem = ({ icon, label, children, asLink, to }) => {
   const content = (
@@ -351,23 +350,16 @@ const PlanHeader = ({ plan, onUpdate, onToggleActive, readOnly = false }) => {
                         {startDate && endDate ? `${format(startDate, 'dd/MM/yy')} - ${format(endDate, 'dd/MM/yy')}` : 'Sin rango definido'}
                       </p>
                     ) : (
-                      <DatePicker
+                      <UnifiedDatePicker
                         selected={startDate}
                         onChange={handleDateChange}
                         startDate={startDate}
                         endDate={endDate}
                         selectsRange
-                        dateFormat="dd/MM/yyyy"
-                        locale={es}
-                        customInput={
-                          <div className="font-semibold text-white bg-gray-700/50 border border-gray-600 rounded-md px-3 py-1.5 cursor-pointer hover:bg-gray-700 transition-colors w-full text-center">
-                            {startDate && endDate
-                              ? `${format(startDate, 'dd/MM/yy')} - ${format(endDate, 'dd/MM/yy')}`
-                              : 'Seleccionar rango'}
-                          </div>
-                        }
-                        wrapperClassName="w-full"
-                        popperClassName="z-50"
+                        placeholder="Seleccionar rango"
+                        shouldCloseOnSelect={false}
+                        withPortal
+                        triggerClassName="font-semibold text-white bg-gray-700/50 border border-gray-600 rounded-md px-3 py-1.5 hover:bg-gray-700 transition-colors w-full text-center"
                       />
                     )}
                   </InfoItem>

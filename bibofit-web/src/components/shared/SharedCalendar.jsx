@@ -435,7 +435,7 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
               : `/plan/dieta/${userId}/${format(selectedDate, 'yyyy-MM-dd')}`
           )}
           variant="outline-diet"
-          className="flex-grow bg-green-800/20"
+          className="flex-grow bg-green-800/20 btn-standard "
         >
           <Apple className="w-6 h-6 mr-2" />Plan de Dieta
         </Button>

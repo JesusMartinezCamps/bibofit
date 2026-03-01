@@ -30,7 +30,7 @@ const IntroStep = ({ onNext }) => {
           ¡Hola!
         </h2>
         <p className="text-slate-300 text-lg max-w-sm mx-auto leading-relaxed">
-          Vamos a configurar tu perfil en unos sencillos pasos para ofrecerte el mejor plan.
+          Para que Bibofit se configure a tu medida, necesitamos que respondas a unas preguntas
         </p>
       </motion.div>
 

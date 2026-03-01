@@ -7,7 +7,7 @@ import React, { useState, useEffect, useCallback } from 'react';
     import { Input } from '@/components/ui/input';
     import { Textarea } from '@/components/ui/textarea';
     import { Label } from '@/components/ui/label';
-    import { Loader2, CheckCircle, Trash2, CalendarPlus as CalendarIcon } from 'lucide-react';
+    import { Loader2, CheckCircle, Trash2 } from 'lucide-react';
     import { motion, AnimatePresence } from 'framer-motion';
     import {
       AlertDialog,
@@ -21,9 +21,9 @@ import React, { useState, useEffect, useCallback } from 'react';
       AlertDialogTrigger,
     } from "@/components/ui/alert-dialog";
     import ViewModeToggle from '@/components/shared/AdminViewToggle';
-    import DatePicker from 'react-datepicker';
     import { format } from 'date-fns';
     import { es } from 'date-fns/locale';
+    import UnifiedDatePicker from '@/components/shared/UnifiedDatePicker';
 
     const WeightLogDialog = ({ open, onOpenChange, onLogAdded, initialDate, userId: propUserId }) => {
       const { user: authUser } = useAuth();
@@ -317,16 +317,15 @@ import React, { useState, useEffect, useCallback } from 'react';
                       </div>
                       <div className="pt-4 mt-4 border-t border-gray-700/50">
                         <Label htmlFor="logDate" className="text-gray-400">Fecha del Registro</Label>
-                        <div className="relative mt-1">
-                          <DatePicker
+                        <div className="mt-1">
+                          <UnifiedDatePicker
                             id="logDate"
                             selected={logDate}
                             onChange={(date) => { setLogDate(date); setHasChanges(true); }}
-                            dateFormat="dd/MM/yyyy"
-                            className="input-field date-input w-full"
-                            popperPlacement="top-end"
+                            placeholder="Selecciona fecha"
+                            maxDate={new Date()}
+                            withPortal
                           />
-                          <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
                         </div>
                       </div>
                     </div>

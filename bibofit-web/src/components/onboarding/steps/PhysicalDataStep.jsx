@@ -6,6 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from '@/contexts/AuthContext';
 import { getActivityLevels } from '@/lib/metabolismCalculator';
 import { Ruler, Weight, Loader2 } from 'lucide-react';
+import { format } from 'date-fns';
+import UnifiedDatePicker from '@/components/shared/UnifiedDatePicker';
 
 const PhysicalDataStep = ({ onNext, isLoading }) => {
   const { user } = useAuth();
@@ -57,7 +59,7 @@ const PhysicalDataStep = ({ onNext, isLoading }) => {
                     value={formData.sex} 
                     onValueChange={(v) => setFormData(prev => ({...prev, sex: v}))}
                 >
-                    <SelectTrigger id="sex" type="button" className="bg-gray-800/50 border-gray-700 text-white w-full">
+                    <SelectTrigger id="sex" type="button" className="bf-form-control w-full">
                         <SelectValue placeholder="Seleccionar" />
                     </SelectTrigger>
                     <SelectContent position="popper" style={{ zIndex: 9999 }} className="bg-gray-800 border-gray-700 text-white">
@@ -71,12 +73,17 @@ const PhysicalDataStep = ({ onNext, isLoading }) => {
             <div className="space-y-2">
                 <Label htmlFor="birth_date" className="text-gray-300">Nacimiento</Label>
                 <div className="relative">
-                    <Input
+                    <UnifiedDatePicker
                         id="birth_date"
-                        type="date"
-                        value={formData.birth_date}
-                        onChange={(e) => setFormData({...formData, birth_date: e.target.value})}
-                        className="bg-gray-800/50 border-gray-700 text-white"
+                        selected={formData.birth_date ? new Date(`${formData.birth_date}T00:00:00`) : null}
+                        onChange={(date) => setFormData((prev) => ({
+                          ...prev,
+                          birth_date: date ? format(date, 'yyyy-MM-dd') : '',
+                        }))}
+                        placeholder="Selecciona tu fecha"
+                        maxDate={new Date()}
+                        minYear={1920}
+                        maxYear={new Date().getFullYear()}
                     />
                 </div>
                 {errors.birth_date && <p className="text-red-400 text-xs">{errors.birth_date}</p>}
@@ -86,15 +93,14 @@ const PhysicalDataStep = ({ onNext, isLoading }) => {
         <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
                 <Label htmlFor="height" className="text-gray-300">Altura</Label>
-                <div className="relative">
-                    <Ruler className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <div className="relative">                    
                     <InputWithUnit
                         id="height"
                         type="number"
                         unit="cm"
                         value={formData.height_cm}
                         onChange={(e) => setFormData({...formData, height_cm: e.target.value})}
-                        className="pl-9 bg-gray-800/50 border-gray-700 text-white"
+                        className="pl-12 bf-form-control"
                         placeholder="175"
                     />
                 </div>
@@ -104,7 +110,6 @@ const PhysicalDataStep = ({ onNext, isLoading }) => {
             <div className="space-y-2">
                 <Label htmlFor="weight" className="text-gray-300">Peso</Label>
                 <div className="relative">
-                    <Weight className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <InputWithUnit
                         id="weight"
                         type="number"
@@ -112,7 +117,7 @@ const PhysicalDataStep = ({ onNext, isLoading }) => {
                         step="0.1"
                         value={formData.current_weight_kg}
                         onChange={(e) => setFormData({...formData, current_weight_kg: e.target.value})}
-                        className="pl-9 bg-gray-800/50 border-gray-700 text-white"
+                        className="pl-12 bf-form-control"
                         placeholder="70.5"
                     />
                 </div>
@@ -126,7 +131,7 @@ const PhysicalDataStep = ({ onNext, isLoading }) => {
                 value={String(formData.activity_level_id)} 
                 onValueChange={(v) => setFormData(prev => ({...prev, activity_level_id: v}))}
             >
-                <SelectTrigger id="activity" type="button" className="bg-gray-800/50 border-gray-700 text-white h-auto py-3 w-full">
+                <SelectTrigger id="activity" type="button" className="bf-form-control h-auto py-3 w-full">
                     <SelectValue placeholder="Selecciona tu actividad" />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-700 text-white z-[9999] max-h-[200px]">

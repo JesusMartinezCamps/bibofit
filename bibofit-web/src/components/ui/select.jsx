@@ -14,7 +14,7 @@ const SelectTrigger = React.forwardRef(({ className, children, ...props }, ref) 
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex h-10 w-full items-center justify-between rounded-lg border border-gray-600 bg-gray-800/50 px-3 py-2 text-sm text-white ring-offset-background placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1 hover:text-white data-[placeholder]:text-gray-400",
+      "flex min-h-[48px] w-full items-center justify-between rounded-xl border border-slate-600/80 bg-slate-800/70 px-4 py-3 text-sm text-white ring-offset-background transition-all duration-200 hover:border-slate-400 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-slate-900 focus:border-slate-400 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1 data-[placeholder]:text-gray-400",
       className
     )}
     {...props}>
@@ -29,9 +29,12 @@ SelectTrigger.displayName = SelectPrimitive.Trigger.displayName
 const SelectScrollUpButton = React.forwardRef(({ className, children, ...props }, ref) => (
   <SelectPrimitive.ScrollUpButton
     ref={ref}
-    className={cn("flex cursor-default items-center justify-center py-1", className)}
+    className={cn(
+      "sticky top-0 z-10 flex h-11 cursor-default items-center justify-center border-b border-slate-700 bg-[#26323d] text-slate-200",
+      className
+    )}
     {...props}>
-    {children || <ChevronUp className="h-4 w-4" />}
+    {children || <ChevronUp className="h-5 w-5" />}
   </SelectPrimitive.ScrollUpButton>
 ))
 SelectScrollUpButton.displayName = SelectPrimitive.ScrollUpButton.displayName
@@ -39,9 +42,12 @@ SelectScrollUpButton.displayName = SelectPrimitive.ScrollUpButton.displayName
 const SelectScrollDownButton = React.forwardRef(({ className, children, ...props }, ref) => (
   <SelectPrimitive.ScrollDownButton
     ref={ref}
-    className={cn("flex cursor-default items-center justify-center py-1", className)}
+    className={cn(
+      "sticky bottom-0 z-10 flex h-11 cursor-default items-center justify-center border-t border-slate-700 bg-[#26323d] text-slate-200",
+      className
+    )}
     {...props}>
-    {children || <ChevronDown className="h-4 w-4" />}
+    {children || <ChevronDown className="h-5 w-5" />}
   </SelectPrimitive.ScrollDownButton>
 ))
 SelectScrollDownButton.displayName = SelectPrimitive.ScrollDownButton.displayName

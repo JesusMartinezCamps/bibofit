@@ -5,9 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
-import "react-datepicker/dist/react-datepicker.css";
-import ReactDatePicker from 'react-datepicker';
-import es from 'date-fns/locale/es';
+import UnifiedDatePicker from '@/components/shared/UnifiedDatePicker';
 
 const FormRow = ({ id, label, type = 'text', value, onChange, placeholder, options, color = 'green', className }) => {
 
@@ -24,7 +22,7 @@ const FormRow = ({ id, label, type = 'text', value, onChange, placeholder, optio
   };
 
   const handleDateChange = (date) => {
-    onChange(id, date.toISOString().split('T')[0]);
+    onChange(id, date ? date.toISOString().split('T')[0] : '');
   };
   
   const checkboxColorClass = color === 'green'
@@ -36,7 +34,7 @@ const FormRow = ({ id, label, type = 'text', value, onChange, placeholder, optio
       case 'select':
         return (
           <Select value={value || ''} onValueChange={handleSelectChange}>
-            <SelectTrigger id={id} className="w-full bg-gray-800 border-gray-700 text-white">
+            <SelectTrigger id={id} className="w-full bf-form-control">
               <SelectValue placeholder={placeholder || 'Seleccionar...'} />
             </SelectTrigger>
             <SelectContent>
@@ -55,7 +53,7 @@ const FormRow = ({ id, label, type = 'text', value, onChange, placeholder, optio
             value={value}
             onChange={handleInputChange}
             placeholder={placeholder}
-            className={cn("w-full bg-gray-800 border-gray-700 text-white min-h-[100px]", className)}
+            className={cn("w-full bf-form-control min-h-[120px]", className)}
           />
         );
       case 'checkbox':
@@ -72,15 +70,13 @@ const FormRow = ({ id, label, type = 'text', value, onChange, placeholder, optio
         );
       case 'date':
         return (
-          <ReactDatePicker
+          <UnifiedDatePicker
             selected={value ? new Date(value) : null}
             onChange={handleDateChange}
-            dateFormat="dd/MM/yyyy"
-            className="input-field w-full date-input"
-            showYearDropdown
-            scrollableYearDropdown
-            yearDropdownItemNumber={60}
-            locale={es}
+            placeholder="Selecciona una fecha"
+            maxDate={new Date()}
+            minYear={1920}
+            maxYear={new Date().getFullYear()}
           />
         );
       default:

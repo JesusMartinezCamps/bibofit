@@ -7,7 +7,7 @@ import * as React from "react"
         (<input
           type={type}
           className={cn(
-            "flex h-10 w-full rounded-lg border border-gray-600/50 bg-gray-800/50 px-4 py-3 text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#3DB477] focus:border-transparent transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50",
+            "flex min-h-[48px] w-full rounded-xl border border-slate-600/80 bg-slate-800/70 px-4 py-3 text-white placeholder:text-gray-400 transition-all duration-200 hover:border-slate-400 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-slate-900 focus:border-slate-400 disabled:cursor-not-allowed disabled:opacity-50",
             "number-input",
             className
           )}

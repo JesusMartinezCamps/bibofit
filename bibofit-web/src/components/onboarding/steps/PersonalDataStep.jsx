@@ -33,12 +33,12 @@ const PersonalDataStep = ({ onNext, isLoading }) => {
         <div className="space-y-2">
             <Label htmlFor="full_name" className="text-gray-300">Nombre Completo</Label>
             <div className="relative">
-                <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <User className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <Input
                     id="full_name"
                     value={formData.full_name}
                     onChange={(e) => setFormData({...formData, full_name: e.target.value})}
-                    className="pl-9 bg-gray-800/50 border-gray-700 text-white"
+                    className="pl-12 bf-form-control"
                     placeholder="Tu nombre"
                 />
             </div>
@@ -48,13 +48,13 @@ const PersonalDataStep = ({ onNext, isLoading }) => {
         <div className="space-y-2">
             <Label htmlFor="phone" className="text-gray-300">Teléfono (Opcional)</Label>
             <div className="relative">
-                <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Phone className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <Input
                     id="phone"
                     type="tel"
                     value={formData.phone}
                     onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                    className="pl-9 bg-gray-800/50 border-gray-700 text-white"
+                    className="pl-12 bf-form-control"
                     placeholder="+34 600 000 000"
                 />
             </div>

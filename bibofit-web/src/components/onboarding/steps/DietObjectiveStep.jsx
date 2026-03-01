@@ -100,7 +100,7 @@ const DietObjectiveStep = ({ onNext, isLoading }) => {
               setErrors(prev => ({ ...prev, diet_goal_id: undefined }));
             }}
           >
-            <SelectTrigger id="diet_goal_id" className="bg-gray-800/50 border-gray-700 text-white h-12 w-full">
+            <SelectTrigger id="diet_goal_id" className="bf-form-control h-12 w-full">
               <SelectValue placeholder="Selecciona un objetivo..." />
             </SelectTrigger>
             <SelectContent className="bg-gray-800 border-gray-700 text-white z-[9999]">
@@ -128,7 +128,7 @@ const DietObjectiveStep = ({ onNext, isLoading }) => {
             value={formData.diet_type_id}
             onValueChange={(v) => setFormData(prev => ({ ...prev, diet_type_id: v }))}
           >
-            <SelectTrigger id="diet_type" className="bg-gray-800/50 border-gray-700 text-white h-12 w-full">
+            <SelectTrigger id="diet_type" className="bf-form-control h-12 w-full">
               <SelectValue placeholder="Selecciona (Opcional)" />
             </SelectTrigger>
             <SelectContent className="bg-gray-800 border-gray-700 text-white z-[9999]">
@@ -150,7 +150,7 @@ const DietObjectiveStep = ({ onNext, isLoading }) => {
             id="history"
             value={formData.diet_history}
             onChange={(e) => setFormData(prev => ({ ...prev, diet_history: e.target.value }))}
-            className="bg-gray-800/50 border-gray-700 text-white resize-none min-h-[120px]"
+            className="bf-form-control resize-none min-h-[120px]"
             placeholder="Cuéntanos brevemente tu experiencia con dietas anteriores..."
           />
         </div>

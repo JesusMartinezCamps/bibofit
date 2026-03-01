@@ -5,13 +5,13 @@ import { Target, Weight, Calendar, HeartPulse, ShieldAlert, User, Cake, Apple } 
 import { calculateAge } from '@/lib/metabolismCalculator';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import DatePicker from 'react-datepicker';
 import { supabase } from '@/lib/supabaseClient';
 import { useToast } from '@/components/ui/use-toast';
 import { Dialog, DialogTrigger, DialogContent } from '@/components/ui/dialog';
 import RestrictionsManager from '@/components/admin/diet-plans/RestrictionsManager';
 import { Link } from 'react-router-dom';
 import InfoBadge from '@/components/shared/InfoBadge';
+import UnifiedDatePicker from '@/components/shared/UnifiedDatePicker';
 
 const InfoItem = ({ icon, label, value, valueClassName, children, asLink, to }) => {
     const content = (
@@ -138,21 +138,16 @@ const ClientDietSummary = ({ client, dietPlans, onPlanUpdate, loading }) => {
                             </Dialog>
                              <InfoItem icon={<Calendar className="w-5 h-5 text-indigo-400" />} label="Rango de la Dieta Activa">
                                 {activePlan ? (
-                                    <DatePicker
+                                    <UnifiedDatePicker
                                         selected={startDate}
                                         onChange={handleDateChange}
                                         startDate={startDate}
                                         endDate={endDate}
                                         selectsRange
-                                        dateFormat="dd/MM/yyyy"
-                                        locale={es}
-                                        customInput={
-                                            <div className="font-semibold text-white bg-gray-700/50 border border-gray-600 rounded-md px-3 py-1.5 cursor-pointer hover:bg-gray-700 transition-colors w-full text-center">
-                                                {startDate && endDate ? `${format(startDate, 'dd/MM/yy')} - ${format(endDate, 'dd/MM/yy')}` : 'Seleccionar rango'}
-                                            </div>
-                                        }
-                                        wrapperClassName="w-full"
-                                        popperClassName="z-50"
+                                        placeholder="Seleccionar rango"
+                                        shouldCloseOnSelect={false}
+                                        withPortal
+                                        triggerClassName="font-semibold text-white bg-gray-700/50 border border-gray-600 rounded-md px-3 py-1.5 hover:bg-gray-700 transition-colors w-full text-center"
                                     />
                                 ) : <p className="font-semibold text-white">No hay plan activo</p>}
                             </InfoItem>

@@ -262,7 +262,7 @@ const DietPreferencesForm = ({ userId: propUserId, onUpdate }) => {
                         value={formData.diet_goal_id || ''} 
                         onValueChange={(v) => handleChange('diet_goal_id', v)}
                     >
-                        <SelectTrigger id="diet_goal_id" className="w-full bg-gray-800/50 border-gray-700 text-white">
+                        <SelectTrigger id="diet_goal_id" className="w-full bf-form-control">
                             <SelectValue placeholder="Selecciona un objetivo..." />
                         </SelectTrigger>
                         <SelectContent className="z-[200]">
@@ -278,7 +278,7 @@ const DietPreferencesForm = ({ userId: propUserId, onUpdate }) => {
                 <div className="flex flex-col space-y-2">
                     <Label htmlFor="diet_type_id" className="text-gray-300">Tipo de Dieta</Label>
                     <Select value={formData.diet_type_id ? String(formData.diet_type_id) : ''} onValueChange={(v) => handleChange('diet_type_id', v ? parseInt(v, 10) : null)}>
-                        <SelectTrigger id="diet_type_id" className="w-full bg-gray-800/50 border-gray-700 text-white"><SelectValue placeholder="Selecciona un tipo..." /></SelectTrigger>
+                        <SelectTrigger id="diet_type_id" className="w-full bf-form-control"><SelectValue placeholder="Selecciona un tipo..." /></SelectTrigger>
                         <SelectContent className="z-[200]">{(dietTypes || []).map((t) => <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>)}</SelectContent>
                     </Select>
                 </div>
@@ -367,10 +367,10 @@ const DietPreferencesForm = ({ userId: propUserId, onUpdate }) => {
         items={availableSensitivities}
         onSelect={handleAddSensitivity}
         headerContent={
-            <div className="flex items-center gap-3 p-2 rounded bg-gray-800/50 border border-gray-700">
+            <div className="flex items-center gap-3 p-2 rounded-xl bg-slate-800/70 border border-slate-600/80">
                 <span className="text-sm text-gray-400 whitespace-nowrap">Nivel de sensibilidad:</span>
                 <Select value={sensitivityLevel} onValueChange={setSensitivityLevel}>
-                    <SelectTrigger className="h-8 w-32 bg-gray-700 border-gray-600 text-xs text-white">
+                    <SelectTrigger className="h-10 w-36 bf-form-control text-xs text-white">
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="z-[200]">

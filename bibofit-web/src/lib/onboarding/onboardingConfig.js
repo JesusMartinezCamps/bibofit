@@ -25,15 +25,17 @@ export const ONBOARDING_STEPS = [
     id: 'physical-data',
     type: 'form',
     title: 'Datos Físicos',
-    description: 'Necesitamos estos datos para calcular tus necesidades calóricas.',
+    description: 'Mediante la fórmula de Harris-Benedict se calculará tu gasto calórico aproximado.',
     fieldKeys: ['birth_date', 'sex', 'height_cm', 'current_weight_kg', 'activity_level_id'],
     nextStepId: 'diet_objective_history',
     tableName: 'profiles',
     showModal: true,
     modalContent: {
       title: "Datos Físicos",
-      description: "Con tus datos físicos bibofit podrá calcular tus requerimientos calóricos.",
-      tips: ["Peso en ayunas si puedes", "Sé honesto con tu nivel de actividad, pero luego se podrá cambiar no te estreses"]
+      description: "Con tus datos físicos podremos calcular tus requerimientos calóricos.",
+      tips: ["El sistema utiliza la fórmula de Harris-Benedict para calcular la Tasa Metabólica Basal (TMB)", "El nivel de actividad es algo orientativo",
+        "Bibofit se adaptará a tu TMB en función de tu progreso"
+      ]
     },
     component: 'PhysicalDataStep'
   },

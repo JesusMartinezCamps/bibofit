@@ -6,10 +6,10 @@
 - [Añadir Picoteo - Gsus Martz](/createsnack): Crea y añade un picoteo a tu plan de dieta.
 - [Bibofit | Software para Nutricionistas y Entrenadores](/home): La plataforma todo en uno para gestionar planes de nutrición, rutinas de entrenamiento y seguimiento de clientes. Escala tu negocio fitness con Bibofit.
 - [Crear Receta Libre - Gsus Martz](/createfreerecipe): Crea y añade una receta libre a tu plan de dieta.
+- [Cuenta Confirmada - Bibofit](/authconfirmed): Tu cuenta está confirmada. Continúa para empezar con Bibofit.
 - [Dashboard - Bibofit](/dashboard): Tu calendario de entrenamientos y dietas.
 - [Dashboard Entrenador - Gsus Martz](/coachdashboard): No description available
 - [Historial de Peso - Gsus Martz](/weighthistory): Consulta tu progreso y evolución de peso.
-- [Iniciar Sesión - Bibofit](/login): Accede a tu plataforma de entrenamiento personal con Bibofit
 - [Mi Plan Actual - Gsus Martz](/clientplandetail): No description available
 - [Mis Alimentos Creados - Gsus Martz](/myfoods): Consulta el historial de tus alimentos creados y su estado.
 - [Mis Datos - Gsus Martz](/profiledata): Edita tus datos personales, preferencias de dieta y de entrenamiento.
@@ -19,5 +19,6 @@
 - [Precios y Planes | Bibofit](/pricing): Elige el plan perfecto para tus objetivos de fitness y nutrición.
 - [Registrarse - Bibofit](/signup): Crea tu cuenta en Bibofit y empieza tu transformación fitness
 - [Restablecer Contraseña - Bibofit](/resetpassword): Recupera el acceso a tu cuenta de Bibofit.
+- [Revisa Tu Correo - Bibofit](/checkemail): Confirma tu email para activar tu cuenta y empezar en Bibofit.
 - [Tu Plan - Gsus Martz](/plan): Accede a tu plan de dieta y entrenamiento personalizado.
 - [Untitled Page](/weeklyplanner): Planifica tus comidas para los próximos 7 días.

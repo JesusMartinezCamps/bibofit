@@ -6,8 +6,6 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
-import DatePicker from 'react-datepicker';
-import { es } from 'date-fns/locale';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import MealMacroConfiguration from '@/components/plans/constructor/MealMacroConfiguration';
@@ -19,6 +17,7 @@ import { useTour } from '@/hooks/useTour';
 import TourModal from '@/components/tour/TourModal';
 import { cn } from '@/lib/utils';
 import { assignDietPlanToUser } from '@/lib/dietAssignmentService';
+import UnifiedDatePicker from '@/components/shared/UnifiedDatePicker';
 
 const AssignPlanDialog = ({ 
     open, 
@@ -429,15 +428,15 @@ const AssignPlanDialog = ({
                             <div className="space-y-2">
                                 <Label>Duración del Plan</Label>
                                 <div className="w-full">
-                                    <DatePicker
-                                        selectsRange={true}
+                                    <UnifiedDatePicker
+                                        selectsRange
                                         startDate={startDate}
                                         endDate={endDate}
                                         onChange={(update) => setDateRange(update)}
-                                        className="w-full bg-gray-800 border border-gray-700 rounded-md p-2 text-white disabled:opacity-50"
-                                        dateFormat="dd/MM/yyyy"
-                                        locale={es}
-                                        placeholderText="Seleccionar rango de fechas"
+                                        placeholder="Seleccionar rango de fechas"
+                                        withPortal
+                                        shouldCloseOnSelect={false}
+                                        triggerClassName="w-full bg-gray-800 border border-gray-700 rounded-md text-white disabled:opacity-50"
                                         disabled={!!preselectedData} 
                                     />
                                 </div>

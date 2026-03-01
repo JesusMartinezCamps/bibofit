@@ -1,13 +1,12 @@
 import React, { useState, useMemo } from 'react';
     import { Button } from '@/components/ui/button';
     import { Badge } from '@/components/ui/badge';
-    import { Calendar, Trash2, ToggleLeft, ToggleRight, ShieldAlert, HeartPulse } from 'lucide-react';
+    import { Trash2, ToggleLeft, ToggleRight, ShieldAlert, HeartPulse } from 'lucide-react';
     import { format, isValid, parseISO } from 'date-fns';
-    import { es } from 'date-fns/locale';
     import { useNavigate } from 'react-router-dom';
-    import DatePicker from 'react-datepicker';
     import { useToast } from '@/components/ui/use-toast';
     import { supabase } from '@/lib/supabaseClient';
+    import UnifiedDatePicker from '@/components/shared/UnifiedDatePicker';
     import {
         AlertDialog,
         AlertDialogAction,
@@ -28,7 +27,7 @@ import React, { useState, useMemo } from 'react';
         const [endDate, setEndDate] = useState(plan.end_date ? parseISO(plan.end_date) : null);
     
         const handleCardClick = (e) => {
-            if (e.target.closest('button, a, [role="dialog"], [role="tooltip"], .react-datepicker-wrapper')) {
+            if (e.target.closest('button, a, [role="dialog"], [role="tooltip"], .react-datepicker-wrapper, .react-datepicker-popper')) {
                 return;
             }
             navigate(`/admin-panel/plan-detail/${plan.id}`);
@@ -112,22 +111,17 @@ import React, { useState, useMemo } from 'react';
                             </div>
                             
                              <div onClick={stopPropagation}>
-                                <DatePicker
+                                <UnifiedDatePicker
                                     selected={startDate}
                                     onChange={handleDateChange}
                                     startDate={startDate}
                                     endDate={endDate}
                                     selectsRange
-                                    dateFormat="dd/MM/yyyy"
-                                    locale={es}
-                                    customInput={
-                                        <Badge variant="outline" className="text-violet-300 border-violet-500/50 bg-violet-900/30 w-full justify-center cursor-pointer hover:bg-violet-800/40">
-                                            <Calendar className="w-3 h-3 mr-1.5" />
-                                            {startDate && endDate ? `${format(startDate, 'd MMM', { locale: es })} - ${format(endDate, 'd MMM yyyy', { locale: es })}` : 'Seleccionar rango'}
-                                        </Badge>
-                                    }
-                                    wrapperClassName="w-full"
-                                    popperClassName="z-50"
+                                    placeholder="Seleccionar rango"
+                                    shouldCloseOnSelect={false}
+                                    withPortal
+                                    triggerClassName="min-h-[40px] rounded-full border-violet-500/50 bg-violet-900/30 px-3 py-2 text-xs text-violet-200 hover:bg-violet-800/40"
+                                    calendarClassName="!bg-[#121722] !border-violet-700/40"
                                 />
                             </div>
                         </div>

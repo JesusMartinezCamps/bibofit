@@ -9,10 +9,9 @@ import { Loader2, Calendar, Scale } from 'lucide-react';
 import { ResponsiveLine } from '@nivo/line';
 import { format, subMonths, startOfDay, isAfter, isBefore, isEqual, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
 import WeightLogDialog from '@/components/shared/WeightLogDialog';
 import { cn } from '@/lib/utils';
+import UnifiedDatePicker from '@/components/shared/UnifiedDatePicker';
 
 // 🔽 Función de downsampling (estilo apps profesionales)
 const downsampleLogs = (logs, maxPoints) => {
@@ -213,18 +212,18 @@ const WeightHistoryPage = () => {
               </Button>
               
               {range === 'CUSTOM' && (
-                <div className="ml-0 sm:ml-2 w-full sm:w-auto relative z-20">
-                  <DatePicker
-                    selectsRange={true}
+                <div className="ml-0 sm:ml-2 w-full sm:w-auto z-20">
+                  <UnifiedDatePicker
+                    selectsRange
                     startDate={startDate}
                     endDate={endDate}
                     onChange={(update) => setCustomDateRange(update)}
                     isClearable={true}
-                    placeholderText="Selecciona fechas"
-                    className="input-field date-input min-w-[220px]"
-                    dateFormat="dd/MM/yyyy"
+                    placeholder="Selecciona fechas"
+                    withPortal
+                    shouldCloseOnSelect={false}
+                    className="min-w-[220px]"
                   />
-                  <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                 </div>
               )}
             </div>
