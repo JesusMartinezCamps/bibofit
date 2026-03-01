@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/customSupabaseClient';
 import { format } from 'date-fns';
 import { useRealtime } from '@/contexts/RealtimeProvider';
+import { findFoodByIdentity, inferIngredientUserCreated, isUserCreatedFood } from '@/lib/foodIdentity';
 
 const hashValue = (value) => {
   try {
@@ -14,7 +15,7 @@ const hashValue = (value) => {
 const buildFoodIndex = (foods = []) => {
   const map = new Map();
   foods.forEach((food) => {
-    map.set(`${food.is_user_created ? 1 : 0}:${food.id}`, food);
+    map.set(`${isUserCreatedFood(food) ? 1 : 0}:${food.id}`, food);
   });
   return map;
 };
@@ -26,9 +27,13 @@ const buildIngredientEnricher = (foods = []) => {
     if (!Array.isArray(ingredients)) return [];
 
     return ingredients.map((ing) => {
-      const isUserCreated = !!ing.is_user_created;
+      const isUserCreated = inferIngredientUserCreated(ing);
       const foodId = ing.food_id;
-      const detailedFood = foodIndex.get(`${isUserCreated ? 1 : 0}:${foodId}`);
+      const strictKey = isUserCreated === null ? null : `${isUserCreated ? 1 : 0}:${foodId}`;
+      const detailedFood = (strictKey ? foodIndex.get(strictKey) : null)
+        || foodIndex.get(`0:${foodId}`)
+        || foodIndex.get(`1:${foodId}`)
+        || findFoodByIdentity(foods, { foodId, isUserCreated });
 
       return {
         ...ing,

@@ -34,12 +34,19 @@ const SignUpPage = () => {
         // Ensure template exists (Task 7 requirement implementation)
         if(ensureDefaultTemplate) await ensureDefaultTemplate();
 
-        toast({
-          title: "¡Cuenta creada!",
-          description: "Por favor, verifica tu correo electrónico.",
-        });
-        // Redirect to calendar as requested
-        navigate('/calendar'); 
+        if (result.needsEmailConfirmation) {
+          toast({
+            title: "¡Cuenta creada!",
+            description: "Te hemos enviado un correo para confirmar tu cuenta.",
+          });
+          navigate('/auth/check-email', { state: { email } });
+        } else {
+          toast({
+            title: "¡Cuenta creada!",
+            description: "Tu sesión se ha iniciado correctamente.",
+          });
+          navigate('/dashboard');
+        }
       }
     } catch (error) {
       console.error("Registration error:", error);

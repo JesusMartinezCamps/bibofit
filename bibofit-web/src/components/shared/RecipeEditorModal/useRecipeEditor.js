@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { calculateMacros } from '@/lib/macroCalculator';
@@ -6,6 +6,7 @@ import { getConflictInfo } from '@/lib/restrictionChecker';
 import { submitChangeRequest, savePrivateRecipe, saveFreeRecipe, saveDietPlanRecipe, updateRecipeDetails, updateDietPlanRecipeCustomization } from './recipeService';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/lib/supabaseClient';
+import { findFoodByIdentity, inferIngredientUserCreated, isUserCreatedFood } from '@/lib/foodIdentity';
 
 const TITLE_STOPWORDS = new Set([
   'de', 'del', 'la', 'las', 'el', 'los', 'con', 'sin', 'y', 'e', 'o', 'u', 'a', 'al', 'en', 'por', 'para'
@@ -149,6 +150,7 @@ export const useRecipeEditor = ({ recipeToEdit, onSaveSuccess, isAdminView, user
   const [conflicts, setConflicts] = useState(null);
   const [recommendations, setRecommendations] = useState(null);
   const [hasInitialConflicts, setHasInitialConflicts] = useState(false);
+  const initializedRecipeRef = useRef(null);
 
   const isClientRequestView = !isAdminView && recipeToEdit?.type !== 'private_recipe' && !recipeToEdit?.is_customized && !recipeToEdit?.is_private_recipe;
 
@@ -163,6 +165,7 @@ export const useRecipeEditor = ({ recipeToEdit, onSaveSuccess, isAdminView, user
     setConflicts(null);
     setRecommendations(null);
     setHasInitialConflicts(false);
+    initializedRecipeRef.current = null;
   }, []);
 
   const fetchUserRestrictions = useCallback(async () => {
@@ -214,25 +217,35 @@ export const useRecipeEditor = ({ recipeToEdit, onSaveSuccess, isAdminView, user
   }, [open, fetchUserRestrictions, resetState, initialPlanRestrictions]);
 
   useEffect(() => {
-    if (open && recipeToEdit && allFoods.length > 0) {
-        setLoading(true);
+    if (!open || !recipeToEdit || allFoods.length === 0) return;
 
-        let recipeSource = recipeToEdit.recipe || {};
-        
-        const initialForm = {
-            name: recipeToEdit.custom_name || recipeSource.name || recipeToEdit.name || 'Nueva Receta',
-            instructions: recipeToEdit.custom_instructions || recipeSource.instructions || recipeToEdit.instructions || '',
-            prep_time_min: recipeToEdit.custom_prep_time_min ?? recipeSource.prep_time_min ?? recipeToEdit.prep_time_min,
-            difficulty: recipeToEdit.custom_difficulty || recipeSource.difficulty || recipeToEdit.difficulty || 'Fácil',
-        };
-        setFormData(initialForm);
-        setInitialFormData(initialForm);
-        
-        setIngredients(recipeToEdit.ingredients);
-        setOriginalIngredients(JSON.parse(JSON.stringify(recipeToEdit.ingredients)));
-        setLoading(false);
-    }
-}, [recipeToEdit, open, allFoods]);
+    const recipeKey = [
+      recipeToEdit.type || 'recipe',
+      recipeToEdit.id || recipeToEdit.recipe_id || 'no-id',
+      recipeToEdit.updated_at || recipeToEdit.recipe?.updated_at || '',
+      recipeToEdit.diet_plan_id || recipeToEdit.recipe?.diet_plan_id || '',
+    ].join('|');
+
+    // Prevent local edits from being overwritten when enrichment data changes (e.g. creating a new food inline).
+    if (initializedRecipeRef.current === recipeKey && !loading) return;
+
+    setLoading(true);
+
+    const recipeSource = recipeToEdit.recipe || {};
+    const initialForm = {
+      name: recipeToEdit.custom_name || recipeSource.name || recipeToEdit.name || 'Nueva Receta',
+      instructions: recipeToEdit.custom_instructions || recipeSource.instructions || recipeToEdit.instructions || '',
+      prep_time_min: recipeToEdit.custom_prep_time_min ?? recipeSource.prep_time_min ?? recipeToEdit.prep_time_min,
+      difficulty: recipeToEdit.custom_difficulty || recipeSource.difficulty || recipeToEdit.difficulty || 'Fácil',
+    };
+
+    setFormData(initialForm);
+    setInitialFormData(initialForm);
+    setIngredients(recipeToEdit.ingredients || []);
+    setOriginalIngredients(JSON.parse(JSON.stringify(recipeToEdit.ingredients || [])));
+    initializedRecipeRef.current = recipeKey;
+    setLoading(false);
+  }, [recipeToEdit, open, allFoods.length, loading]);
 
 
   useEffect(() => {
@@ -321,13 +334,20 @@ export const useRecipeEditor = ({ recipeToEdit, onSaveSuccess, isAdminView, user
   };
   
   const handleAddIngredient = (newIngredientData) => {
-      const food = allFoods.find(
-        (f) =>
-          String(f.id) === String(newIngredientData.food_id) &&
-          !!f.is_user_created === !!newIngredientData.is_user_created
-      );
+      const inferredUserCreated = inferIngredientUserCreated(newIngredientData);
+      const food =
+        findFoodByIdentity(allFoods, {
+          foodId: newIngredientData.food_id,
+          isUserCreated: inferredUserCreated,
+        }) ||
+        newIngredientData.food ||
+        null;
       const newIngredient = {
           ...newIngredientData,
+          is_user_created:
+            inferredUserCreated !== null
+              ? inferredUserCreated
+              : isUserCreatedFood(food),
           food: food,
           local_id: uuidv4()
       };
@@ -445,7 +465,12 @@ export const useRecipeEditor = ({ recipeToEdit, onSaveSuccess, isAdminView, user
                 } else {
                     // For client plans or new recipes, we create a variant/copy
                     const originalToPass = recipeToEdit.type === 'recipe' 
-                        ? { ...recipeToEdit, recipe_id: recipeToEdit.id, diet_plan_id: recipeToEdit.diet_plan_id, day_meal_id: recipeToEdit.day_meal_id }
+                        ? {
+                            ...recipeToEdit,
+                            recipe_id: recipeToEdit.recipe_id || recipeToEdit.recipe?.id || recipeToEdit.id,
+                            diet_plan_id: recipeToEdit.diet_plan_id,
+                            day_meal_id: recipeToEdit.day_meal_id,
+                          }
                         : recipeToEdit;
 
                     result = await saveDietPlanRecipe({

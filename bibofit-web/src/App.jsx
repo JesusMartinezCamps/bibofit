@@ -4,6 +4,8 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
 import LoginPage from '@/pages/LoginPage';
 import SignUpPage from '@/pages/SignUpPage';
+import CheckEmailPage from '@/pages/CheckEmailPage';
+import AuthConfirmedPage from '@/pages/AuthConfirmedPage';
 import Dashboard from '@/pages/Dashboard';
 import AdminPanel from '@/pages/AdminPanel';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -112,6 +114,8 @@ const AppRoutes = () => {
       <Route path="/pricing" element={<PricingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignUpPage />} />
+      <Route path="/auth/check-email" element={<CheckEmailPage />} />
+      <Route path="/auth/confirmed" element={<AuthConfirmedPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/update-password" element={<UpdatePasswordPage />} />
 
@@ -190,7 +194,7 @@ const AppContent = () => {
     const [breadcrumbs, setBreadcrumbs] = useState([]);
     const { user } = useAuth();
 
-    const noHeaderPaths = ['/login', '/signup', '/reset-password', '/update-password', '/home'];
+    const noHeaderPaths = ['/login', '/signup', '/auth/check-email', '/auth/confirmed', '/reset-password', '/update-password', '/home'];
     
     const showHeader = !noHeaderPaths.some(path => location.pathname.startsWith(path)) && !(location.pathname === '/pricing' && !user);
     

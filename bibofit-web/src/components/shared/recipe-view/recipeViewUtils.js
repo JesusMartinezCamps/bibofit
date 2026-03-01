@@ -1,5 +1,6 @@
 import { calculateMacros } from '@/lib/macroCalculator';
 import { getConflictInfo } from '@/lib/restrictionChecker.js';
+import { findFoodByIdentity, inferIngredientUserCreated } from '@/lib/foodIdentity';
 
 export const resolveRecipeImageUrl = (recipe) => {
   if (!recipe) return null;
@@ -29,18 +30,14 @@ export const calculateRecipeConflicts = ({
 
   recipe.ingredients.forEach((ing) => {
     let food = ing.food;
-    const isUserCreated = !!ing.is_user_created || !!food?.is_user_created || !!food?.user_id;
+    const isUserCreated = inferIngredientUserCreated(ing);
 
     if (!food && Array.isArray(allFoods)) {
-      food = allFoods.find(
-        (f) => String(f.id) === String(ing.food_id) && !!f.is_user_created === isUserCreated
-      );
+      food = findFoodByIdentity(allFoods, { foodId: ing.food_id, isUserCreated });
     }
 
     if (food && Array.isArray(allFoods)) {
-      const fullFood = allFoods.find(
-        (f) => String(f.id) === String(food.id) && !!f.is_user_created === isUserCreated
-      );
+      const fullFood = findFoodByIdentity(allFoods, { foodId: food.id, isUserCreated });
       if (fullFood) food = fullFood;
     }
 
@@ -82,22 +79,31 @@ export const buildIngredientsWithDetails = ({
   return recipe.ingredients
     .map((ing, originalIndex) => {
       let food = ing.food;
-      const isUserCreated = !!ing.is_user_created || !!food?.is_user_created || !!food?.user_id;
+      const isUserCreated = inferIngredientUserCreated(ing);
 
       if (!food) {
-        food = allFoods.find(
-          (f) => String(f.id) === String(ing.food_id) && !!f.is_user_created === isUserCreated
-        );
+        food = findFoodByIdentity(allFoods, { foodId: ing.food_id, isUserCreated });
       }
 
       if (food) {
-        const fullFood = allFoods.find(
-          (f) => String(f.id) === String(food.id) && !!f.is_user_created === isUserCreated
-        );
+        const fullFood = findFoodByIdentity(allFoods, { foodId: food.id, isUserCreated });
         if (fullFood) food = fullFood;
       }
 
-      if (!food) return null;
+      if (!food) {
+        // Keep ingredient visible even if food enrichment has not propagated yet.
+        // This can happen right after inline creation (pending food).
+        food = {
+          id: ing.food_id,
+          name: ing.food_name || `Alimento ${ing.food_id || ''}`.trim(),
+          food_unit: ing.food_unit || 'gramos',
+          is_user_created: !!isUserCreated,
+          status: isUserCreated ? 'pending' : undefined,
+          food_vitamins: [],
+          food_minerals: [],
+          food_to_food_groups: [],
+        };
+      }
 
       const qty = ing.grams !== undefined && ing.grams !== null && ing.grams !== '' ? Number(ing.grams) : 0;
       const ingredientWithFood = { ...ing, food, quantity: qty };

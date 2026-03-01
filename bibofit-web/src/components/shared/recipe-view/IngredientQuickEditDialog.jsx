@@ -21,6 +21,7 @@ const IngredientQuickEditDialog = ({
   const [quantity, setQuantity] = useState('');
   const [selectedFoodId, setSelectedFoodId] = useState(null);
   const [isReplacing, setIsReplacing] = useState(false);
+  const [selectedFoodDraft, setSelectedFoodDraft] = useState(null);
 
   useEffect(() => {
     if (!ingredient) return;
@@ -28,12 +29,15 @@ const IngredientQuickEditDialog = ({
     setQuantity(String(initialQty));
     setSelectedFoodId(ingredient.food?.id ?? ingredient.food_id ?? null);
     setIsReplacing(false);
+    setSelectedFoodDraft(null);
   }, [ingredient]);
 
   if (!ingredient) return null;
 
   const selectedFood =
-    (allFoods || []).find((food) => String(food.id) === String(selectedFoodId)) || ingredient.food;
+    (allFoods || []).find((food) => String(food.id) === String(selectedFoodId))
+    || selectedFoodDraft
+    || ingredient.food;
 
   const defaultQty = selectedFood?.food_unit === 'unidades' ? 1 : 100;
   const parsedQty = Number(quantity);
@@ -100,13 +104,15 @@ const IngredientQuickEditDialog = ({
               availableFoods={allFoods}
               userRestrictions={userRestrictions}
               createFoodUserId={ingredient?.user_id}
+              onFoodCreated={(newFood) => setSelectedFoodDraft(newFood)}
               onBack={() => setIsReplacing(false)}
               onIngredientAdded={(newIngredientData) => {
                 const selected = (allFoods || []).find(
                   (food) => String(food.id) === String(newIngredientData.food_id)
-                );
+                ) || newIngredientData.food || null;
                 const initial = selected?.food_unit === 'unidades' ? 1 : 100;
                 setSelectedFoodId(newIngredientData.food_id);
+                setSelectedFoodDraft(selected);
                 setQuantity(String(initial));
                 setIsReplacing(false);
               }}

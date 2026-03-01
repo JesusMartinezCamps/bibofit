@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Helmet } from 'react-helmet';
@@ -32,28 +32,17 @@ const LoginPage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Redirect logic if user is already authenticated
-  if (!authLoading && user) {
-    if (!user.onboarding_completed_at) {
-        navigate('/assign-diet-plan', { replace: true });
-    } else {
-        const targetPath = user.role === 'admin' ? '/admin-panel/advisories' : '/dashboard';
-        navigate(targetPath, { replace: true });
-    }
-    return null;
-  }
-
-  const handleRedirect = (userData) => {
-    // Redirection Logic
-    // If onboarding is not completed (onboarding_completed_at is null), send to onboarding (assign-diet-plan which triggers wizard)
-    if (!userData.onboarding_completed_at) {
-        navigate('/assign-diet-plan', { replace: true });
-    } else {
-        // Otherwise send to appropriate dashboard
-        const targetPath = userData.role === 'admin' ? '/admin-panel/advisories' : '/dashboard';
-        navigate(targetPath, { replace: true });
-    }
+  const getTargetPath = (userData) => {
+    if (!userData?.onboarding_completed_at) return '/assign-diet-plan';
+    if (userData?.role === 'admin') return '/admin-panel/advisories';
+    if (userData?.role === 'coach') return '/coach-dashboard';
+    return '/dashboard';
   };
+
+  useEffect(() => {
+    if (authLoading || !user) return;
+    navigate(getTargetPath(user), { replace: true });
+  }, [authLoading, user, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -72,7 +61,7 @@ const LoginPage = () => {
           title: "¡Bienvenido!",
           description: "Has iniciado sesión correctamente.",
         });
-        handleRedirect(result.user);
+        navigate(getTargetPath(result.user), { replace: true });
       }
     } catch (error) {
       toast({

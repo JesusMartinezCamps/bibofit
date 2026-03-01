@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabaseClient';
+import { findFoodByIdentity, inferIngredientUserCreated } from '@/lib/foodIdentity';
 
 const CACHE_LIMIT = 50;
 const macroCache = new Map();
@@ -67,19 +68,17 @@ export const calculateMacros = (ingredients, allFoods = []) => {
         foodDetails = ingredient.user_created_food;
     } else {
         const foodId = ingredient.food_id;
-        const isUserCreated = !!ingredient.is_user_created;
+        const isUserCreated = inferIngredientUserCreated(ingredient);
 
         if (foodId) {
              if (foodsSource instanceof Map) {
                 // Optimized Lookup
-                const key = `${String(foodId)}|${isUserCreated ? 1 : 0}`;
-                foodDetails = foodsSource.get(key);
+                const strictKey =
+                  isUserCreated === null ? null : `${String(foodId)}|${isUserCreated ? 1 : 0}`;
+                foodDetails = (strictKey ? foodsSource.get(strictKey) : null) || foodsSource.get(`${String(foodId)}|0`) || foodsSource.get(`${String(foodId)}|1`);
             } else if (Array.isArray(foodsSource)) {
                 // Array Lookup
-                foodDetails = foodsSource.find(f => 
-                    String(f.id) === String(foodId) && 
-                    !!f.is_user_created === isUserCreated
-                );
+                foodDetails = findFoodByIdentity(foodsSource, { foodId, isUserCreated });
             }
         }
     }

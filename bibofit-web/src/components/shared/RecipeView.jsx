@@ -77,6 +77,7 @@ const RecipeView = ({
   imageUploadDisabled = false,
   showMetaFields = true,
   showPreparationSection = true,
+  onFoodCreated,
 }) => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -388,6 +389,7 @@ const RecipeView = ({
           onIngredientAdded={handleReplaceSelection}
           availableFoods={safeFoods}
           userRestrictions={propUserRestrictions || internalRestrictions}
+          onFoodCreated={onFoodCreated}
           createFoodUserId={recipe?.user_id || user?.id}
           onBack={() => setReplacingIngredient(null)}
         />

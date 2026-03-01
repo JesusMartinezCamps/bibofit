@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import FoodLookupPanel from '@/components/shared/FoodLookupPanel';
 import CreateFoodInlineDialog from '@/components/shared/CreateFoodInlineDialog';
 import { normalizeSearchText, splitSearchTokens } from '@/lib/foodSearchUtils';
+import { isUserCreatedFood } from '@/lib/foodIdentity';
 
 const ConflictBadge = ({ conflict }) => {
   if (!conflict) return null;
@@ -32,7 +33,7 @@ const ConflictBadge = ({ conflict }) => {
 
 const UserFoodStatusBadge = ({ food }) => {
   if (!food) return null;
-  const isUserCreated = !!food.is_user_created || !!food.user_id;
+  const isUserCreated = isUserCreatedFood(food);
   if (!isUserCreated) return null;
 
   const status = (food.status || '').toLowerCase();
@@ -106,7 +107,7 @@ const IngredientSearch = ({
     const results = (availableFoods || [])
       .filter(food => {
         if (!food.name) return false;
-        const foodIsUserCreated = !!food.is_user_created || !!food.user_id;
+        const foodIsUserCreated = isUserCreatedFood(food);
         return !selectedIngredients.some(
           (ing) =>
             String(ing.food_id) === String(food.id) &&
@@ -159,7 +160,7 @@ const IngredientSearch = ({
   const handleSelectFood = (food) => {
     const food_unit = food.food_unit || 'gramos';
     const quantity = food_unit === 'unidades' ? 1 : 100;
-    const foodIsUserCreated = !!food.is_user_created || !!food.user_id;
+    const foodIsUserCreated = isUserCreatedFood(food);
     
     const newIngredient = {
       food_id: food.id,
@@ -227,8 +228,17 @@ const IngredientSearch = ({
 
   const handleFoodCreatedInline = (newFood) => {
     if (!newFood) return;
-    onFoodCreated?.(newFood);
-    handleSelectFood(newFood);
+    const normalizedNewFood = {
+      ...newFood,
+      is_user_created: true,
+      food_sensitivities: newFood.food_sensitivities || [],
+      food_medical_conditions: newFood.food_medical_conditions || [],
+      food_vitamins: newFood.food_vitamins || [],
+      food_minerals: newFood.food_minerals || [],
+      food_to_food_groups: newFood.food_to_food_groups || [],
+    };
+    onFoodCreated?.(normalizedNewFood);
+    handleSelectFood(normalizedNewFood);
     setIsCreateFoodDialogOpen(false);
     setFoodToCreate(null);
     setSearchTerm('');

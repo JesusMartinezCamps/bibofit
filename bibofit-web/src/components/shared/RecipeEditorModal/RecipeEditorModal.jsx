@@ -13,6 +13,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useAutoFrameAccess } from '@/hooks/useAutoFrameAccess';
 import { useToast } from '@/components/ui/use-toast';
 import { Link } from 'react-router-dom';
+import { isUserCreatedFood } from '@/lib/foodIdentity';
 
 const SimpleHeader = ({ title, className }) => (
   <div className={cn("flex items-center justify-between p-4 border-b border-gray-700", className || "bg-gray-800/50")}>
@@ -217,12 +218,9 @@ const RecipeEditorModal = ({
   };
   
   const handleLocalAddIngredient = (newIngredientData) => {
-    const addedIngredient = handleAddIngredient(newIngredientData);
+    handleAddIngredient(newIngredientData);
     setIsSearching(false);
     setScrollToFoodId(newIngredientData.food_id);
-    if (mode === 'view' && addedIngredient?.local_id) {
-      setQuickEditIngredientKey(addedIngredient.local_id);
-    }
   }
 
   const handleSaveClick = async () => {
@@ -238,6 +236,24 @@ const RecipeEditorModal = ({
     ...formData,
     ingredients: ingredients,
   }), [formData, ingredients, enrichedRecipe]);
+
+  const handleInlineFoodCreated = (newFood) => {
+    if (!newFood?.id) return;
+    const normalizedFood = {
+      ...newFood,
+      is_user_created: isUserCreatedFood(newFood) || true,
+      food_sensitivities: newFood.food_sensitivities || [],
+      food_medical_conditions: newFood.food_medical_conditions || [],
+      food_vitamins: newFood.food_vitamins || [],
+      food_minerals: newFood.food_minerals || [],
+      food_to_food_groups: newFood.food_to_food_groups || [],
+    };
+
+    setAllFoods((prev) => {
+      const next = prev.filter((food) => String(food.id) !== String(normalizedFood.id));
+      return [...next, normalizedFood];
+    });
+  };
 
   const isEditingMode = mode === 'settings' && isEditable && !readOnly;
   const totalLoading = loading || localLoading;
@@ -322,6 +338,7 @@ const RecipeEditorModal = ({
                       onIngredientAdded={handleLocalAddIngredient}
                       availableFoods={allFoods}
                       userRestrictions={userRestrictions}
+                      onFoodCreated={handleInlineFoodCreated}
                       createFoodUserId={userId || user?.id}
                       onBack={() => setIsSearching(false)}
                     />
@@ -348,6 +365,7 @@ const RecipeEditorModal = ({
                     isTemplate={effectiveIsTemplate}
                     quickEditIngredientKey={quickEditIngredientKey}
                     onQuickEditConsumed={() => setQuickEditIngredientKey(null)}
+                    onFoodCreated={handleInlineFoodCreated}
                   />
                 )}
                   

@@ -302,7 +302,7 @@ export const saveDietPlanRecipe = async ({ recipeId, userId, formData, ingredien
             custom_instructions: formData.instructions,
             custom_prep_time_min: formData.prep_time_min,
             custom_difficulty: formData.difficulty,
-            parent_diet_plan_recipe_id: originalRecipe.diet_plan_recipe_id
+            parent_diet_plan_recipe_id: originalRecipe.diet_plan_recipe_id || originalRecipe.id
         };
 
         const { data: newRecipe, error: recipeInsertError } = await supabase

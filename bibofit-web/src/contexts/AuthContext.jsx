@@ -45,10 +45,13 @@ export const AuthProvider = ({ children }) => {
           console.log(`🔥 [AuthContext] TDEE Detected: ${fullUser.tdee_kcal} kcal`);
       }
       setUser(fullUser);
+      return fullUser;
 
     } catch (error) {
       console.error('❌ [AuthContext] Error fetching user profile:', error);
-      setUser({ ...sessionUser, role: 'free' });
+      const fallbackUser = { ...sessionUser, role: 'free' };
+      setUser(fallbackUser);
+      return fallbackUser;
     } finally {
       setLoading(false);
     }
@@ -112,8 +115,8 @@ export const AuthProvider = ({ children }) => {
       
       if (data.user) {
           // Explicitly fetch profile immediately after login
-          await fetchUserProfile(data.user);
-          return { success: true, user: data.user }; // Note: user state will be updated async
+          const fullUser = await fetchUserProfile(data.user);
+          return { success: true, user: fullUser };
       }
       return { success: false, error: 'An unknown error occurred.' };
     } catch (err) {
@@ -124,6 +127,7 @@ export const AuthProvider = ({ children }) => {
 
   const signup = async (email, password, fullName) => {
     try {
+      const confirmationRedirectUrl = `${window.location.origin}/auth/confirmed`;
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -131,7 +135,7 @@ export const AuthProvider = ({ children }) => {
           data: {
             full_name: fullName,
           },
-          emailRedirectTo: 'https://bibofit.com/login',
+          emailRedirectTo: confirmationRedirectUrl,
         },
       });
 
@@ -139,9 +143,33 @@ export const AuthProvider = ({ children }) => {
         return { success: false, error: error.message };
       }
       
-      return { success: true, user: data.user };
+      return {
+        success: true,
+        user: data.user,
+        session: data.session,
+        needsEmailConfirmation: !data.session,
+      };
     } catch (err) {
       console.error("Signup exception:", err);
+      return { success: false, error: err.message };
+    }
+  };
+
+  const resendSignupConfirmation = async (email) => {
+    try {
+      const confirmationRedirectUrl = `${window.location.origin}/auth/confirmed`;
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+        options: {
+          emailRedirectTo: confirmationRedirectUrl,
+        },
+      });
+
+      if (error) return { success: false, error: error.message };
+      return { success: true };
+    } catch (err) {
+      console.error("Resend signup confirmation exception:", err);
       return { success: false, error: err.message };
     }
   };
@@ -200,7 +228,8 @@ export const AuthProvider = ({ children }) => {
     signInWithProvider,
     signOut,
     refreshUser,
-    ensureDefaultTemplate
+    ensureDefaultTemplate,
+    resendSignupConfirmation
   };
 
   return (
