@@ -493,7 +493,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
 
     const handleSnackUpdate = useCallback((newLog, newSnackWithOccurrence) => {
         const unifiedIngredients = newSnackWithOccurrence.snack_ingredients.map(ing => {
-            const food = ing.food || ing.user_created_food;
+            const food = ing.food;
             return {
                 ...ing,
                 food,
@@ -803,7 +803,6 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
             
             const unifiedIngredients = rawIngredients.map(ing => {
                  let foodDetails = ing.food;
-                 if (!foodDetails && ing.user_created_food) foodDetails = ing.user_created_food;
                  
                  if (!foodDetails) {
                     foodDetails = allAvailableFoods.find(f => String(f.id) === String(ing.food_id) && !!f.is_user_created === !!ing.is_user_created);
@@ -812,7 +811,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
                  return { 
                     ...ing, 
                     food: foodDetails,
-                    user_created_food: ing.user_created_food || (foodDetails?.is_user_created ? foodDetails : null),
+                    user_created_food: foodDetails?.is_user_created ? foodDetails : null,
                     grams: ing.grams || ing.quantity
                  };
             });
@@ -892,7 +891,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
     
             const { data: fullSnack, error: fullSnackError } = await supabase
                 .from('snacks')
-                .select('*, snack_ingredients(*, food(*), user_created_food:user_created_foods(*))')
+                .select('*, snack_ingredients(*, food(*))')
                 .eq('id', snackToRepeat.id)
                 .single();
     

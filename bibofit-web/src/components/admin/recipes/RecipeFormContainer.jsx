@@ -7,6 +7,7 @@ import { calculateMacros } from '@/lib/macroCalculator';
 import RecipeView from '@/components/shared/RecipeView';
 import IngredientSearch from '@/components/plans/IngredientSearch';
 import { useRecipeImageUpload } from './hooks/useRecipeImageUpload';
+import { useAuth } from '@/contexts/AuthContext';
 
 const EMPTY_RESTRICTIONS = {
   sensitivities: [],
@@ -37,6 +38,7 @@ const normalizeIngredient = (ing, availableFoods = []) => {
 };
 
 const RecipeFormContainer = ({ selectedRecipe, onSave, resetSignal = 0 }) => {
+  const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSearchingIngredient, setIsSearchingIngredient] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
@@ -332,6 +334,7 @@ const RecipeFormContainer = ({ selectedRecipe, onSave, resetSignal = 0 }) => {
           selectedIngredients={ingredients}
           availableFoods={allFoods}
           userRestrictions={EMPTY_RESTRICTIONS}
+          createFoodUserId={selectedRecipe?.user_id || user?.id}
           onBack={() => setIsSearchingIngredient(false)}
           onIngredientAdded={handleIngredientAdded}
         />

@@ -20,7 +20,7 @@ import React, { useState, useEffect } from 'react';
           try {
             const { data, error } = await supabase
               .from('snacks')
-              .select('*, snack_ingredients(*, food(*), user_created_food:user_created_foods(*)), occurrences:snack_occurrences(meal_date)')
+              .select('*, snack_ingredients(*, food(*)), occurrences:snack_occurrences(meal_date)')
               .eq('diet_plan_id', planId)
               .eq('user_id', userId);
             
@@ -78,7 +78,7 @@ import React, { useState, useEffect } from 'react';
       const getIngredientList = (ingredients) => {
         if (!ingredients || ingredients.length === 0) return 'Sin ingredientes.';
         return ingredients.map(ing => {
-          const foodDetails = ing.food || ing.user_created_food;
+          const foodDetails = ing.food;
           const unit = foodDetails?.food_unit === 'unidades' ? 'ud' : 'g';
           const quantity = ing.grams ?? ing.quantity;
           return `${foodDetails?.name || 'Ingrediente desconocido'} (${Math.round(quantity || 0)}${unit})`;

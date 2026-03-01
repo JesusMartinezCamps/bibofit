@@ -54,11 +54,11 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
           preferredRes,
           nonPreferredRes
       ] = await Promise.all([
-          supabase.from('food').select('*, food_to_food_groups(food_group_id), food_vitamins(vitamin_id), food_minerals(mineral_id), food_sensitivities(sensitivity:sensitivities(*)), food_medical_conditions(relation_type, condition:medical_conditions(*))'),
+          supabase.from('food').select('*, food_to_food_groups(food_group_id), food_vitamins(vitamin_id), food_minerals(mineral_id), food_sensitivities(sensitivity:sensitivities(*)), food_medical_conditions(relation_type, condition:medical_conditions(*))').is('user_id', null),
           supabase.from('vitamins').select('*'),
           supabase.from('minerals').select('*'),
           supabase.from('food_groups').select('*'),
-          supabase.from('user_created_foods').select('*, user_created_food_to_food_groups(food_group_id)').eq('user_id', user.id),
+          supabase.from('food').select('*, food_to_food_groups(food_group_id)').eq('user_id', user.id).neq('status', 'rejected'),
           supabase.from('user_sensitivities').select('sensitivities(id, name)').eq('user_id', user.id),
           supabase.from('user_medical_conditions').select('medical_conditions(id, name)').eq('user_id', user.id),
           supabase.from('user_individual_food_restrictions').select('food(id, name)').eq('user_id', user.id),
@@ -76,7 +76,7 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
       const userFoods = (userFoodsRes.data || []).map(f => ({ 
           ...f, 
           is_user_created: true,
-          food_to_food_groups: f.user_created_food_to_food_groups // Map for consistency
+          food_to_food_groups: f.food_to_food_groups // Map for consistency
       }));
 
       setAllFoods([...globalFoods, ...userFoods]);
@@ -515,6 +515,7 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
                         onIngredientAdded={handleAddIngredient}
                         availableFoods={allFoods}
                         userRestrictions={userRestrictions}
+                        createFoodUserId={currentFreeMeal?.user_id || user?.id}
                         onBack={() => setIsSearching(false)}
                     />
                 </div>

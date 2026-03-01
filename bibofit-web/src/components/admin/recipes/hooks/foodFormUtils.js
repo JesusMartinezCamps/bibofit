@@ -1,47 +1,29 @@
 import { supabase } from '@/lib/supabaseClient';
 
     export const loadFoodForEditing = async (foodId, setFormState, toast, isClientRequest) => {
-        const tableName = isClientRequest ? 'user_created_foods' : 'food';
-        
-        let query;
-
-        if (!isClientRequest) {
-            query = supabase
-                .from('food')
-                .select(`
-                    *,
-                    food_to_food_groups(food_group_id),
-                    food_to_macro_roles(macro_role_id),
-                    food_to_seasons(season_id),
-                    food_to_stores(store_id),
-                    food_sensitivities(sensitivity_id),
-                    food_medical_conditions(condition_id, relation_type),
-                    food_antioxidants(antioxidant_id),
-                    food_vitamins(vitamin_id, mg_per_100g),
-                    food_minerals(mineral_id, mg_per_100g),
-                    food_aminograms(aminogram_id, mg_per_100g),
-                    food_aminogram_properties(aminogram_id, property_type),
-                    food_fats(fat_type_id, grams),
-                    food_to_carb_subtypes(subtype_id, grams_per_100g, classification_id),
-                    food_carbs(carb_type_id, grams),
-                    food_fat_classification(fat_classification_id, grams),
-                    food_carb_classification(classification_id, grams)
-                `)
-                .eq('id', foodId)
-                .single();
-        } else {
-             query = supabase
-                .from('user_created_foods')
-                .select(`
-                    *,
-                    user_created_food_to_food_groups(food_group_id),
-                    user_created_food_sensitivities(sensitivity_id),
-                    user_created_food_vitamins(vitamin_id, mg_per_100g),
-                    user_created_food_minerals(mineral_id, mg_per_100g)
-                `)
-                .eq('id', foodId)
-                .single();
-        }
+        const query = supabase
+            .from('food')
+            .select(`
+                *,
+                food_to_food_groups(food_group_id),
+                food_to_macro_roles(macro_role_id),
+                food_to_seasons(season_id),
+                food_to_stores(store_id),
+                food_sensitivities(sensitivity_id),
+                food_medical_conditions(condition_id, relation_type),
+                food_antioxidants(antioxidant_id),
+                food_vitamins(vitamin_id, mg_per_100g),
+                food_minerals(mineral_id, mg_per_100g),
+                food_aminograms(aminogram_id, mg_per_100g),
+                food_aminogram_properties(aminogram_id, property_type),
+                food_fats(fat_type_id, grams),
+                food_to_carb_subtypes(subtype_id, grams_per_100g, classification_id),
+                food_carbs(carb_type_id, grams),
+                food_fat_classification(fat_classification_id, grams),
+                food_carb_classification(classification_id, grams)
+            `)
+            .eq('id', foodId)
+            .single();
 
 
         let { data, error } = await query;
@@ -64,7 +46,7 @@ import { supabase } from '@/lib/supabaseClient';
             throw new Error(`Food with id ${foodId} not found.`);
         }
         
-        const saltValue = (data.user_created_food_minerals || data.food_minerals || []).find(m => m.mineral_id === 37)?.mg_per_100g; // Assuming 37 is Sodio
+        const saltValue = (data.food_minerals || []).find(m => m.mineral_id === 37)?.mg_per_100g; // Assuming 37 is Sodio
 
         setFormState({
             formData: {
@@ -77,21 +59,21 @@ import { supabase } from '@/lib/supabaseClient';
                 total_fats: data?.total_fats,
                 salt: saltValue ? (saltValue / 400).toFixed(2) : '',
             },
-            selectedFoodGroups: (data.user_created_food_to_food_groups || data.food_to_food_groups || []).map(r => r.food_group_id),
+            selectedFoodGroups: (data.food_to_food_groups || []).map(r => r.food_group_id),
             selectedMacroRoles: (data.food_to_macro_roles || []).map(r => r.macro_role_id),
             selectedSeasons: (data.food_to_seasons || []).map(r => r.season_id),
             selectedStores: (data.food_to_stores || []).map(r => r.store_id),
-            selectedSensitivities: (data.user_created_food_sensitivities || data.food_sensitivities || []).map(r => r.sensitivity_id),
+            selectedSensitivities: (data.food_sensitivities || []).map(r => r.sensitivity_id),
             selectedMedicalConditions: (data.food_medical_conditions || []).map(r => ({
                 condition_id: r.condition_id,
                 relation_type: r.relation_type,
             })),
             selectedAntioxidants: (data.food_antioxidants || []).map(r => r.antioxidant_id),
-            selectedVitamins: (data.user_created_food_vitamins || data.food_vitamins || []).map(r => ({
+            selectedVitamins: (data.food_vitamins || []).map(r => ({
                 vitamin_id: r.vitamin_id,
                 mg_per_100g: r.mg_per_100g,
             })),
-            selectedMinerals: (data.user_created_food_minerals || data.food_minerals || []).map(r => ({
+            selectedMinerals: (data.food_minerals || []).map(r => ({
                 mineral_id: r.mineral_id,
                 mg_per_100g: r.mg_per_100g,
             })),
@@ -139,65 +121,7 @@ import { supabase } from '@/lib/supabaseClient';
         selectedMedicalConditions, manualCarbTypeBreakdown, manualFatClassificationBreakdown, manualCarbClassificationBreakdown
       } = formState;
 
-      if (isClientRequest) {
-        const { data: user } = await supabase.auth.getUser();
-        const requestData = {
-            user_id: user.user.id,
-            name: formData.name,
-            food_unit: formData.food_unit,
-            food_url: formData.food_url,
-            proteins: formData.proteins || null,
-            total_carbs: formData.total_carbs || null,
-            total_fats: formData.total_fats || null,
-            status: 'pending',
-        };
-
-        const { data: savedRequest, error: requestError } = await supabase
-            .from('user_created_foods')
-            .upsert({ id: isEditing ? foodId : undefined, ...requestData })
-            .select()
-            .single();
-
-        if (requestError) throw requestError;
-        const newFoodId = savedRequest.id;
-
-        // Sensitivities
-        const sensitivitiesToSave = selectedSensitivities.map(id => ({ user_created_food_id: newFoodId, sensitivity_id: id }));
-        await supabase.from('user_created_food_sensitivities').delete().eq('user_created_food_id', newFoodId);
-        if (sensitivitiesToSave.length > 0) {
-            const { error: insertError } = await supabase.from('user_created_food_sensitivities').insert(sensitivitiesToSave);
-            if (insertError) throw insertError;
-        }
-        
-        // Vitamins
-        const vitaminsToSave = selectedVitamins.filter(v => parseFloat(v.mg_per_100g) > 0).map(v => ({ user_created_food_id: newFoodId, vitamin_id: v.vitamin_id, mg_per_100g: v.mg_per_100g }));
-        await supabase.from('user_created_food_vitamins').delete().eq('user_created_food_id', newFoodId);
-        if (vitaminsToSave.length > 0) {
-            const { error: insertError } = await supabase.from('user_created_food_vitamins').insert(vitaminsToSave);
-            if (insertError) throw insertError;
-        }
-
-        // Minerals
-        const mineralsToSave = selectedMinerals.filter(m => parseFloat(m.mg_per_100g) > 0).map(m => ({ user_created_food_id: newFoodId, mineral_id: m.mineral_id, mg_per_100g: m.mg_per_100g }));
-        await supabase.from('user_created_food_minerals').delete().eq('user_created_food_id', newFoodId);
-        if (mineralsToSave.length > 0) {
-            const { error: insertError } = await supabase.from('user_created_food_minerals').insert(mineralsToSave);
-            if (insertError) throw insertError;
-        }
-
-        // Food Groups
-        const foodGroupsToSave = selectedFoodGroups.map(id => ({ user_created_food_id: newFoodId, food_group_id: id }));
-        await supabase.from('user_created_food_to_food_groups').delete().eq('user_created_food_id', newFoodId);
-        if (foodGroupsToSave.length > 0) {
-            const { error: insertError } = await supabase.from('user_created_food_to_food_groups').insert(foodGroupsToSave);
-            if (insertError) throw insertError;
-        }
-
-        return newFoodId;
-      }
-
-
-      // Admin food creation logic below
+      // Unified food creation/editing for admin and client requests
       
       const updatedFormData = { ...formData };
       // We trust formData.total_carbs which comes from the input field (or synced calc).
@@ -210,6 +134,11 @@ import { supabase } from '@/lib/supabaseClient';
       // If isEditing is true, we can include ID or just use it in the query matcher (but upsert needs it in body or matcher).
       
       const payload = { ...updatedFormData };
+      if (isClientRequest) {
+        const { data: authData } = await supabase.auth.getUser();
+        payload.user_id = authData?.user?.id || payload.user_id || null;
+        payload.status = 'pending';
+      }
       if (isEditing) {
         payload.id = foodId;
       } else {

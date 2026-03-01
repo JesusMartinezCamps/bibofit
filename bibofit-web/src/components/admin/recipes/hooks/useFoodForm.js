@@ -456,7 +456,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
           };
           const newFoodId = await saveFoodData(isEditing, foodToEdit?.id, finalFormState, state.allCarbTypes, isClientRequest);
           
-          const tableName = isClientRequest ? 'user_created_foods' : 'food';
+          const tableName = 'food';
           const { data: newFood } = await supabase.from(tableName).select('*').eq('id', newFoodId).single();
           
           toast({ title: 'Éxito', description: `Alimento ${isEditing ? 'actualizado' : 'creado'} correctamente.` });

@@ -280,6 +280,7 @@ const FreeMealViewDialog = ({ open, onOpenChange, freeMeal, onUpdate }) => {
                       preferred_foods: [],
                       non_preferred_foods: [],
                     }}
+                    createFoodUserId={currentFreeMeal?.user_id || user?.id}
                     onBack={() => setIsSearchingIngredient(false)}
                   />
                 ) : mode === 'view' ? (

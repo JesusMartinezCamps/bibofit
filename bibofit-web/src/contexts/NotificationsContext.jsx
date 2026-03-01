@@ -46,7 +46,7 @@ export const NotificationsProvider = ({ children }) => {
         try {
             // Pending Foods
             const { count: foodCount, error: foodError } = await supabase
-                .from('user_created_foods')
+                .from('food')
                 .select('*', { count: 'exact', head: true })
                 .eq('status', 'pending');
             if (!foodError) setPendingFoodCount(foodCount || 0);
@@ -112,7 +112,7 @@ export const NotificationsProvider = ({ children }) => {
             };
 
             // Listen to changes in relevant tables
-            subscribe(`${adminKey}_foods`, { event: '*', schema: 'public', table: 'user_created_foods' }, handleAdminChange);
+            subscribe(`${adminKey}_foods`, { event: '*', schema: 'public', table: 'food' }, handleAdminChange);
             subscribe(`${adminKey}_free_recipes`, { event: '*', schema: 'public', table: 'free_recipes' }, handleAdminChange);
             subscribe(`${adminKey}_diet_requests`, { event: '*', schema: 'public', table: 'diet_change_requests' }, handleAdminChange);
 

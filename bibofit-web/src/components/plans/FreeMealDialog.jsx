@@ -33,6 +33,7 @@ import React from 'react';
               <FreeMealDialogUI
                 isSubmitting={isSubmitting}
                 mealToEdit={mealToEdit}
+                userId={userId}
                 name={name}
                 setName={setName}
                 instructions={instructions}

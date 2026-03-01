@@ -125,11 +125,11 @@ export const useSnackLogging = ({ userId, onSaveSuccess, mealDate, preselectedMe
             if (logError) throw logError;
 
             const fullIngredients = ingredients.map(ing => {
-                const foodDetails = availableFoods.find(f => f.id === ing.food_id && f.is_user_created === ing.is_user_created);
+                const foodDetails = availableFoods.find(f => f.id === ing.food_id);
                 return {
                     ...ing,
-                    food: ing.is_user_created ? null : foodDetails,
-                    user_created_food: ing.is_user_created ? foodDetails : null,
+                    food: foodDetails,
+                    user_created_food: null,
                 };
             });
 

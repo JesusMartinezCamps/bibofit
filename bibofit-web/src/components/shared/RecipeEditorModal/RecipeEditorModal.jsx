@@ -59,8 +59,8 @@ const RecipeEditorModal = ({
                 mineralsRes,
                 foodGroupsRes,
             ] = await Promise.all([
-                supabase.from('food').select('*, food_sensitivities(sensitivity:sensitivities(*)), food_medical_conditions(relation_type, condition:medical_conditions(*)), food_vitamins(mg_per_100g, vitamin:vitamins(*)), food_minerals(mg_per_100g, mineral:minerals(*)), food_to_food_groups(food_group:food_groups(*))'),
-                userId ? supabase.from('user_created_foods').select('*, user_created_food_sensitivities(sensitivity:sensitivities(*))').eq('user_id', userId) : Promise.resolve({ data: [], error: null }),
+                supabase.from('food').select('*, food_sensitivities(sensitivity:sensitivities(*)), food_medical_conditions(relation_type, condition:medical_conditions(*)), food_vitamins(mg_per_100g, vitamin:vitamins(*)), food_minerals(mg_per_100g, mineral:minerals(*)), food_to_food_groups(food_group:food_groups(*))').is('user_id', null),
+                userId ? supabase.from('food').select('*, food_sensitivities(sensitivity:sensitivities(*)), food_to_food_groups(food_group:food_groups(*))').eq('user_id', userId).neq('status', 'rejected') : Promise.resolve({ data: [], error: null }),
                 supabase.from('vitamins').select('*'),
                 supabase.from('minerals').select('*'),
                 supabase.from('food_groups').select('*'),
@@ -322,6 +322,7 @@ const RecipeEditorModal = ({
                       onIngredientAdded={handleLocalAddIngredient}
                       availableFoods={allFoods}
                       userRestrictions={userRestrictions}
+                      createFoodUserId={userId || user?.id}
                       onBack={() => setIsSearching(false)}
                     />
                   </div>

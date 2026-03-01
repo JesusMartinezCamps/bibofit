@@ -152,8 +152,8 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
             food_vitamins(mg_per_100g, vitamin:vitamins(*)), 
             food_minerals(mg_per_100g, mineral:minerals(*)), 
             food_to_food_groups(food_group:food_groups(*))
-          `),
-          supabase.from('user_created_foods').select('*').eq('user_id', userId).not('status', 'eq', 'rejected'),
+          `).is('user_id', null),
+          supabase.from('food').select('*').eq('user_id', userId).not('status', 'eq', 'rejected'),
           supabase.from('diet_change_requests').select('*').eq('user_id', userId).eq('status', 'pending'),
         ]);
 
@@ -221,7 +221,7 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
         `).eq('user_id', userId).eq('diet_plan_id', activePlan.id).gte('plan_date', startDate).lte('plan_date', endDate),
         supabase.from('free_recipe_occurrences').select(`
           *,
-          free_recipe:free_recipes!inner(*, free_recipe_ingredients!inner(id, grams, food:food_id(*), user_created_food:user_created_foods(*))),
+          free_recipe:free_recipes!inner(*, free_recipe_ingredients!inner(id, grams, food:food_id(*))),
           day_meal:day_meals(*)
         `).eq('user_id', userId).gte('meal_date', startDate).lte('meal_date', endDate),
         supabase.from('daily_meal_logs')
@@ -231,7 +231,7 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
           .lte('log_date', endDate),
         supabase.from('equivalence_adjustments').select('*').eq('user_id', userId).gte('log_date', startDate).lte('log_date', endDate),
         supabase.from('daily_ingredient_adjustments').select('*, equivalence_adjustment:equivalence_adjustments!inner(id, log_date, user_id, target_user_day_meal_id)').eq('equivalence_adjustment.user_id', userId).gte('equivalence_adjustment.log_date', startDate).lte('equivalence_adjustment.log_date', endDate),
-        supabase.from('snack_occurrences').select('*, snack:snacks(*, snack_ingredients(*, food:food_id(*), user_created_food:user_created_foods(*)))').eq('user_id', userId).gte('meal_date', startDate).lte('meal_date', endDate),
+        supabase.from('snack_occurrences').select('*, snack:snacks(*, snack_ingredients(*, food:food_id(*)))').eq('user_id', userId).gte('meal_date', startDate).lte('meal_date', endDate),
         supabase.from('daily_snack_logs').select('*').eq('user_id', userId).gte('log_date', startDate).lte('log_date', endDate),
       ]);
 
@@ -270,12 +270,12 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
 
       const processedFreeMeals = (freeMealsRes.data || []).map((fm) => {
         const unifiedIngredients = (fm.free_recipe?.free_recipe_ingredients || []).map((ing) => {
-          const foodDetails = ing.food || ing.user_created_food;
+          const foodDetails = ing.food;
           return {
             ...ing,
             food: foodDetails,
             food_id: foodDetails?.id,
-            is_user_created: !!ing.user_created_food,
+            is_user_created: !!foodDetails?.user_id,
           };
         });
 

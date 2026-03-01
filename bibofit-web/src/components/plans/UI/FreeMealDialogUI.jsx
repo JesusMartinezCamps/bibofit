@@ -11,11 +11,13 @@ import React from 'react';
     const FreeMealDialogUI = ({
       isSubmitting,
       mealToEdit,
+      userId,
       name, setName,
       instructions, setInstructions,
       conflictingIngredientsData,
       ingredients, setIngredients,
       availableFoods,
+      userRestrictions,
       handleSubmit
     }) => {
 
@@ -59,8 +61,12 @@ import React from 'react';
 
             <IngredientSearch
               selectedIngredients={ingredients}
-              onIngredientsChange={setIngredients}
+              onIngredientAdded={(ingredient) => {
+                setIngredients((prev) => [...prev, ingredient]);
+              }}
               availableFoods={availableFoods}
+              userRestrictions={userRestrictions}
+              createFoodUserId={userId}
             />
           </div>
           <div className="flex justify-center pt-4 border-t border-gray-700">

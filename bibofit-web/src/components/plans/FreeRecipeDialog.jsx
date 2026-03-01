@@ -30,13 +30,14 @@ const FreeRecipeDialog = ({ open, onOpenChange, userId, onRecipeCreated, dayMeal
           id, name, proteins, total_carbs, total_fats, food_unit,
           food_sensitivities(sensitivities(id, name)),
           food_medical_conditions(relation_type, medical_conditions(id, name))
-        `),
-        supabase.from('user_created_foods').select(`
+        `).is('user_id', null),
+        supabase.from('food').select(`
           id, name, proteins, total_carbs, total_fats, food_unit,
-          user_created_food_sensitivities(sensitivities(id, name)),
-          user_created_food_vitamins(vitamins(id, name)),
-          user_created_food_minerals(minerals(id, name))
-        `).eq('user_id', targetUserId).in('status', ['approved_private', 'pending']),
+          food_sensitivities(sensitivities(id, name)),
+          food_vitamins(vitamins(id, name)),
+          food_minerals(minerals(id, name)),
+          food_to_food_groups(food_group_id)
+        `).eq('user_id', targetUserId).neq('status', 'rejected'),
         supabase.rpc('get_user_restrictions', { p_user_id: targetUserId })
       ]);
 
@@ -53,9 +54,9 @@ const FreeRecipeDialog = ({ open, onOpenChange, userId, onRecipeCreated, dayMeal
 
       const transformedUserFoods = (userFoodsRes.data || []).map(userFood => ({
         ...userFood,
-        food_sensitivities: userFood.user_created_food_sensitivities.map(fs => fs.sensitivities),
-        food_vitamins: userFood.user_created_food_vitamins.map(fv => fv.vitamins),
-        food_minerals: userFood.user_created_food_minerals.map(fm => fm.minerals),
+        food_sensitivities: userFood.food_sensitivities.map(fs => fs.sensitivities),
+        food_vitamins: userFood.food_vitamins.map(fv => fv.vitamins),
+        food_minerals: userFood.food_minerals.map(fm => fm.minerals),
         food_medical_conditions: [],
         is_user_created: true
       }));
@@ -160,6 +161,7 @@ const FreeRecipeDialog = ({ open, onOpenChange, userId, onRecipeCreated, dayMeal
               setView('main');
             }}
             onOpenCreateFoodModal={handleOpenCreateFoodModal}
+            createFoodUserId={targetUserId}
             availableFoods={availableFoods}
             userRestrictions={userRestrictions}
             onBack={() => setView('main')}

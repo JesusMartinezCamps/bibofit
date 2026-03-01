@@ -26,9 +26,42 @@ const UserCreatedFoodsPage = () => {
   const fetchUsersWithPendingFoods = useCallback(async () => {
     setLoadingUsers(true);
     try {
-      const { data, error } = await supabase.rpc('get_users_with_pending_foods_count');
-      if (error) throw error;
-      setUsers(data || []);
+      const { data: pendingFoods, error: pendingError } = await supabase
+        .from('food')
+        .select('user_id')
+        .eq('status', 'pending')
+        .not('user_id', 'is', null);
+      if (pendingError) throw pendingError;
+
+      const countsByUser = new Map();
+      (pendingFoods || []).forEach((row) => {
+        const userId = row.user_id;
+        if (!userId) return;
+        countsByUser.set(userId, (countsByUser.get(userId) || 0) + 1);
+      });
+
+      const userIds = Array.from(countsByUser.keys());
+      if (userIds.length === 0) {
+        setUsers([]);
+        return;
+      }
+
+      const { data: profiles, error: profileError } = await supabase
+        .from('profiles')
+        .select('user_id, full_name')
+        .in('user_id', userIds);
+      if (profileError) throw profileError;
+
+      const usersWithCount = (profiles || [])
+        .map((p) => ({
+          user_id: p.user_id,
+          full_name: p.full_name,
+          pending_count: countsByUser.get(p.user_id) || 0,
+        }))
+        .filter((u) => u.pending_count > 0)
+        .sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''));
+
+      setUsers(usersWithCount);
     } catch (error) {
       toast({ title: 'Error', description: `No se pudieron cargar los usuarios: ${error.message}`, variant: 'destructive' });
     } finally {
@@ -41,7 +74,7 @@ const UserCreatedFoodsPage = () => {
     setLoadingFoods(true);
     try {
       const { data, error } = await supabase
-        .from('user_created_foods')
+        .from('food')
         .select('*')
         .eq('user_id', user.user_id)
         .eq('status', tab)
@@ -107,6 +140,7 @@ const UserCreatedFoodsPage = () => {
             foods={foods}
             loading={loadingFoods}
             selectedUser={selectedUser}
+            activeTab={activeTab}
             onFoodAction={handleFoodAction}
           />
         </div>

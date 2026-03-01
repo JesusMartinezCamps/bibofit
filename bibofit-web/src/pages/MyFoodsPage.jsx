@@ -34,8 +34,8 @@ const MyFoodsPage = () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('user_created_foods')
-        .select('*, linked_food:linked_food_id(name)')
+        .from('food')
+        .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -65,7 +65,7 @@ const MyFoodsPage = () => {
   
   const handleDeleteFood = async (foodId) => {
     try {
-      const { error } = await supabase.from('user_created_foods').delete().eq('id', foodId);
+      const { error } = await supabase.from('food').delete().eq('id', foodId).eq('user_id', user.id);
       if (error) throw error;
       toast({ title: 'Éxito', description: 'Alimento eliminado permanentemente.' });
       fetchFoods(); // Refresh list

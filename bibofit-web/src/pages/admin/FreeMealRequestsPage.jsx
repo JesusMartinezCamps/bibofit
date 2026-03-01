@@ -48,7 +48,7 @@ const FreeMealRequestsPage = () => {
     try {
       const { data, error } = await supabase
         .from('free_recipes')
-        .select('*, day_meal:day_meals(name), ingredients:free_recipe_ingredients(*, food:food(name, food_unit), user_created_food:user_created_foods(name, food_unit))')
+        .select('*, day_meal:day_meals(name), ingredients:free_recipe_ingredients(*, food:food(*))')
         .eq('user_id', user.user_id)
         .eq('status', tab)
         .order('created_at', { ascending: false });
@@ -58,10 +58,10 @@ const FreeMealRequestsPage = () => {
         ...recipe,
         ingredients: recipe.ingredients.map(ing => ({
           ...ing,
-          food_name: ing.food?.name || ing.user_created_food?.name,
-          food_unit: ing.food?.food_unit || ing.user_created_food?.food_unit,
+          food_name: ing.food?.name,
+          food_unit: ing.food?.food_unit,
           food_id: ing.food_id,
-          is_user_created: !!ing.is_user_created,
+          is_user_created: !!ing.food?.user_id,
           grams: ing.grams
         }))
       }));

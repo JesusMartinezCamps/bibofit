@@ -189,7 +189,7 @@ export const useFreeRecipeDialog = ({ targetUserId, dayMealId, dietPlanId, date,
         free_recipe_ingredients: ingredients.map(ing => ({
             ...ing,
             grams: ing.quantity,
-            food: availableFoods.find(f => String(f.id) === String(ing.food_id) && f.is_user_created === ing.is_user_created)
+            food: availableFoods.find(f => String(f.id) === String(ing.food_id))
         })),
         occurrence_id: occurrence.id,
         meal_date: date,

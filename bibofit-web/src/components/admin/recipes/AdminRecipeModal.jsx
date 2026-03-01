@@ -655,6 +655,7 @@ const AdminRecipeModal = ({
                                     onIngredientAdded={handleAddIngredient}
                                     availableFoods={allFoods}
                                     userRestrictions={fullUserRestrictions}
+                                    createFoodUserId={userId || user?.id}
                                     onBack={() => setCurrentView('editor')}
                                 />
                             </div>
