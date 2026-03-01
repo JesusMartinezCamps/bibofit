@@ -304,12 +304,30 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
       const currentPlanRecipeIds = new Set(
         (staticData?.planRecipes || [])
           .filter((item) => item.type === 'recipe' && !item.is_private)
-          .map((item) => Number(item.id))
+          .map((item) => String(item.id))
       );
-      const shouldIncludeLogs = !!activePlan?.is_active;
+      const currentPrivateRecipeIds = new Set(
+        (staticData?.planRecipes || [])
+          .filter((item) => item.type === 'private_recipe' || item.is_private)
+          .map((item) => String(item.id))
+      );
+      const currentFreeOccurrenceIds = new Set(
+        (processedFreeMeals || []).map((item) => String(item.occurrence_id))
+      );
 
-      const filteredMealLogs = (shouldIncludeLogs ? (mealLogsRes.data || []) : [])
-        .filter((log) => currentPlanRecipeIds.has(Number(log.diet_plan_recipe_id)))
+      const filteredMealLogs = (mealLogsRes.data || [])
+        .filter((log) => {
+          if (log.diet_plan_recipe_id != null) {
+            return currentPlanRecipeIds.has(String(log.diet_plan_recipe_id));
+          }
+          if (log.private_recipe_id != null) {
+            return currentPrivateRecipeIds.has(String(log.private_recipe_id));
+          }
+          if (log.free_recipe_occurrence_id != null) {
+            return currentFreeOccurrenceIds.has(String(log.free_recipe_occurrence_id));
+          }
+          return false;
+        })
         .map((log) => ({
           log_date: log.log_date,
           diet_plan_recipe_id: log.diet_plan_recipe_id,

@@ -1,6 +1,6 @@
 
 import React, { useMemo } from 'react';
-import { X, Scale, Hourglass, ThumbsUp, AlertTriangle } from 'lucide-react';
+import { X, Scale, Hourglass, AlertTriangle } from 'lucide-react';
 import CaloriesIcon from '@/components/icons/CaloriesIcon';
 import ProteinIcon from '@/components/icons/ProteinIcon';
 import CarbsIcon from '@/components/icons/CarbsIcon';
@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { calculateMacros as calculateMacrosFromIngredients } from '@/lib/macroCalculator';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import HighlightedText from '@/components/shared/HighlightedText';
+import { analyzeRecipeConflicts } from '@/lib/recipeConflictAnalyzer';
 
 const RecipeCard = ({
   recipe,
@@ -70,50 +71,17 @@ const RecipeCard = ({
   }, [recipeIngredients, adjustment]);
 
   const { unsafeFoodsSet, recommendedFoodsSet } = useMemo(() => {
-    const unsafe = new Set();
-    const recommended = new Set();
-
-    if (!userRestrictions || !adjustedIngredients) {
-        return { unsafeFoodsSet: unsafe, recommendedFoodsSet: recommended };
-    }
-    
-    const { sensitivities = [], medical_conditions = [], non_preferred_foods = [], individual_food_restrictions = [] } = userRestrictions;
-
-    const sensitivityIds = new Set(sensitivities.map(s => (typeof s === 'object' ? s.id : s)));
-    const conditionIds = new Set(medical_conditions.map(c => (typeof c === 'object' ? c.id : c)));
-    const nonPreferredIds = new Set(non_preferred_foods.map(f => (typeof f === 'object' ? f.id : f)));
-    const restrictedIds = new Set(individual_food_restrictions.map(f => (typeof f === 'object' ? f.id : f)));
-
-    if (sensitivityIds.size === 0 && conditionIds.size === 0 && nonPreferredIds.size === 0 && restrictedIds.size === 0) {
-         return { unsafeFoodsSet: unsafe, recommendedFoodsSet: recommended };
-    }
-
-    adjustedIngredients.forEach(ing => {
-        const food = allFoods.find(f => f.id === ing.food_id) || ing.food;
-        if (!food) return;
-
-        if (nonPreferredIds.has(food.id)) unsafe.add(food.name);
-        if (restrictedIds.has(food.id)) unsafe.add(food.name);
-
-        const foodSensitivityIds = new Set(food.food_sensitivities?.map(fs => fs.sensitivity?.id || fs.sensitivity_id).filter(Boolean) || []);
-        foodSensitivityIds.forEach(s_id => {
-            if (sensitivityIds.has(s_id)) unsafe.add(food.name);
-        });
-
-        (food.food_medical_conditions || []).forEach(fmc => {
-            const condId = fmc.condition?.id || fmc.condition_id;
-            if (conditionIds.has(condId)) {
-                 if (fmc.relation_type === 'to_avoid' || fmc.relation_type === 'evitar') {
-                    unsafe.add(food.name);
-                 } else if (fmc.relation_type === 'recommended' || fmc.relation_type === 'recomendado' || fmc.relation_type === 'preferred') {
-                    recommended.add(food.name);
-                 }
-            }
-        });
+    const { unsafeFoodNames, recommendedFoodNames } = analyzeRecipeConflicts({
+      recipe: {
+        ...recipe,
+        recipe_ingredients: adjustedIngredients
+      },
+      allFoods,
+      userRestrictions
     });
 
-    return { unsafeFoodsSet: unsafe, recommendedFoodsSet: recommended };
-  }, [adjustedIngredients, allFoods, userRestrictions]);
+    return { unsafeFoodsSet: unsafeFoodNames, recommendedFoodsSet: recommendedFoodNames };
+  }, [recipe, adjustedIngredients, allFoods, userRestrictions]);
 
   const isSafe = unsafeFoodsSet.size === 0;
 
@@ -187,7 +155,7 @@ const RecipeCard = ({
     );
   };
   
-  const fallbackBg = 'linear-gradient(135deg, #16191d 0%, #1a1e23 100%)';
+  const fallbackBg = 'linear-gradient(135deg, #16191d71 0%, #1a1e2349 100%)';
   const bgStyle = { backgroundImage: imageUrl ? `url(${imageUrl})` : fallbackBg };
 
   if (isListView) {
@@ -238,20 +206,6 @@ const RecipeCard = ({
                     )}>
                       <HighlightedText text={recipeName} highlight={searchQuery} />
                     </p>
-                    {recommendedFoodsSet.size > 0 && (
-                         <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-900/40 text-green-400 border border-green-500/30 backdrop-blur-sm">
-                                        <ThumbsUp className="w-3 h-3 mr-1" /> {recommendedFoodsSet.size}
-                                     </span>
-                                </TooltipTrigger>
-                                <TooltipContent className="bg-green-900 border-green-700 text-white z-50">
-                                    <p>Ingredientes recomendados: {Array.from(recommendedFoodsSet).join(', ')}</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    )}
                     {unsafeFoodsSet.size > 0 && (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-900/40 text-red-400 border border-red-500/30 backdrop-blur-sm">
                             <AlertTriangle className="w-3 h-3 mr-1" /> {unsafeFoodsSet.size}
@@ -305,7 +259,7 @@ const RecipeCard = ({
   // Week view (compact)
   return (
     <div className={cn(
-        "relative group flex overflow-hidden rounded-lg shadow-lg border",
+        "relative group flex h-24 overflow-hidden rounded-lg shadow-lg border",
         isSafe ? "border-slate-700" : "border-red-500/60"
     )}>
       {/* Background Image with Zoom on Hover */}
@@ -316,12 +270,12 @@ const RecipeCard = ({
       {/* Dark Overlay */}
       <div className={cn(
         "absolute inset-0 pointer-events-none",
-        imageUrl ? "bg-black/60" : (isPrivate ? "bg-violet-900/30" : (!isSafe ? "bg-red-900/50" : "bg-black/30"))
+        imageUrl ? "bg-black/35" : (isPrivate ? "bg-violet-900/30" : (!isSafe ? "bg-red-900/50" : "bg-black/25"))
       )} />
       {/* Gradient Bottom Overlay */}
       <div 
         className="absolute inset-0 pointer-events-none"
-        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 40%, rgba(0,0,0,0) 100%)' }}
+        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0, 0, 0, 0.29) 40%, rgba(0,0,0,0) 100%)' }}
       />
 
       <button onClick={() => handleRecipeClick && handleRecipeClick({ ...recipe, is_private_recipe: isPrivate }, adjustment)} className="relative z-10 flex-1 text-left p-3 w-4/5">
@@ -332,7 +286,7 @@ const RecipeCard = ({
             )}
             <TitleWithTooltip>
               <p className={cn(
-                "text-white font-medium text-sm whitespace-normal drop-shadow-md",
+                "text-white font-medium text-sm whitespace-normal line-clamp-2 drop-shadow-md",
                 !isSafe && isAdminView ? "text-red-400" : "text-white"
               )}>
                 {recipeName}
@@ -340,7 +294,6 @@ const RecipeCard = ({
             </TitleWithTooltip>
           </div>
           <div className="flex items-center gap-1 drop-shadow-md">
-            {recommendedFoodsSet.size > 0 && <ThumbsUp className="w-3 h-3 text-green-400" />}
             {adjustment && (
               <Scale className="w-3 h-3 text-blue-400" title="Receta equilibrada" />
             )}

@@ -8,9 +8,9 @@ import CaloriesIcon from '@/components/icons/CaloriesIcon';
 import ProteinIcon from '@/components/icons/ProteinIcon';
 import CarbsIcon from '@/components/icons/CarbsIcon';
 import FatsIcon from '@/components/icons/FatsIcon';
-import { getConflictInfo } from '@/lib/restrictionChecker';
 import { calculateMacros } from '@/lib/macroCalculator';
 import HighlightedText from '@/components/shared/HighlightedText';
+import { analyzeRecipeConflicts } from '@/lib/recipeConflictAnalyzer';
 
 const RecipeCard = ({ 
   recipe, 
@@ -46,14 +46,22 @@ const RecipeCard = ({
     };
   }, [recipe.recipe_macros, recipe.recipe_ingredients, allFoods]);
 
-  const hasConflicts = conflicts?.sensitivities?.length > 0 || conflicts?.conditions?.length > 0;
-  const hasRecommendations = recommendations?.conditions?.length > 0;
+  const analysis = useMemo(() => analyzeRecipeConflicts({
+    recipe,
+    allFoods,
+    userRestrictions
+  }), [recipe, allFoods, userRestrictions]);
+
+  const effectiveConflicts = userRestrictions ? analysis.conflicts : (conflicts || analysis.conflicts);
+  const effectiveRecommendations = userRestrictions ? analysis.recommendations : (recommendations || analysis.recommendations);
+  const hasConflicts = effectiveConflicts?.sensitivities?.length > 0 || effectiveConflicts?.conditions?.length > 0;
+  const hasRecommendations = effectiveRecommendations?.conditions?.length > 0;
 
   const handleAddClick = (e) => {
     e.stopPropagation();
     if (!onAdd) return;
     if (hasConflicts && onEditConflict) {
-      onEditConflict(recipe, conflicts);
+      onEditConflict(recipe, effectiveConflicts);
     } else {
       onAdd(recipe);
     }
@@ -135,16 +143,15 @@ const RecipeCard = ({
                     let ingredientColorClass = "text-gray-400"; // Default
                     let conflictIcon = null;
 
-                    if (userRestrictions && ing.food) {
-                        const conflictInfo = getConflictInfo(ing.food, userRestrictions);
-                        if (conflictInfo) {
-                            if (['condition_avoid', 'sensitivity', 'individual_restriction', 'non-preferred'].includes(conflictInfo.type)) {
-                                ingredientColorClass = "text-red-400 font-medium";
-                                conflictIcon = <AlertTriangle className="w-3 h-3 inline ml-1 text-red-500" />;
-                            } else if (['condition_recommend', 'preferred'].includes(conflictInfo.type)) {
-                                ingredientColorClass = "text-green-400 font-medium";
-                                conflictIcon = <ThumbsUp className="w-3 h-3 inline ml-1 text-green-500" />;
-                            }
+                    if (ing.food) {
+                        const isUnsafe = analysis.unsafeFoodNames.has(ing.food.name);
+                        const isRecommended = analysis.recommendedFoodNames.has(ing.food.name);
+                        if (isUnsafe) {
+                            ingredientColorClass = "text-red-400 font-medium";
+                            conflictIcon = <AlertTriangle className="w-3 h-3 inline ml-1 text-red-500" />;
+                        } else if (isRecommended) {
+                            ingredientColorClass = "text-green-400 font-medium";
+                            conflictIcon = <ThumbsUp className="w-3 h-3 inline ml-1 text-green-500" />;
                         }
                     }
                     

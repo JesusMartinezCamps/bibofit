@@ -221,6 +221,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
             const key = format(date, 'yyyy-MM-dd');
             summary[key] = {
                 planned: 0,
+                mealSlots: userDayMeals?.length || 0,
                 logged: 0,
                 loggedRecipe: 0,
                 loggedPrivate: 0,
@@ -256,7 +257,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
         });
 
         return summary;
-    }, [weekDates, plannedMeals, allMealLogs, snackLogs, freeMeals, snacks]);
+    }, [weekDates, plannedMeals, allMealLogs, snackLogs, freeMeals, snacks, userDayMeals]);
 
     useEffect(() => {
         if (onWeekSummaryChange) onWeekSummaryChange(weekSummaryByDate);
