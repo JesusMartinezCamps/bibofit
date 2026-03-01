@@ -1,19 +1,14 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Input } from '@/components/ui/input';
-import { Loader2, X } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import FoodCard from '@/components/admin/recipes/FoodCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import SimplifiedFoodForm from '@/components/admin/recipes/SimplifiedFoodForm';
-
-const normalizeString = (str) => {
-  if (!str) return '';
-  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-};
+import FoodLookupPanel from '@/components/shared/FoodLookupPanel';
+import CreateFoodInlineDialog from '@/components/shared/CreateFoodInlineDialog';
+import { normalizeSearchText } from '@/lib/foodSearchUtils';
 
 const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSensitivities = [], userId, refreshTrigger }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -146,10 +141,24 @@ const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSen
     }
   };
 
-  const handleKeyDown = (e, food) => {
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  const handleSearchKeyDown = (e) => {
+    if (filteredFoods.length === 0) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveIndex((prev) => (prev + 1) % filteredFoods.length);
+      return;
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveIndex((prev) => (prev - 1 + filteredFoods.length) % filteredFoods.length);
+      return;
+    }
     if (e.key === 'Enter') {
       e.preventDefault();
-      onSelectFood(food);
+      const selected = filteredFoods[activeIndex] || filteredFoods[0];
+      if (selected) onSelectFood(selected);
     }
   };
 
@@ -194,26 +203,26 @@ const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSen
       });
     }
     
-    const normalizedFilter = normalizeString(searchTerm.toLowerCase().trim());
+    const normalizedFilter = normalizeSearchText(searchTerm.trim());
     
     let results = foods;
 
     if (normalizedFilter) {
       if (normalizedFilter.startsWith('vitamina:')) {
         const vitaminName = normalizedFilter.substring(9).trim();
-        results = vitaminName ? foods.filter(f => f.food_vitamins?.some(v => v.vitamins?.name && normalizeString(v.vitamins.name.toLowerCase()).includes(vitaminName))) : foods;
+        results = vitaminName ? foods.filter(f => f.food_vitamins?.some(v => v.vitamins?.name && normalizeSearchText(v.vitamins.name).includes(vitaminName))) : foods;
       } else if (normalizedFilter.startsWith('mineral:')) {
         const mineralName = normalizedFilter.substring(8).trim();
-        results = mineralName ? foods.filter(f => f.food_minerals?.some(m => m.minerals?.name && normalizeString(m.minerals.name.toLowerCase()).includes(mineralName))) : foods;
+        results = mineralName ? foods.filter(f => f.food_minerals?.some(m => m.minerals?.name && normalizeSearchText(m.minerals.name).includes(mineralName))) : foods;
       } else if (normalizedFilter.startsWith('temporada:')) {
         const seasonName = normalizedFilter.substring(10).trim();
-        results = seasonName ? foods.filter(f => f.seasons?.some(s => s && s.name && normalizeString(s.name.toLowerCase()).includes(seasonName))) : foods;
+        results = seasonName ? foods.filter(f => f.seasons?.some(s => s && s.name && normalizeSearchText(s.name).includes(seasonName))) : foods;
       } else if (normalizedFilter.startsWith('sensibilidad:')) {
           const sensitivityName = normalizedFilter.substring(13).trim();
-          results = sensitivityName ? foods.filter(f => f.food_sensitivities?.some(a => a.sensitivities?.name && normalizeString(a.sensitivities.name.toLowerCase()).includes(sensitivityName))) : foods;
+          results = sensitivityName ? foods.filter(f => f.food_sensitivities?.some(a => a.sensitivities?.name && normalizeSearchText(a.sensitivities.name).includes(sensitivityName))) : foods;
       } else {
         results = foods.filter(food =>
-          food.name && normalizeString(food.name.toLowerCase()).includes(normalizedFilter)
+          food.name && normalizeSearchText(food.name).includes(normalizedFilter)
         );
       }
     }
@@ -230,23 +239,15 @@ const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSen
 
   return (
     <div className="h-full flex flex-col">
-      <div className="relative mb-4">
-        <Input
-          type="text"
-          placeholder={placeholderText}
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="input-field pr-10"
-        />
-        {searchTerm && (
-          <button type="button" onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white">
-            <X className="h-4 w-4" />
-          </button>
-        )}
-      </div>
-      <div className="relative flex-grow overflow-y-auto pr-2">
+      <FoodLookupPanel
+        showHeader={false}
+        searchTerm={searchTerm}
+        onSearchTermChange={setSearchTerm}
+        onSearchKeyDown={handleSearchKeyDown}
+        placeholder={placeholderText}
+      >
         {loading ? (
-          <div className="absolute inset-0 flex items-center justify-center">
+          <div className="flex items-center justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-green-500" />
           </div>
         ) : (
@@ -258,13 +259,12 @@ const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSen
                 exit={{ opacity: 0 }}
                 className="space-y-3"
               >
-                {filteredFoods.map((food) => (
+                {filteredFoods.map((food, index) => (
                   <div
                     key={`${food.isUserCreated ? 'user' : 'food'}-${food.id}`}
                     onClick={() => handleFoodClick(food)}
-                    onKeyDown={(e) => handleKeyDown(e, food)}
                     tabIndex={0}
-                    className="cursor-pointer focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-gray-900 rounded-lg"
+                    className={`cursor-pointer focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-gray-900 rounded-lg ${selectedFoodId === food.id ? 'ring-1 ring-green-500' : ''} ${activeIndex === index ? 'ring-1 ring-sky-400' : ''}`}
                   >
                     <FoodCard
                       food={food}
@@ -292,25 +292,15 @@ const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSen
             )}
           </AnimatePresence>
         )}
-      </div>
-      <Dialog open={isCreateFoodOpen} onOpenChange={setIsCreateFoodOpen}>
-        <DialogContent className="bg-[#0C101C] border-gray-700 text-white w-[95vw] max-w-2xl h-auto max-h-[90vh] flex flex-col p-0">
-          <DialogHeader className="p-6 pb-0">
-            <DialogTitle>Añadir Nuevo Alimento</DialogTitle>
-            <DialogDescription>
-              Completa el formulario simplificado para añadir este alimento.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex-1 overflow-y-auto styled-scrollbar-green px-6 pb-6">
-            <SimplifiedFoodForm
-              onFoodActionComplete={handleFoodCreated}
-              isClientRequest={true}
-              userId={userId || user?.id}
-              foodToCreate={foodToCreate}
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
+      </FoodLookupPanel>
+      <CreateFoodInlineDialog
+        open={isCreateFoodOpen}
+        onOpenChange={setIsCreateFoodOpen}
+        userId={userId || user?.id}
+        foodToCreate={foodToCreate}
+        onFoodCreated={handleFoodCreated}
+        description="Completa el formulario simplificado para añadir este alimento."
+      />
     </div>
   );
 };

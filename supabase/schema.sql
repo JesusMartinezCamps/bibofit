@@ -1003,46 +1003,40 @@ CREATE OR REPLACE FUNCTION "public"."delete_food_with_dependencies"("p_food_id" 
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
     AS $$
-BEGIN
-    -- Check if user is admin
-    IF NOT is_admin() THEN
-        RAISE EXCEPTION 'Only admins can delete food items.';
-    END IF;
+begin
+  if not is_admin() then
+    raise exception 'Only admins can delete food items.';
+  end if;
 
-    -- Delete dependencies in related tables
-    DELETE FROM food_to_food_groups WHERE food_id = p_food_id;
-    DELETE FROM food_to_macro_roles WHERE food_id = p_food_id;
-    DELETE FROM food_to_seasons WHERE food_id = p_food_id;
-    DELETE FROM food_to_stores WHERE food_id = p_food_id;
-    DELETE FROM food_sensitivities WHERE food_id = p_food_id;
-    DELETE FROM food_medical_conditions WHERE food_id = p_food_id;
-    DELETE FROM food_antioxidants WHERE food_id = p_food_id;
-    DELETE FROM food_vitamins WHERE food_id = p_food_id;
-    DELETE FROM food_minerals WHERE food_id = p_food_id;
-    DELETE FROM food_aminograms WHERE food_id = p_food_id;
-    DELETE FROM food_aminogram_properties WHERE food_id = p_food_id;
-    DELETE FROM food_fats WHERE food_id = p_food_id;
-    DELETE FROM food_to_carb_subtypes WHERE food_id = p_food_id;
-    DELETE FROM food_carbs WHERE food_id = p_food_id;
-    DELETE FROM food_fat_classification WHERE food_id = p_food_id;
-    DELETE FROM food_carb_classification WHERE food_id = p_food_id;
-    DELETE FROM recipe_ingredients WHERE food_id = p_food_id;
-    DELETE FROM diet_plan_recipe_ingredients WHERE food_id = p_food_id;
-    DELETE FROM daily_ingredient_adjustments WHERE food_id = p_food_id;
-    DELETE FROM shopping_list_items WHERE food_id = p_food_id;
-    DELETE FROM snack_ingredients WHERE food_id = p_food_id;
-    DELETE FROM free_recipe_ingredients WHERE food_id = p_food_id;
-    DELETE FROM private_recipe_ingredients WHERE food_id = p_food_id;
-    DELETE FROM user_individual_food_restrictions WHERE food_id = p_food_id;
-    DELETE FROM preferred_foods WHERE food_id = p_food_id;
-    DELETE FROM non_preferred_foods WHERE food_id = p_food_id;
-    
-    -- Unlink from user_created_foods
-    UPDATE user_created_foods SET linked_food_id = NULL WHERE linked_food_id = p_food_id;
+  delete from food_to_food_groups where food_id = p_food_id;
+  delete from food_to_macro_roles where food_id = p_food_id;
+  delete from food_to_seasons where food_id = p_food_id;
+  delete from food_to_stores where food_id = p_food_id;
+  delete from food_sensitivities where food_id = p_food_id;
+  delete from food_medical_conditions where food_id = p_food_id;
+  delete from food_antioxidants where food_id = p_food_id;
+  delete from food_vitamins where food_id = p_food_id;
+  delete from food_minerals where food_id = p_food_id;
+  delete from food_aminograms where food_id = p_food_id;
+  delete from food_aminogram_properties where food_id = p_food_id;
+  delete from food_fats where food_id = p_food_id;
+  delete from food_to_carb_subtypes where food_id = p_food_id;
+  delete from food_carbs where food_id = p_food_id;
+  delete from food_fat_classification where food_id = p_food_id;
+  delete from food_carb_classification where food_id = p_food_id;
+  delete from recipe_ingredients where food_id = p_food_id;
+  delete from diet_plan_recipe_ingredients where food_id = p_food_id;
+  delete from daily_ingredient_adjustments where food_id = p_food_id;
+  delete from shopping_list_items where food_id = p_food_id;
+  delete from snack_ingredients where food_id = p_food_id;
+  delete from free_recipe_ingredients where food_id = p_food_id;
+  delete from private_recipe_ingredients where food_id = p_food_id;
+  delete from user_individual_food_restrictions where food_id = p_food_id;
+  delete from preferred_foods where food_id = p_food_id;
+  delete from non_preferred_foods where food_id = p_food_id;
 
-    -- Finally, delete the food item itself
-    DELETE FROM food WHERE id = p_food_id;
-END;
+  delete from food where id = p_food_id;
+end;
 $$;
 
 
@@ -1214,97 +1208,72 @@ CREATE OR REPLACE FUNCTION "public"."delete_user_complete"("p_user_id" "uuid") R
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
     AS $$
-DECLARE
-    plan_record RECORD;
-BEGIN
-    -- Check if the caller is an admin
-    IF NOT is_admin() THEN
-        RAISE EXCEPTION 'Only admins can delete users.';
-    END IF;
+declare
+  plan_record record;
+  food_record record;
+begin
+  if not is_admin() then
+    raise exception 'Only admins can delete users.';
+  end if;
 
-    -- 1. CRITICAL DEPENDENCIES: Equivalence Adjustments
-    -- These link to profiles and other core tables. Must go first.
-    
-    -- Delete daily_ingredient_adjustments linked to user's equivalence adjustments
-    DELETE FROM daily_ingredient_adjustments
-    WHERE equivalence_adjustment_id IN (
-        SELECT id FROM equivalence_adjustments WHERE user_id = p_user_id
-    );
+  delete from daily_ingredient_adjustments
+  where equivalence_adjustment_id in (
+    select id from equivalence_adjustments where user_id = p_user_id
+  );
 
-    -- Delete equivalence_adjustments
-    DELETE FROM equivalence_adjustments WHERE user_id = p_user_id;
+  delete from equivalence_adjustments where user_id = p_user_id;
 
-    -- 2. Diet Plans and their deep dependencies
-    -- We use the helper function for each plan to ensure clean removal of recipes, ingredients, etc.
-    FOR plan_record IN SELECT id FROM diet_plans WHERE user_id = p_user_id LOOP
-        PERFORM delete_diet_plan_with_dependencies(plan_record.id);
-    END LOOP;
+  for plan_record in select id from diet_plans where user_id = p_user_id loop
+    perform delete_diet_plan_with_dependencies(plan_record.id);
+  end loop;
 
-    -- 3. Logs, Snapshots, and History
-    DELETE FROM daily_meal_logs WHERE user_id = p_user_id;
-    DELETE FROM daily_snack_logs WHERE user_id = p_user_id;
-    DELETE FROM daily_plan_snapshots WHERE user_id = p_user_id;
-    DELETE FROM plan_adherence_logs WHERE user_id = p_user_id;
-    DELETE FROM planned_meals WHERE user_id = p_user_id;
-    DELETE FROM diet_change_requests WHERE user_id = p_user_id;
+  delete from daily_meal_logs where user_id = p_user_id;
+  delete from daily_snack_logs where user_id = p_user_id;
+  delete from daily_plan_snapshots where user_id = p_user_id;
+  delete from plan_adherence_logs where user_id = p_user_id;
+  delete from planned_meals where user_id = p_user_id;
+  delete from diet_change_requests where user_id = p_user_id;
 
-    -- 4. Independent Recipes, Snacks, and Foods
-    -- Free Recipes
-    DELETE FROM free_recipe_occurrences WHERE user_id = p_user_id;
-    DELETE FROM free_recipe_ingredients WHERE free_recipe_id IN (SELECT id FROM free_recipes WHERE user_id = p_user_id);
-    DELETE FROM free_recipes WHERE user_id = p_user_id;
+  delete from free_recipe_occurrences where user_id = p_user_id;
+  delete from free_recipe_ingredients where free_recipe_id in (select id from free_recipes where user_id = p_user_id);
+  delete from free_recipes where user_id = p_user_id;
 
-    -- Private Recipes
-    DELETE FROM private_recipe_ingredients WHERE private_recipe_id IN (SELECT id FROM private_recipes WHERE user_id = p_user_id);
-    DELETE FROM private_recipes WHERE user_id = p_user_id;
+  delete from private_recipe_ingredients where private_recipe_id in (select id from private_recipes where user_id = p_user_id);
+  delete from private_recipes where user_id = p_user_id;
 
-    -- Snacks
-    DELETE FROM snack_occurrences WHERE user_id = p_user_id;
-    DELETE FROM snack_ingredients WHERE snack_id IN (SELECT id FROM snacks WHERE user_id = p_user_id);
-    DELETE FROM snacks WHERE user_id = p_user_id;
+  delete from snack_occurrences where user_id = p_user_id;
+  delete from snack_ingredients where snack_id in (select id from snacks where user_id = p_user_id);
+  delete from snacks where user_id = p_user_id;
 
-    -- User Created Foods
-    DELETE FROM user_created_food_vitamins WHERE user_created_food_id IN (SELECT id FROM user_created_foods WHERE user_id = p_user_id);
-    DELETE FROM user_created_food_minerals WHERE user_created_food_id IN (SELECT id FROM user_created_foods WHERE user_id = p_user_id);
-    DELETE FROM user_created_food_sensitivities WHERE user_created_food_id IN (SELECT id FROM user_created_foods WHERE user_id = p_user_id);
-    DELETE FROM user_created_food_to_food_groups WHERE user_created_food_id IN (SELECT id FROM user_created_foods WHERE user_id = p_user_id);
-    DELETE FROM user_created_foods WHERE user_id = p_user_id;
+  for food_record in select id from food where user_id = p_user_id loop
+    perform delete_food_with_dependencies(food_record.id);
+  end loop;
 
-    -- 5. User Preferences and Settings
-    DELETE FROM user_day_meals WHERE user_id = p_user_id; -- Links to day_meals
-    DELETE FROM shopping_list_items WHERE user_id = p_user_id;
-    DELETE FROM private_shopping_list_items WHERE user_id = p_user_id;
-    DELETE FROM weight_logs WHERE user_id = p_user_id;
-    DELETE FROM diet_preferences WHERE user_id = p_user_id;
-    DELETE FROM training_preferences WHERE user_id = p_user_id;
-    DELETE FROM user_individual_food_restrictions WHERE user_id = p_user_id;
-    DELETE FROM user_medical_conditions WHERE user_id = p_user_id;
-    DELETE FROM user_sensitivities WHERE user_id = p_user_id;
-    DELETE FROM preferred_foods WHERE user_id = p_user_id;
-    DELETE FROM non_preferred_foods WHERE user_id = p_user_id;
-    DELETE FROM user_utilities WHERE user_id = p_user_id;
-    DELETE FROM user_notifications WHERE user_id = p_user_id;
-    DELETE FROM advisories WHERE user_id = p_user_id;
-    DELETE FROM reminders WHERE user_id = p_user_id;
+  delete from user_day_meals where user_id = p_user_id;
+  delete from shopping_list_items where user_id = p_user_id;
+  delete from private_shopping_list_items where user_id = p_user_id;
+  delete from weight_logs where user_id = p_user_id;
+  delete from diet_preferences where user_id = p_user_id;
+  delete from training_preferences where user_id = p_user_id;
+  delete from user_individual_food_restrictions where user_id = p_user_id;
+  delete from user_medical_conditions where user_id = p_user_id;
+  delete from user_sensitivities where user_id = p_user_id;
+  delete from preferred_foods where user_id = p_user_id;
+  delete from non_preferred_foods where user_id = p_user_id;
+  delete from user_utilities where user_id = p_user_id;
+  delete from user_notifications where user_id = p_user_id;
+  delete from advisories where user_id = p_user_id;
+  delete from reminders where user_id = p_user_id;
 
-    -- 6. Relationships and Roles
-    DELETE FROM coach_clients WHERE client_id = p_user_id OR coach_id = p_user_id;
-    DELETE FROM user_centers WHERE user_id = p_user_id;
-    DELETE FROM user_roles WHERE user_id = p_user_id;
-    
-    -- Clean up references where user might be an admin/creator but not the owner of the record
-    UPDATE diet_plan_centers SET assigned_by = NULL WHERE assigned_by = p_user_id;
+  delete from coach_clients where client_id = p_user_id or coach_id = p_user_id;
+  delete from user_centers where user_id = p_user_id;
+  delete from user_roles where user_id = p_user_id;
 
-    -- 7. Profile
-    DELETE FROM profiles WHERE user_id = p_user_id;
+  update diet_plan_centers set assigned_by = null where assigned_by = p_user_id;
 
-    -- 8. Auth User
-    DELETE FROM auth.users WHERE id = p_user_id;
-
-EXCEPTION
-    WHEN OTHERS THEN
-        RAISE EXCEPTION 'Error deleting user: %', SQLERRM;
-END;
+  delete from profiles where user_id = p_user_id;
+  delete from auth.users where id = p_user_id;
+end;
 $$;
 
 
@@ -1349,193 +1318,82 @@ CREATE OR REPLACE FUNCTION "public"."get_plan_items"("p_user_id" "uuid", "p_plan
     LANGUAGE "plpgsql"
     SET "search_path" TO 'public'
     AS $$
-DECLARE
-    result jsonb;
-BEGIN
-    SELECT jsonb_build_object(
-        'planRecipes', (
-            SELECT COALESCE(jsonb_agg(dpr_agg), '[]'::jsonb)
-            FROM (
-                SELECT 
-                    dpr.*,
-                    r.name as recipe_name,
-                    r.instructions as recipe_instructions,
-                    r.prep_time_min as recipe_prep_time_min,
-                    r.difficulty as recipe_difficulty,
-                    (
-                        SELECT jsonb_agg(jsonb_build_object('food_id', ri.food_id, 'grams', ri.grams))
-                        FROM recipe_ingredients ri WHERE ri.recipe_id = dpr.recipe_id
-                    ) as recipe_ingredients,
-                    dm.name as day_meal_name
-                FROM diet_plan_recipes dpr
-                JOIN recipes r ON dpr.recipe_id = r.id
-                JOIN day_meals dm ON dpr.day_meal_id = dm.id
-                WHERE dpr.diet_plan_id = p_plan_id
-            ) dpr_agg
-        ),
-        'privateRecipes', (
-            SELECT COALESCE(jsonb_agg(pr_agg), '[]'::jsonb)
-            FROM (
-                SELECT pr.*
-                FROM private_recipes pr
-                WHERE pr.user_id = p_user_id AND pr.diet_plan_id = p_plan_id
-            ) pr_agg
-        ),
-        'freeMeals', (
-             SELECT COALESCE(jsonb_agg(fm_agg), '[]'::jsonb)
-             FROM (
-                SELECT 
-                    fro.*,
-                    fr.name,
-                    fr.instructions,
-                    fr.prep_time_min,
-                    fr.difficulty,
-                    fr.day_meal_id,
-                    (
-                        SELECT jsonb_agg(jsonb_build_object(
-                            'food_id', fri.food_id, 
-                            'user_created_food_id', fri.user_created_food_id,
-                            'grams', fri.grams
-                        ))
-                        FROM free_recipe_ingredients fri
-                        WHERE fri.free_recipe_id = fr.id
-                    ) as free_recipe_ingredients,
-                    fro.id as occurrence_id
-                FROM free_recipe_occurrences fro
-                JOIN free_recipes fr ON fro.free_recipe_id = fr.id
-                WHERE fro.user_id = p_user_id 
-                  AND (fr.diet_plan_id = p_plan_id OR fr.diet_plan_id IS NULL)
-                  AND fro.meal_date BETWEEN p_start_date AND p_end_date
-            ) fm_agg
-        ),
-        'mealLogs', (
-            SELECT COALESCE(jsonb_agg(dml), '[]'::jsonb) FROM daily_meal_logs dml
-            WHERE dml.user_id = p_user_id AND dml.log_date BETWEEN p_start_date AND p_end_date
-        ),
-        'userDayMeals', (
-            SELECT COALESCE(jsonb_agg(udm_agg), '[]'::jsonb)
-            FROM (
-                SELECT udm.*, dm.name as day_meal_name, dm.display_order 
-                FROM user_day_meals udm
-                JOIN day_meals dm ON udm.day_meal_id = dm.id
-                WHERE udm.user_id = p_user_id
-                ORDER BY dm.display_order
-            ) udm_agg
-        ),
-        'adjustments', (
-            SELECT COALESCE(jsonb_agg(ea), '[]'::jsonb) FROM equivalence_adjustments ea
-            WHERE ea.user_id = p_user_id AND ea.log_date BETWEEN p_start_date AND p_end_date
-        ),
-        'userRestrictions', (
-            SELECT get_user_restrictions(p_user_id)
-        ),
-        'snacks', (
-            SELECT COALESCE(jsonb_agg(s_agg), '[]'::jsonb)
-            FROM (
-                SELECT 
-                    so.*,
-                    s.name,
-                    s.id as snack_id,
-                    so.id as occurrence_id,
-                    (SELECT jsonb_agg(si) FROM snack_ingredients si WHERE si.snack_id = so.snack_id) as snack_ingredients
-                FROM snack_occurrences so
-                JOIN snacks s ON so.snack_id = s.id
-                WHERE so.user_id = p_user_id AND so.meal_date BETWEEN p_start_date AND p_end_date
-            ) s_agg
-        ),
-        'snackLogs', (
-            SELECT COALESCE(jsonb_agg(dsl), '[]'::jsonb) FROM daily_snack_logs dsl
-            WHERE dsl.user_id = p_user_id AND dsl.log_date BETWEEN p_start_date AND p_end_date
-        ),
-        'dailyIngredientAdjustments', (
-             SELECT COALESCE(jsonb_agg(dia_agg), '[]'::jsonb)
-             FROM (
-                SELECT dia.*, ea.log_date, ea.target_user_day_meal_id
-                FROM daily_ingredient_adjustments dia
-                JOIN equivalence_adjustments ea ON dia.equivalence_adjustment_id = ea.id
-                WHERE ea.user_id = p_user_id AND ea.log_date BETWEEN p_start_date AND p_end_date
-             ) dia_agg
-        ),
-        'equivalenceAdjustments', (
-            SELECT COALESCE(jsonb_agg(ea), '[]'::jsonb) FROM equivalence_adjustments ea
-            WHERE ea.user_id = p_user_id AND ea.log_date BETWEEN p_start_date AND p_end_date
-        ),
-        'allAvailableFoods', (
-            SELECT COALESCE(jsonb_agg(all_foods), '[]'::jsonb)
-            FROM (
-                SELECT
-                    f.id,
-                    f.name,
-                    f.food_type,
-                    f.food_unit,
-                    f.user_id,
-                    f.proteins,
-                    f.protein_source_id,
-                    f.total_carbs,
-                    f.total_fats,
-                    f.food_url,
-                    f.status,
-                    f.grams_per_unit,
-                    false as is_user_created,
-                    COALESCE((
-                        SELECT jsonb_agg(fs) 
-                        FROM food_sensitivities fs 
-                        WHERE fs.food_id = f.id
-                    ), '[]'::jsonb) as food_sensitivities,
-                    COALESCE((
-                        SELECT jsonb_agg(fmc) 
-                        FROM food_medical_conditions fmc 
-                        WHERE fmc.food_id = f.id
-                    ), '[]'::jsonb) as food_medical_conditions
-                FROM food f
-            ) all_foods
-        ),
-        'plannedMeals', (
-            SELECT COALESCE(jsonb_agg(pm_details), '[]'::jsonb)
-            FROM (
-                SELECT 
-                    pm.id,
-                    pm.user_id,
-                    pm.diet_plan_id,
-                    pm.diet_plan_recipe_id,
-                    pm.private_recipe_id,
-                    pm.free_recipe_id,
-                    pm.day_meal_id,
-                    pm.plan_date,
-                    pm.created_at,
-                    (CASE 
-                        WHEN pm.diet_plan_recipe_id IS NOT NULL THEN 
-                            (SELECT to_jsonb(dpr) || jsonb_build_object(
-                                'recipe', (SELECT to_jsonb(r) || jsonb_build_object(
-                                    'recipe_ingredients', (SELECT jsonb_agg(ri) FROM recipe_ingredients ri WHERE ri.recipe_id = r.id)
-                                ) FROM recipes r WHERE r.id = dpr.recipe_id),
-                                'custom_ingredients', (SELECT jsonb_agg(dpri) FROM diet_plan_recipe_ingredients dpri WHERE dpri.diet_plan_recipe_id = dpr.id)
-                            ) FROM diet_plan_recipes dpr WHERE dpr.id = pm.diet_plan_recipe_id)
-                        ELSE NULL
-                    END) AS diet_plan_recipe,
-                    (CASE 
-                        WHEN pm.private_recipe_id IS NOT NULL THEN 
-                            (SELECT to_jsonb(pr) || jsonb_build_object(
-                                'private_recipe_ingredients', (SELECT jsonb_agg(pri) FROM private_recipe_ingredients pri WHERE pri.private_recipe_id = pr.id)
-                            ) FROM private_recipes pr WHERE pr.id = pm.private_recipe_id)
-                        ELSE NULL
-                    END) AS private_recipe,
-                    (CASE 
-                        WHEN pm.free_recipe_id IS NOT NULL THEN 
-                             (SELECT to_jsonb(fr) || jsonb_build_object(
-                                'free_recipe_ingredients', (SELECT jsonb_agg(fri) FROM free_recipe_ingredients fri WHERE fri.free_recipe_id = fr.id)
-                            ) FROM free_recipes fr WHERE fr.id = pm.free_recipe_id)
-                        ELSE NULL
-                    END) AS free_recipe
-                FROM planned_meals pm
-                WHERE pm.user_id = p_user_id 
-                AND pm.plan_date BETWEEN p_start_date AND p_end_date
-            ) pm_details
-        )
-    ) INTO result;
+declare
+  result jsonb;
+begin
+  select jsonb_build_object(
+    'planRecipes', (
+      select coalesce(jsonb_agg(dpr_agg), '[]'::jsonb)
+      from (
+        select
+          dpr.*,
+          r.name as recipe_name,
+          r.instructions as recipe_instructions,
+          r.prep_time_min as recipe_prep_time_min,
+          r.difficulty as recipe_difficulty,
+          (
+            select jsonb_agg(jsonb_build_object('food_id', ri.food_id, 'grams', ri.grams))
+            from recipe_ingredients ri where ri.recipe_id = dpr.recipe_id
+          ) as recipe_ingredients,
+          dm.name as day_meal_name
+        from diet_plan_recipes dpr
+        join recipes r on dpr.recipe_id = r.id
+        join day_meals dm on dpr.day_meal_id = dm.id
+        where dpr.diet_plan_id = p_plan_id
+      ) dpr_agg
+    ),
+    'privateRecipes', (
+      select coalesce(jsonb_agg(pr_agg), '[]'::jsonb)
+      from (
+        select pr.*
+        from private_recipes pr
+        where pr.user_id = p_user_id and pr.diet_plan_id = p_plan_id
+      ) pr_agg
+    ),
+    'freeMeals', (
+      select coalesce(jsonb_agg(fm_agg), '[]'::jsonb)
+      from (
+        select
+          fro.*,
+          fr.name,
+          fr.instructions,
+          fr.prep_time_min,
+          fr.difficulty,
+          fr.day_meal_id,
+          (
+            select jsonb_agg(jsonb_build_object(
+              'food_id', fri.food_id,
+              'grams', fri.grams
+            ))
+            from free_recipe_ingredients fri
+            where fri.free_recipe_id = fr.id
+          ) as free_recipe_ingredients,
+          fro.id as occurrence_id
+        from free_recipe_occurrences fro
+        join free_recipes fr on fro.free_recipe_id = fr.id
+        where fro.user_id = p_user_id
+          and (fr.diet_plan_id = p_plan_id or fr.diet_plan_id is null)
+          and fro.meal_date between p_start_date and p_end_date
+      ) fm_agg
+    ),
+    'mealLogs', (
+      select coalesce(jsonb_agg(dml), '[]'::jsonb) from daily_meal_logs dml
+      where dml.user_id = p_user_id and dml.log_date between p_start_date and p_end_date
+    ),
+    'userDayMeals', (
+      select coalesce(jsonb_agg(udm_agg), '[]'::jsonb)
+      from (
+        select udm.*, dm.name as day_meal_name, dm.display_order
+        from user_day_meals udm
+        join day_meals dm on udm.day_meal_id = dm.id
+        where udm.user_id = p_user_id
+        order by dm.display_order
+      ) udm_agg
+    )
+  ) into result;
 
-    RETURN result;
-END;
+  return result;
+end;
 $$;
 
 
@@ -1667,25 +1525,20 @@ CREATE OR REPLACE FUNCTION "public"."get_users_with_pending_foods_count"() RETUR
     LANGUAGE "plpgsql"
     SET "search_path" TO 'public'
     AS $$
-BEGIN
-  RETURN QUERY
-  SELECT
+begin
+  return query
+  select
     p.user_id,
     p.full_name,
-    COUNT(ucf.id)::integer AS pending_count
-  FROM
-    public.user_created_foods ucf
-  JOIN
-    public.profiles p ON ucf.user_id = p.user_id
-  WHERE
-    ucf.status = 'pending'
-  GROUP BY
-    p.user_id, p.full_name
-  HAVING
-    COUNT(ucf.id) > 0
-  ORDER BY
-    p.full_name;
-END;
+    count(f.id)::integer as pending_count
+  from public.food f
+  join public.profiles p on f.user_id = p.user_id
+  where f.status = 'pending'
+    and f.user_id is not null
+  group by p.user_id, p.full_name
+  having count(f.id) > 0
+  order by p.full_name;
+end;
 $$;
 
 
@@ -1963,35 +1816,31 @@ CREATE OR REPLACE FUNCTION "public"."update_free_recipe"("p_recipe_id" bigint, "
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
     AS $$
-    DECLARE
-        ingredient_record jsonb;
-    BEGIN
-        -- 1. Update the free_recipes table
-        UPDATE free_recipes
-        SET
-            name = p_name,
-            instructions = p_instructions,
-            prep_time_min = p_prep_time_min,
-            difficulty = p_difficulty
-        WHERE id = p_recipe_id;
+declare
+  ingredient_record jsonb;
+begin
+  update free_recipes
+  set
+    name = p_name,
+    instructions = p_instructions,
+    prep_time_min = p_prep_time_min,
+    difficulty = p_difficulty
+  where id = p_recipe_id;
 
-        -- 2. Delete existing ingredients for this free recipe
-        DELETE FROM free_recipe_ingredients
-        WHERE free_recipe_id = p_recipe_id;
+  delete from free_recipe_ingredients
+  where free_recipe_id = p_recipe_id;
 
-        -- 3. Insert the new ingredients
-        FOR ingredient_record IN SELECT * FROM jsonb_array_elements(p_ingredients)
-        LOOP
-            INSERT INTO free_recipe_ingredients (free_recipe_id, food_id, user_created_food_id, grams, status)
-            VALUES (
-                p_recipe_id,
-                (ingredient_record->>'food_id')::bigint,
-                (ingredient_record->>'user_created_food_id')::bigint,
-                (ingredient_record->>'grams')::numeric,
-                'approved'
-            );
-        END LOOP;
-    END;
+  for ingredient_record in select * from jsonb_array_elements(p_ingredients)
+  loop
+    insert into free_recipe_ingredients (free_recipe_id, food_id, grams, status)
+    values (
+      p_recipe_id,
+      (ingredient_record->>'food_id')::bigint,
+      (ingredient_record->>'grams')::numeric,
+      'approved'
+    );
+  end loop;
+end;
 $$;
 
 
@@ -2882,7 +2731,16 @@ CREATE TABLE IF NOT EXISTS "public"."food" (
     "total_fats" numeric,
     "food_url" "text",
     "status" character varying(50),
-    "grams_per_unit" numeric
+    "grams_per_unit" numeric,
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    "updated_at" timestamp with time zone DEFAULT "now"(),
+    "visibility" "text" DEFAULT 'global'::"text",
+    "moderation_status" "text" DEFAULT 'approved'::"text",
+    "approved_by" "uuid",
+    "approved_at" timestamp with time zone,
+    "rejected_at" timestamp with time zone,
+    "rejection_reason" "text",
+    "source_user_created_food_id" bigint
 );
 
 
@@ -3213,8 +3071,7 @@ CREATE TABLE IF NOT EXISTS "public"."free_recipe_ingredients" (
     "food_id" bigint,
     "grams" numeric NOT NULL,
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "status" "text" DEFAULT 'linked'::"text" NOT NULL,
-    "user_created_food_id" bigint
+    "status" "text" DEFAULT 'linked'::"text" NOT NULL
 );
 
 
@@ -3990,8 +3847,7 @@ CREATE TABLE IF NOT EXISTS "public"."snack_ingredients" (
     "food_id" bigint,
     "grams" numeric NOT NULL,
     "status" "text" DEFAULT 'pending'::"text" NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "user_created_food_id" bigint
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
 );
 
 
@@ -4110,92 +3966,6 @@ CREATE TABLE IF NOT EXISTS "public"."user_centers" (
 
 
 ALTER TABLE "public"."user_centers" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."user_created_food_minerals" (
-    "user_created_food_id" bigint NOT NULL,
-    "mineral_id" bigint NOT NULL,
-    "mg_per_100g" numeric NOT NULL
-);
-
-
-ALTER TABLE "public"."user_created_food_minerals" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."user_created_food_sensitivities" (
-    "user_created_food_id" bigint NOT NULL,
-    "sensitivity_id" bigint NOT NULL
-);
-
-
-ALTER TABLE "public"."user_created_food_sensitivities" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."user_created_food_to_food_groups" (
-    "user_created_food_id" bigint NOT NULL,
-    "food_group_id" bigint NOT NULL
-);
-
-
-ALTER TABLE "public"."user_created_food_to_food_groups" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."user_created_food_vitamins" (
-    "user_created_food_id" bigint NOT NULL,
-    "vitamin_id" bigint NOT NULL,
-    "mg_per_100g" numeric NOT NULL
-);
-
-
-ALTER TABLE "public"."user_created_food_vitamins" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."user_created_foods" (
-    "id" bigint NOT NULL,
-    "user_id" "uuid" NOT NULL,
-    "name" "text" NOT NULL,
-    "proteins" numeric,
-    "food_unit" "text" DEFAULT 'gramos'::"text",
-    "created_at" timestamp with time zone DEFAULT "now"(),
-    "status" "text" DEFAULT 'pending'::"text" NOT NULL,
-    "season_id" bigint,
-    "selected_season_id" bigint,
-    "linked_food_id" bigint,
-    "old_fats_omega3" numeric,
-    "old_fats_omega6" numeric,
-    "fibers_soluble" numeric,
-    "fibers_insoluble" numeric,
-    "aminogram" "jsonb",
-    "antioxidants" "jsonb",
-    "sodium_mg" numeric,
-    "store" "text",
-    "antioxidant" boolean,
-    "total_carbs" numeric,
-    "total_fats" numeric,
-    "saturadas" numeric,
-    "monoinsaturadas" numeric,
-    "poliinsaturadas" numeric,
-    "sugars" numeric,
-    "fiber" numeric,
-    "store_id" bigint,
-    "food_url" "text",
-    "state" character varying(50),
-    CONSTRAINT "user_created_foods_status_check" CHECK (("status" = ANY (ARRAY['pending'::"text", 'approved_general'::"text", 'approved_private'::"text", 'rejected'::"text"])))
-);
-
-
-ALTER TABLE "public"."user_created_foods" OWNER TO "postgres";
-
-
-ALTER TABLE "public"."user_created_foods" ALTER COLUMN "id" ADD GENERATED ALWAYS AS IDENTITY (
-    SEQUENCE NAME "public"."user_created_foods_id_seq"
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1
-);
-
 
 
 CREATE TABLE IF NOT EXISTS "public"."user_day_meals" (
@@ -5160,31 +4930,6 @@ ALTER TABLE ONLY "public"."user_centers"
 
 
 
-ALTER TABLE ONLY "public"."user_created_food_minerals"
-    ADD CONSTRAINT "user_created_food_minerals_pkey" PRIMARY KEY ("user_created_food_id", "mineral_id");
-
-
-
-ALTER TABLE ONLY "public"."user_created_food_sensitivities"
-    ADD CONSTRAINT "user_created_food_sensitivities_pkey" PRIMARY KEY ("user_created_food_id", "sensitivity_id");
-
-
-
-ALTER TABLE ONLY "public"."user_created_food_to_food_groups"
-    ADD CONSTRAINT "user_created_food_to_food_groups_pkey" PRIMARY KEY ("user_created_food_id", "food_group_id");
-
-
-
-ALTER TABLE ONLY "public"."user_created_food_vitamins"
-    ADD CONSTRAINT "user_created_food_vitamins_pkey" PRIMARY KEY ("user_created_food_id", "vitamin_id");
-
-
-
-ALTER TABLE ONLY "public"."user_created_foods"
-    ADD CONSTRAINT "user_created_foods_pkey" PRIMARY KEY ("id");
-
-
-
 ALTER TABLE ONLY "public"."user_day_meals"
     ADD CONSTRAINT "user_day_meals_pkey" PRIMARY KEY ("id");
 
@@ -5265,6 +5010,14 @@ CREATE INDEX "idx_diet_plan_recipe_ingredients_food_id" ON "public"."diet_plan_r
 
 
 
+CREATE INDEX "idx_food_source_user_created_food_id" ON "public"."food" USING "btree" ("source_user_created_food_id");
+
+
+
+CREATE INDEX "idx_food_status" ON "public"."food" USING "btree" ("status");
+
+
+
 CREATE INDEX "idx_food_substitution_confidence" ON "public"."food_substitution_mappings" USING "btree" ("confidence_score" DESC);
 
 
@@ -5278,6 +5031,10 @@ CREATE UNIQUE INDEX "idx_food_substitution_source_target_context_key" ON "public
 
 
 CREATE INDEX "idx_food_substitution_target" ON "public"."food_substitution_mappings" USING "btree" ("target_food_id");
+
+
+
+CREATE INDEX "idx_food_user_id" ON "public"."food" USING "btree" ("user_id");
 
 
 
@@ -5670,11 +5427,6 @@ ALTER TABLE ONLY "public"."diet_plans"
 
 
 
-ALTER TABLE ONLY "public"."user_created_foods"
-    ADD CONSTRAINT "fk_user_created_foods_linked_food_id" FOREIGN KEY ("linked_food_id") REFERENCES "public"."food"("id") ON DELETE SET NULL;
-
-
-
 ALTER TABLE ONLY "public"."food_aminogram_properties"
     ADD CONSTRAINT "food_aminogram_properties_aminogram_id_fkey" FOREIGN KEY ("aminogram_id") REFERENCES "public"."aminograms"("id") ON DELETE CASCADE;
 
@@ -5872,11 +5624,6 @@ ALTER TABLE ONLY "public"."free_recipes"
 
 ALTER TABLE ONLY "public"."free_recipes"
     ADD CONSTRAINT "free_meals_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("user_id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."free_recipe_ingredients"
-    ADD CONSTRAINT "free_recipe_ingredients_user_created_food_id_fkey" FOREIGN KEY ("user_created_food_id") REFERENCES "public"."user_created_foods"("id") ON DELETE SET NULL;
 
 
 
@@ -6135,11 +5882,6 @@ ALTER TABLE ONLY "public"."snack_ingredients"
 
 
 
-ALTER TABLE ONLY "public"."snack_ingredients"
-    ADD CONSTRAINT "snack_ingredients_user_created_food_id_fkey" FOREIGN KEY ("user_created_food_id") REFERENCES "public"."user_created_foods"("id") ON DELETE SET NULL;
-
-
-
 ALTER TABLE ONLY "public"."snack_occurrences"
     ADD CONSTRAINT "snack_occurrences_day_meal_id_fkey" FOREIGN KEY ("day_meal_id") REFERENCES "public"."day_meals"("id") ON DELETE CASCADE;
 
@@ -6177,66 +5919,6 @@ ALTER TABLE ONLY "public"."user_centers"
 
 ALTER TABLE ONLY "public"."user_centers"
     ADD CONSTRAINT "user_centers_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("user_id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."user_created_food_minerals"
-    ADD CONSTRAINT "user_created_food_minerals_mineral_id_fkey" FOREIGN KEY ("mineral_id") REFERENCES "public"."minerals"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."user_created_food_minerals"
-    ADD CONSTRAINT "user_created_food_minerals_user_created_food_id_fkey" FOREIGN KEY ("user_created_food_id") REFERENCES "public"."user_created_foods"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."user_created_food_sensitivities"
-    ADD CONSTRAINT "user_created_food_sensitivities_sensitivity_id_fkey" FOREIGN KEY ("sensitivity_id") REFERENCES "public"."sensitivities"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."user_created_food_sensitivities"
-    ADD CONSTRAINT "user_created_food_sensitivities_user_created_food_id_fkey" FOREIGN KEY ("user_created_food_id") REFERENCES "public"."user_created_foods"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."user_created_food_to_food_groups"
-    ADD CONSTRAINT "user_created_food_to_food_groups_food_group_id_fkey" FOREIGN KEY ("food_group_id") REFERENCES "public"."food_groups"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."user_created_food_to_food_groups"
-    ADD CONSTRAINT "user_created_food_to_food_groups_food_id_fkey" FOREIGN KEY ("user_created_food_id") REFERENCES "public"."user_created_foods"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."user_created_food_vitamins"
-    ADD CONSTRAINT "user_created_food_vitamins_user_created_food_id_fkey" FOREIGN KEY ("user_created_food_id") REFERENCES "public"."user_created_foods"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."user_created_food_vitamins"
-    ADD CONSTRAINT "user_created_food_vitamins_vitamin_id_fkey" FOREIGN KEY ("vitamin_id") REFERENCES "public"."vitamins"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."user_created_foods"
-    ADD CONSTRAINT "user_created_foods_season_id_fkey" FOREIGN KEY ("season_id") REFERENCES "public"."season"("id");
-
-
-
-ALTER TABLE ONLY "public"."user_created_foods"
-    ADD CONSTRAINT "user_created_foods_selected_season_id_fkey" FOREIGN KEY ("selected_season_id") REFERENCES "public"."season"("id");
-
-
-
-ALTER TABLE ONLY "public"."user_created_foods"
-    ADD CONSTRAINT "user_created_foods_store_id_fkey" FOREIGN KEY ("store_id") REFERENCES "public"."stores"("id");
-
-
-
-ALTER TABLE ONLY "public"."user_created_foods"
-    ADD CONSTRAINT "user_created_foods_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("user_id") ON DELETE CASCADE;
 
 
 
@@ -6498,10 +6180,6 @@ CREATE POLICY "Allow admin full access" ON "public"."shopping_list_items" USING 
 
 
 
-CREATE POLICY "Allow admin full access" ON "public"."user_created_food_sensitivities" USING ("public"."is_admin"());
-
-
-
 CREATE POLICY "Allow admin full access on activity_levels" ON "public"."activity_levels" USING ((EXISTS ( SELECT 1
    FROM ("public"."user_roles" "ur"
      JOIN "public"."roles" "r" ON (("ur"."role_id" = "r"."id")))
@@ -6744,14 +6422,6 @@ CREATE POLICY "Allow admin full access on user_centers" ON "public"."user_center
 
 
 
-CREATE POLICY "Allow admin full access on user_created_food_minerals" ON "public"."user_created_food_minerals" USING ("public"."is_admin"());
-
-
-
-CREATE POLICY "Allow admin full access on user_created_food_vitamins" ON "public"."user_created_food_vitamins" USING ("public"."is_admin"());
-
-
-
 CREATE POLICY "Allow admin full access on user_day_meals" ON "public"."user_day_meals" USING ((EXISTS ( SELECT 1
    FROM ("public"."user_roles" "ur"
      JOIN "public"."roles" "r" ON (("ur"."role_id" = "r"."id")))
@@ -6785,13 +6455,6 @@ CREATE POLICY "Allow admin full access to preferred foods" ON "public"."preferre
 
 
 CREATE POLICY "Allow admin full access to training preferences" ON "public"."training_preferences" USING ("public"."is_admin"()) WITH CHECK ("public"."is_admin"());
-
-
-
-CREATE POLICY "Allow admin full access to user created foods" ON "public"."user_created_foods" USING ((EXISTS ( SELECT 1
-   FROM ("public"."user_roles" "ur"
-     JOIN "public"."roles" "r" ON (("ur"."role_id" = "r"."id")))
-  WHERE (("ur"."user_id" = "auth"."uid"()) AND ("r"."role" = 'admin'::"text")))));
 
 
 
@@ -7140,6 +6803,10 @@ CREATE POLICY "Allow users to delete macros for their own plans" ON "public"."re
 
 
 
+CREATE POLICY "Allow users to delete own foods" ON "public"."food" FOR DELETE TO "authenticated" USING (("auth"."uid"() = "user_id"));
+
+
+
 CREATE POLICY "Allow users to delete recipes for their own plans" ON "public"."diet_plan_recipes" FOR DELETE USING ((EXISTS ( SELECT 1
    FROM "public"."diet_plans" "dp"
   WHERE (("dp"."id" = "diet_plan_recipes"."diet_plan_id") AND ("dp"."user_id" = "auth"."uid"())))));
@@ -7150,6 +6817,10 @@ CREATE POLICY "Allow users to insert macros for their own plans" ON "public"."re
    FROM ("public"."diet_plan_recipes" "dpr"
      JOIN "public"."diet_plans" "dp" ON (("dpr"."diet_plan_id" = "dp"."id")))
   WHERE (("dpr"."id" = "recipe_macros"."diet_plan_recipe_id") AND ("dp"."user_id" = "auth"."uid"())))));
+
+
+
+CREATE POLICY "Allow users to insert own foods" ON "public"."food" FOR INSERT TO "authenticated" WITH CHECK (("auth"."uid"() = "user_id"));
 
 
 
@@ -7165,33 +6836,13 @@ CREATE POLICY "Allow users to manage medical conditions for their own plans" ON 
 
 
 
-CREATE POLICY "Allow users to manage minerals for their own foods" ON "public"."user_created_food_minerals" USING (("auth"."uid"() = ( SELECT "user_created_foods"."user_id"
-   FROM "public"."user_created_foods"
-  WHERE ("user_created_foods"."id" = "user_created_food_minerals"."user_created_food_id")))) WITH CHECK (("auth"."uid"() = ( SELECT "user_created_foods"."user_id"
-   FROM "public"."user_created_foods"
-  WHERE ("user_created_foods"."id" = "user_created_food_minerals"."user_created_food_id"))));
-
-
-
 CREATE POLICY "Allow users to manage own sensitivities and admins full access" ON "public"."user_sensitivities" USING ((("auth"."uid"() = "user_id") OR "public"."is_admin"())) WITH CHECK ((("auth"."uid"() = "user_id") OR "public"."is_admin"()));
-
-
-
-CREATE POLICY "Allow users to manage sensitivities for their own foods" ON "public"."user_created_food_sensitivities" USING ((( SELECT "auth"."uid"() AS "uid") = ( SELECT "user_created_foods"."user_id"
-   FROM "public"."user_created_foods"
-  WHERE ("user_created_foods"."id" = "user_created_food_sensitivities"."user_created_food_id")))) WITH CHECK ((( SELECT "auth"."uid"() AS "uid") = ( SELECT "user_created_foods"."user_id"
-   FROM "public"."user_created_foods"
-  WHERE ("user_created_foods"."id" = "user_created_food_sensitivities"."user_created_food_id"))));
 
 
 
 CREATE POLICY "Allow users to manage sensitivities for their own plans" ON "public"."diet_plan_sensitivities" TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM "public"."diet_plans" "dp"
   WHERE (("dp"."id" = "diet_plan_sensitivities"."diet_plan_id") AND ("dp"."user_id" = "auth"."uid"())))));
-
-
-
-CREATE POLICY "Allow users to manage their own created foods" ON "public"."user_created_foods" TO "authenticated" USING (("auth"."uid"() = "user_id")) WITH CHECK (("auth"."uid"() = "user_id"));
 
 
 
@@ -7318,14 +6969,6 @@ CREATE POLICY "Allow users to manage their own weight logs" ON "public"."weight_
 
 
 
-CREATE POLICY "Allow users to manage vitamins for their own foods" ON "public"."user_created_food_vitamins" USING (("auth"."uid"() = ( SELECT "user_created_foods"."user_id"
-   FROM "public"."user_created_foods"
-  WHERE ("user_created_foods"."id" = "user_created_food_vitamins"."user_created_food_id")))) WITH CHECK (("auth"."uid"() = ( SELECT "user_created_foods"."user_id"
-   FROM "public"."user_created_foods"
-  WHERE ("user_created_foods"."id" = "user_created_food_vitamins"."user_created_food_id"))));
-
-
-
 CREATE POLICY "Allow users to see their own advisories" ON "public"."advisories" FOR SELECT USING (("auth"."uid"() = "user_id"));
 
 
@@ -7334,6 +6977,10 @@ CREATE POLICY "Allow users to update macros for their own plans" ON "public"."re
    FROM ("public"."diet_plan_recipes" "dpr"
      JOIN "public"."diet_plans" "dp" ON (("dpr"."diet_plan_id" = "dp"."id")))
   WHERE (("dpr"."id" = "recipe_macros"."diet_plan_recipe_id") AND ("dp"."user_id" = "auth"."uid"())))));
+
+
+
+CREATE POLICY "Allow users to update own foods" ON "public"."food" FOR UPDATE TO "authenticated" USING (("auth"."uid"() = "user_id")) WITH CHECK (("auth"."uid"() = "user_id"));
 
 
 
@@ -7687,12 +7334,6 @@ CREATE POLICY "Coaches can update their clients diet plans" ON "public"."diet_pl
 
 
 
-CREATE POLICY "Coaches can view client created foods" ON "public"."user_created_foods" FOR SELECT USING ((EXISTS ( SELECT 1
-   FROM "public"."coach_clients"
-  WHERE (("coach_clients"."coach_id" = "auth"."uid"()) AND ("coach_clients"."client_id" = "user_created_foods"."user_id")))));
-
-
-
 CREATE POLICY "Coaches can view client day meals" ON "public"."user_day_meals" FOR SELECT USING ((EXISTS ( SELECT 1
    FROM "public"."coach_clients"
   WHERE (("coach_clients"."coach_id" = "auth"."uid"()) AND ("coach_clients"."client_id" = "user_day_meals"."user_id")))));
@@ -7784,12 +7425,6 @@ CREATE POLICY "Coaches view templates" ON "public"."diet_plans" FOR SELECT USING
 
 
 
-CREATE POLICY "User can create linked food groups for own food" ON "public"."user_created_food_to_food_groups" FOR INSERT WITH CHECK (("auth"."uid"() = ( SELECT "user_created_foods"."user_id"
-   FROM "public"."user_created_foods"
-  WHERE ("user_created_foods"."id" = "user_created_food_to_food_groups"."user_created_food_id"))));
-
-
-
 CREATE POLICY "User or admin can delete conditions" ON "public"."user_medical_conditions" FOR DELETE TO "authenticated" USING ((("user_id" = "auth"."uid"()) OR (EXISTS ( SELECT 1
    FROM "public"."user_roles"
   WHERE (("user_roles"."user_id" = "auth"."uid"()) AND ("user_roles"."role_id" = 1))))));
@@ -7805,14 +7440,6 @@ CREATE POLICY "User or admin can insert conditions" ON "public"."user_medical_co
 CREATE POLICY "User or admin can update conditions" ON "public"."user_medical_conditions" FOR UPDATE TO "authenticated" USING ((("user_id" = "auth"."uid"()) OR (EXISTS ( SELECT 1
    FROM "public"."user_roles"
   WHERE (("user_roles"."user_id" = "auth"."uid"()) AND ("user_roles"."role_id" = 1))))));
-
-
-
-CREATE POLICY "User or admin can view linked food groups" ON "public"."user_created_food_to_food_groups" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
-   FROM "public"."user_created_foods" "f"
-  WHERE (("f"."id" = "user_created_food_to_food_groups"."user_created_food_id") AND (("f"."user_id" = "auth"."uid"()) OR (EXISTS ( SELECT 1
-           FROM "public"."user_roles" "ur"
-          WHERE (("ur"."user_id" = "auth"."uid"()) AND ("ur"."role_id" = 1)))))))));
 
 
 
@@ -8176,21 +7803,6 @@ ALTER TABLE "public"."training_preferences" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."user_centers" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."user_created_food_minerals" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."user_created_food_sensitivities" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."user_created_food_to_food_groups" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."user_created_food_vitamins" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."user_created_foods" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."user_day_meals" ENABLE ROW LEVEL SECURITY;
@@ -9421,42 +9033,6 @@ GRANT ALL ON TABLE "public"."training_preferences" TO "service_role";
 GRANT ALL ON TABLE "public"."user_centers" TO "anon";
 GRANT ALL ON TABLE "public"."user_centers" TO "authenticated";
 GRANT ALL ON TABLE "public"."user_centers" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."user_created_food_minerals" TO "anon";
-GRANT ALL ON TABLE "public"."user_created_food_minerals" TO "authenticated";
-GRANT ALL ON TABLE "public"."user_created_food_minerals" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."user_created_food_sensitivities" TO "anon";
-GRANT ALL ON TABLE "public"."user_created_food_sensitivities" TO "authenticated";
-GRANT ALL ON TABLE "public"."user_created_food_sensitivities" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."user_created_food_to_food_groups" TO "anon";
-GRANT ALL ON TABLE "public"."user_created_food_to_food_groups" TO "authenticated";
-GRANT ALL ON TABLE "public"."user_created_food_to_food_groups" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."user_created_food_vitamins" TO "anon";
-GRANT ALL ON TABLE "public"."user_created_food_vitamins" TO "authenticated";
-GRANT ALL ON TABLE "public"."user_created_food_vitamins" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."user_created_foods" TO "anon";
-GRANT ALL ON TABLE "public"."user_created_foods" TO "authenticated";
-GRANT ALL ON TABLE "public"."user_created_foods" TO "service_role";
-
-
-
-GRANT ALL ON SEQUENCE "public"."user_created_foods_id_seq" TO "anon";
-GRANT ALL ON SEQUENCE "public"."user_created_foods_id_seq" TO "authenticated";
-GRANT ALL ON SEQUENCE "public"."user_created_foods_id_seq" TO "service_role";
 
 
 
