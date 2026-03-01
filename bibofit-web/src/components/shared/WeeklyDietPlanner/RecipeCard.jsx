@@ -6,61 +6,9 @@ import ProteinIcon from '@/components/icons/ProteinIcon';
 import CarbsIcon from '@/components/icons/CarbsIcon';
 import FatsIcon from '@/components/icons/FatsIcon';
 import { cn } from '@/lib/utils';
-import { useToast } from '@/components/ui/use-toast';
 import { calculateMacros as calculateMacrosFromIngredients } from '@/lib/macroCalculator';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
-
-const normalizeText = (text) => {
-    return text
-        ? text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
-        : "";
-};
-
-const HighlightedText = ({ text, highlight }) => {
-    if (!highlight || !text || !highlight.trim()) return text;
-
-    const normalizedText = normalizeText(text);
-    const normalizedHighlight = normalizeText(highlight);
-    
-    if (!normalizedText.includes(normalizedHighlight)) return text;
-
-    if (normalizedText.length !== text.length) {
-         return text; 
-    }
-
-    const matchIndices = [];
-    let startIndex = 0;
-    let searchIndex = normalizedText.indexOf(normalizedHighlight, startIndex);
-
-    while (searchIndex !== -1) {
-        matchIndices.push({ start: searchIndex, end: searchIndex + normalizedHighlight.length });
-        startIndex = searchIndex + normalizedHighlight.length;
-        searchIndex = normalizedText.indexOf(normalizedHighlight, startIndex);
-    }
-
-    if (matchIndices.length === 0) return text;
-
-    const result = [];
-    let lastIndex = 0;
-
-    matchIndices.forEach((match, i) => {
-        if (match.start > lastIndex) {
-            result.push(<span key={`text-${i}`}>{text.substring(lastIndex, match.start)}</span>);
-        }
-        result.push(
-            <span key={`highlight-${i}`} className="bg-yellow-500/40 text-yellow-100 font-bold rounded px-0.5 shadow-[0_0_10px_rgba(234,179,8,0.2)]">
-                {text.substring(match.start, match.end)}
-            </span>
-        );
-        lastIndex = match.end;
-    });
-
-    if (lastIndex < text.length) {
-        result.push(<span key="text-end">{text.substring(lastIndex)}</span>);
-    }
-
-    return <>{result}</>;
-};
+import HighlightedText from '@/components/shared/HighlightedText';
 
 const RecipeCard = ({
   recipe,
@@ -77,8 +25,6 @@ const RecipeCard = ({
   hideQuantities = false,
   hideMacros = false
 }) => {
-  const { toast } = useToast();
-  
   const recipeName = useMemo(() => {
     if (!recipe) return "Receta Desconocida";
     if (recipe.is_private_recipe || recipe.type === 'private_recipe') {

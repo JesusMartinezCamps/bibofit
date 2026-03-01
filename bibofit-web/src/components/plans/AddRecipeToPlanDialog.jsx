@@ -11,6 +11,7 @@ import RecipeEditorModal from '@/components/shared/RecipeEditorModal/RecipeEdito
 import { useAuth } from '@/contexts/AuthContext';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from '@/lib/utils';
+import { normalizeText, getRecipeSearchScore } from '@/lib/textSearch';
 
 const RecipeGroup = ({ group, searchTerm, ...props }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -103,6 +104,18 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
     const [isRecipeViewOpen, setIsRecipeViewOpen] = useState(false);
 
     const isAdminView = user?.id !== userId;
+    const currentMealId = useMemo(
+        () => preselectedMeal?.day_meal?.id || preselectedMeal?.day_meal_id || preselectedMeal?.id || null,
+        [preselectedMeal]
+    );
+    const sensitivityById = useMemo(
+        () => new Map(allSensitivities.map(s => [s.id, s])),
+        [allSensitivities]
+    );
+    const conditionById = useMemo(
+        () => new Map(allConditions.map(c => [c.id, c])),
+        [allConditions]
+    );
 
     const fetchPlanRestrictions = useCallback(async () => {
         if (isTemplate) {
@@ -159,7 +172,6 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
 
         try {
             let recipesQuery, privateRecipesQuery;
-            const currentMealId = preselectedMeal?.day_meal?.id || preselectedMeal?.id;
 
             if (mode === 'plan_only') {
                  recipesQuery = supabase
@@ -229,7 +241,7 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
                         ing.food.food_sensitivities?.forEach(fs => {
                             if (planRestrictions.sensitivities.has(fs.sensitivity_id)) {
                                 if (!conflicts.sensitivities.find(s => s.id === fs.sensitivity_id)) {
-                                    const sensitivityDetails = allSensitivities.find(s => s.id === fs.sensitivity_id);
+                                    const sensitivityDetails = sensitivityById.get(fs.sensitivity_id);
                                     if(sensitivityDetails) conflicts.sensitivities.push(sensitivityDetails);
                                 }
                             }
@@ -237,7 +249,7 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
                         
                         ing.food.food_medical_conditions?.forEach(fmc => {
                             if (planRestrictions.conditions.has(fmc.condition_id)) {
-                                const conditionDetails = allConditions.find(c => c.id === fmc.condition_id);
+                                const conditionDetails = conditionById.get(fmc.condition_id);
                                 if (!conditionDetails) return;
                                 
                                 if (fmc.relation_type === 'evitar' || fmc.relation_type === 'to_avoid') {
@@ -259,7 +271,7 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
                      baseRecipe.recipe_sensitivities.forEach(rs => {
                         if (planRestrictions.sensitivities.has(rs.sensitivity_id)) {
                              if (!conflicts.sensitivities.find(s => s.id === rs.sensitivity_id)) {
-                                const sensitivityDetails = allSensitivities.find(s => s.id === rs.sensitivity_id);
+                                const sensitivityDetails = sensitivityById.get(rs.sensitivity_id);
                                 if(sensitivityDetails) conflicts.sensitivities.push(sensitivityDetails);
                             }
                         }
@@ -269,7 +281,7 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
                 if (!isPrivate && baseRecipe.recipe_medical_conditions) {
                      baseRecipe.recipe_medical_conditions.forEach(rmc => {
                         if (planRestrictions.conditions.has(rmc.condition_id)) {
-                            const conditionDetails = allConditions.find(c => c.id === rmc.condition_id);
+                            const conditionDetails = conditionById.get(rmc.condition_id);
                             if (conditionDetails) {
                                 // Assume recipe level conditions are "bad" unless specified otherwise, or treat as avoiding
                                 // Logic can be refined based on table structure for recipe_medical_conditions if it has relation_type
@@ -285,8 +297,11 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
                 if (isFromPlan && !isPrivate && recipe.is_customized && recipe.custom_name) {
                     recipeName = recipe.custom_name;
                 }
+                const recipeDifficulty = (isFromPlan && !isPrivate && recipe.is_customized && recipe.custom_difficulty)
+                    ? recipe.custom_difficulty
+                    : baseRecipe.difficulty;
 
-                const processed = { ...recipe, conflicts, recommendations, is_private: isPrivate, name: recipeName };
+                const processed = { ...recipe, conflicts, recommendations, is_private: isPrivate, name: recipeName, difficulty: recipeDifficulty };
                 
                 // Assign ingredients for display
                 if (isFromPlan) {
@@ -318,7 +333,7 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
         } finally {
             setLoading(false);
         }
-    }, [dietPlanId, userId, toast, planRestrictions, allSensitivities, allConditions, isTemplate, mode, preselectedMeal]);
+    }, [dietPlanId, userId, toast, planRestrictions, isTemplate, mode, currentMealId, sensitivityById, conditionById]);
 
     useEffect(() => {
         if (open) {
@@ -344,7 +359,7 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
         setRecipeToView({
             ...recipe,
             diet_plan_id: dietPlanId,
-            day_meal_id: preselectedMeal?.day_meal?.id || preselectedMeal?.id,
+            day_meal_id: currentMealId,
             type: recipe.is_private ? 'private_recipe' : (recipe.diet_plan_id ? 'diet_plan_recipe' : 'recipe')
         });
         setIsRecipeViewOpen(true);
@@ -359,6 +374,9 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
     }
 
     const fullUserRestrictions = useMemo(() => {
+        if (propPlanRestrictions?.sensitivities || propPlanRestrictions?.medical_conditions || propPlanRestrictions?.preferred_foods || propPlanRestrictions?.non_preferred_foods) {
+            return propPlanRestrictions;
+        }
         if (!planRestrictions) return {};
         return {
             sensitivities: allSensitivities.filter(s => planRestrictions.sensitivities.has(s.id)),
@@ -367,7 +385,7 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
             preferred_foods: [],
             non_preferred_foods: []
         };
-    }, [planRestrictions, allSensitivities, allConditions]);
+    }, [propPlanRestrictions, planRestrictions, allSensitivities, allConditions]);
 
     // Grouping and Filtering Logic
     const groupedRecipes = useMemo(() => {
@@ -379,17 +397,13 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
             return 2; // No conflicts, no recommendations
         };
         
-        const normalizeText = (text) => {
-            return text ? text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "";
-        };
-
         const term = normalizeText(searchTerm);
 
         let recipesInCurrentMeal = new Set();
         if (mode !== 'plan_only') {
            recipesInCurrentMeal = new Set(
                 planRecipes
-                    .filter(pr => pr.day_meal_id === preselectedMeal?.id)
+                    .filter(pr => pr.day_meal_id === currentMealId)
                     .map(pr => pr.recipe_id)
             );
         }
@@ -443,29 +457,43 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
              }
         });
 
-        // 2. Filter groups
-        return allItems.filter(group => {
-            if (!term) return true;
+        if (!term) return allItems;
 
-            const checkRecipe = (r) => {
-                if (!r) return false;
-                if (normalizeText(r.name).includes(term)) return true;
-                if (r.difficulty && normalizeText(r.difficulty).includes(term)) return true;
-                if (r.recipe_ingredients && r.recipe_ingredients.length > 0) {
-                    return r.recipe_ingredients.some(ing => {
-                        return ing.food && normalizeText(ing.food.name).includes(term);
-                    });
-                }
-                return false;
-            };
+        // 2. Filter + enrich groups with score-based ordering.
+        return allItems
+            .map(group => {
+                const rootSearch = group.root ? getRecipeSearchScore(group.root, term) : { matched: false, score: 0 };
+                const variantsWithSearch = group.variants.map(variant => ({
+                    variant,
+                    search: getRecipeSearchScore(variant, term),
+                }));
+                const matchedVariants = variantsWithSearch.filter(v => v.search.matched);
+                const hasMatch = rootSearch.matched || matchedVariants.length > 0;
+                const bestVariantScore = variantsWithSearch.reduce((max, v) => Math.max(max, v.search.score), 0);
+                const bestScore = Math.max(rootSearch.score, bestVariantScore);
 
-            const rootMatch = checkRecipe(group.root);
-            const variantMatch = group.variants.some(checkRecipe);
+                if (!hasMatch) return null;
 
-            return rootMatch || variantMatch;
-        });
+                // If root does not match, keep only matching variants to reduce noise while preserving grouping.
+                const displayedVariants = rootSearch.matched
+                    ? variantsWithSearch
+                        .sort((a, b) => b.search.score - a.search.score)
+                        .map(v => v.variant)
+                    : matchedVariants
+                        .sort((a, b) => b.search.score - a.search.score)
+                        .map(v => v.variant);
 
-    }, [allRecipes, planRecipes, searchTerm, preselectedMeal, mode]);
+                return {
+                    ...group,
+                    variants: displayedVariants,
+                    _bestScore: bestScore,
+                };
+            })
+            .filter(Boolean)
+            .sort((a, b) => b._bestScore - a._bestScore)
+            .map(({ _bestScore, ...group }) => group);
+
+    }, [allRecipes, planRecipes, searchTerm, currentMealId, mode]);
 
     const capitalize = (s) => {
         if (typeof s !== 'string') return ''

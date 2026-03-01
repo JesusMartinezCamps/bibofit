@@ -10,12 +10,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { calculateMacros } from '@/lib/macroCalculator';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Input } from '@/components/ui/input';
-
-const normalizeText = (text) => {
-    return text
-        ? text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
-        : "";
-};
+import { normalizeText } from '@/lib/textSearch';
 
 const getAdjustmentsForRecipe = (dailyIngredientAdjustments, equivalenceAdjustments, recipeId, userDayMealId, logDate, isPrivate) => {
     if (!dailyIngredientAdjustments || !equivalenceAdjustments) return null;
@@ -183,7 +178,11 @@ const ListView = ({
         const name = item.name || item.custom_name || item.recipe?.name || '';
         if (normalizeText(name).includes(normalizedQuery)) return true;
 
-        // 2. Check Ingredients
+        // 2. Check Difficulty (when available)
+        const difficulty = item.difficulty || item.recipe?.difficulty || '';
+        if (normalizeText(difficulty).includes(normalizedQuery)) return true;
+
+        // 3. Check Ingredients
         let ingredients = [];
         if (item.type === 'recipe') {
              ingredients = item.custom_ingredients?.length > 0 ? item.custom_ingredients : item.recipe?.recipe_ingredients;
