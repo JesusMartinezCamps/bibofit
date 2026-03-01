@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate, Link } from 'react-router-dom';
-import { User, Utensils, LogOut, ChevronRight, LineChart, CalendarCheck, RotateCcw, PlayCircle } from 'lucide-react'; 
+import { User, Utensils, LogOut, ChevronRight, LineChart, CalendarCheck, RotateCcw, PlayCircle, Bell } from 'lucide-react'; 
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,9 +18,17 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import ProfileTypeSubtitle from '@/components/profile/ProfileTypeSubtitle';
 import { useQuickStartGuide } from '@/contexts/QuickStartGuideContext';
 import { useOnboarding } from '@/hooks/useOnboarding';
+import { useNotifications } from '@/contexts/NotificationsContext';
 
 const ProfilePage = () => {
   const { signOut, user } = useAuth();
@@ -28,6 +36,8 @@ const ProfilePage = () => {
   const navigate = useNavigate();
   const { openGuide } = useQuickStartGuide();
   const { startRepeatOnboarding } = useOnboarding();
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const [isNotificationsOpen, setIsNotificationsOpen] = React.useState(false);
   const profileName = user?.full_name?.trim();
   const profileTitle = profileName ? profileName : 'Mi Perfil';
 
@@ -93,8 +103,24 @@ const ProfilePage = () => {
           transition={{ duration: 0.5 }}
           className="max-w-2xl mx-auto"
         >
-          <div className="text-center mb-10">
-            <h1 className="text-4xl md:text-5xl font-bold text-white">{profileTitle}</h1>
+          <div className="mb-10">
+            <div className="flex items-start justify-between gap-3">
+              <h1 className="text-4xl md:text-5xl font-bold text-white">{profileTitle}</h1>
+              <Button
+                type="button"
+                variant="outline"
+                className="relative border-gray-600 bg-slate-900/70 text-gray-100 hover:bg-slate-800"
+                onClick={() => setIsNotificationsOpen(true)}
+              >
+                <Bell className="w-4 h-4 mr-2" />
+                Notificaciones
+                {unreadCount > 0 && (
+                  <span className="ml-2 inline-flex min-w-[1.25rem] h-5 px-1 items-center justify-center rounded-full bg-red-500 text-white text-xs font-semibold">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </Button>
+            </div>
             <ProfileTypeSubtitle role={user?.role} />
             <div className="flex flex-col items-center justify-center gap-2 mt-4">
               <Button 
@@ -171,6 +197,62 @@ const ProfilePage = () => {
           </motion.div>
         </motion.div>
       </main>
+
+      <Dialog open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
+        <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-2xl">
+          <DialogHeader>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <DialogTitle>Historial de Notificaciones</DialogTitle>
+                <DialogDescription className="text-gray-400">
+                  Aquí puedes revisar todas tus notificaciones recientes.
+                </DialogDescription>
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={markAllAsRead}
+                disabled={!notifications?.some((n) => !n.is_read)}
+                className="bg-slate-700 hover:bg-slate-600 text-white"
+              >
+                Marcar todas
+              </Button>
+            </div>
+          </DialogHeader>
+
+          <div className="max-h-[55vh] overflow-y-auto pr-1 space-y-2">
+            {!notifications || notifications.length === 0 ? (
+              <div className="text-sm text-gray-400 py-8 text-center">
+                No tienes notificaciones todavía.
+              </div>
+            ) : (
+              notifications.map((n) => (
+                <button
+                  key={n.id}
+                  type="button"
+                  onClick={() => !n.is_read && markAsRead(n.id)}
+                  className={`w-full text-left rounded-lg border p-3 transition-colors ${
+                    n.is_read
+                      ? 'border-slate-700 bg-slate-800/50'
+                      : 'border-cyan-600/60 bg-cyan-900/20 hover:bg-cyan-900/30'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="font-semibold text-sm text-white">{n.title}</p>
+                    {!n.is_read && (
+                      <span className="inline-flex w-2.5 h-2.5 mt-1 rounded-full bg-cyan-400" />
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-300 mt-1">{n.message}</p>
+                  <p className="text-xs text-gray-500 mt-2">
+                    {new Date(n.created_at).toLocaleString('es-ES')}
+                  </p>
+                </button>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

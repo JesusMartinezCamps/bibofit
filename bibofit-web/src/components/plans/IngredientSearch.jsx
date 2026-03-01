@@ -104,14 +104,15 @@ const IngredientSearch = ({
     const queryTokens = splitSearchTokens(searchTerm);
 
     const results = (availableFoods || [])
-      .filter(food =>
-        food.name &&
-        !selectedIngredients.some(
+      .filter(food => {
+        if (!food.name) return false;
+        const foodIsUserCreated = !!food.is_user_created || !!food.user_id;
+        return !selectedIngredients.some(
           (ing) =>
             String(ing.food_id) === String(food.id) &&
-            !!ing.is_user_created === !!food.is_user_created
-        )
-      )
+            !!ing.is_user_created === foodIsUserCreated
+        );
+      })
       .filter((food) => {
         const searchableText = [
           food.name,
@@ -158,6 +159,7 @@ const IngredientSearch = ({
   const handleSelectFood = (food) => {
     const food_unit = food.food_unit || 'gramos';
     const quantity = food_unit === 'unidades' ? 1 : 100;
+    const foodIsUserCreated = !!food.is_user_created || !!food.user_id;
     
     const newIngredient = {
       food_id: food.id,
@@ -166,7 +168,7 @@ const IngredientSearch = ({
       grams: quantity, // Explicitly set grams to match quantity
       is_free: false,
       food_unit: food_unit,
-      is_user_created: !!food.is_user_created,
+      is_user_created: foodIsUserCreated,
       food,
     };
     onIngredientAdded(newIngredient);

@@ -112,7 +112,7 @@ const RecipeView = ({
   }, [showMultiplierEasterEgg]);
 
   useEffect(() => {
-    if (mealTargetMacros || !isEditing || !user || !recipe?.day_meal_id || isTemplate) return;
+    if (mealTargetMacros || !user || !recipe?.day_meal_id || isTemplate) return;
 
     const fetchTargets = async () => {
       try {
@@ -135,7 +135,7 @@ const RecipeView = ({
     };
 
     fetchTargets();
-  }, [mealTargetMacros, isEditing, user, recipe, isTemplate]);
+  }, [mealTargetMacros, user, recipe, isTemplate]);
 
   useEffect(() => {
     if (propConflicts || propUserRestrictions || !user) return;
@@ -363,8 +363,11 @@ const RecipeView = ({
   const greenCount = recommendations.length;
   const redCount = conflicts.length;
   const hasIngredients = (recipe?.ingredients || []).length > 0;
-  const showAutoBalance = isEditing && hasIngredients && (mealTargetMacros || recipe?.day_meal_id);
   const canManageIngredientsInView = !!onIngredientsChange && !!onRemoveIngredient;
+  const showAutoBalance =
+    hasIngredients &&
+    !!(mealTargetMacros || fetchedTargets || recipe?.day_meal_id) &&
+    (isEditing || canManageIngredientsInView);
   const canRenderNativeImageUpload = showImageUpload && typeof onImageUploadChange === 'function';
   const isMultiplierActive = servingMultiplier !== 1;
   const handleIncreaseMultiplier = () => {
