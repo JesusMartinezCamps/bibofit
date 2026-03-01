@@ -31,7 +31,7 @@ export const AuthProvider = ({ children }) => {
         throw roleError;
       }
       
-      const userRole = roleData?.roles?.role || 'client';
+      const userRole = roleData?.roles?.role || 'free';
       const cleanProfile = profile ? { ...profile } : {};
       
       const fullUser = {
@@ -48,7 +48,7 @@ export const AuthProvider = ({ children }) => {
 
     } catch (error) {
       console.error('❌ [AuthContext] Error fetching user profile:', error);
-      setUser({ ...sessionUser, role: 'client' });
+      setUser({ ...sessionUser, role: 'free' });
     } finally {
       setLoading(false);
     }

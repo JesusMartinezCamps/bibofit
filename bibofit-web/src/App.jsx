@@ -37,6 +37,7 @@ import FoodSubstitutionRulesPage from '@/pages/admin/FoodSubstitutionRulesPage';
 import RemindersManagerPage from '@/pages/admin/RemindersManagerPage';
 import UsersManagerPage from '@/pages/admin/UsersManagerPage';
 import CentersManagementPage from '@/pages/admin/CentersManagementPage';
+import PricingManagementPage from '@/pages/admin/PricingManagementPage';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import PlanPage from '@/pages/PlanPage';
 import { format } from 'date-fns';
@@ -174,6 +175,7 @@ const AppRoutes = () => {
       <Route path="/admin-panel/content/food-substitutions" element={<ProtectedRoute adminOnly><FoodSubstitutionRulesPage /></ProtectedRoute>} />
       <Route path="/admin-panel/content/users-manager" element={<ProtectedRoute adminOnly><UsersManagerPage /></ProtectedRoute>} />
       <Route path="/admin-panel/content/centers" element={<ProtectedRoute adminOnly><CentersManagementPage /></ProtectedRoute>} />
+      <Route path="/admin-panel/content/pricing" element={<ProtectedRoute adminOnly><PricingManagementPage /></ProtectedRoute>} />
       <Route path="/admin-panel/reminders" element={<ProtectedRoute adminOnly><RemindersManagerPage /></ProtectedRoute>} />
       <Route path="/admin-panel/reminders/:userId" element={<ProtectedRoute adminOnly><RemindersManagerPage /></ProtectedRoute>} />
       
