@@ -411,11 +411,7 @@ const GlobalShoppingListDialog = ({ open, onOpenChange, initialMode = 'planned',
                 .map(r => r.food_groups?.macro_role)
                 .filter(Boolean);
         } 
-        else if (food.user_created_food_to_food_groups && Array.isArray(food.user_created_food_to_food_groups)) {
-            roles = food.user_created_food_to_food_groups
-                .map(r => r.food_groups?.macro_role)
-                .filter(Boolean);
-        }
+        
 
         const hasRole = (target) => roles.some(role => role && role.toLowerCase() === target.toLowerCase());
         
@@ -446,17 +442,12 @@ const GlobalShoppingListDialog = ({ open, onOpenChange, initialMode = 'planned',
             const startDate = format(startOfDay(dateToUse), 'yyyy-MM-dd');
 
             const { data: foods, error: foodsError } = await supabase.from('food')
-                .select('*, food_to_food_groups(food_groups(macro_role))');
+                .select('*, food_to_food_groups(food_groups(macro_role))')
+                .or(`user_id.is.null,user_id.eq.${user.id}`);
             if (foodsError) throw foodsError;
 
-            const { data: userFoods, error: userFoodsError } = await supabase.from('user_created_foods')
-                .select('*, user_created_food_to_food_groups(food_groups(macro_role))')
-                .eq('user_id', user.id);
-            if (userFoodsError) throw userFoodsError;
-
             const allFoodsMap = new Map();
-            (foods || []).forEach(f => allFoodsMap.set(`std_${f.id}`, { ...f, is_user_created: false }));
-            (userFoods || []).forEach(f => allFoodsMap.set(`uc_${f.id}`, { ...f, is_user_created: true }));
+            (foods || []).forEach(f => allFoodsMap.set(`std_${f.id}`, { ...f, is_user_created: !!f.user_id }));
 
             let allMealsToProcess = [];
 
@@ -502,7 +493,7 @@ const GlobalShoppingListDialog = ({ open, onOpenChange, initialMode = 'planned',
                     const [dietRecipes, privateRecipes, freeRecipes] = await Promise.all([
                         dietIds.length ? supabase.from('diet_plan_recipes').select('id, custom_name, is_customized, custom_ingredients:diet_plan_recipe_ingredients(food_id, grams), recipe:recipes(name, recipe_ingredients(food_id, grams))').in('id', dietIds) : { data: [] },
                         privateIds.length ? supabase.from('private_recipes').select('id, name, private_recipe_ingredients(food_id, grams)').in('id', privateIds) : { data: [] },
-                        freeIds.length ? supabase.from('free_recipes').select('id, name, free_recipe_ingredients(food_id, is_user_created, grams)').in('id', freeIds) : { data: [] }
+                        freeIds.length ? supabase.from('free_recipes').select('id, name, free_recipe_ingredients(food_id, grams)').in('id', freeIds) : { data: [] }
                     ]);
 
                     const dietMap = new Map((dietRecipes.data || []).map(r => [r.id, r]));
@@ -534,9 +525,6 @@ const GlobalShoppingListDialog = ({ open, onOpenChange, initialMode = 'planned',
                     let foodKey = null;
                     if (ing.food_id) {
                         if (allFoodsMap.has(`std_${ing.food_id}`)) foodKey = `std_${ing.food_id}`;
-                    } 
-                    if (!foodKey && ing.food_id && ing.is_user_created) {
-                        foodKey = `uc_${ing.food_id}`;
                     }
                     
                     const food = foodKey ? allFoodsMap.get(foodKey) : null;

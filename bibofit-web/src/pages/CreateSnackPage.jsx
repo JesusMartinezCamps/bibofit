@@ -92,8 +92,8 @@ const CreateSnackPage = () => {
         setLoadingInitialData(true);
         try {
             const [foodsRes, userCreatedFoodsRes, restrictionsRes, activePlanRes, preferredFoodsRes, nonPreferredFoodsRes] = await Promise.all([
-                supabase.from('food').select(`*, food_sensitivities(sensitivities(id, name)), food_medical_conditions(medical_conditions(id, name), relation_type)`),
-                supabase.from('user_created_foods').select(`*, food_sensitivities:user_created_food_sensitivities(sensitivities(id, name))`).eq('user_id', targetUserId),
+                supabase.from('food').select(`*, food_sensitivities(sensitivities(id, name)), food_medical_conditions(medical_conditions(id, name), relation_type)`).is('user_id', null),
+                supabase.from('food').select(`*, food_sensitivities(sensitivities(id, name)), food_medical_conditions(medical_conditions(id, name), relation_type)`).eq('user_id', targetUserId).neq('status', 'rejected'),
                 supabase.rpc('get_user_restrictions', { p_user_id: targetUserId }),
                 supabase.from('diet_plans').select('id').eq('user_id', targetUserId).eq('is_active', true).maybeSingle(), // Use maybeSingle for safety
                 supabase.from('preferred_foods').select('food(*)').eq('user_id', targetUserId),
@@ -187,6 +187,7 @@ const CreateSnackPage = () => {
                         onIngredientAdded={handleIngredientAdded}
                         availableFoods={availableFoods}
                         userRestrictions={userRestrictions}
+                        createFoodUserId={targetUserId}
                         onBack={() => setView('main')}
                     />
                 );

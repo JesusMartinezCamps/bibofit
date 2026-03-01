@@ -99,6 +99,7 @@ const IngredientQuickEditDialog = ({
               selectedIngredients={searchSelectedIngredients}
               availableFoods={allFoods}
               userRestrictions={userRestrictions}
+              createFoodUserId={ingredient?.user_id}
               onBack={() => setIsReplacing(false)}
               onIngredientAdded={(newIngredientData) => {
                 const selected = (allFoods || []).find(

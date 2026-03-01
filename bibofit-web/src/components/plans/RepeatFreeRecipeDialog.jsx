@@ -123,8 +123,7 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
                 *, 
                 food_sensitivities(sensitivity:sensitivities(*)),
                 food_medical_conditions(relation_type, condition:medical_conditions(*))
-            ), 
-            user_created_food:user_created_foods(*)
+            )
           ), 
           occurrences:free_recipe_occurrences(meal_date)
         `)
@@ -198,7 +197,7 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
         
         // Fallback to ing.food which now has deep data from our updated queries
         const fullFood = allFoods?.find(f => String(f.id) === String(foodId) && f.is_user_created === isUserCreated);
-        let foodToCheck = fullFood || ing.food || ing.user_created_food;
+        let foodToCheck = fullFood || ing.food;
 
         // If the food from props doesn't have sensitivities but the one from recipe fetch does, merge them
         if (ing.food && foodToCheck) {
@@ -210,7 +209,7 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
              }
         }
         
-        const foodDetails = foodToCheck || ing.food || ing.user_created_food;
+        const foodDetails = foodToCheck || ing.food;
         const unit = foodDetails?.food_unit === 'unidades' ? 'ud' : 'g';
         const quantity = ing.grams ?? ing.quantity;
         const name = foodDetails?.name || 'Ingrediente no encontrado';
@@ -294,7 +293,7 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
             // Match Ingredients
             if (item.ingredients && item.ingredients.length > 0) {
                 return item.ingredients.some(ing => {
-                    const foodName = ing.food?.name || ing.user_created_food?.name || '';
+                    const foodName = ing.food?.name || '';
                     return normalizeText(foodName).includes(normalizedQuery);
                 });
             }

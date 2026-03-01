@@ -28,11 +28,11 @@ const FoodDetailModal = ({ food, isOpen, onClose, onActionComplete, allSensitivi
     const foodToEdit = {
         ...food,
         id: food.id,
-        // Map data from user_created_foods to what CreateFoodForm expects
-        food_to_food_groups: (food.user_created_food_to_food_groups || []).map(fg => ({ food_group_id: fg.food_group_id })),
-        food_sensitivities: (food.selected_allergies || []).map(s_id => ({ sensitivity_id: s_id })),
-        food_vitamins: (food.selected_vitamins || []).map(v => ({ vitamin_id: v.id, mg_per_100g: v.amount })),
-        food_minerals: (food.selected_minerals || []).map(m => ({ mineral_id: m.id, mg_per_100g: m.amount })),
+        // Map data from food to what CreateFoodForm expects
+        food_to_food_groups: (food.food_to_food_groups || []).map(fg => ({ food_group_id: fg.food_group_id })),
+        food_sensitivities: (food.food_sensitivities || []).map(s => ({ sensitivity_id: s.sensitivity_id })),
+        food_vitamins: (food.food_vitamins || []).map(v => ({ vitamin_id: v.vitamin_id, mg_per_100g: v.mg_per_100g })),
+        food_minerals: (food.food_minerals || []).map(m => ({ mineral_id: m.mineral_id, mg_per_100g: m.mg_per_100g })),
         total_fats: food.total_fats,
         total_carbs: food.total_carbs,
         food_to_stores: food.store_id ? [{ store_id: food.store_id }] : [],

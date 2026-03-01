@@ -165,16 +165,11 @@ export const useSimplifiedFoodForm = ({ onFoodActionComplete, isClientRequest, u
                 proteins: formData.proteins || null,
                 total_carbs: formData.total_carbs || null,
                 total_fats: formData.total_fats || null,
-                saturadas: formData.fats_saturated || null,
-                monoinsaturadas: formData.fats_monounsaturated || null,
-                poliinsaturadas: formData.fats_polyunsaturated || null,
-                sugars: formData.carbs_sugars || null,
-                fiber: formData.fibers || null,
                 status: 'pending',
             };
 
             const { data: savedRequest, error: requestError } = await supabase
-                .from('user_created_foods')
+                .from('food')
                 .insert(requestData)
                 .select()
                 .single();
@@ -184,40 +179,40 @@ export const useSimplifiedFoodForm = ({ onFoodActionComplete, isClientRequest, u
 
             // Handle sensitivities
             if (selectedSensitivities.length > 0) {
-                const sensitivitiesToSave = selectedSensitivities.map(id => ({ user_created_food_id: newFoodId, sensitivity_id: id }));
-                const { error: sensError } = await supabase.from('user_created_food_sensitivities').insert(sensitivitiesToSave);
+                const sensitivitiesToSave = selectedSensitivities.map(id => ({ food_id: newFoodId, sensitivity_id: id }));
+                const { error: sensError } = await supabase.from('food_sensitivities').insert(sensitivitiesToSave);
                 if (sensError) throw sensError;
             }
 
             // Handle vitamins
             const vitaminsToSave = selectedVitamins
                 .filter(v => v.vitamin_id && parseFloat(v.mg_per_100g) > 0)
-                .map(v => ({ user_created_food_id: newFoodId, vitamin_id: v.vitamin_id, mg_per_100g: v.mg_per_100g }));
+                .map(v => ({ food_id: newFoodId, vitamin_id: v.vitamin_id, mg_per_100g: v.mg_per_100g }));
             if (vitaminsToSave.length > 0) {
-                const { error: vitError } = await supabase.from('user_created_food_vitamins').insert(vitaminsToSave);
+                const { error: vitError } = await supabase.from('food_vitamins').insert(vitaminsToSave);
                 if (vitError) throw vitError;
             }
 
             // Handle minerals
             const mineralsToSave = selectedMinerals
                 .filter(m => m.mineral_id && parseFloat(m.mg_per_100g) > 0)
-                .map(m => ({ user_created_food_id: newFoodId, mineral_id: m.mineral_id, mg_per_100g: m.mg_per_100g }));
+                .map(m => ({ food_id: newFoodId, mineral_id: m.mineral_id, mg_per_100g: m.mg_per_100g }));
             if (mineralsToSave.length > 0) {
-                const { error: minError } = await supabase.from('user_created_food_minerals').insert(mineralsToSave);
+                const { error: minError } = await supabase.from('food_minerals').insert(mineralsToSave);
                 if (minError) throw minError;
             }
 
             // Handle stores
             if (selectedStores.length > 0) {
-                // For now, let's update the main table if there's a column for it.
-                const { error } = await supabase.from('user_created_foods').update({ store_id: selectedStores[0] }).eq('id', newFoodId);
+                const storesToSave = selectedStores.map(id => ({ food_id: newFoodId, store_id: id }));
+                const { error } = await supabase.from('food_to_stores').insert(storesToSave);
                 if (error) throw error;
             }
             
             // Handle food groups
             if (selectedFoodGroups.length > 0) {
-                const groupsToSave = selectedFoodGroups.map(id => ({ user_created_food_id: newFoodId, food_group_id: id }));
-                const { error } = await supabase.from('user_created_food_to_food_groups').insert(groupsToSave);
+                const groupsToSave = selectedFoodGroups.map(id => ({ food_id: newFoodId, food_group_id: id }));
+                const { error } = await supabase.from('food_to_food_groups').insert(groupsToSave);
                 if (error) throw error;
             }
 

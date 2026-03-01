@@ -385,6 +385,7 @@ const RecipeView = ({
           onIngredientAdded={handleReplaceSelection}
           availableFoods={safeFoods}
           userRestrictions={propUserRestrictions || internalRestrictions}
+          createFoodUserId={recipe?.user_id || user?.id}
           onBack={() => setReplacingIngredient(null)}
         />
       </div>

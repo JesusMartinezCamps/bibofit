@@ -6,6 +6,9 @@ import { useToast } from '@/components/ui/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import FoodCard from '@/components/admin/recipes/FoodCard';
 import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import SimplifiedFoodForm from '@/components/admin/recipes/SimplifiedFoodForm';
 
 const normalizeString = (str) => {
   if (!str) return '';
@@ -18,6 +21,8 @@ const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSen
   const [userCreatedFoods, setUserCreatedFoods] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userSensitivities, setUserSensitivities] = useState([]);
+  const [isCreateFoodOpen, setIsCreateFoodOpen] = useState(false);
+  const [foodToCreate, setFoodToCreate] = useState(null);
   const { toast } = useToast();
   const { user } = useAuth();
   const isCoach = user?.role === 'coach';
@@ -55,7 +60,8 @@ const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSen
           food_vitamins(vitamins(id, name)),
           food_minerals(minerals(id, name)),
           food_sensitivities(sensitivities(id, name))
-        `);
+        `)
+        .is('user_id', null);
 
       const [
         { data: foodsData, error: foodsError },
@@ -64,17 +70,17 @@ const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSen
       ] = await Promise.all([
         foodQuery.order('name', { ascending: true }),
         targetUserId ? supabase
-          .from('user_created_foods')
+          .from('food')
           .select(`
             id, name, proteins, total_carbs, total_fats, food_unit,
-            user_created_food_to_food_groups(food_groups(id, name)),
-            season:season_id(name),
-            user_created_food_sensitivities(sensitivities(id, name)),
-            user_created_food_vitamins(vitamins(id, name)),
-            user_created_food_minerals(minerals(id, name))
+            food_to_food_groups(food_groups(id, name)),
+            food_to_seasons(season:seasons(name)),
+            food_sensitivities(sensitivities(id, name)),
+            food_vitamins(vitamins(id, name)),
+            food_minerals(minerals(id, name))
           `)
           .eq('user_id', targetUserId)
-          .in('status', ['approved_private', 'pending'])
+          .neq('status', 'rejected')
           .order('name', { ascending: true }) : Promise.resolve({ data: [], error: null }),
         fetchUserSensitivities()
       ]);
@@ -84,7 +90,7 @@ const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSen
           console.error("Supabase error:", JSON.stringify(userFoodsError, null, 2));
           toast({
               title: "Error de Supabase",
-              description: `Fetch error from user_created_foods: ${userFoodsError.message}`,
+              description: `Fetch error from food (private scope): ${userFoodsError.message}`,
               variant: "destructive"
           });
           throw userFoodsError;
@@ -101,11 +107,11 @@ const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSen
 
       const transformedUserFoods = (userFoodsData || []).map(userFood => ({
         ...userFood,
-        food_groups: userFood.user_created_food_to_food_groups?.map(item => item.food_groups).filter(Boolean) || [],
-        seasons: userFood.season ? [userFood.season] : [],
-        food_sensitivities: userFood.user_created_food_sensitivities || [],
-        food_vitamins: userFood.user_created_food_vitamins || [],
-        food_minerals: userFood.user_created_food_minerals || [],
+        food_groups: userFood.food_to_food_groups?.map(item => item.food_groups).filter(Boolean) || [],
+        seasons: userFood.food_to_seasons?.map((item) => item.season).filter(Boolean) || [],
+        food_sensitivities: userFood.food_sensitivities || [],
+        food_vitamins: userFood.food_vitamins || [],
+        food_minerals: userFood.food_minerals || [],
         isUserCreated: true
       }));
 
@@ -149,6 +155,22 @@ const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSen
 
   const handleFoodClick = (food) => {
     onSelectFood(food);
+  };
+
+  const handleCreateFoodClick = () => {
+    const normalized = searchTerm.trim();
+    if (!normalized) return;
+    setFoodToCreate({ name: normalized });
+    setIsCreateFoodOpen(true);
+  };
+
+  const handleFoodCreated = async (newFood) => {
+    setIsCreateFoodOpen(false);
+    setFoodToCreate(null);
+    setSearchTerm('');
+    await fetchAllFoods();
+    if (newFood) onSelectFood(newFood);
+    if (onActionComplete) onActionComplete();
   };
 
   const combinedFoods = useMemo(() => {
@@ -254,13 +276,41 @@ const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSen
                 ))}
               </motion.div>
             ) : (
-              <div className="text-center text-gray-400 py-4">
-                {searchTerm ? 'No se encontraron resultados.' : 'No hay alimentos en la base de datos.'}
+              <div className="text-center text-gray-400 py-4 space-y-3">
+                <p>{searchTerm ? 'No se encontraron resultados.' : 'No hay alimentos en la base de datos.'}</p>
+                {searchTerm.trim() && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleCreateFoodClick}
+                    className="border-dashed border-emerald-500 text-emerald-300 bg-emerald-900/20 hover:bg-emerald-500/20 hover:text-emerald-200"
+                  >
+                    Crear "{searchTerm.trim()}"
+                  </Button>
+                )}
               </div>
             )}
           </AnimatePresence>
         )}
       </div>
+      <Dialog open={isCreateFoodOpen} onOpenChange={setIsCreateFoodOpen}>
+        <DialogContent className="bg-[#0C101C] border-gray-700 text-white w-[95vw] max-w-2xl h-auto max-h-[90vh] flex flex-col p-0">
+          <DialogHeader className="p-6 pb-0">
+            <DialogTitle>Añadir Nuevo Alimento</DialogTitle>
+            <DialogDescription>
+              Completa el formulario simplificado para añadir este alimento.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto styled-scrollbar-green px-6 pb-6">
+            <SimplifiedFoodForm
+              onFoodActionComplete={handleFoodCreated}
+              isClientRequest={true}
+              userId={userId || user?.id}
+              foodToCreate={foodToCreate}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

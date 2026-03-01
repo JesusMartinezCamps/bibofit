@@ -369,6 +369,7 @@ const FreeMealApprovalModal = ({ freeMeal, isOpen, onOpenChange, onAction }) => 
               }}
               onBack={() => setIsSearchingIngredient(false)}
               onIngredientAdded={handleIngredientAdded}
+              createFoodUserId={freeMeal?.user_id || user?.id}
             />
           ) : (
             <>
