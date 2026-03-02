@@ -602,14 +602,16 @@ const HeroSection = () => {
             </div>
 
             <h1 className="text-2xl lg:text-6xl font-extrabold text-foreground leading-tight mb-6">
-              Una app que enfocada en que puedas seguir una dieta flexible, <br />
+              Lleva a un "Dietista Digital" siempre en tu bolsillo, <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-500 to-emerald-600 dark:from-green-300 dark:to-emerald-400">
-                ¿Lo peor de seguir una dieta? Es perder la libertad en la cocina. Bibofit la he diseñado para que precisamente se adapte a todo lo que le quieras cambiar, para que te quedes sin excusas para no mejorar tu dieta.
+                con la app que adapta la dieta a tí, no al reves.
               </span>
             </h1>
 
             <p className="text-lg text-muted-foreground mb-8 leading-relaxed max-w-xl">
-              
+                              ¿Lo peor de seguir una dieta? Sentir que ya no puedes disfrutar de la comida. 
+                              Bibofit está diseñada para que se adapte a ti, máxima flexibilidad en las recetas mientras te mantienes siempre sobre el plan.
+
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 mb-8">
