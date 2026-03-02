@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { X, UtensilsCrossed, Hourglass } from 'lucide-react';
+import { X, UtensilsCrossed, Hourglass, Clock, ChefHat } from 'lucide-react';
 import CaloriesIcon from '@/components/icons/CaloriesIcon';
 import ProteinIcon from '@/components/icons/ProteinIcon';
 import CarbsIcon from '@/components/icons/CarbsIcon';
@@ -17,7 +17,7 @@ const FreeRecipeCard = ({
   selectionIndicator,
   searchQuery = '',
 }) => {
-  const { name, free_recipe_ingredients: ingredients, status } = freeMeal;
+  const { name, free_recipe_ingredients: ingredients, status, prep_time_min, difficulty } = freeMeal;
 
   const macros = useMemo(() => {
     if (!ingredients || !allFoods) {
@@ -106,6 +106,16 @@ const FreeRecipeCard = ({
             <UtensilsCrossed className="w-4 h-4 text-sky-400" />
           )}
           <p className="text-white font-medium text-sm whitespace-normal truncate">{name || 'Receta Libre'}</p>
+        </div>
+        <div className="mt-1 flex items-center gap-3 text-[11px] text-sky-100/85">
+          <span className="flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+            {Math.round(prep_time_min ?? 0)}m
+          </span>
+          <span className="flex items-center gap-1">
+            <ChefHat className="w-3 h-3" />
+            {difficulty || 'Fácil'}
+          </span>
         </div>
       </button>
       {handleRemove && (

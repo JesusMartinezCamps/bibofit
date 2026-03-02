@@ -312,7 +312,7 @@ const RecipeCard = ({
       )}
     >
       <button onClick={() => handleRecipeClick && handleRecipeClick({ ...recipe, is_private_recipe: isPrivate }, adjustment)} className="block w-full h-full text-left p-2.5 pr-12">
-        <RecipeCardPanel className="p-2.5 h-full">
+        <RecipeCardPanel className="p-2.5 h-full flex flex-col justify-between">
           <div className="flex justify-between items-start flex-wrap gap-x-2">
             <div className="flex items-center gap-2 min-w-0">
               {changeRequest?.status === 'pending' && (
@@ -332,6 +332,16 @@ const RecipeCard = ({
                 <Scale className="w-3 h-3 text-blue-400" title="Receta equilibrada" />
               )}
             </div>
+          </div>
+          <div className="mt-1 flex items-center gap-3 text-[11px] text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              {Math.round(recipePrepTime)}m
+            </span>
+            <span className="flex items-center gap-1">
+              <ChefHat className="w-3 h-3" />
+              {recipeDifficulty}
+            </span>
           </div>
         </RecipeCardPanel>
       </button>

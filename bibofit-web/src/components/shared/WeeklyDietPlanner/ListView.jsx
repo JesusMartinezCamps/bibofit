@@ -26,6 +26,95 @@ const getAdjustmentsForRecipe = (dailyIngredientAdjustments, equivalenceAdjustme
     return recipeAdjustments.length > 0 ? recipeAdjustments : null;
 };
 
+const tokenizeNormalizedText = (value = '') => {
+  const normalized = normalizeText(value).trim();
+  return normalized ? normalized.split(/\s+/).filter(Boolean) : [];
+};
+
+const SEARCH_MATCH_TYPE_ORDER = ['name', 'difficulty', 'ingredient', 'group'];
+const SEARCH_MATCH_TYPE_LABELS = {
+  name: 'nombre',
+  difficulty: 'dificultad',
+  ingredient: 'ingrediente',
+  group: 'grupo',
+};
+
+const getLevenshteinDistance = (a = '', b = '') => {
+  if (a === b) return 0;
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+
+  const rows = b.length + 1;
+  const cols = a.length + 1;
+  const matrix = Array.from({ length: rows }, () => Array(cols).fill(0));
+
+  for (let i = 0; i < rows; i += 1) matrix[i][0] = i;
+  for (let j = 0; j < cols; j += 1) matrix[0][j] = j;
+
+  for (let i = 1; i < rows; i += 1) {
+    for (let j = 1; j < cols; j += 1) {
+      const substitutionCost = b[i - 1] === a[j - 1] ? 0 : 1;
+      matrix[i][j] = Math.min(
+        matrix[i - 1][j] + 1,
+        matrix[i][j - 1] + 1,
+        matrix[i - 1][j - 1] + substitutionCost
+      );
+    }
+  }
+
+  return matrix[b.length][a.length];
+};
+
+const isFuzzyTokenMatch = (queryToken = '', targetToken = '') => {
+  if (!queryToken || !targetToken) return false;
+  if (targetToken.includes(queryToken) || queryToken.includes(targetToken)) return true;
+  if (queryToken.length < 4 || targetToken.length < 4) return false;
+
+  const maxLen = Math.max(queryToken.length, targetToken.length);
+  const maxDistance = maxLen >= 8 ? 2 : 1;
+
+  return getLevenshteinDistance(queryToken, targetToken) <= maxDistance;
+};
+
+const getSearchMatchMeta = (value = '', normalizedQuery = '', queryTokens = []) => {
+  const normalizedValue = normalizeText(value);
+  if (!normalizedValue) return { matched: false, fuzzy: false };
+  if (normalizedValue.includes(normalizedQuery)) return { matched: true, fuzzy: false };
+  if (!queryTokens.length) return { matched: false, fuzzy: false };
+
+  const valueTokens = tokenizeNormalizedText(normalizedValue);
+  if (!valueTokens.length) return { matched: false, fuzzy: false };
+
+  let hasFuzzy = false;
+  const allTokensMatch = queryTokens.every((queryToken) => {
+    let tokenMatched = false;
+
+    for (const targetToken of valueTokens) {
+      if (targetToken.includes(queryToken) || queryToken.includes(targetToken)) {
+        tokenMatched = true;
+        break;
+      }
+
+      if (isFuzzyTokenMatch(queryToken, targetToken)) {
+        tokenMatched = true;
+        hasFuzzy = true;
+        break;
+      }
+    }
+
+    return tokenMatched;
+  });
+
+  return { matched: allTokensMatch, fuzzy: allTokensMatch && hasFuzzy };
+};
+
+const getFoodGroupNames = (food) => {
+  const groups = food?.food_to_food_groups || [];
+  return groups
+    .map((entry) => entry?.food_group?.name || entry?.food_groups?.name || entry?.food_group_name)
+    .filter(Boolean);
+};
+
 const MealHeader = React.memo(({ mealName, mealId, name, items, isAnyRecipeSelectedInMeal, isFreeRecipeSelected, isPrivateRecipeSelected, mealTargetData, mealAdjustment, handleUndoEquivalence, handleAddSnack, handleAddFreeMeal, hasSnacks }) => {
     const [isUndoLoading, setIsUndoLoading] = useState(false);
     const pluralize = (name) => {
@@ -169,41 +258,83 @@ const ListView = ({
     }));
   }, []);
 
-  const filterItems = useCallback((items, query) => {
-    if (!query) return items;
-    const normalizedQuery = normalizeText(query);
+  const getItemSearchMatchInfo = useCallback((item, normalizedQuery, queryTokens) => {
+    const itemMatchTypes = new Set();
+    let hasFuzzyMatch = false;
 
-    return items.filter(item => {
-        // 1. Check Recipe Name
-        const name = item.name || item.custom_name || item.recipe?.name || '';
-        if (normalizeText(name).includes(normalizedQuery)) return true;
+    const registerMatch = (matchType, matchMeta) => {
+      if (!matchMeta.matched) return;
+      itemMatchTypes.add(matchType);
+      if (matchMeta.fuzzy) hasFuzzyMatch = true;
+    };
 
-        // 2. Check Difficulty (when available)
-        const difficulty = item.difficulty || item.recipe?.difficulty || '';
-        if (normalizeText(difficulty).includes(normalizedQuery)) return true;
+    const name = item.name || item.custom_name || item.recipe?.name || '';
+    registerMatch('name', getSearchMatchMeta(name, normalizedQuery, queryTokens));
 
-        // 3. Check Ingredients
-        let ingredients = [];
-        if (item.type === 'recipe') {
-             ingredients = item.custom_ingredients?.length > 0 ? item.custom_ingredients : item.recipe?.recipe_ingredients;
-        } else if (item.type === 'private_recipe' || item.is_private_recipe) {
-             ingredients = item.private_recipe_ingredients;
-        } else if (item.type === 'free_recipe') {
-             ingredients = item.free_recipe_ingredients;
-        } else if (item.type === 'snack') {
-             ingredients = item.snack_ingredients;
-        }
+    const difficulty = item.difficulty || item.recipe?.difficulty || '';
+    registerMatch('difficulty', getSearchMatchMeta(difficulty, normalizedQuery, queryTokens));
 
-        if (ingredients && ingredients.length > 0) {
-            return ingredients.some(ing => {
-                const foodName = ing.food?.name || ing.user_created_food?.name || foodById.get(ing.food_id)?.name || '';
-                return normalizeText(foodName).includes(normalizedQuery);
-            });
-        }
+    let ingredients = [];
+    if (item.type === 'recipe') {
+      ingredients = item.custom_ingredients?.length > 0 ? item.custom_ingredients : item.recipe?.recipe_ingredients;
+    } else if (item.type === 'private_recipe' || item.is_private_recipe) {
+      ingredients = item.private_recipe_ingredients;
+    } else if (item.type === 'free_recipe') {
+      ingredients = item.free_recipe_ingredients;
+    } else if (item.type === 'snack') {
+      ingredients = item.snack_ingredients;
+    }
 
-        return false;
-    });
+    if (ingredients && ingredients.length > 0) {
+      ingredients.forEach((ing) => {
+        const food = ing.food || ing.user_created_food || foodById.get(ing.food_id);
+        const foodName = food?.name || '';
+        registerMatch('ingredient', getSearchMatchMeta(foodName, normalizedQuery, queryTokens));
+
+        const foodGroupNames = getFoodGroupNames(food);
+        foodGroupNames.forEach((groupName) => {
+          registerMatch('group', getSearchMatchMeta(groupName, normalizedQuery, queryTokens));
+        });
+      });
+    }
+
+    return {
+      matched: itemMatchTypes.size > 0,
+      matchTypes: itemMatchTypes,
+      hasFuzzyMatch,
+    };
   }, [foodById]);
+
+  const filterItems = useCallback((items, query) => {
+    if (!query) {
+      return {
+        items,
+        matchTypes: [],
+        hasFuzzyMatch: false,
+      };
+    }
+
+    const normalizedQuery = normalizeText(query);
+    const queryTokens = tokenizeNormalizedText(normalizedQuery);
+    const matchedTypes = new Set();
+    let hasFuzzyMatch = false;
+
+    const filteredItems = items.filter(item => {
+        const matchInfo = getItemSearchMatchInfo(item, normalizedQuery, queryTokens);
+        if (!matchInfo.matched) return false;
+
+        matchInfo.matchTypes.forEach((type) => matchedTypes.add(type));
+        if (matchInfo.hasFuzzyMatch) hasFuzzyMatch = true;
+        return true;
+    });
+
+    const orderedMatchTypes = SEARCH_MATCH_TYPE_ORDER.filter((type) => matchedTypes.has(type));
+    return {
+      items: filteredItems,
+      matchTypes: orderedMatchTypes,
+      hasFuzzyMatch,
+    };
+  }, [getItemSearchMatchInfo]);
 
   if (!isValid(currentDate)) {
       return <div>Fecha inválida</div>;
@@ -258,7 +389,11 @@ const ListView = ({
           return 0;
         });
 
-        const filteredItems = filterItems(sortedItems, searchQueries[mealId] || '');
+        const mealSearchQuery = searchQueries[mealId] || '';
+        const { items: filteredItems, matchTypes: mealMatchTypes, hasFuzzyMatch: mealHasFuzzyMatch } = filterItems(sortedItems, mealSearchQuery);
+        const hasActiveSearch = normalizeText(mealSearchQuery).length > 0;
+        const showSearchLegend = hasActiveSearch && filteredItems.length > 0 && mealMatchTypes.length > 0;
+        const matchLegendText = mealMatchTypes.map((type) => SEARCH_MATCH_TYPE_LABELS[type]).join(' · ');
 
         const mealTargetData = userDayMeals?.find(udm => udm.id === mealId);
         const mealAdjustment = equivalenceAdjustments?.find(adj => adj.target_user_day_meal_id === mealId && adj.log_date === logDate);
@@ -293,7 +428,7 @@ const ListView = ({
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                     <Input 
                         type="text"
-                        placeholder="Buscar receta o ingrediente..."
+                        placeholder="Buscar receta, ingrediente o grupo..."
                         value={searchQueries[mealId] || ''}
                         onChange={(e) => handleSearchChange(mealId, e.target.value)}
                         className="pl-9 bg-card/85 border-border text-sm w-full focus:ring-green-500/20 focus:border-green-500/50 text-foreground placeholder:text-muted-foreground transition-all duration-200 h-10"
@@ -308,8 +443,14 @@ const ListView = ({
                   </button>
                 )}
                 </div>
+                {showSearchLegend && (
+                  <div className="mb-3 rounded-md border border-border/60 bg-card/55 px-3 py-1.5 text-[11px] text-muted-foreground">
+                    Coincidencia por: <span className="text-foreground/90">{matchLegendText}</span>
+                    {mealHasFuzzyMatch ? <span className="ml-1 text-foreground/75">(incluye typo)</span> : null}
+                  </div>
+                )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {filteredItems.map(item => {
                     if (item.type === 'snack') {
                         return <div key={item.occurrence_id} className="h-full">{item.itemContent}</div>;
@@ -426,7 +567,7 @@ const ListView = ({
                     )
                   })}
                   {filteredItems.length === 0 && (
-                      <div className="md:col-span-2 lg:col-span-3">
+                      <div className="md:col-span-3">
                           <p className="text-sm text-muted-foreground text-center italic py-4 bg-card/40 rounded-lg">
                             {items.length > 0 ? "No se encontraron recetas con ese criterio." : "No hay recetas asignadas a esta comida."}
                           </p>
