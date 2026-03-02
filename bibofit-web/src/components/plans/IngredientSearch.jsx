@@ -9,6 +9,7 @@ import FoodLookupPanel from '@/components/shared/FoodLookupPanel';
 import CreateFoodInlineDialog from '@/components/shared/CreateFoodInlineDialog';
 import { normalizeSearchText, splitSearchTokens } from '@/lib/foodSearchUtils';
 import { isUserCreatedFood } from '@/lib/foodIdentity';
+import FoodStatusBadge from '@/components/shared/food/FoodStatusBadge';
 
 const ConflictBadge = ({ conflict }) => {
   if (!conflict) return null;
@@ -36,31 +37,7 @@ const UserFoodStatusBadge = ({ food }) => {
   const isUserCreated = isUserCreatedFood(food);
   if (!isUserCreated) return null;
 
-  const status = (food.status || '').toLowerCase();
-  const variants = {
-    pending: 'bg-violet-500/20 text-violet-200 border-violet-400/40',
-    approved_private: 'bg-indigo-500/20 text-indigo-200 border-indigo-400/40',
-    approved_general: 'bg-emerald-500/20 text-emerald-200 border-emerald-400/40',
-  };
-
-  const label =
-    status === 'pending'
-      ? 'Privado · Pendiente'
-      : status === 'approved_general'
-        ? 'Global · Aprobado'
-        : 'Privado · Aprobado';
-
-  return (
-    <Badge
-      variant="outline"
-      className={cn(
-        'text-xs font-normal flex items-center gap-1.5',
-        variants[status] || variants.approved_private
-      )}
-    >
-      {label}
-    </Badge>
-  );
+  return <FoodStatusBadge status={food.status} moderationStatus={food.moderation_status} />;
 };
 
 const IngredientSearch = ({
@@ -257,7 +234,7 @@ const IngredientSearch = ({
         helperText="Puedes buscar por nombre de alimento, familia/grupo de alimento o patología (mostrará alimentos recomendados para esa condición)."
       >
         {searchResults.length > 0 ? (
-          <div className="space-y-2">
+          <div className="space-y-2 p-2">
             {searchResults.map((food, index) => (
               <div
                 key={`food-${food.id}`}

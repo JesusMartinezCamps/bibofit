@@ -1,7 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { Helmet } from 'react-helmet';
 import { motion } from 'framer-motion';
-import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import FoodSearch from '@/components/admin/recipes/FoodSearch';
 import CreateFoodForm from '@/components/admin/recipes/CreateFoodForm';
@@ -14,6 +13,7 @@ const CreateFoodPage = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0); // To trigger list reload
   const { user } = useAuth();
   const isCoach = user?.role === 'coach';
+  const foodFormId = 'create-food-form';
 
   const handleSelectFood = useCallback((food) => {
     setSelectedFood(food);
@@ -21,11 +21,6 @@ const CreateFoodPage = () => {
     // though React often handles prop changes well, explicit keys help reset internal form state.
     setKey(prev => prev + 1);
   }, []);
-
-  const handleCreateNew = () => {
-    setSelectedFood(null);
-    setKey(prev => prev + 1);
-  };
 
   const handleFoodActionComplete = (newFood) => {
     // 1. Refresh the list
@@ -83,14 +78,13 @@ const CreateFoodPage = () => {
                   }
                 </h1>
                 
-                {/* Hide 'Crear nuevo alimento' button for coaches */}
                 {!isCoach && selectedFood && (
                   <Button 
-                    onClick={handleCreateNew} 
-                    variant="outline-diet"
+                    type="submit"
+                    form={foodFormId}
+                    variant="diet"
                   >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Crear nuevo alimento
+                    Actualizar Alimento
                   </Button>
                 )}
               </div>
@@ -103,6 +97,8 @@ const CreateFoodPage = () => {
                ) : (
                   <CreateFoodForm 
                     key={key + (selectedFood?.id || 'new')}
+                    formId={foodFormId}
+                    showTopSubmit={false}
                     foodToEdit={selectedFood}
                     isEditing={!!selectedFood}
                     onFoodActionComplete={handleFoodActionComplete}

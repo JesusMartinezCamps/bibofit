@@ -15,15 +15,13 @@ const FoodsList = ({
   onReject, 
   onDelete, 
   allSensitivities,
-  onActionComplete,
-  onFoodAction
+  onActionComplete
 }) => {
   const foodsToRender = userFoods || foods || [];
   const isLoading = loadingFoods ?? loading ?? false;
 
   const [selectedFood, setSelectedFood] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [actionContext, setActionContext] = useState('card');
 
   const getTitle = () => {
     switch (activeTab) {
@@ -58,23 +56,17 @@ const FoodsList = ({
 
   const handleCardClick = (food) => {
     setSelectedFood(food);
-    setActionContext('card');
     setModalOpen(true);
   };
 
   const handleImport = (food, type) => {
     if (!onImport) return;
-    onImport(food, type, (context) => {
-      setSelectedFood(food);
-      setActionContext(context);
-      setModalOpen(true);
-    });
+    onImport(food, type);
   };
 
   const handleModalClose = () => {
     setModalOpen(false);
     setSelectedFood(null);
-    setActionContext('card');
   };
 
   return (
@@ -131,7 +123,6 @@ const FoodsList = ({
         activeTab={activeTab}
         onReject={onReject}
         onDelete={onDelete}
-        actionContext={actionContext}
       />
     </>
   );

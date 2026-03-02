@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import FoodLookupPanel from '@/components/shared/FoodLookupPanel';
 import CreateFoodInlineDialog from '@/components/shared/CreateFoodInlineDialog';
 import { normalizeSearchText } from '@/lib/foodSearchUtils';
+import { FOOD_CARD_SELECT, mergeFoodsById, normalizeFoodRecord } from '@/lib/food/foodModel';
 
 const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSensitivities = [], userId, refreshTrigger }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -45,14 +46,6 @@ const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSen
     setLoading(true);
     try {
       const targetUserId = userId || user?.id;
-      const foodSelect = `
-        id, name, proteins, total_carbs, total_fats, food_unit, status, user_id,
-        food_to_seasons(season(name)),
-        food_to_food_groups(food_groups(id, name)),
-        food_vitamins(vitamins(id, name)),
-        food_minerals(minerals(id, name)),
-        food_sensitivities(sensitivities(id, name))
-      `;
 
       const [
         { data: foodsData, error: foodsError },
@@ -61,12 +54,12 @@ const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSen
       ] = await Promise.all([
         supabase
           .from('food')
-          .select(foodSelect)
+          .select(FOOD_CARD_SELECT)
           .or('user_id.is.null,status.eq.approved_general')
           .order('name', { ascending: true }),
         targetUserId ? supabase
           .from('food')
-          .select(foodSelect)
+          .select(FOOD_CARD_SELECT)
           .eq('user_id', targetUserId)
           .or('status.is.null,status.neq.rejected')
           .order('name', { ascending: true }) : Promise.resolve({ data: [], error: null }),
@@ -78,26 +71,8 @@ const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSen
           console.error("Supabase error (private foods):", JSON.stringify(userFoodsError, null, 2));
       }
 
-
-      const transformedFoods = (foodsData || []).map(food => ({
-        ...food,
-        is_user_created: !!food.user_id,
-        carbs: food.total_carbs,
-        fats: food.total_fats,
-        food_groups: food.food_to_food_groups?.map(ftfg => ftfg.food_groups).filter(Boolean) || [],
-        seasons: food.food_to_seasons?.map(fts => fts.season).filter(Boolean) || [],
-      }));
-
-      const transformedUserFoods = (userFoodsData || []).map(userFood => ({
-        ...userFood,
-        food_groups: userFood.food_to_food_groups?.map(item => item.food_groups).filter(Boolean) || [],
-        seasons: userFood.food_to_seasons?.map((item) => item.season).filter(Boolean) || [],
-        food_sensitivities: userFood.food_sensitivities || [],
-        food_vitamins: userFood.food_vitamins || [],
-        food_minerals: userFood.food_minerals || [],
-        is_user_created: true,
-        isUserCreated: true,
-      }));
+      const transformedFoods = (foodsData || []).map(normalizeFoodRecord);
+      const transformedUserFoods = (userFoodsData || []).map(normalizeFoodRecord);
 
       setAllFoods(transformedFoods);
       setUserCreatedFoods(transformedUserFoods);
@@ -118,7 +93,15 @@ const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSen
     fetchAllFoods();
   }, [fetchAllFoods, refreshTrigger]); // Use refreshTrigger to re-fetch
   
-  const handleDeleteFood = async (foodIdToDelete) => {
+  const handleDeleteFood = async (foodIdToDelete, options = {}) => {
+    const { confirmed = false, foodName = '' } = options;
+    if (!confirmed) {
+      const didConfirm = window.confirm(
+        `¿Seguro que quieres eliminar ${foodName ? `"${foodName}"` : 'este alimento'}? Esta acción no se puede deshacer.`
+      );
+      if (!didConfirm) return;
+    }
+
     try {
         const { error } = await supabase.rpc('delete_food_with_dependencies', { p_food_id: foodIdToDelete });
         if (error) throw error;
@@ -167,19 +150,12 @@ const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSen
     setFoodToCreate(null);
     setSearchTerm('');
     await fetchAllFoods();
-    if (newFood) onSelectFood(newFood);
+    if (newFood) onSelectFood(normalizeFoodRecord(newFood));
     if (onActionComplete) onActionComplete();
   };
 
   const combinedFoods = useMemo(() => {
-    const mergedFoods = new Map();
-    [...allFoods, ...userCreatedFoods].forEach((food) => {
-      const key = String(food.id);
-      if (!mergedFoods.has(key) || food.isUserCreated) {
-        mergedFoods.set(key, food);
-      }
-    });
-    return Array.from(mergedFoods.values());
+    return mergeFoodsById([...allFoods, ...userCreatedFoods]);
   }, [allFoods, userCreatedFoods]);
 
   const filteredFoods = useMemo(() => {
@@ -241,6 +217,11 @@ const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSen
         onSearchTermChange={setSearchTerm}
         onSearchKeyDown={handleSearchKeyDown}
         placeholder={placeholderText}
+        showClearButton={true}
+        onClearSearch={() => {
+          setSearchTerm('');
+          setActiveIndex(0);
+        }}
       >
         {loading ? (
           <div className="flex items-center justify-center py-8">
@@ -253,7 +234,7 @@ const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSen
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="space-y-3"
+                className="space-y-3 p-2"
               >
                 {filteredFoods.map((food, index) => (
                   <div
@@ -266,7 +247,7 @@ const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSen
                       food={food}
                       onSelect={onSelectFood}
                       isSelected={selectedFoodId === food.id}
-                      onDelete={isCoach ? null : (food.isUserCreated ? null : handleDeleteFood)}
+                      onDelete={isCoach ? null : handleDeleteFood}
                     />
                   </div>
                 ))}

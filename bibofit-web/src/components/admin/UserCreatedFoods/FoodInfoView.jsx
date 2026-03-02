@@ -4,6 +4,7 @@ import ProteinIcon from '@/components/icons/ProteinIcon';
 import CarbsIcon from '@/components/icons/CarbsIcon';
 import FatsIcon from '@/components/icons/FatsIcon';
 import CaloriesIcon from '@/components/icons/CaloriesIcon';
+import FoodStatusBadge from '@/components/shared/food/FoodStatusBadge';
 
 const FoodInfoView = ({ food, allSensitivities }) => {
   const sensitivityNames = useMemo(() => {
@@ -54,21 +55,6 @@ const FoodInfoView = ({ food, allSensitivities }) => {
     });
   };
 
-  const getApprovalTypeInfo = () => {
-    if (food.status === 'approved_general') {
-      return { text: 'Aprobado General', color: 'text-green-400', bgColor: 'bg-green-900/30' };
-    } else if (food.status === 'approved_private') {
-      return { text: 'Aprobado Privado', color: 'text-purple-400', bgColor: 'bg-purple-900/30' };
-    } else if (food.status === 'pending') {
-        return { text: 'Pendiente', color: 'text-yellow-400', bgColor: 'bg-yellow-900/30' };
-    } else if (food.status === 'rejected') {
-        return { text: 'Rechazado', color: 'text-red-400', bgColor: 'bg-red-900/30' };
-    }
-    return null;
-  };
-
-  const approvalInfo = getApprovalTypeInfo();
-
   const getSeasonName = () => {
     if (food.selected_season_id) {
       const seasons = { 1: 'Primavera', 2: 'Verano', 3: 'Otoño', 4: 'Invierno' };
@@ -81,11 +67,11 @@ const FoodInfoView = ({ food, allSensitivities }) => {
     <div className="space-y-6">
         <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold text-white">{food.name}</h2>
-            {approvalInfo && (
-              <span className={`text-sm px-3 py-1 rounded-full ${approvalInfo.bgColor} ${approvalInfo.color} font-medium`}>
-                {approvalInfo.text}
-              </span>
-            )}
+            <FoodStatusBadge
+              status={food.status}
+              moderationStatus={food.moderation_status}
+              className="text-sm px-3"
+            />
         </div>
 
       {food.created_at && (

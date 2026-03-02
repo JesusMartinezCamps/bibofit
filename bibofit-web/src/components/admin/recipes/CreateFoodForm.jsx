@@ -18,11 +18,21 @@ import MedicalConditionFields from './form-fields/MedicalConditionFields';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 
-const CreateFoodForm = ({ foodToEdit, onFoodActionComplete, isEditing, isClientRequest }) => {
+const CreateFoodForm = ({
+  foodToEdit,
+  onFoodActionComplete,
+  isEditing,
+  isClientRequest,
+  submissionMode,
+  formId = 'create-food-form',
+  showTopSubmit = true,
+}) => {
   const { user } = useAuth();
   const isCoach = user?.role === 'coach';
   const isReadOnly = isCoach; // Coaches are read-only for this form in both edit and create contexts within this page
   
+  const effectiveSubmissionMode = submissionMode || (isClientRequest ? 'client_request' : 'admin');
+
   const {
     state,
     formHandlers,
@@ -32,7 +42,7 @@ const CreateFoodForm = ({ foodToEdit, onFoodActionComplete, isEditing, isClientR
     handleSubmit,
     groupedCarbSubtypes,
     groupedFatTypes,
-  } = useFoodForm({ foodToEdit, onFoodActionComplete, isEditing, isClientRequest });
+  } = useFoodForm({ foodToEdit, onFoodActionComplete, isEditing, submissionMode: effectiveSubmissionMode });
 
   const {
     allFoodGroups,
@@ -148,7 +158,7 @@ const CreateFoodForm = ({ foodToEdit, onFoodActionComplete, isEditing, isClientR
 
   const buttonText = isSubmitting 
     ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Procesando...</> 
-    : isClientRequest
+    : effectiveSubmissionMode === 'client_request'
       ? 'Enviar Solicitud'
       : (isEditing ? 'Actualizar Alimento' : 'Crear Alimento');
 
@@ -170,9 +180,9 @@ const CreateFoodForm = ({ foodToEdit, onFoodActionComplete, isEditing, isClientR
   const shouldDisable = isReadOnly || isSubmitting;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form id={formId} onSubmit={handleSubmit} className="space-y-4">
       {/* Hide top button for coach */}
-      {!isReadOnly && <Button type="submit" variant="diet" className="w-full mb-4" disabled={shouldDisable}>{buttonText}</Button>}
+      {!isReadOnly && showTopSubmit && <Button type="submit" variant="diet" className="w-full mb-4" disabled={shouldDisable}>{buttonText}</Button>}
       
       <div className={cn(isReadOnly && "pointer-events-none opacity-80")}>
           {renderCollapsibleSection('details', 'Detalles', <Info className="h-6 w-6 text-blue-400" />, 'border-blue-500/50',

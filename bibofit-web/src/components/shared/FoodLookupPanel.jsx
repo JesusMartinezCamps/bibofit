@@ -1,7 +1,7 @@
 import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, X } from 'lucide-react';
 
 const FoodLookupPanel = ({
   title = 'Buscar Ingrediente',
@@ -12,6 +12,8 @@ const FoodLookupPanel = ({
   onSearchKeyDown,
   placeholder,
   helperText,
+  showClearButton = false,
+  onClearSearch,
   children,
 }) => {
   return (
@@ -25,15 +27,27 @@ const FoodLookupPanel = ({
         </div>
       )}
       <div>
-        <Input
-          type="text"
-          placeholder={placeholder}
-          value={searchTerm}
-          onChange={(e) => onSearchTermChange(e.target.value)}
-          onKeyDown={onSearchKeyDown}
-          className="input-field"
-          autoFocus
-        />
+        <div className="relative">
+          <Input
+            type="text"
+            placeholder={placeholder}
+            value={searchTerm}
+            onChange={(e) => onSearchTermChange(e.target.value)}
+            onKeyDown={onSearchKeyDown}
+            className="input-field pr-10"
+            autoFocus
+          />
+          {showClearButton && searchTerm?.trim() ? (
+            <button
+              type="button"
+              onClick={() => (onClearSearch ? onClearSearch() : onSearchTermChange(''))}
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              aria-label="Limpiar búsqueda"
+            >
+              <X size={14} />
+            </button>
+          ) : null}
+        </div>
         {helperText ? <p className="text-[11px] text-muted-foreground mt-2">{helperText}</p> : null}
       </div>
       <div className="flex-1 overflow-y-auto styled-scrollbar-green -mr-2 pr-2">{children}</div>

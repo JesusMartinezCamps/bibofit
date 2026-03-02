@@ -43,7 +43,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
         return fixedNum.endsWith('.00') ? String(parseInt(number, 10)) : Number(fixedNum).toString();
     };
 
-    export const useFoodForm = ({ foodToEdit, onFoodActionComplete, isEditing, isClientRequest }) => {
+    export const useFoodForm = ({ foodToEdit, onFoodActionComplete, isEditing, submissionMode = 'admin' }) => {
       const { toast } = useToast();
       
       const [state, setState] = useState({
@@ -139,13 +139,13 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
           
           setState(prevState => ({ ...prevState, isLoading: true }));
           try {
-              await loadFoodForEditing(food.id, setFormState, toast, isClientRequest);
+              await loadFoodForEditing(food.id, setFormState, toast);
           } catch (error) {
               console.error("Error populating form for editing:", error);
           } finally {
               setState(prevState => ({ ...prevState, isLoading: false }));
           }
-      }, [toast, isClientRequest]);
+      }, [toast]);
 
       useEffect(() => {
         if (isEditing && foodToEdit) {
@@ -454,7 +454,12 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
             ...formState,
             fatClassificationBreakdown,
           };
-          const newFoodId = await saveFoodData(isEditing, foodToEdit?.id, finalFormState, state.allCarbTypes, isClientRequest);
+          const newFoodId = await saveFoodData({
+            isEditing,
+            foodId: foodToEdit?.id,
+            formState: finalFormState,
+            submissionMode,
+          });
           
           const tableName = 'food';
           const { data: newFood } = await supabase.from(tableName).select('*').eq('id', newFoodId).single();

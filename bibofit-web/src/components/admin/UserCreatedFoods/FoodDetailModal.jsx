@@ -1,9 +1,7 @@
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { useFoodForm } from '@/components/admin/recipes/hooks/useFoodForm';
 import CreateFoodForm from '@/components/admin/recipes/CreateFoodForm';
-import { Loader2 } from 'lucide-react';
 
 const FoodDetailModal = ({ food, isOpen, onClose, onActionComplete, allSensitivities, activeTab, onReject, onDelete }) => {
     if (!food) return null;
@@ -35,7 +33,7 @@ const FoodDetailModal = ({ food, isOpen, onClose, onActionComplete, allSensitivi
         food_minerals: (food.food_minerals || []).map(m => ({ mineral_id: m.mineral_id, mg_per_100g: m.mg_per_100g })),
         total_fats: food.total_fats,
         total_carbs: food.total_carbs,
-        food_to_stores: food.store_id ? [{ store_id: food.store_id }] : [],
+        food_to_stores: (food.food_to_stores || []).map(store => ({ store_id: store.store_id })),
     };
     
     return (
@@ -44,7 +42,7 @@ const FoodDetailModal = ({ food, isOpen, onClose, onActionComplete, allSensitivi
                 <DialogHeader>
                     <DialogTitle className="text-2xl text-cyan-400">Detalle del Alimento Solicitado</DialogTitle>
                     <DialogDescription>
-                        Revisa y aprueba el alimento solicitado por {food.user_full_name}.
+                        Revisa y aprueba el alimento solicitado por {food.user_full_name || 'el usuario'}.
                     </DialogDescription>
                 </DialogHeader>
                 
@@ -53,9 +51,8 @@ const FoodDetailModal = ({ food, isOpen, onClose, onActionComplete, allSensitivi
                         key={food.id}
                         foodToEdit={foodToEdit} 
                         onFoodActionComplete={handleFoodActionComplete}
-                        isEditing={true} // It's like editing to create a new one
-                        isClientRequest={true}
-                        foodRequestData={food}
+                        isEditing={true}
+                        submissionMode="moderation"
                     />
                 </div>
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Helmet } from 'react-helmet';
 import { supabase } from '@/lib/supabaseClient';
 import { useToast } from '@/components/ui/use-toast';
@@ -11,6 +11,8 @@ import {
   rebalanceImpactedFutureMealsForFood,
   removeFoodFromFutureMealsAndRebalance,
 } from '@/lib/foodModerationImpactService';
+import { FOOD_CARD_SELECT, normalizeFoodRecord } from '@/lib/food/foodModel';
+import { useLocation } from 'react-router-dom';
 
 const TABS = [
   { value: 'pending', label: 'Pendientes' },
@@ -20,6 +22,7 @@ const TABS = [
 ];
 
 const UserCreatedFoodsPage = () => {
+  const location = useLocation();
   const { user } = useAuth();
   const [users, setUsers] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
@@ -29,10 +32,31 @@ const UserCreatedFoodsPage = () => {
   const [activeTab, setActiveTab] = useState('pending');
   const [allSensitivities, setAllSensitivities] = useState([]);
   const [coachClientIds, setCoachClientIds] = useState([]);
+  const foodCacheRef = useRef(new Map());
+  const preselectedUserHandledRef = useRef(false);
   const { toast } = useToast();
   const { pendingFoodCount, refreshPendingRequests } = useNotifications();
 
   const isCoach = user?.role === 'coach';
+
+  const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const requestedUserId = searchParams.get('userId');
+  const requestedTab = searchParams.get('tab');
+
+  const normalizeRequestedTab = useCallback((tabValue) => {
+    if (tabValue === 'pending' || tabValue === 'approved' || tabValue === 'rejected' || tabValue === 'review') {
+      return tabValue;
+    }
+    return null;
+  }, []);
+
+  useEffect(() => {
+    const normalizedTab = normalizeRequestedTab(requestedTab);
+    if (normalizedTab && normalizedTab !== activeTab) {
+      setActiveTab(normalizedTab);
+    }
+    preselectedUserHandledRef.current = false;
+  }, [requestedTab, requestedUserId, normalizeRequestedTab, activeTab]);
 
   const mapTabToFoodFilter = (tab) => {
     if (tab === 'review') return { moderation_status: 'needs_review' };
@@ -94,17 +118,27 @@ const UserCreatedFoodsPage = () => {
     }
   }, [toast, isCoach, coachClientIds]);
 
-  const fetchFoodsForUser = useCallback(async (user, tab) => {
+  const fetchFoodsForUser = useCallback(async (user, tab, options = {}) => {
     if (!user) return;
+    const { force = false } = options;
+    const cacheKey = `${user.user_id}:${tab}`;
+
+    if (!force && foodCacheRef.current.has(cacheKey)) {
+      setFoods(foodCacheRef.current.get(cacheKey));
+      return;
+    }
+
     setLoadingFoods(true);
     try {
       const filter = mapTabToFoodFilter(tab);
-      let query = supabase.from('food').select('*').eq('user_id', user.user_id);
+      let query = supabase.from('food').select(FOOD_CARD_SELECT).eq('user_id', user.user_id);
       if (Array.isArray(filter)) query = query.in('status', filter);
       if (!Array.isArray(filter)) query = query.eq('moderation_status', filter.moderation_status);
       const { data, error } = await query.order('created_at', { ascending: false });
       if (error) throw error;
-      setFoods(data || []);
+      const normalizedFoods = (data || []).map(normalizeFoodRecord);
+      foodCacheRef.current.set(cacheKey, normalizedFoods);
+      setFoods(normalizedFoods);
     } catch (error) {
       toast({ title: 'Error', description: `No se pudieron cargar los alimentos: ${error.message}`, variant: 'destructive' });
     } finally {
@@ -143,7 +177,20 @@ const UserCreatedFoodsPage = () => {
     fetchUsersByStatus(activeTab);
     setSelectedUser(null);
     setFoods([]);
+    preselectedUserHandledRef.current = false;
   }, [activeTab, fetchUsersByStatus, isCoach, coachClientIds]);
+
+  useEffect(() => {
+    if (preselectedUserHandledRef.current) return;
+    if (!requestedUserId || users.length === 0) return;
+
+    const targetUser = users.find((item) => String(item.user_id) === String(requestedUserId));
+    if (!targetUser) return;
+
+    preselectedUserHandledRef.current = true;
+    setSelectedUser(targetUser);
+    fetchFoodsForUser(targetUser, activeTab);
+  }, [users, requestedUserId, activeTab, fetchFoodsForUser]);
 
   useEffect(() => {
     const fetchSensitivities = async () => {
@@ -161,9 +208,10 @@ const UserCreatedFoodsPage = () => {
   const handleTabChange = (tabId) => setActiveTab(tabId);
 
   const handleFoodAction = () => {
+    foodCacheRef.current.clear();
     fetchUsersByStatus(activeTab);
     if (selectedUser) {
-      fetchFoodsForUser(selectedUser, activeTab);
+      fetchFoodsForUser(selectedUser, activeTab, { force: true });
     }
     refreshPendingRequests();
   };
@@ -360,7 +408,6 @@ const UserCreatedFoodsPage = () => {
             onDelete={handleDelete}
             allSensitivities={allSensitivities}
             onActionComplete={handleFoodAction}
-            onFoodAction={handleFoodAction}
           />
         </div>
       </div>

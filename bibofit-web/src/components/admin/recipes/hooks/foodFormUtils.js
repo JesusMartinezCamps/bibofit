@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabaseClient';
 
-    export const loadFoodForEditing = async (foodId, setFormState, toast, isClientRequest) => {
+    export const loadFoodForEditing = async (foodId, setFormState, toast) => {
         const query = supabase
             .from('food')
             .select(`
@@ -111,7 +111,7 @@ import { supabase } from '@/lib/supabaseClient';
         });
     };
 
-    export const saveFoodData = async (isEditing, foodId, formState, allCarbTypes, isClientRequest) => {
+    export const saveFoodData = async ({ isEditing, foodId, formState, submissionMode = 'admin', userId }) => {
       const {
         formData, selectedFoodGroups, selectedMacroRoles, selectedSeasons, selectedStores,
         aminoAcidBreakdown, selectedDominantAminos, selectedLimitingAminos,
@@ -134,9 +134,9 @@ import { supabase } from '@/lib/supabaseClient';
       // If isEditing is true, we can include ID or just use it in the query matcher (but upsert needs it in body or matcher).
       
       const payload = { ...updatedFormData };
-      if (isClientRequest) {
+      if (submissionMode === 'client_request') {
         const { data: authData } = await supabase.auth.getUser();
-        payload.user_id = authData?.user?.id || payload.user_id || null;
+        payload.user_id = userId || authData?.user?.id || payload.user_id || null;
         payload.status = 'pending';
       }
       if (isEditing) {
