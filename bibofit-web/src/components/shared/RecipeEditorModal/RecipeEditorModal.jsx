@@ -16,7 +16,7 @@ import { Link } from 'react-router-dom';
 import { isUserCreatedFood } from '@/lib/foodIdentity';
 
 const SimpleHeader = ({ title, className }) => (
-  <div className={cn("flex items-center justify-between p-4 border-b border-gray-700", className || "bg-gray-800/50")}>
+  <div className={cn("flex items-center justify-between p-4 border-b border-border", className || "bg-muted/65")}>
     <h3 className="text-lg font-semibold text-white">{title}</h3>
   </div>
 );
@@ -306,7 +306,7 @@ const RecipeEditorModal = ({
   return (
     <>
       <Dialog open={open} onOpenChange={handleClose}>
-        <DialogContent className="bg-[#0C101D] border-gray-700 text-white w-[95vw] max-w-4xl p-0 flex flex-col h-[90vh]">
+        <DialogContent className="bg-[#0C101D] border-border text-white w-[95vw] max-w-4xl p-0 flex flex-col h-[90vh]">
           {totalLoading ? (
             <div className="flex justify-center items-center h-full min-h-[400px]">
               <Loader2 className="h-12 w-12 animate-spin text-green-500" />
@@ -392,7 +392,7 @@ const RecipeEditorModal = ({
                                 </span>
                             </TooltipTrigger>
                             {(isButtonDisabled) && (
-                                <TooltipContent className="bg-slate-900 border-slate-700 text-white">
+                                <TooltipContent className="bg-card border-border text-white">
                                      {hasCriticalConflicts 
                                         ? <p className="text-red-400">Debes resolver todos los conflictos antes de guardar.</p>
                                         : <p>Realiza cambios en la receta para habilitar el guardado.</p>

@@ -101,7 +101,7 @@ from "@/components/ui/badge";
             if (onSelect) return placeholder;
             const selectedOption = allOptions.find(opt => String(opt.value) === String(value));
             if (!selectedOption) {
-                return <span className="text-gray-400">{placeholder}</span>;
+                return <span className="text-muted-foreground">{placeholder}</span>;
             }
             const conflictClass = {
                 sensitivity: "text-orange-200",
@@ -145,10 +145,10 @@ from "@/components/ui/badge";
               className={cn(
                 "cursor-pointer",
                 conflictBgClass,
-                !conflictBgClass && "aria-selected:bg-gray-800/80 data-[highlighted]:bg-gray-800/80",
-                isSelected ? conflictTextClass || "text-white" : conflictTextClass || "text-white",
+                !conflictBgClass && "aria-selected:bg-muted/80 data-[highlighted]:bg-muted/80",
+                isSelected ? conflictTextClass || "text-foreground" : conflictTextClass || "text-foreground",
                 commandItemClassName,
-                "hover:text-white" // Ensure text is white on hover
+                "hover:text-foreground"
               )}
             >
               <Check
@@ -175,29 +175,29 @@ from "@/components/ui/badge";
         <div className="space-y-2">
           <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
-              <Button
+            <Button
                 type="button"
                 variant="outline"
                 role="combobox"
                 aria-expanded={open}
-                className={cn("w-full justify-between bg-gray-800 border-slate-700 hover:bg-gray-700 hover:text-white", triggerClassName)}
+                className={cn("w-full justify-between border-input bg-card hover:border-primary/50 hover:bg-card/80 hover:text-foreground", triggerClassName)}
               >
                 <span className="truncate">{displayLabel}</span>
                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className={cn("w-[--radix-popover-trigger-width] p-0 bg-[#0F1627] border-slate-700", contentClassName)}>
+            <PopoverContent className={cn("w-[--radix-popover-trigger-width] p-0 bg-card border-border", contentClassName)}>
               <Command className="bg-transparent" filter={(value, search) => {
                 const normalizedValue = normalizeText(value);
                 const normalizedSearch = normalizeText(search);
                 return normalizedValue.includes(normalizedSearch) ? 1 : 0;
               }}>
-                <CommandInput placeholder={searchPlaceholder} className={cn("h-9 border-0 border-b border-b-slate-700 ring-offset-0 focus:ring-0 text-white [&>svg]:hidden", searchInputClassName)} />
+                <CommandInput placeholder={searchPlaceholder} className={cn("h-9 border-0 border-b border-b-border ring-offset-0 focus:ring-0 text-foreground [&>svg]:hidden", searchInputClassName)} />
                 <CommandList className="styled-scrollbar-green">
                   <CommandEmpty>{noResultsText}</CommandEmpty>
                   {optionsGrouped
                     ? Object.entries(optionsGrouped).map(([groupName, groupOptions]) => (
-                        <CommandGroup key={groupName} heading={<span className="text-gray-400 font-semibold px-2">{groupName}</span>}>
+                        <CommandGroup key={groupName} heading={<span className="text-muted-foreground font-semibold px-2">{groupName}</span>}>
                           {renderCommandItems(groupOptions)}
                         </CommandGroup>
                       ))
@@ -210,12 +210,12 @@ from "@/components/ui/badge";
           {isMultiSelect && showSelectedBadges && selectedItems.length > 0 && !(allYearOption && selectedValues.includes(allYearOption.value)) && (
             <div className="flex flex-wrap gap-1.5">
               {selectedItems.map(item => (
-                <Badge key={item.value} variant="secondary" className="flex items-center gap-1.5 bg-gray-700 text-gray-200">
+                <Badge key={item.value} variant="secondary" className="flex items-center gap-1.5 bg-muted text-foreground">
                   {item.label}
                   <button
                     type="button"
                     onClick={() => handleSelect(item.value)}
-                    className="rounded-full hover:bg-white/20 p-0.5"
+                    className="rounded-full p-0.5 hover:bg-foreground/15"
                   >
                     <X className="h-3 w-3" />
                   </button>

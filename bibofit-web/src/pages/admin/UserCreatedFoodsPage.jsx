@@ -331,7 +331,7 @@ const UserCreatedFoodsPage = () => {
       </Helmet>
       <div className="p-4 md:p-8">
         <h1 className="text-3xl font-bold mb-2">Solicitudes de Alimentos</h1>
-        <p className="text-gray-400 mb-6">
+        <p className="text-muted-foreground mb-6">
           Revisa, aprueba o rechaza alimentos. Si un recálculo falla, el alimento queda en cola "En Revisión".
         </p>
         

@@ -27,7 +27,7 @@ const ConflictNotification = ({ conflicts }) => {
                         {conflicts.map(conflict => (
                              <li key={`${conflict.foodName}-${conflict.restrictionName}`}>
                                 <span className={cn("font-semibold", conflict.type === 'condition_avoid' ? "text-red-400" : "text-orange-400")}>{conflict.foodName}</span>
-                                <span className="text-gray-400"> ({conflict.restrictionName})</span>
+                                <span className="text-muted-foreground"> ({conflict.restrictionName})</span>
                             </li>
                         ))}
                     </ul>

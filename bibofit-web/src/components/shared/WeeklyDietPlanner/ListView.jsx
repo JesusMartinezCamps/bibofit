@@ -61,7 +61,7 @@ const MealHeader = React.memo(({ mealName, mealId, name, items, isAnyRecipeSelec
                     "h-5 w-5 transition-transform duration-300 group-data-[state=open]:rotate-180", 
                     isAnyRecipeSelectedInMeal 
                         ? (isFreeRecipeSelected ? "text-[rgb(132,232,255)]" : "text-[rgb(158,255,211)]")
-                        : "text-gray-400"
+                        : "text-muted-foreground"
                 )} />
             </div>
             
@@ -271,7 +271,7 @@ const ListView = ({
         const hasSnacks = mealHasSnacks(items);
 
         return (
-          <Collapsible key={mealId} className="p-3 rounded-lg bg-slate-800/60 border border-slate-700/70 space-y-4 group">
+          <Collapsible key={mealId} className="p-3 rounded-lg bg-muted/70 border border-border/70 space-y-4 group">
              <MealHeader 
                 mealName={mealName}
                 mealId={mealId}
@@ -290,19 +290,19 @@ const ListView = ({
             
             <CollapsibleContent>
                 <div className="mb-4 relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                     <Input 
                         type="text"
                         placeholder="Buscar receta o ingrediente..."
                         value={searchQueries[mealId] || ''}
                         onChange={(e) => handleSearchChange(mealId, e.target.value)}
-                        className="pl-9 bg-slate-900/50 border-slate-700 text-sm w-full focus:ring-green-500/20 focus:border-green-500/50 text-white placeholder:text-gray-500 transition-all duration-200 h-10"
+                        className="pl-9 bg-card/75 border-border text-sm w-full focus:ring-green-500/20 focus:border-green-500/50 text-white placeholder:text-muted-foreground transition-all duration-200 h-10"
                 />
                 
                 {searchQueries[mealId] && (
                   <button
                     onClick={() => handleSearchChange(mealId, '')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -377,7 +377,7 @@ const ListView = ({
                           isSelected && isFreeRecipe ? 'bg-[rgba(132,232,255,0.1)] text-[rgb(132,232,255)] border-[rgb(132,232,255)]' : 
                           isSelected ? 'bg-[rgba(158,255,211,0.1)] text-[rgb(158,255,211)] border-[rgb(158,255,211)]' : 
                           !isSafe ? 'bg-red-900/20 text-red-300 border-red-800/30 hover:border-red-700/50' :
-                          'bg-gray-700/50 text-gray-400 border-gray-600/50 hover:border-gray-500/50'
+                          'bg-muted/50 text-muted-foreground border-input/50 hover:border-gray-500/50'
                         )}
                         title={isSelected ? "Desmarcar como comida" : "Marcar como comida"}
                       >
@@ -387,7 +387,7 @@ const ListView = ({
                             isSelected && isFreeRecipe ? 'text-[rgb(132,232,255)]' : 
                             isSelected ? 'text-[rgb(158,255,211)]' : 
                             !isSafe ? 'text-red-500/70' :
-                            'text-gray-500'
+                            'text-muted-foreground'
                         )} />
                         <span>{selectionCount}</span>
                       </button>
@@ -427,7 +427,7 @@ const ListView = ({
                   })}
                   {filteredItems.length === 0 && (
                       <div className="md:col-span-2 lg:col-span-3">
-                          <p className="text-sm text-gray-500 text-center italic py-4 bg-gray-900/40 rounded-lg">
+                          <p className="text-sm text-muted-foreground text-center italic py-4 bg-card/40 rounded-lg">
                             {items.length > 0 ? "No se encontraron recetas con ese criterio." : "No hay recetas asignadas a esta comida."}
                           </p>
                       </div>

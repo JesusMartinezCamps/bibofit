@@ -78,7 +78,7 @@ const IngredientComparison = ({ original, requested, allFoods, clientRestriction
 
     return (
         <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-4 text-center font-semibold text-gray-300">
+            <div className="grid grid-cols-2 gap-4 text-center font-semibold text-muted-foreground">
                 <div>Original</div>
                 <div>Solicitado</div>
             </div>
@@ -91,7 +91,7 @@ const IngredientComparison = ({ original, requested, allFoods, clientRestriction
                                 "p-2 rounded-md text-sm flex justify-between items-center min-h-[2.5rem]",
                                 status === 'removed' ? "bg-red-900/40 text-red-400 line-through" : 
                                 status === 'modified' ? "bg-purple-600/40 text-purple-300" :
-                                "bg-slate-700/50 text-gray-300"
+                                "bg-slate-700/50 text-muted-foreground"
                             )}>
                                 <span>{food.name}</span>
                                 <span className="font-mono">{originalGrams}g</span>
@@ -110,7 +110,7 @@ const IngredientComparison = ({ original, requested, allFoods, clientRestriction
                                 "p-2 rounded-md text-sm flex justify-between items-center min-h-[2.5rem]",
                                 status === 'added' ? conflictInfo.className :
                                 status === 'modified' ? "bg-purple-600/40 text-purple-300" :
-                                "bg-slate-700/50 text-gray-300"
+                                "bg-slate-700/50 text-muted-foreground"
                             )}>
                                 <div className="flex flex-col">
                                     <span>{food.name}</span>
@@ -175,7 +175,7 @@ const requestedIngredientsWithDetails = useMemo(() => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-gradient-to-br from-[#1a1e23] to-[#101418] border-gray-700 text-white max-w-4xl max-h-[90vh] flex flex-col">
+      <DialogContent className="bg-gradient-to-br from-[#1a1e23] to-[#101418] border-border text-white max-w-4xl max-h-[90vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-2xl text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">
             Revisar Solicitud de {isDuplicateRequest ? 'Duplicado' : 'Reemplazo'}
@@ -424,7 +424,7 @@ const DietChangeRequestList = ({
 
   return (
     <>
-      <Card className="md:col-span-2 bg-[#1a1e23] border-gray-700 text-white">
+      <Card className="md:col-span-2 bg-background border-border text-white">
         <CardHeader>
           <CardTitle className="flex items-center">
             <MailQuestion className="mr-2" /> {getTitle()}
@@ -437,12 +437,12 @@ const DietChangeRequestList = ({
               <Loader2 className="animate-spin h-8 w-8 text-[#5ebe7d]" />
             </div>
           ) : !selectedUser ? (
-            <div className="text-center py-12 text-gray-400">
+            <div className="text-center py-12 text-muted-foreground">
               <Inbox className="mx-auto h-12 w-12" />
               <p>Selecciona un usuario de la lista</p>
             </div>
           ) : userChangeRequests.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">
+            <div className="text-center py-12 text-muted-foreground">
               <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
               <p>{getEmptyMessage()}</p>
             </div>

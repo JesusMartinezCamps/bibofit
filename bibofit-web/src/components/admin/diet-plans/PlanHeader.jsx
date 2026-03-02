@@ -22,12 +22,12 @@ const InfoItem = ({ icon, label, children, asLink, to }) => {
   const content = (
     <div
       className={`flex items-start space-x-3 ${
-        asLink ? 'hover:bg-gray-700/50 p-2 -m-2 rounded-lg transition-colors' : ''
+        asLink ? 'hover:bg-muted/50 p-2 -m-2 rounded-lg transition-colors' : ''
       }`}
     >
-      <div className="bg-gray-700/50 p-2 rounded-lg">{icon}</div>
+      <div className="bg-muted/50 p-2 rounded-lg">{icon}</div>
       <div>
-        <p className="text-sm text-gray-400">{label}</p>
+        <p className="text-sm text-muted-foreground">{label}</p>
         {children}
       </div>
     </div>
@@ -75,7 +75,7 @@ const ClassificationDialog = ({ template, open, onOpenChange, onUpdate }) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#1a1e23] border-gray-700 text-white max-w-2xl">
+      <DialogContent className="bg-background border-border text-white max-w-2xl">
         <DialogHeader>
           <DialogTitle>Editar Clasificación de Plantilla</DialogTitle>
           <DialogDescription>Define los ejes de clasificación para facilitar la búsqueda.</DialogDescription>
@@ -274,7 +274,7 @@ const PlanHeader = ({ plan, onUpdate, onToggleActive, readOnly = false }) => {
 
   return (
     <>
-      <Card className="bg-slate-900/50 border-gray-700 text-white overflow-hidden shadow-xl mb-8">
+      <Card className="bg-card/75 border-border text-white overflow-hidden shadow-xl mb-8">
         <CardHeader className="relative">
           {/* TÍTULO Y CONTENIDO PRINCIPAL */}
           <div className="flex-grow">
@@ -285,7 +285,7 @@ const PlanHeader = ({ plan, onUpdate, onToggleActive, readOnly = false }) => {
                 onChange={handleNameChange}
                 onBlur={handleBlur}
                 rows={1}
-                className="block w-full resize-none overflow-hidden text-2xl font-bold text-white bg-transparent border-0 focus:outline-none focus:bg-slate-800/50 px-2 py-2"
+                className="block w-full resize-none overflow-hidden text-2xl font-bold text-white bg-transparent border-0 focus:outline-none focus:bg-muted/65 px-2 py-2"
                 placeholder="Nombre del Plan"
                 disabled={isSavingName || readOnly}
               />
@@ -310,14 +310,14 @@ const PlanHeader = ({ plan, onUpdate, onToggleActive, readOnly = false }) => {
                   </div>
 
                   <div className="space-y-1">
-                    <p className="text-xs text-gray-400 uppercase font-semibold">Clasificación:</p>
+                    <p className="text-xs text-muted-foreground uppercase font-semibold">Clasificación:</p>
                     <div className="flex flex-wrap gap-1.5">
                       {classifications.length > 0 ? (
                         classifications.map((tag, i) => (
                           <ClassificationBadge key={i} type={tag.type} value={tag.value} />
                         ))
                       ) : (
-                        <span className="text-sm text-gray-500 italic flex items-center gap-1">
+                        <span className="text-sm text-muted-foreground italic flex items-center gap-1">
                           <Tag className="w-3 h-3" /> Sin clasificar
                         </span>
                       )}
@@ -359,7 +359,7 @@ const PlanHeader = ({ plan, onUpdate, onToggleActive, readOnly = false }) => {
                         placeholder="Seleccionar rango"
                         shouldCloseOnSelect={false}
                         withPortal
-                        triggerClassName="font-semibold text-white bg-gray-700/50 border border-gray-600 rounded-md px-3 py-1.5 hover:bg-gray-700 transition-colors w-full text-center"
+                        triggerClassName="font-semibold text-white bg-muted/50 border border-input rounded-md px-3 py-1.5 hover:bg-muted transition-colors w-full text-center"
                       />
                     )}
                   </InfoItem>
@@ -397,7 +397,7 @@ const PlanHeader = ({ plan, onUpdate, onToggleActive, readOnly = false }) => {
 
           {/* 🔥 ACTION BAR */}
           <div className="!mt-8 flex justify-end">
-            <div className="flex items-center space-x-4 bg-gray-800/50 p-2 rounded-lg border border-gray-700">
+            <div className="flex items-center space-x-4 bg-muted/65 p-2 rounded-lg border border-border">
               {plan.is_template ? (
                 <Button
                   onClick={() => setIsAssignDialogOpen(true)}
@@ -408,7 +408,7 @@ const PlanHeader = ({ plan, onUpdate, onToggleActive, readOnly = false }) => {
               ) : readOnly ? (
                 <Badge
                   className={`px-3 py-1 ${
-                    plan.is_active ? 'bg-green-900/40 text-green-200' : 'bg-gray-700 text-gray-200'
+                    plan.is_active ? 'bg-green-900/40 text-green-200' : 'bg-muted text-gray-200'
                   }`}
                 >
                   {plan.is_active ? 'Plan Activo' : 'Plan Inactivo'}
@@ -453,7 +453,7 @@ const PlanHeader = ({ plan, onUpdate, onToggleActive, readOnly = false }) => {
 
         {plan.is_template && (
           <CardContent>
-            <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-700 space-y-6">
+            <div className="p-4 bg-muted/65 rounded-lg border border-border space-y-6">
               <div>
                 <h3 className="text-xl font-bold text-white mb-3 flex items-center gap-2">
                   <Users className="text-green-400" />
@@ -474,7 +474,7 @@ const PlanHeader = ({ plan, onUpdate, onToggleActive, readOnly = false }) => {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500 italic">Esta plantilla aún no se ha asignado a ningún cliente.</p>
+                  <p className="text-sm text-muted-foreground italic">Esta plantilla aún no se ha asignado a ningún cliente.</p>
                 )}
               </div>
 

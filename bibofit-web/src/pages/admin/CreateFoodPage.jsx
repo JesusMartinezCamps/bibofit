@@ -61,7 +61,7 @@ const CreateFoodPage = () => {
           
           <div className="flex flex-col lg:flex-row gap-6 h-full mt-4">
             {/* Sidebar Search - Left Side */}
-            <div className="w-full lg:w-1/3 xl:w-1/4 bg-[#1a1e23] border border-gray-700 rounded-lg p-4 flex flex-col h-full overflow-hidden">
+            <div className="w-full lg:w-1/3 xl:w-1/4 bg-background border border-border rounded-lg p-4 flex flex-col h-full overflow-hidden">
               <h2 className="text-xl font-bold text-white mb-4">Biblioteca de Alimentos</h2>
               <div className="flex-grow overflow-hidden">
                  <FoodSearch 
@@ -74,7 +74,7 @@ const CreateFoodPage = () => {
             </div>
 
             {/* Main Form Area - Right Side (Larger) */}
-            <div className="w-full lg:w-2/3 xl:w-3/4 bg-[#1a1e23] border border-gray-700 rounded-lg p-6 overflow-y-auto h-full custom-scrollbar">
+            <div className="w-full lg:w-2/3 xl:w-3/4 bg-background border border-border rounded-lg p-6 overflow-y-auto h-full custom-scrollbar">
               <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold text-green-400">
                   {selectedFood 
@@ -97,7 +97,7 @@ const CreateFoodPage = () => {
 
                {/* Show placeholder if Coach and no food selected, else show form */}
                {isCoach && !selectedFood ? (
-                 <div className="flex flex-col items-center justify-center h-[60vh] text-gray-500">
+                 <div className="flex flex-col items-center justify-center h-[60vh] text-muted-foreground">
                     <p className="text-lg">Selecciona un alimento de la lista para ver los detalles.</p>
                  </div>
                ) : (

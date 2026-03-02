@@ -68,7 +68,7 @@ const RecipeImageUpload = ({ value, onChange, disabled }) => {
       <div className="flex items-start gap-4">
         {preview ? (
           <div className="relative group">
-            <div className="w-[100px] h-[100px] rounded-lg overflow-hidden border border-gray-700 bg-[#16191d] flex items-center justify-center">
+            <div className="w-[100px] h-[100px] rounded-lg overflow-hidden border border-border bg-[#16191d] flex items-center justify-center">
               <img src={preview} alt="Vista previa" className="w-full h-full object-cover" />
             </div>
             {!disabled && (
@@ -81,7 +81,7 @@ const RecipeImageUpload = ({ value, onChange, disabled }) => {
               </button>
             )}
             {value instanceof File && (
-              <div className="text-xs text-gray-400 mt-1 text-center truncate w-[100px]">
+              <div className="text-xs text-muted-foreground mt-1 text-center truncate w-[100px]">
                 {value.name}
                 <br/>
                 {(value.size / 1024).toFixed(1)} KB
@@ -89,7 +89,7 @@ const RecipeImageUpload = ({ value, onChange, disabled }) => {
             )}
           </div>
         ) : (
-          <div className="w-[100px] h-[100px] rounded-lg border border-dashed border-gray-600 bg-[#16191d] flex flex-col items-center justify-center text-gray-500 gap-2">
+          <div className="w-[100px] h-[100px] rounded-lg border border-dashed border-input bg-[#16191d] flex flex-col items-center justify-center text-muted-foreground gap-2">
             <ImageIcon className="w-8 h-8" />
             <span className="text-[10px]">Sin imagen</span>
           </div>
@@ -107,14 +107,14 @@ const RecipeImageUpload = ({ value, onChange, disabled }) => {
           <Button
             type="button"
             variant="outline"
-            className="bg-[#1a1e23] border-gray-700 hover:bg-gray-800 hover:text-gray-100 text-gray-200 w-fit"
+            className="bg-background border-border hover:bg-muted hover:text-gray-100 text-gray-200 w-fit"
             onClick={() => fileInputRef.current?.click()}
             disabled={disabled}
           >
             <ImagePlus className="w-4 h-4 mr-2" />
             {preview ? 'Cambiar Imagen' : 'Seleccionar Imagen .webp'}
           </Button>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-muted-foreground">
             Formato: .webp • Máximo: 100KB
           </p>
           {localError && (

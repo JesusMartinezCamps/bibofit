@@ -12,7 +12,7 @@ import React, { useState, useEffect, useCallback } from 'react';
         const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
         return (
-            <div className="bg-gray-900/50 p-4 rounded-xl border border-gray-700">
+            <div className="bg-card/75 p-4 rounded-xl border border-border">
                 <p className="text-center text-lg font-semibold mb-4 text-cyan-300">Repetir para: <span className="font-bold">{mealName}</span></p>
                 <div className="grid grid-cols-7 gap-2">
                     {weekDates.map(date => {
@@ -26,13 +26,13 @@ import React, { useState, useEffect, useCallback } from 'react';
                                 onClick={() => onDayToggle(date)}
                                 className={cn(
                                     "flex flex-col items-center p-2 rounded-lg transition-all duration-200 transform",
-                                    isSelected ? 'bg-green-500/80 ring-2 ring-green-300 scale-105' : 'bg-slate-800 hover:bg-slate-700',
+                                    isSelected ? 'bg-green-500/80 ring-2 ring-green-300 scale-105' : 'bg-muted hover:bg-accent',
                                 )}
                             >
-                                <span className={cn("text-xs uppercase font-bold", isSelected ? "text-white" : "text-gray-400")}>
+                                <span className={cn("text-xs uppercase font-bold", isSelected ? "text-white" : "text-muted-foreground")}>
                                     {capitalize(format(date, 'eee', { locale: es }))}
                                 </span>
-                                <span className={cn("text-lg font-bold", isSelected ? 'text-white' : 'text-gray-300')}>
+                                <span className={cn("text-lg font-bold", isSelected ? 'text-white' : 'text-muted-foreground')}>
                                     {format(date, 'd')}
                                 </span>
                                 <div className="flex justify-center items-center h-4 mt-2">
@@ -158,7 +158,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 
         return (
             <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent className="bg-[#1a1e23] border-gray-700 text-white">
+                <DialogContent className="bg-background border-border text-white">
                     <DialogHeader>
                         <DialogTitle>Repetir Planificación Semanal</DialogTitle>
                         <DialogDescription>

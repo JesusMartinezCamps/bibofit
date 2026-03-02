@@ -28,7 +28,7 @@ import React from "react"
         )}
         {...props}
       >
-        <ScrollAreaPrimitive.ScrollAreaThumb className="relative flex-1 rounded-full bg-gray-500" />
+        <ScrollAreaPrimitive.ScrollAreaThumb className="relative flex-1 rounded-full bg-muted-foreground/45" />
       </ScrollAreaPrimitive.ScrollAreaScrollbar>
     ))
     ScrollBar.displayName = ScrollAreaPrimitive.ScrollAreaScrollbar.displayName

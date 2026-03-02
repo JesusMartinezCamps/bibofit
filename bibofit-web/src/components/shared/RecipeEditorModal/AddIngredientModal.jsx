@@ -27,7 +27,7 @@ import React, { useState, useMemo } from 'react';
 
         return (
             <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent className="bg-[#1a1e23] border-gray-700 text-white max-w-md">
+                <DialogContent className="bg-background border-border text-white max-w-md">
                     <DialogHeader>
                         <DialogTitle className="text-2xl font-bold text-green-400">Añadir Ingrediente</DialogTitle>
                         <DialogDescription>Busca un alimento para añadirlo a la receta.</DialogDescription>
@@ -49,7 +49,7 @@ import React, { useState, useMemo } from 'react';
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ duration: 0.2 }}
                                         onClick={() => handleSelectFood(food)}
-                                        className="p-3 cursor-pointer rounded-md hover:bg-gray-700/50"
+                                        className="p-3 cursor-pointer rounded-md hover:bg-muted/50"
                                     >
                                         {food.name}
                                     </motion.div>

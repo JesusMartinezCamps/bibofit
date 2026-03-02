@@ -11,11 +11,11 @@ const PlanDay = ({ day, dayIndex, meal, recipes, onAddRecipe, onEditRecipe, onDe
 
     return (
         <div 
-            className="flex-1 min-w-[280px] bg-slate-900/50 rounded-lg flex flex-col"
+            className="flex-1 min-w-[280px] bg-card/75 rounded-lg flex flex-col"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
         >
-            <div className="p-3 border-b border-slate-700/50">
+            <div className="p-3 border-b border-border/50">
                 <h3 className="font-bold text-center text-white">{meal.name}</h3>
                 {dayMealData && (
                     <div className="mt-2 flex justify-center">
@@ -58,7 +58,7 @@ const PlanDay = ({ day, dayIndex, meal, recipes, onAddRecipe, onEditRecipe, onDe
             <div className="p-3 mt-auto">
                 <Button 
                     variant="outline" 
-                    className={`w-full border-dashed transition-all duration-300 ${isHovered ? 'border-green-500 text-green-400' : 'border-slate-600 text-slate-400'}`}
+                    className={`w-full border-dashed transition-all duration-300 ${isHovered ? 'border-green-500 text-green-400' : 'border-input text-muted-foreground'}`}
                     onClick={() => onAddRecipe(dayIndex, meal.id)}
                 >
                     <Plus className="w-4 h-4 mr-2" />

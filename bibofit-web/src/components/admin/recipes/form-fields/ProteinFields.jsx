@@ -114,10 +114,10 @@ const ProteinFields = ({
             onValueChange={(value) => handleSelectChange('protein_source_id', value)}
             disabled={isProteinSourceDisabled}
           >
-            <SelectTrigger id="protein_source_id" className="bg-gray-800/50 border-gray-600 text-white">
+            <SelectTrigger id="protein_source_id" className="bg-muted/65 border-input text-white">
               <SelectValue placeholder="Seleccionar fuente..." />
             </SelectTrigger>
-            <SelectContent className="bg-gray-800 border-gray-700 text-white">
+            <SelectContent className="bg-muted border-border text-white">
               {allProteinSources && allProteinSources.map(source => (
                 <SelectItem key={source.id} value={source.id.toString()}>
                   {source.name}
@@ -159,11 +159,11 @@ const ProteinFields = ({
       </div>
 
       <div className="space-y-4">
-        <h4 className="text-sm font-semibold text-gray-300">Desglose de Aminoácidos (mg/100g)</h4>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 bg-gray-900/30 p-4 rounded-lg border border-gray-800">
+        <h4 className="text-sm font-semibold text-muted-foreground">Desglose de Aminoácidos (mg/100g)</h4>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 bg-card/30 p-4 rounded-lg border border-border">
           {allAminograms && allAminograms.map(amino => (
             <div key={amino.id} className="space-y-1">
-              <Label htmlFor={`amino-${amino.id}`} className="text-xs text-gray-400 truncate block" title={amino.name}>
+              <Label htmlFor={`amino-${amino.id}`} className="text-xs text-muted-foreground truncate block" title={amino.name}>
                 {amino.name}
               </Label>
               <Input
@@ -171,7 +171,7 @@ const ProteinFields = ({
                 type="number"
                 value={aminoAcidBreakdown[amino.id] || ''}
                 onChange={(e) => handleAminoValueChange(amino.id, e.target.value)}
-                className="h-8 text-xs bg-gray-800 border-gray-700"
+                className="h-8 text-xs bg-muted border-border"
                 placeholder="0"
                 step="0.01"
               />

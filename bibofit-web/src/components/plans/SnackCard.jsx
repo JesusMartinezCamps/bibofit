@@ -46,7 +46,7 @@ const SnackCard = ({ snack, allFoods, onRemove, onToggle, onClick, isSelected })
               {snack.name}
             </p>
           </div>
-          <p className="text-sm text-gray-400 line-clamp-3 mt-2">
+          <p className="text-sm text-muted-foreground line-clamp-3 mt-2">
             {ingredientList}
           </p>
         </div>
@@ -64,11 +64,11 @@ const SnackCard = ({ snack, allFoods, onRemove, onToggle, onClick, isSelected })
             }}
             className={cn(
               'flex items-center gap-1.5 px-2 py-1 rounded-full text-xs transition-all duration-200 border',
-              isSelected ? 'bg-orange-900/30 text-orange-300 border-orange-800/50' : 'bg-gray-700/50 text-gray-400 border-gray-600/50 hover:border-gray-500/50'
+              isSelected ? 'bg-orange-900/30 text-orange-300 border-orange-800/50' : 'bg-muted/50 text-muted-foreground border-input/50 hover:border-gray-500/50'
             )}
             title={isSelected ? "Desmarcar como comido" : "Marcar como comido"}
           >
-            <Utensils className={cn('w-4 h-4', isSelected ? 'text-orange-400' : 'text-gray-500')} />
+            <Utensils className={cn('w-4 h-4', isSelected ? 'text-orange-400' : 'text-muted-foreground')} />
             <span>Comido</span>
           </button>
         </div>

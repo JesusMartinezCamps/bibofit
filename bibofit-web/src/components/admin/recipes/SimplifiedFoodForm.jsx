@@ -12,7 +12,7 @@ import SimplifiedMineralFields from './form-fields/SimplifiedMineralFields';
 import FoodFormSection from './FoodFormSection';
 
 const NutrientRow = ({ label, name, value, onValueChange, unit, isSub, isCalculated, portionValue, isBold }) => (
-  <div className={cn("grid grid-cols-12 gap-2 items-center py-2 border-b border-gray-700/50", isSub && "pl-6")}>
+  <div className={cn("grid grid-cols-12 gap-2 items-center py-2 border-b border-border/50", isSub && "pl-6")}>
     <div className={cn("col-span-5", isBold && "font-bold")}>{label}</div>
     <div className="col-span-4">
       <div className="relative flex items-center">
@@ -30,11 +30,11 @@ const NutrientRow = ({ label, name, value, onValueChange, unit, isSub, isCalcula
           min="0"
           step="0.01"
         />
-        {!isCalculated && <span className="absolute right-0 text-gray-400 text-xs">{unit}</span>}
+        {!isCalculated && <span className="absolute right-0 text-muted-foreground text-xs">{unit}</span>}
       </div>
     </div>
     {portionValue !== null && (
-      <div className="col-span-3 text-right text-gray-400 pr-2">
+      <div className="col-span-3 text-right text-muted-foreground pr-2">
         {portionValue}
       </div>
     )}
@@ -131,8 +131,8 @@ const SimplifiedFoodForm = ({ onFoodActionComplete, isClientRequest, userId, foo
         </div>
       </div>
 
-      <div className="border border-gray-700 rounded-lg overflow-hidden">
-        <div className="grid grid-cols-12 gap-2 p-3 bg-gray-800/60 font-bold">
+      <div className="border border-border rounded-lg overflow-hidden">
+        <div className="grid grid-cols-12 gap-2 p-3 bg-muted/70 font-bold">
           <div className="col-span-5">Información nutricional</div>
           <div className="col-span-4 text-right">Por 100 g/ml</div>
           {formData.food_unit === 'unidades' && (
@@ -172,7 +172,7 @@ const SimplifiedFoodForm = ({ onFoodActionComplete, isClientRequest, userId, foo
         </FoodFormSection>
         <FoodFormSection 
           title="Minerales" 
-          icon={<Mountain className="h-5 w-5 text-gray-400" />} 
+          icon={<Mountain className="h-5 w-5 text-muted-foreground" />} 
           borderColor="border-gray-500/50" 
           isCollapsible={true} 
           forceOpen={isMineralsOpen}

@@ -6,7 +6,7 @@ import React from 'react';
     const FreeMealSelectorDialog = ({ open, onOpenChange, onAddNew, onRepeat }) => {
       return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-          <DialogContent className="bg-[#1a1e23] border-gray-700 text-white sm:max-w-[425px]">
+          <DialogContent className="bg-background border-border text-white sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle className="text-center text-2xl">Gestionar Receta Libre</DialogTitle>
               <DialogDescription className="text-center">
@@ -20,7 +20,7 @@ import React from 'react';
               >
                 <Plus className="h-12 w-12 mb-3 text-green-400 transition-transform duration-300 group-hover:scale-110" />
                 <span className="text-lg font-semibold">Crear nueva Receta</span>
-                <span className="text-sm text-gray-400">Crea una nueva receta tu gusto</span>
+                <span className="text-sm text-muted-foreground">Crea una nueva receta tu gusto</span>
               </button>
               <button
                 onClick={onRepeat}
@@ -28,7 +28,7 @@ import React from 'react';
               >
                 <Repeat className="h-12 w-12 mb-3 text-blue-400 transition-transform duration-300 group-hover:scale-110" />
                 <span className="text-lg font-semibold">Seleccionar una Receta</span>
-                <span className="text-sm text-gray-400">Elige entre las recetas de la app o entre las que tú ya has creado</span>
+                <span className="text-sm text-muted-foreground">Elige entre las recetas de la app o entre las que tú ya has creado</span>
               </button>
             </div>
           </DialogContent>

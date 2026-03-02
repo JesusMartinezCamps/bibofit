@@ -33,14 +33,14 @@ const RecipeTemplateCard = ({ recipe, onSelect, isSelected, onDelete }) => {
       }
       className={cn(
         'p-4 rounded-lg cursor-pointer transition-all duration-200 border-2',
-        recipe.image_url ? 'bg-slate-800/20' : 'bg-slate-800/50 hover:bg-slate-700/50',
-        isSelected ? 'border-green-500 shadow-lg shadow-green-500/10' : 'border-slate-700 hover:border-slate-600'
+        recipe.image_url ? 'bg-muted/20' : 'bg-muted/65 hover:bg-accent/50',
+        isSelected ? 'border-green-500 shadow-lg shadow-green-500/10' : 'border-border hover:border-input'
       )}
     >
       <div className="flex justify-between items-start">
         <div className="flex-grow">
           <h4 className="font-bold text-white truncate">{recipe.name}</h4>
-          <div className="mt-2 space-y-2 text-xs text-slate-400">
+          <div className="mt-2 space-y-2 text-xs text-muted-foreground">
             <div className="flex items-start gap-2">
               <Utensils className="h-4 w-4 text-green-400 flex-shrink-0 mt-0.5" />
               <p>{ingredientsList}</p>

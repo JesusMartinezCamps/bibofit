@@ -9,7 +9,7 @@ import React, { useState, useMemo } from 'react';
     const localizer = momentLocalizer(moment);
     
     const CustomToolbar = ({ label, onNavigate }) => (
-        <div className="flex items-center justify-between mb-4 p-2 rounded-lg bg-slate-800/50 border border-slate-700">
+        <div className="flex items-center justify-between mb-4 p-2 rounded-lg bg-muted/65 border border-border">
             <Button variant="ghost" size="icon" onClick={() => onNavigate('PREV')}>
                 <ChevronLeft className="h-5 w-5" />
             </Button>
@@ -55,7 +55,7 @@ import React, { useState, useMemo } from 'react';
         };
     
         return (
-            <div className="h-[70vh] bg-slate-900/50 p-4 rounded-lg border border-slate-700">
+            <div className="h-[70vh] bg-card/75 p-4 rounded-lg border border-border">
                 <Calendar
                     localizer={localizer}
                     events={events}

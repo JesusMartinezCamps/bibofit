@@ -182,27 +182,27 @@ const TemplatePropertiesSection = ({ plan, creator, onUpdate }) => {
     ];
 
     return (
-        <Card className="bg-slate-900/50 border-gray-700 text-white">
+        <Card className="bg-card/75 border-border text-white">
             <CardHeader>
                 <CardTitle className="text-xl font-bold text-green-400 flex items-center gap-2">
                     Propiedades de la Dieta
-                    {isSavingName && <span className="text-xs font-normal text-gray-500 animate-pulse ml-auto">Guardando...</span>}
+                    {isSavingName && <span className="text-xs font-normal text-muted-foreground animate-pulse ml-auto">Guardando...</span>}
                 </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {/* Name Input */}
                     <div className="md:col-span-2 space-y-2">
-                        <Label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Nombre de la Plantilla</Label>
+                        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nombre de la Plantilla</Label>
                         <Input 
                             value={name} 
                             onChange={handleNameChange} 
                             disabled={!canEdit}
-                            className="bg-[#0F1627] border-gray-700 text-lg font-medium disabled:opacity-70"
+                            className="bg-card border-border text-lg font-medium disabled:opacity-70"
                             placeholder="Ej: Hipertrofia Avanzada..."
                         />
                          {creator && (
-                            <p className="text-xs text-gray-500 pt-1">
+                            <p className="text-xs text-muted-foreground pt-1">
                                 {isCreator ? 'Creado por ti' : `Creado por: ${creator.full_name}`}
                             </p>
                         )}
@@ -210,18 +210,18 @@ const TemplatePropertiesSection = ({ plan, creator, onUpdate }) => {
 
                     {/* Scope Selector */}
                     <div className="space-y-2">
-                        <Label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Ámbito</Label>
+                        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ámbito</Label>
                         
                         {canEdit ? (
                              <div className="space-y-2">
-                                <div className="flex bg-[#0F1627] rounded-lg border border-gray-700 p-1">
+                                <div className="flex bg-card rounded-lg border border-border p-1">
                                     <button
                                         type="button"
                                         onClick={() => handleScopeChange('global')}
                                         className={`flex-1 flex items-center justify-center gap-2 py-1.5 px-2 rounded-md text-sm font-medium transition-all ${
                                             scope === 'global' 
                                             ? 'bg-blue-900/40 text-blue-400 shadow-sm' 
-                                            : 'text-gray-500 hover:text-gray-300'
+                                            : 'text-muted-foreground hover:text-muted-foreground'
                                         }`}
                                     >
                                         <Globe className="w-3.5 h-3.5" />
@@ -233,7 +233,7 @@ const TemplatePropertiesSection = ({ plan, creator, onUpdate }) => {
                                         className={`flex-1 flex items-center justify-center gap-2 py-1.5 px-2 rounded-md text-sm font-medium transition-all ${
                                             scope === 'center' 
                                             ? 'bg-amber-900/40 text-amber-400 shadow-sm' 
-                                            : 'text-gray-500 hover:text-gray-300'
+                                            : 'text-muted-foreground hover:text-muted-foreground'
                                         }`}
                                     >
                                         <Building2 className="w-3.5 h-3.5" />
@@ -242,10 +242,10 @@ const TemplatePropertiesSection = ({ plan, creator, onUpdate }) => {
                                 </div>
                                 {scope === 'center' && user.role === 'admin' && (
                                     <Select value={selectedCenterId || ''} onValueChange={handleCenterSelect}>
-                                        <SelectTrigger className="bg-[#0F1627] border-gray-700 h-9 text-xs">
+                                        <SelectTrigger className="bg-card border-border h-9 text-xs">
                                             <SelectValue placeholder="Seleccionar centro..." />
                                         </SelectTrigger>
-                                        <SelectContent className="bg-[#1a1e23] border-gray-700 text-white">
+                                        <SelectContent className="bg-background border-border text-white">
                                             {centersList.map(center => (
                                                 <SelectItem key={center.id} value={center.id.toString()}>
                                                     {center.name}
@@ -255,12 +255,12 @@ const TemplatePropertiesSection = ({ plan, creator, onUpdate }) => {
                                     </Select>
                                 )}
                                 {scope === 'center' && user.role !== 'admin' && (
-                                     <p className="text-xs text-gray-500 text-center">Asignado a: {centerName || 'Tu centro'}</p>
+                                     <p className="text-xs text-muted-foreground text-center">Asignado a: {centerName || 'Tu centro'}</p>
                                 )}
                              </div>
                         ) : (
                              // Read-only for non-creators/non-admins
-                             <div className="flex bg-[#0F1627] rounded-lg border border-gray-700 p-2 items-center justify-center gap-2 text-gray-400">
+                             <div className="flex bg-card rounded-lg border border-border p-2 items-center justify-center gap-2 text-muted-foreground">
                                  {scope === 'global' ? <Globe className="w-4 h-4" /> : <Building2 className="w-4 h-4" />}
                                  <span className="text-sm font-medium">
                                      {scope === 'global' ? 'Global' : (centerName || 'Centro')}
@@ -274,14 +274,14 @@ const TemplatePropertiesSection = ({ plan, creator, onUpdate }) => {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {axisConfig.map(axis => (
                         <div key={axis.key} className="space-y-2">
-                            <Label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">{axis.label}</Label>
+                            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1">{axis.label}</Label>
                             <Combobox
                                 options={getOptions(axis.key).map(opt => ({ value: opt, label: opt }))}
                                 selectedValues={classifications[axis.key]}
                                 onSelectedValuesChange={(vals) => handleClassificationChange(axis.key, vals)}
                                 placeholder="Seleccionar..."
                                 searchPlaceholder={`Buscar ${axis.label.toLowerCase()}...`}
-                                triggerClassName="bg-[#0F1627] border-gray-700 w-full"
+                                triggerClassName="bg-card border-border w-full"
                                 showSelectedBadges={true}
                                 disabled={!canEdit}
                             />
@@ -289,7 +289,7 @@ const TemplatePropertiesSection = ({ plan, creator, onUpdate }) => {
                     ))}
                 </div>
 
-                <div className="border-t border-gray-800 my-4"></div>
+                <div className="border-t border-border my-4"></div>
 
                 {/* Restrictions embedded */}
                 <RestrictionsManager 

@@ -22,7 +22,7 @@ import React from 'react';
                 <h1 className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
                   El Plan
                 </h1>
-                <p className="text-xl text-gray-400 mt-2">¿Qué quieres consultar?</p>
+                <p className="text-xl text-muted-foreground mt-2">¿Qué quieres consultar?</p>
               </motion.div>
 
               <div className="flex-grow md:flex-grow-0 grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-8 h-full">
@@ -34,7 +34,7 @@ import React from 'react';
                 >
                   <Link
                     to="/plan/dieta"
-                    className="group block rounded-2xl bg-slate-800/50 border-2 border-slate-700/80 hover:border-[#5ebe7d] transition-all duration-300 h-full relative overflow-hidden flex flex-col justify-center items-center p-4 md:p-8"
+                    className="group block rounded-2xl bg-muted/65 border-2 border-border/80 hover:border-[#5ebe7d] transition-all duration-300 h-full relative overflow-hidden flex flex-col justify-center items-center p-4 md:p-8"
                   >
                     <div className="absolute -inset-px bg-gradient-to-r from-green-500/20 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     <div className="relative flex flex-col items-center text-center">
@@ -42,7 +42,7 @@ import React from 'react';
                         <Apple className="w-12 h-12 md:w-16 md:h-16 text-[#5ebe7d]" />
                       </div>
                       <h2 className="text-2xl md:text-3xl font-bold text-white mb-2 md:mb-3">Plan de Dieta</h2>
-                      <p className="text-gray-400 text-sm md:text-base">Consulta tus comidas, recetas y pautas nutricionales para cada día.</p>
+                      <p className="text-muted-foreground text-sm md:text-base">Consulta tus comidas, recetas y pautas nutricionales para cada día.</p>
                     </div>
                   </Link>
                 </motion.div>
@@ -55,7 +55,7 @@ import React from 'react';
                 >
                   <Link
                     to="/plan/entreno"
-                    className="group block rounded-2xl bg-slate-800/50 border-2 border-slate-700/80 hover:border-[#F44C40] transition-all duration-300 h-full relative overflow-hidden flex flex-col justify-center items-center p-4 md:p-8"
+                    className="group block rounded-2xl bg-muted/65 border-2 border-border/80 hover:border-[#F44C40] transition-all duration-300 h-full relative overflow-hidden flex flex-col justify-center items-center p-4 md:p-8"
                   >
                     <div className="absolute -inset-px bg-gradient-to-r from-red-500/20 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     <div className="relative flex flex-col items-center text-center">
@@ -63,7 +63,7 @@ import React from 'react';
                         <Dumbbell className="w-12 h-12 md:w-16 md:h-16 text-[#F44C40]" />
                       </div>
                       <h2 className="text-2xl md:text-3xl font-bold text-white mb-2 md:mb-3">Plan de Entreno</h2>
-                      <p className="text-gray-400 text-sm md:text-base">Accede a tus rutinas, ejercicios y progresión de entrenamiento.</p>
+                      <p className="text-muted-foreground text-sm md:text-base">Accede a tus rutinas, ejercicios y progresión de entrenamiento.</p>
                     </div>
                   </Link>
                 </motion.div>

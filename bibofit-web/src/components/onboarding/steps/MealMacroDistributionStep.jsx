@@ -50,7 +50,7 @@ const MealMacroDistributionStep = ({ onNext, isLoading }) => {
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto pr-1">
         <div className="text-center space-y-2 mb-6">
-          <p className="text-gray-400">Define tus objetivos nutricionales base.</p>
+          <p className="text-muted-foreground">Define tus objetivos nutricionales base.</p>
         </div>
 
         <MacroDistribution

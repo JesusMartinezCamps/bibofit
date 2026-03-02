@@ -20,12 +20,12 @@ const ShoppingListGroup = ({ title, icon, items, checkedItems, onCheckedChange }
             </h3>
             <div className="space-y-3">
                 {items.map((item) => (
-                    <div key={`${item.id}-${title}`} className="flex items-start space-x-3 p-2 rounded-md bg-gray-800/50">
+                    <div key={`${item.id}-${title}`} className="flex items-start space-x-3 p-2 rounded-md bg-muted/65">
                         <Checkbox 
                             id={`item-${item.id}-${title}`} 
                             checked={checkedItems.has(item.id)}
                             onCheckedChange={(checked) => onCheckedChange(item.id, checked)}
-                            className="border-gray-600 data-[state=checked]:bg-green-500 data-[state=checked]:text-white mt-1" 
+                            className="border-input data-[state=checked]:bg-green-500 data-[state=checked]:text-white mt-1" 
                         />
                         <div className="flex-1">
                             <Label htmlFor={`item-${item.id}-${title}`} className="text-base text-gray-200 cursor-pointer">
@@ -35,7 +35,7 @@ const ShoppingListGroup = ({ title, icon, items, checkedItems, onCheckedChange }
                                 )}
                             </Label>
                              {item.recipeNames && item.recipeNames.size > 0 && (
-                                <p className="text-xs text-gray-400 mt-1 italic pl-1">
+                                <p className="text-xs text-muted-foreground mt-1 italic pl-1">
                                     Para: {Array.from(item.recipeNames).join(', ')}
                                 </p>
                             )}
@@ -254,13 +254,13 @@ const ShoppingListDialog = ({ open, onOpenChange, userId, currentDate, activePla
                 <ShoppingListGroup title="Otros" icon={null} items={others} checkedItems={checkedItems} onCheckedChange={handleCheckedChange} />
             </div>
         ) : (
-            <p className="text-center text-gray-400 py-10">{noItemsMessage}</p>
+            <p className="text-center text-muted-foreground py-10">{noItemsMessage}</p>
         );
     };
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="bg-[#1a1e23] border-gray-700 text-white w-[95vw] max-w-lg p-0 flex flex-col h-[90vh] max-h-[90vh]">
+            <DialogContent className="bg-background border-border text-white w-[95vw] max-w-lg p-0 flex flex-col h-[90vh] max-h-[90vh]">
                 <DialogHeader>
                     <DialogTitle>Lista de la Compra</DialogTitle>
                     <DialogDescription>{description}</DialogDescription>
@@ -269,7 +269,7 @@ const ShoppingListDialog = ({ open, onOpenChange, userId, currentDate, activePla
                     variant="ghost"
                     size="icon"
                     onClick={() => onOpenChange(false)}
-                    className="absolute top-4 right-4 text-gray-400 hover:text-white hover:bg-gray-700 rounded-full"
+                    className="absolute top-4 right-4 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full"
                 >
                     <X className="h-5 w-5" />
                 </Button>

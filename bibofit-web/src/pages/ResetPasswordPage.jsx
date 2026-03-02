@@ -51,7 +51,7 @@ const ResetPasswordPage = () => {
         <meta name="description" content="Recupera el acceso a tu cuenta de Bibofit." />
       </Helmet>
       
-      <div className="min-h-screen bg-[#1a1e23]">
+      <div className="min-h-screen bg-background">
         <LandingNavbar showNavigationOptions={false} />
         
         <div className="min-h-screen hero-gradient flex items-center justify-center p-4 pt-24">
@@ -67,12 +67,12 @@ const ResetPasswordPage = () => {
                   <KeyRound className="w-8 h-8 text-black" />
                 </div>
                 <h1 className="text-3xl font-bold text-white mb-2">Restablecer Contraseña</h1>
-                <p className="text-gray-400">Introduce tu correo para recibir un enlace de recuperación.</p>
+                <p className="text-muted-foreground">Introduce tu correo para recibir un enlace de recuperación.</p>
               </div>
               
               <form onSubmit={handleRequestReset} className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">Email</label>
                   <input 
                     type="email" 
                     value={email} 
@@ -95,7 +95,7 @@ const ResetPasswordPage = () => {
                 <p className="mt-4 text-center text-sm text-green-400">{message}</p>
               )}
 
-              <p className="mt-8 text-center text-sm text-gray-400">
+              <p className="mt-8 text-center text-sm text-muted-foreground">
                 <Link to="/login" className="font-medium text-green-400 hover:underline inline-flex items-center">
                   <ArrowLeft className="w-4 h-4 mr-1" />
                   Volver a Iniciar Sesión

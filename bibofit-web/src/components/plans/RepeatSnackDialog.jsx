@@ -98,12 +98,12 @@ import React, { useState, useEffect } from 'react';
       return (
         <>
           <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="bg-[#1a1e23] border-gray-700 text-white sm:max-w-md p-0 sm:p-0">
+            <DialogContent className="bg-background border-border text-white sm:max-w-md p-0 sm:p-0">
               <div className="p-6 pb-2">
                 <DialogHeader>
                 <button
                     onClick={handleBack}
-                    className="absolute left-6 top-6 inline-flex items-center justify-center rounded-full p-2 text-gray-300 transition-colors hover:bg-gray-700/80 hover:text-white"
+                    className="absolute left-6 top-6 inline-flex items-center justify-center rounded-full p-2 text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground"
                     aria-label="Volver al selector de picoteos"
                   >
                     <ArrowLeft className="h-5 w-5" />
@@ -128,10 +128,10 @@ import React, { useState, useEffect } from 'react';
                           <div key={snack.id} className="relative group">
                             <button
                               onClick={() => handleSelect(snack)}
-                              className="w-full text-left p-4 rounded-lg bg-gray-800/60 hover:bg-gray-700/80 transition-colors flex flex-col gap-3 border border-gray-700/50"
+                              className="w-full text-left p-4 rounded-lg bg-muted/70 hover:bg-muted/80 transition-colors flex flex-col gap-3 border border-border/50"
                             >
                               {lastEaten && (
-                                <div className="flex items-center text-xs text-gray-400">
+                                <div className="flex items-center text-xs text-muted-foreground">
                                   <Calendar className="w-3 h-3 mr-1.5" />
                                   {lastEaten}
                                 </div>
@@ -140,7 +140,7 @@ import React, { useState, useEffect } from 'react';
                                 <Apple className="h-5 w-5 text-orange-400 flex-shrink-0" />
                                 <p className="font-semibold text-lg">{snack.name}</p>
                               </div>
-                              <div className="text-xs text-gray-500 border-t border-gray-700/50 pt-2 mt-2">
+                              <div className="text-xs text-muted-foreground border-t border-border/50 pt-2 mt-2">
                                 <p className="line-clamp-3">{getIngredientList(snack.snack_ingredients)}</p>
                               </div>
                             </button>
@@ -155,7 +155,7 @@ import React, { useState, useEffect } from 'react';
                         );
                       })
                     ) : (
-                      <div className="flex flex-col items-center justify-center h-full text-gray-500 italic py-10">
+                      <div className="flex flex-col items-center justify-center h-full text-muted-foreground italic py-10">
                         <Apple className="h-10 w-10 mb-4 text-gray-600" />
                         No has creado ningún picoteo en este plan todavía.
                       </div>

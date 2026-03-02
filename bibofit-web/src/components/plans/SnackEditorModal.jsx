@@ -91,7 +91,7 @@ const SnackEditorModal = ({ open, onOpenChange, snackToEdit, onOpenEquivalence, 
   return (
     <>
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="bg-[#0C101C] border-gray-700 text-white w-[95vw] max-w-2xl flex flex-col p-0">
+            <DialogContent className="bg-card border-border text-white w-[95vw] max-w-2xl flex flex-col p-0">
                 <div className="flex-1 overflow-hidden p-6">
                     <motion.div key="view" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4 overflow-y-auto styled-scrollbar-orange h-full">
                         <DialogHeader>
@@ -117,7 +117,7 @@ const SnackEditorModal = ({ open, onOpenChange, snackToEdit, onOpenEquivalence, 
                         </DialogHeader>
                         <div>
                             <h3 className="text-lg font-semibold mb-2 bg-gradient-to-r from-[#f78323] to-[#f5db24] text-transparent bg-clip-text">Ingredientes</h3>
-                            <ul className="space-y-1 text-gray-300">
+                            <ul className="space-y-1 text-muted-foreground">
                             {ingredients.map((ing, index) => (
                                 <li key={index} className="flex justify-between">
                                 <span>{ing.food_name}</span>
@@ -126,30 +126,30 @@ const SnackEditorModal = ({ open, onOpenChange, snackToEdit, onOpenEquivalence, 
                             ))}
                             </ul>
                         </div>
-                        <div className="border-t border-gray-700 pt-4">
+                        <div className="border-t border-border pt-4">
                                 <h3 className="text-lg font-semibold mb-2 bg-gradient-to-r from-[#f78323] to-[#f5db24] text-transparent bg-clip-text">Macros Estimados</h3>
                                 <div className="flex justify-around text-center">
                                     <div>
                                         <p className="text-2xl font-bold text-amber-400">{Math.round(macros.calories)}</p>
-                                        <p className="text-xs text-gray-400">Kcal</p>
+                                        <p className="text-xs text-muted-foreground">Kcal</p>
                                     </div>
                                     <div>
                                         <p className="text-2xl font-bold text-red-400">{Math.round(macros.proteins)}g</p>
-                                        <p className="text-xs text-gray-400">Proteínas</p>
+                                        <p className="text-xs text-muted-foreground">Proteínas</p>
                                     </div>
                                     <div>
                                         <p className="text-2xl font-bold text-yellow-400">{Math.round(macros.carbs)}g</p>
-                                        <p className="text-xs text-gray-400">Carbs</p>
+                                        <p className="text-xs text-muted-foreground">Carbs</p>
                                     </div>
                                     <div>
                                         <p className="text-2xl font-bold text-green-400">{Math.round(macros.fats)}g</p>
-                                        <p className="text-xs text-gray-400">Grasas</p>
+                                        <p className="text-xs text-muted-foreground">Grasas</p>
                                     </div>
                                 </div>
                             </div>
                     </motion.div>
                 </div>
-                 <div className="px-6 pb-4 mt-auto border-t border-gray-700 pt-4">
+                 <div className="px-6 pb-4 mt-auto border-t border-border pt-4">
                     <Button
                         variant="destructive"
                         className="w-full text-red-400 border border-red-500/50 hover:bg-red-800/50"

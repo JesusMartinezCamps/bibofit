@@ -72,7 +72,7 @@ const PlanConfiguration = ({ plan, onUpdate }) => {
     return (
         <div className="space-y-4">
             <div>
-                <Label className="text-gray-300 mb-1 block">Restricciones de la Plantilla</Label>
+                <Label className="text-muted-foreground mb-1 block">Restricciones de la Plantilla</Label>
                 <Combobox
                     optionsGrouped={restrictionOptions}
                     selectedValues={selectedRestrictionIds}
@@ -83,7 +83,7 @@ const PlanConfiguration = ({ plan, onUpdate }) => {
                     isMultiSelect
                 />
             </div>
-            <p className="text-xs text-gray-400 mt-2">Las recetas que contengan estas restricciones se marcarán para su revisión al añadirlas a este plan.</p>
+            <p className="text-xs text-muted-foreground mt-2">Las recetas que contengan estas restricciones se marcarán para su revisión al añadirlas a este plan.</p>
         </div>
     );
 };

@@ -20,7 +20,7 @@ const AssignDietStep4 = () => {
             <h1 className="text-2xl font-bold text-white mb-2">
                 Navegando al Plan...
             </h1>
-            <p className="text-gray-400">
+            <p className="text-muted-foreground">
                 Tu dieta ha sido creada. Redirigiendo...
             </p>
         </div>

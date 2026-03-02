@@ -55,12 +55,12 @@ const FreeMealCard = ({ freeMeal, handleCardClick, handleRemove, isListView = fa
               <p className="text-xl font-bold mb-1 line-clamp-2 flex-1 text-white">{freeMeal.name}</p>
             </div>
              {lastEatenDate && (
-                <div className="flex items-center text-xs text-gray-400 mb-2">
+                <div className="flex items-center text-xs text-muted-foreground mb-2">
                     <Calendar className="w-3 h-3 mr-1.5" />
                     Última vez: {lastEatenDate}
                 </div>
             )}
-            <p className="text-sm text-gray-400 line-clamp-3">{ingredientList}</p>
+            <p className="text-sm text-muted-foreground line-clamp-3">{ingredientList}</p>
           </div>
           <div className="mt-4 flex justify-between items-center">
             {macroDisplay}

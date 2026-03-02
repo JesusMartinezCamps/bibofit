@@ -89,7 +89,7 @@ const FoodInfoView = ({ food, allSensitivities }) => {
         </div>
 
       {food.created_at && (
-        <div className="flex items-center text-sm text-gray-400">
+        <div className="flex items-center text-sm text-muted-foreground">
           <Calendar className="w-4 h-4 mr-2" />
           Creado el {formatDate(food.created_at)}
         </div>
@@ -100,9 +100,9 @@ const FoodInfoView = ({ food, allSensitivities }) => {
           <div>
             <h3 className="text-lg font-semibold text-white mb-2">Información Básica</h3>
             <div className="space-y-2 text-sm bg-[#282d34] p-4 rounded-lg">
-              <div className="flex justify-between"><span className="text-gray-400">Grupo:</span><span className="text-white">{foodGroupNames}</span></div>
-              <div className="flex justify-between"><span className="text-gray-400">Unidad:</span><span className="text-white">{food.food_unit === 'unidades' ? 'Unidades' : 'Gramos'}</span></div>
-              <div className="flex justify-between"><span className="text-gray-400">Temporada:</span><span className="text-white">{getSeasonName()}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Grupo:</span><span className="text-white">{foodGroupNames}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Unidad:</span><span className="text-white">{food.food_unit === 'unidades' ? 'Unidades' : 'Gramos'}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Temporada:</span><span className="text-white">{getSeasonName()}</span></div>
             </div>
           </div>
 
@@ -130,8 +130,8 @@ const FoodInfoView = ({ food, allSensitivities }) => {
           <div>
             <h3 className="text-lg font-semibold text-white mb-2">Micronutrientes</h3>
             <div className="bg-[#282d34] p-4 rounded-lg space-y-3">
-              <div><span className="text-purple-400 font-medium text-sm">Vitaminas:</span><p className="text-gray-300 text-sm mt-1">{vitaminNames}</p></div>
-              <div><span className="text-cyan-400 font-medium text-sm">Minerales:</span><p className="text-gray-300 text-sm mt-1">{mineralNames}</p></div>
+              <div><span className="text-purple-400 font-medium text-sm">Vitaminas:</span><p className="text-muted-foreground text-sm mt-1">{vitaminNames}</p></div>
+              <div><span className="text-cyan-400 font-medium text-sm">Minerales:</span><p className="text-muted-foreground text-sm mt-1">{mineralNames}</p></div>
             </div>
           </div>
         </div>

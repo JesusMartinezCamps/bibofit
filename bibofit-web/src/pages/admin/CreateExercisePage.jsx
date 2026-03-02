@@ -24,11 +24,11 @@ const ExerciseCard = ({ exercise, onSelect, isSelected }) => {
       transition={{ duration: 0.2 }}
       onClick={() => onSelect(exercise)}
       className={`bg-[#282d34] p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
-        isSelected ? 'border-train-red ring-1 ring-train-red' : 'border-gray-700 hover:border-train-red'
+        isSelected ? 'border-train-red ring-1 ring-train-red' : 'border-border hover:border-train-red'
       }`}
     >
       <h3 className="text-md font-bold text-white truncate">{exercise.name}</h3>
-      <p className="text-xs text-gray-400 truncate mt-1">{exercise.technique || 'Sin descripción'}</p>
+      <p className="text-xs text-muted-foreground truncate mt-1">{exercise.technique || 'Sin descripción'}</p>
     </motion.div>
   );
 };
@@ -36,7 +36,7 @@ const ExerciseCard = ({ exercise, onSelect, isSelected }) => {
 const CustomCheckboxGrid = ({ label, options, selected, onChange, className, isSingleSelection = false }) => (
   <div className="space-y-2">
     <Label>{label}</Label>
-    <div className="rounded-md border border-slate-800 p-3 grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 bg-slate-950 max-h-48 overflow-y-auto">
+    <div className="rounded-md border border-border p-3 grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 bg-card max-h-48 overflow-y-auto">
       {options.map((option) => (
         <div key={option.value} className="flex items-center space-x-2">
           <Checkbox
@@ -210,7 +210,7 @@ const CreateExercisePage = () => {
             <Breadcrumbs items={breadcrumbItems} />
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
                 <div className="lg:col-span-2">
-                    <Card className="bg-[#1a1e23] border-gray-700 text-white h-full flex flex-col">
+                    <Card className="bg-background border-border text-white h-full flex flex-col">
                         <CardHeader>
                             <CardTitle>Ejercicios Existentes</CardTitle>
                             <CardDescription>Selecciona un ejercicio para editarlo o búscalo.</CardDescription>
@@ -222,7 +222,7 @@ const CreateExercisePage = () => {
                                     className="input-field pr-10"
                                 />
                                 {searchTerm && (
-                                    <button type="button" onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors" aria-label="Limpiar búsqueda"><X className="h-4 w-4" /></button>
+                                    <button type="button" onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors" aria-label="Limpiar búsqueda"><X className="h-4 w-4" /></button>
                                 )}
                             </div>
                         </CardHeader>
@@ -233,14 +233,14 @@ const CreateExercisePage = () => {
                                 ) : filteredExerciseList.length > 0 ? (
                                     filteredExerciseList.map(ex => <ExerciseCard key={ex.id} exercise={ex} onSelect={handleSelectExercise} isSelected={selectedExerciseId === ex.id} />)
                                 ) : (
-                                    <p className="text-gray-500 text-center pt-10">No se encontraron ejercicios.</p>
+                                    <p className="text-muted-foreground text-center pt-10">No se encontraron ejercicios.</p>
                                 )}
                             </div>
                         </CardContent>
                     </Card>
                 </div>
                 <div className="lg:col-span-3">
-                    <Card className="bg-[#1a1e23] border-gray-700 text-white">
+                    <Card className="bg-background border-border text-white">
                         <CardHeader>
                             <div className="flex justify-between items-center">
                                 <div>

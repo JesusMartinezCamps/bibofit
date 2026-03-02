@@ -155,7 +155,7 @@ const WeightHistoryPage = () => {
 
   const CustomTooltip = ({ point }) => {
     return (
-      <div className="bg-gray-800 p-2 rounded-md border border-gray-700 shadow-lg">
+      <div className="bg-muted p-2 rounded-md border border-border shadow-lg">
         <p className="text-xs text-gray-200">
           <span className="font-bold text-violet-400">{point.data.y}kg</span>
           {', '}
@@ -182,7 +182,7 @@ const WeightHistoryPage = () => {
 
         <div className="space-y-6">
           {/* Filters */}
-          <Card className="bg-gray-900/50 border-gray-700 p-4">
+          <Card className="bg-card/75 border-border p-4">
             <div className="flex flex-wrap gap-2 justify-center sm:justify-start items-center">
               {['1M', '3M', '6M'].map((r) => (
                 <Button
@@ -193,7 +193,7 @@ const WeightHistoryPage = () => {
                     'min-w-[3rem]',
                     range === r
                       ? 'bg-violet-600 hover:bg-violet-700 text-white border-transparent'
-                      : 'bg-transparent border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white'
+                      : 'bg-transparent border-input text-muted-foreground hover:bg-muted hover:text-foreground'
                   )}
                 >
                   {r === '1M' ? '1 Mes' : r === '3M' ? '3 Meses' : '6 Meses'}
@@ -205,7 +205,7 @@ const WeightHistoryPage = () => {
                 className={cn(
                   range === 'CUSTOM'
                     ? 'bg-violet-600 hover:bg-violet-700 text-white border-transparent'
-                    : 'bg-transparent border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white'
+                    : 'bg-transparent border-input text-muted-foreground hover:bg-muted hover:text-foreground'
                 )}
               >
                 Rango Personalizado
@@ -230,7 +230,7 @@ const WeightHistoryPage = () => {
           </Card>
 
           {/* Chart */}
-          <Card className="bg-[#1a1e23] border-gray-700 overflow-hidden">
+          <Card className="bg-background border-border overflow-hidden">
             <CardHeader>
               <CardTitle className="text-white text-lg">Evolución</CardTitle>
             </CardHeader>
@@ -304,7 +304,7 @@ const WeightHistoryPage = () => {
                   ]}
                 />
               ) : (
-                <div className="h-full flex flex-col justify-center items-center text-gray-400 p-4 text-center">
+                <div className="h-full flex flex-col justify-center items-center text-muted-foreground p-4 text-center">
                   <Scale className="h-12 w-12 mb-3 opacity-20" />
                   <p>No hay suficientes datos para mostrar la gráfica en este rango.</p>
                   <p className="text-sm mt-1">
@@ -316,7 +316,7 @@ const WeightHistoryPage = () => {
           </Card>
 
           {/* History List */}
-          <Card className="bg-gray-900/50 border-gray-700">
+          <Card className="bg-card/75 border-border">
             <CardHeader>
               <CardTitle className="text-white text-lg">Registros Detallados</CardTitle>
             </CardHeader>
@@ -331,20 +331,20 @@ const WeightHistoryPage = () => {
                     <div
                       key={log.id}
                       onClick={() => handleLogClick(log)}
-                      className="p-4 flex items-center justify-between hover:bg-gray-800/50 cursor-pointer transition-colors"
+                      className="p-4 flex items-center justify-between hover:bg-muted/65 cursor-pointer transition-colors"
                     >
                       <div className="flex items-center gap-4">
-                        <div className="bg-gray-800 p-2 rounded-full">
+                        <div className="bg-muted p-2 rounded-full">
                           <Calendar className="h-5 w-5 text-violet-500" />
                         </div>
                         <div>
                           <p className="text-white font-medium capitalize">
                             {format(parseISO(log.logged_on), "EEEE, d 'de' MMMM", { locale: es })}
                           </p>
-                          <p className="text-sm text-gray-400 flex items-center gap-2">
+                          <p className="text-sm text-muted-foreground flex items-center gap-2">
                             {format(parseISO(log.logged_on), 'yyyy')}
                             {log.satiety_levels && (
-                              <span className="text-xs bg-gray-800 px-2 py-0.5 rounded-full text-gray-300 border border-gray-700 flex items-center gap-1">
+                              <span className="text-xs bg-muted px-2 py-0.5 rounded-full text-muted-foreground border border-border flex items-center gap-1">
                                 {log.satiety_levels.emoji} {log.satiety_levels.name}
                               </span>
                             )}
@@ -354,14 +354,14 @@ const WeightHistoryPage = () => {
                       <div className="text-right">
                         <p className="text-xl font-bold text-violet-400">
                           {log.weight_kg}{' '}
-                          <span className="text-sm text-gray-500 font-normal">kg</span>
+                          <span className="text-sm text-muted-foreground font-normal">kg</span>
                         </p>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="p-8 text-center text-gray-400">
+                <div className="p-8 text-center text-muted-foreground">
                   No se encontraron registros para este rango de fechas.
                 </div>
               )}

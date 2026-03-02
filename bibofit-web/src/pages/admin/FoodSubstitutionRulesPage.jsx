@@ -191,7 +191,7 @@ const FoodSearchModal = ({ open, onOpenChange, foods, onSelect, selectedContexts
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#101418] border-slate-700 text-white max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+      <DialogContent className="bg-card border-border text-white max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>Buscar alimento</DialogTitle>
           <DialogDescription>
@@ -200,7 +200,7 @@ const FoodSearchModal = ({ open, onOpenChange, foods, onSelect, selectedContexts
         </DialogHeader>
         <div className="space-y-3 min-h-0 flex-1 flex flex-col">
           <div className="relative">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
+            <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-3" />
             <Input
               autoFocus
               value={query}
@@ -209,15 +209,15 @@ const FoodSearchModal = ({ open, onOpenChange, foods, onSelect, selectedContexts
               className="pl-9"
             />
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto border border-slate-800 rounded-md">
+          <div className="min-h-0 flex-1 overflow-y-auto border border-border rounded-md">
             {results.length === 0 ? (
-              <p className="text-sm text-gray-400 px-3 py-4">Escribe para ver resultados.</p>
+              <p className="text-sm text-muted-foreground px-3 py-4">Escribe para ver resultados.</p>
             ) : (
               results.map((food) => {
                 const isBlocked = conflictVisualMode && selectedContexts.some((ctx) => foodMatchesContext(food, ctx));
                 const hasSelectedContexts = conflictVisualMode && selectedContexts.length > 0;
 
-                let toneClass = 'bg-transparent border-slate-800';
+                let toneClass = 'bg-transparent border-border';
                 if (hasSelectedContexts) {
                   toneClass = isBlocked ? 'bg-red-950/20 border-red-900/50' : 'bg-green-950/15 border-green-900/30';
                 }
@@ -233,11 +233,11 @@ const FoodSearchModal = ({ open, onOpenChange, foods, onSelect, selectedContexts
                     onOpenChange(false);
                   }}
                   className={`w-full text-left px-3 py-2 border-b last:border-b-0 transition-colors ${toneClass} ${
-                    isBlocked ? 'opacity-60 cursor-not-allowed' : 'hover:bg-slate-900'
+                    isBlocked ? 'opacity-60 cursor-not-allowed' : 'hover:bg-card'
                   }`}
                 >
                   <p className="text-sm text-white">{food.name}</p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-muted-foreground">
                     {getSensitivityEntries(food).map((s) => s.name).join(', ') || 'Sin sensibilidades'} |{' '}
                     {getConditionEntries(food).map((c) => `${c.name} (${c.relation_type})`).join(', ') || 'Sin patologías'}
                   </p>
@@ -556,7 +556,7 @@ const FoodSubstitutionRulesPage = () => {
     <main className="w-full px-4 py-8 space-y-6">
       <h1 className="text-3xl font-bold text-white">Normas de Sustitución</h1>
 
-      <Card className="bg-[#1a1e23] border-gray-700 text-white">
+      <Card className="bg-background border-border text-white">
         <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>
@@ -574,7 +574,7 @@ const FoodSubstitutionRulesPage = () => {
             {editingMappingId ? 'Actualizar norma' : 'Guardar norma'}
           </Button>
         </div>
-          <CardDescription className="text-gray-400">
+          <CardDescription className="text-muted-foreground">
             Selecciona alimento origen/destino, el conflicto aplicable y guarda la regla.
           </CardDescription>
         </CardHeader>
@@ -600,11 +600,11 @@ const FoodSubstitutionRulesPage = () => {
             <div className="space-y-2">
               <Label>Conflictos del alimento origen</Label>
               {availableContexts.length === 0 ? (
-                <p className="text-sm text-gray-400">Selecciona un alimento origen para elegir sensibilidad/patología.</p>
+                <p className="text-sm text-muted-foreground">Selecciona un alimento origen para elegir sensibilidad/patología.</p>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {availableContexts.map((ctx) => (
-                    <label key={ctx.key} className="rounded-md border border-slate-700 px-3 py-2 text-sm bg-slate-900/70 flex items-center gap-2">
+                    <label key={ctx.key} className="rounded-md border border-border px-3 py-2 text-sm bg-card/85 flex items-center gap-2">
                       <input
                         type="checkbox"
                         checked={selectedContextKeys.includes(ctx.key)}
@@ -619,7 +619,7 @@ const FoodSubstitutionRulesPage = () => {
                   ))}
                 </div>
               )}
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-muted-foreground">
                 Si no seleccionas ninguno, la regla se guarda como general para ese alimento origen.
               </p>
             </div>
@@ -631,7 +631,7 @@ const FoodSubstitutionRulesPage = () => {
                   id="confidence"
                   value={formData.confidence_score}
                   onChange={(event) => setFormData((prev) => ({ ...prev, confidence_score: Number(event.target.value) }))}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm"
+                  className="w-full bg-card border border-border rounded-md px-3 py-2 text-sm"
                 >
                   {CONFIDENCE_OPTIONS.map((item) => (
                     <option key={item.value} value={item.value}>{item.label}</option>
@@ -640,13 +640,13 @@ const FoodSubstitutionRulesPage = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="is_automatic">Aplicación automática</Label>
-                <div className="h-10 rounded-md border border-slate-700 bg-slate-900 px-3 flex items-center">
+                <div className="h-10 rounded-md border border-border bg-card px-3 flex items-center">
                   <Switch
                     id="is_automatic"
                     checked={formData.is_automatic}
                     onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, is_automatic: checked }))}
                   />
-                  <span className="text-sm text-gray-300 ml-2">{formData.is_automatic ? 'Sí' : 'No'}</span>
+                  <span className="text-sm text-muted-foreground ml-2">{formData.is_automatic ? 'Sí' : 'No'}</span>
                 </div>
               </div>
             </div>
@@ -656,8 +656,8 @@ const FoodSubstitutionRulesPage = () => {
               {selectedOrGeneralContexts.map((ctx) => {
                 const key = getReasonInputKeyForContext(ctx);
                 return (
-                  <div key={key} className="rounded-md border border-slate-700 p-3 bg-slate-900/60 space-y-2">
-                    <p className="text-xs text-gray-300">
+                  <div key={key} className="rounded-md border border-border p-3 bg-card/80 space-y-2">
+                    <p className="text-xs text-muted-foreground">
                       {ctx ? getContextLabel(ctx, sensitivityMap, conditionMap) : 'Contexto general'}
                     </p>
                     <Input
@@ -717,10 +717,10 @@ const FoodSubstitutionRulesPage = () => {
         </CardContent>
       </Card>
 
-      <Card className="bg-[#1a1e23] border-gray-700 text-white">
+      <Card className="bg-background border-border text-white">
         <CardHeader>
           <CardTitle>Normas activas</CardTitle>
-          <CardDescription className="text-gray-400">Listado actual de reglas de sustitución.</CardDescription>
+          <CardDescription className="text-muted-foreground">Listado actual de reglas de sustitución.</CardDescription>
           <Input
             value={listSearch}
             onChange={(event) => setListSearch(event.target.value)}
@@ -730,12 +730,12 @@ const FoodSubstitutionRulesPage = () => {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-10 text-gray-400">
+            <div className="flex items-center justify-center py-10 text-muted-foreground">
               <Loader2 className="w-5 h-5 animate-spin mr-2" />
               Cargando normas...
             </div>
           ) : filteredMappings.length === 0 ? (
-            <p className="text-gray-400">No hay normas para la búsqueda actual.</p>
+            <p className="text-muted-foreground">No hay normas para la búsqueda actual.</p>
           ) : (
             <div className="space-y-2">
               {filteredMappings.map((mapping) => (
@@ -745,7 +745,7 @@ const FoodSubstitutionRulesPage = () => {
                   className={`rounded-md border px-4 py-3 flex items-center justify-between cursor-pointer transition-colors ${
                     Number(editingMappingId) === Number(mapping.id)
                       ? 'border-blue-500/60 bg-blue-950/20'
-                      : 'border-slate-700 bg-slate-900/70 hover:bg-slate-800/80'
+                      : 'border-border bg-card/85 hover:bg-muted/80'
                   }`}
                 >
                   <div className="text-sm">
@@ -753,11 +753,11 @@ const FoodSubstitutionRulesPage = () => {
                       {(foodsById.get(Number(mapping.source_food_id))?.name || `#${mapping.source_food_id}`)} →{' '}
                       {(foodsById.get(Number(mapping.target_food_id))?.name || `#${mapping.target_food_id}`)}
                     </p>
-                    <p className="text-xs text-gray-400 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       Confianza: {mapping.confidence_score} | Automática: {mapping.is_automatic ? 'Sí' : 'No'}
                     </p>
-                    {mapping.reason && <p className="text-xs text-gray-400 mt-1">{mapping.reason}</p>}
-                    <p className="text-xs text-gray-400 mt-1">
+                    {mapping.reason && <p className="text-xs text-muted-foreground mt-1">{mapping.reason}</p>}
+                    <p className="text-xs text-muted-foreground mt-1">
                       {(mapping?.metadata?.conflict_contexts || []).length > 0
                         ? mapping.metadata.conflict_contexts.map((ctx) => getContextLabel(ctx, sensitivityMap, conditionMap)).join(' | ')
                         : 'Contexto general'}

@@ -199,7 +199,7 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
 {/* TOOLTIP PROVIDER */}
 <TooltipProvider>
 
-<div className={cn("w-full h-full flex flex-col", isClientView && "sm:p-6 sm:bg-[#1a1e23] sm:rounded-2xl")}>
+<div className={cn("w-full h-full flex flex-col", isClientView && "sm:p-6 sm:bg-background sm:rounded-2xl")}>
 
   {/* HEADER */}
   <div className="flex items-center justify-between mb-4">
@@ -217,7 +217,7 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
   </div>
 
   {/* WEEK HEADER */}
-  <div className="grid grid-cols-7 text-center text-gray-400 mb-2">
+  <div className="grid grid-cols-7 text-center text-muted-foreground mb-2">
     {["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"].map(d => <div key={d}>{d}</div>)}
   </div>
 
@@ -244,7 +244,7 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
       return (
       <div
         key={day.toString()}
-        className="border border-gray-800 relative cursor-pointer hover:bg-[#2a2f36] min-h-[114px] flex flex-col"
+        className="border border-border relative cursor-pointer hover:bg-[#2a2f36] min-h-[114px] flex flex-col"
         style={!isCurrentMonth ? { backgroundColor: 'rgb(38 43 51)' } : {}}
         onClick={() => handleDateClick(day)}
       >
@@ -294,7 +294,7 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
                           className={cn(
                             "inline-flex items-center justify-center rounded-full border",
                             isPastReminder
-                              ? "border-slate-500/50 bg-slate-700/40 hover:bg-slate-700/60"
+                              ? "border-slate-500/50 bg-slate-700/40 hover:bg-accent/60"
                               : "border-amber-500/40 bg-amber-500/15 hover:bg-amber-500/25",
                             "p-[2px] sm:p-[3px]"
                           )}
@@ -312,25 +312,25 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
                             setIsReminderFormOpen(true);
                           }}
                         >
-                       <Bell className={cn("w-3 h-3", isPastReminder ? "text-slate-300" : "text-amber-300")} />
+                       <Bell className={cn("w-3 h-3", isPastReminder ? "text-muted-foreground" : "text-amber-300")} />
                               </motion.button>
                       </TooltipTrigger>
 
                       {/* ---- Tooltip Content with DETAILS ---- */}
                           <TooltipContent
                               className={cn(
-                                  "bg-slate-800 text-white max-w-sm p-3 space-y-2",
+                                  "bg-muted text-white max-w-sm p-3 space-y-2",
                                   isPastReminder ? "border-slate-500" : "border-amber-400"
                               )}
                           >
                               <p className={cn("font-bold", isPastReminder ? "text-slate-200" : "text-amber-300")}>{rem.title}</p>
-                              <p className={cn("text-sm leading-snug", isPastReminder && "text-slate-300")}>{rem.content}</p>
+                              <p className={cn("text-sm leading-snug", isPastReminder && "text-muted-foreground")}>{rem.content}</p>
 
                               <div
                                   className={cn(
                                       "text-xs space-y-1 pt-2 border-t",
                                       isPastReminder
-                                          ? "text-slate-300 border-slate-500/30"
+                                          ? "text-muted-foreground border-slate-500/30"
                                           : "text-amber-200/90 border-amber-500/20"
                                   )}
                               >
@@ -416,12 +416,12 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
 
 {/* MODALS */}
 <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-  <DialogContent className="text-white border-gray-700 max-w-lg">
+  <DialogContent className="text-white border-border max-w-lg">
     <DialogHeader>
       <DialogTitle className="bg-gradient-to-r from-white to-green-400 bg-clip-text text-transparent">
         {!isClientView ? '¿Qué quieres gestionar?' : '¿Qué quieres ver?'}
       </DialogTitle>
-      <DialogDescription className="text-gray-300">
+      <DialogDescription className="text-muted-foreground">
         {selectedDate?.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
       </DialogDescription>
     </DialogHeader>

@@ -45,11 +45,11 @@ const MacroProgress = ({ icon, name, actual, target, color }) => {
             
             <div className="w-full text-center">
                 <span className="text-xl font-bold text-white tabular-nums">{Math.round(safeActual)}</span>
-                <span className="text-sm text-gray-400">g / {Math.round(safeTarget)}g</span>
+                <span className="text-sm text-muted-foreground">g / {Math.round(safeTarget)}g</span>
             </div>
 
             <div className="w-full">
-                <div className="relative h-5 w-full bg-gray-700/50 rounded-full overflow-hidden flex items-center justify-center">
+                <div className="relative h-5 w-full bg-muted/50 rounded-full overflow-hidden flex items-center justify-center">
                     <motion.div
                         className={`absolute top-0 left-0 h-full bg-gradient-to-r ${c.gradientFrom} ${c.gradientTo} rounded-full`}
                         initial={{ width: 0 }}

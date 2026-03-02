@@ -118,7 +118,7 @@ const PlanRecipeCard = ({ recipe, onEdit, onDelete, allFoods, userRestrictions, 
             const isUnsafe = unsafeFoodsSet.has(food.name);
             
             return (
-                <span key={ing.id || `${foodId}-${index}`} className={cn(isUnsafe ? "text-red-400 font-bold" : "text-gray-400")}>
+                <span key={ing.id || `${foodId}-${index}`} className={cn(isUnsafe ? "text-red-400 font-bold" : "text-muted-foreground")}>
                     {text}
                 </span>
             );
@@ -138,7 +138,7 @@ const PlanRecipeCard = ({ recipe, onEdit, onDelete, allFoods, userRestrictions, 
                 className={cn(
                     "w-full h-full text-left bg-gradient-to-br p-5 rounded-xl transition-all flex flex-col justify-between shadow-lg border",
                     recipe.is_private ? 'from-slate-900 via-slate-900 to-violet-800/50' : 'from-slate-900 via-slate-900 to-slate-800/80', 
-                    isSafe ? "border-slate-700 hover:border-green-500/50 hover:shadow-green-500/10" : "border-red-500/80 bg-red-900/10 hover:border-red-500 hover:shadow-red-500/20",
+                    isSafe ? "border-border hover:border-green-500/50 hover:shadow-green-500/10" : "border-red-500/80 bg-red-900/10 hover:border-red-500 hover:shadow-red-500/20",
                     readOnly ? "cursor-pointer hover:border-green-500/30" : ""
                 )}
             >
@@ -161,13 +161,13 @@ const PlanRecipeCard = ({ recipe, onEdit, onDelete, allFoods, userRestrictions, 
                             </TooltipProvider>
                         )}
                     </div>
-                    <p className="text-sm text-gray-400 line-clamp-3">
+                    <p className="text-sm text-muted-foreground line-clamp-3">
                         {ingredientList.filter(Boolean).length > 0 ? 
                             ingredientList.filter(Boolean).reduce((prev, curr) => [prev, ', ', curr]) 
                             : 'Sin ingredientes'}
                     </p>
                 </div>
-                <div className={cn("mt-4 pt-4 border-t", isSafe ? "border-slate-700/50" : "border-red-500/30")}>
+                <div className={cn("mt-4 pt-4 border-t", isSafe ? "border-border/50" : "border-red-500/30")}>
                     <div className="flex items-center justify-between md:justify-start gap-4 text-sm font-mono">
                         <span className="flex items-center text-orange-400" title="Calorías"><CaloriesIcon className="w-4 h-4 mr-1"/>{Math.round(macros.calories || 0)}</span>
                         <span className="flex items-center text-red-400" title="Proteínas"><ProteinIcon className="w-4 h-4 mr-1"/>{Math.round(macros.proteins || 0)}g</span>

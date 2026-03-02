@@ -245,7 +245,7 @@ const FreeMealViewDialog = ({ open, onOpenChange, freeMeal, onUpdate }) => {
   return (
     <>
       <Dialog open={open} onOpenChange={handleClose}>
-        <DialogContent className="bg-[#1a1e23] border-gray-700 text-white w-[95vw] max-w-4xl max-h-[90vh] flex flex-col p-0">
+        <DialogContent className="bg-background border-border text-white w-[95vw] max-w-4xl max-h-[90vh] flex flex-col p-0">
           <ViewModeToggle
             mode={mode}
             onModeChange={handleModeChange}

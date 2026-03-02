@@ -134,23 +134,23 @@ const QuickStartGuideModal = () => {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="relative w-full max-w-lg bg-gradient-to-b from-[#1a1e23] to-[#16191d] border border-gray-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+          className="relative w-full max-w-lg bg-gradient-to-b from-[#1a1e23] to-[#16191d] border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col"
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-800/50">
-            <span className="text-sm font-medium text-gray-400">
+          <div className="flex items-center justify-between p-4 border-b border-border/50">
+            <span className="text-sm font-medium text-muted-foreground">
               Guía Rápida • Paso {currentStep + 1} de {steps.length}
             </span>
             <button
               onClick={closeGuide}
-              className="p-2 text-gray-400 hover:text-white transition-colors rounded-full hover:bg-white/5"
+              className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-white/5"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* Progress Bar */}
-          <div className="w-full h-1 bg-gray-800">
+          <div className="w-full h-1 bg-muted">
             <motion.div
               className="h-full bg-gradient-to-r from-emerald-500 to-green-400"
               initial={{ width: 0 }}
@@ -206,7 +206,7 @@ const QuickStartGuideModal = () => {
                     {step.title}
                   </h2>
 
-                  <p className="text-gray-300 text-lg leading-relaxed">
+                  <p className="text-muted-foreground text-lg leading-relaxed">
                     {step.description}
                   </p>
                 </motion.div>
@@ -215,7 +215,7 @@ const QuickStartGuideModal = () => {
           </div>
 
           {/* Footer Actions */}
-          <div className="p-6 bg-black/20 border-t border-gray-800/50 flex items-center justify-between gap-4">
+          <div className="p-6 bg-black/20 border-t border-border/50 flex items-center justify-between gap-4">
             {step.isCover ? (
               <div className="w-full flex justify-center">
                 <Button
@@ -232,7 +232,7 @@ const QuickStartGuideModal = () => {
                   variant="ghost"
                   onClick={prevStep}
                   disabled={currentStep === 0}
-                  className="text-gray-400 hover:text-white hover:bg-white/5 disabled:opacity-0"
+                  className="text-muted-foreground hover:text-foreground hover:bg-white/5 disabled:opacity-0"
                 >
                   <ChevronLeft className="w-5 h-5 mr-1" />
                   Anterior

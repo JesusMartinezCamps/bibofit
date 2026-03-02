@@ -108,13 +108,13 @@ const ManagePathologies = () => {
           <Loader2 className="h-8 w-8 animate-spin text-green-500" />
         </div>
       ) : (
-        <div className="bg-gray-900/50 rounded-lg shadow-lg border border-gray-700">
+        <div className="bg-card/75 rounded-lg shadow-lg border border-border">
           <ul className="divide-y divide-gray-700">
             {pathologies.map((pathology) => (
-              <li key={pathology.id} className="p-4 flex justify-between items-center hover:bg-gray-800/50 transition-colors">
+              <li key={pathology.id} className="p-4 flex justify-between items-center hover:bg-muted/65 transition-colors">
                 <div>
                   <p className="font-semibold text-lg text-white">{pathology.name}</p>
-                  <p className="text-sm text-gray-400">{pathology.description}</p>
+                  <p className="text-sm text-muted-foreground">{pathology.description}</p>
                   {pathology.medical_restrictions && <p className="text-xs text-red-400 mt-1">Restricciones: {pathology.medical_restrictions}</p>}
                 </div>
                 <div className="flex items-center gap-2">
@@ -132,7 +132,7 @@ const ManagePathologies = () => {
       )}
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="bg-[#1a1e23] border-gray-700 text-white">
+        <DialogContent className="bg-background border-border text-white">
           <DialogHeader>
             <DialogTitle>{editingPathology ? 'Editar' : 'Crear'} Patología</DialogTitle>
             <DialogDescription>
@@ -141,15 +141,15 @@ const ManagePathologies = () => {
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-1">Nombre</label>
+              <label htmlFor="name" className="block text-sm font-medium text-muted-foreground mb-1">Nombre</label>
               <Input id="name" name="name" value={formData.name} onChange={handleFormChange} required />
             </div>
             <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-300 mb-1">Descripción</label>
+              <label htmlFor="description" className="block text-sm font-medium text-muted-foreground mb-1">Descripción</label>
               <Textarea id="description" name="description" value={formData.description} onChange={handleFormChange} />
             </div>
             <div>
-              <label htmlFor="medical_restrictions" className="block text-sm font-medium text-gray-300 mb-1">Restricciones Médicas</label>
+              <label htmlFor="medical_restrictions" className="block text-sm font-medium text-muted-foreground mb-1">Restricciones Médicas</label>
               <Textarea id="medical_restrictions" name="medical_restrictions" value={formData.medical_restrictions} onChange={handleFormChange} />
             </div>
             <div className="flex justify-end gap-2">

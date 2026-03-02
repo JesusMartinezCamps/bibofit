@@ -94,7 +94,7 @@ const MacroFields = ({
       <div className="flex flex-col sm:flex-row gap-4 items-start">
         <div className="w-full sm:w-[15%] flex-shrink-0 space-y-2">
           <Label>Grasas Totales</Label>
-          <div className="h-10 flex items-center justify-center px-3 rounded-md border border-input bg-gray-800/30">
+          <div className="h-10 flex items-center justify-center px-3 rounded-md border border-input bg-muted/30">
             <span className="font-mono">{totalFats} g</span>
           </div>
         </div>
@@ -126,20 +126,20 @@ const MacroFields = ({
       <div className="flex flex-col sm:flex-row gap-4 items-start">
         <div className="w-full sm:w-[15%] flex-shrink-0 space-y-2">
           <Label>Hidratos Totales</Label>
-            <div className="h-10 flex items-center justify-center px-3 rounded-md border border-input bg-gray-800/30">
+            <div className="h-10 flex items-center justify-center px-3 rounded-md border border-input bg-muted/30">
               <span className="font-mono">{totalCarbs} g</span>
             </div>
         </div>
         <div className="w-full sm:w-[85%] space-y-4">
             <div className="macro-subgroup">
-                <Label className="text-gray-300 mb-2 block px-4">Desglose General</Label>
+                <Label className="text-muted-foreground mb-2 block px-4">Desglose General</Label>
                 <div className="px-4">
                     <CarbAndFiberFields carbTypes={allCarbTypes} breakdown={carbBreakdown} onChange={onBreakdownChange} />
                 </div>
             </div>
             
             <div className="macro-subgroup">
-                <Label className="text-gray-300 mb-4 block px-4">Análisis Detallado de Carbohidratos</Label>
+                <Label className="text-muted-foreground mb-4 block px-4">Análisis Detallado de Carbohidratos</Label>
                 <div className="px-4 space-y-4">
                     <Combobox
                       options={allCarbSubtypes.map(s => ({ value: s.id, label: s.name }))}

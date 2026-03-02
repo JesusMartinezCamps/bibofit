@@ -138,9 +138,9 @@ const OnboardingWizard = ({ isOpen: propIsOpen }) => {
       </AnimatePresence>
 
       {/* Header */}
-      <div className="px-6 py-4 md:px-8 md:py-6 flex items-center justify-between border-b border-gray-800 shrink-0 relative bg-[#0f1115] z-10">
+      <div className="px-6 py-4 md:px-8 md:py-6 flex items-center justify-between border-b border-border shrink-0 relative bg-[#0f1115] z-10">
           {!isFirstStep && !isLastStep ? (
-              <Button variant="ghost" size="icon" onClick={previousStep} className="text-gray-400 hover:text-gray-400 hover:bg-gray-800">
+              <Button variant="ghost" size="icon" onClick={previousStep} className="text-muted-foreground hover:text-muted-foreground hover:bg-muted">
                   <ChevronLeft className="h-6 w-6" />
               </Button>
           ) : (
@@ -159,7 +159,7 @@ const OnboardingWizard = ({ isOpen: propIsOpen }) => {
                 variant="ghost"
                 size="icon"
                 onClick={jumpToMealAdjustment}
-                className="text-gray-400 hover:text-white hover:bg-gray-800"
+                className="text-muted-foreground hover:text-foreground hover:bg-muted"
                 aria-label="Ir al ajuste final"
                 disabled={isLoading}
               >
@@ -171,7 +171,7 @@ const OnboardingWizard = ({ isOpen: propIsOpen }) => {
                 variant="ghost"
                 size="icon"
                 onClick={cancelOnboarding}
-                className="text-gray-400 hover:text-white hover:bg-gray-800"
+                className="text-muted-foreground hover:text-foreground hover:bg-muted"
                 aria-label="Cerrar onboarding"
                 disabled={isLoading}
               >
@@ -183,7 +183,7 @@ const OnboardingWizard = ({ isOpen: propIsOpen }) => {
 
       {/* Progress Bar */}
       {!isFirstStep && !isLastStep && (
-         <div className="h-1 bg-gray-800 w-full overflow-hidden shrink-0">
+         <div className="h-1 bg-muted w-full overflow-hidden shrink-0">
             <div 
               className="h-full bg-green-500 transition-all duration-300 ease-out"
               style={{ width: `${progress}%` }}
@@ -206,7 +206,7 @@ const OnboardingWizard = ({ isOpen: propIsOpen }) => {
                     {currentStep.type === 'form' && (
                         <div className="mb-6 md:mb-8 shrink-0 text-center md:text-left">
                             <h2 className="text-2xl md:text-3xl font-bold mb-2 text-white">{currentStep.title}</h2>
-                            <p className="text-gray-400 text-sm md:text-base">{currentStep.description}</p>
+                            <p className="text-muted-foreground text-sm md:text-base">{currentStep.description}</p>
                         </div>
                     )}
 

@@ -41,7 +41,7 @@ const DietPage = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <Link to="/dashboard" className="inline-flex items-center text-gray-400 hover:text-white mb-6">
+          <Link to="/dashboard" className="inline-flex items-center text-muted-foreground hover:text-foreground mb-6">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Volver al calendario
           </Link>
@@ -77,7 +77,7 @@ const DietPage = () => {
               <h2 className="text-2xl font-bold text-white mb-4">{recipe.name}</h2>
               <ul className="space-y-2">
                 {recipe.ingredients.map((ingredient, i) => (
-                  <li key={i} className="flex items-center text-gray-300">
+                  <li key={i} className="flex items-center text-muted-foreground">
                     <Dot className="text-[#5ebe7d] mr-2 flex-shrink-0" />
                     <span className="font-semibold mr-2">{ingredient.name}:</span>
                     <span>{ingredient.quantity}</span>

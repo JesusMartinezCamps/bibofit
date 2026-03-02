@@ -92,7 +92,7 @@ const CoachUserList = ({ selectedUser, onSelectUser, className }) => {
   );
 
   return (
-    <div className={cn("w-full bg-[#1a1e23] pt-4 px-4 pb-0 rounded-2xl flex flex-col border border-slate-800", className)}>
+    <div className={cn("w-full bg-background pt-4 px-4 pb-0 rounded-2xl flex flex-col border border-border", className)}>
       <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
         <User className="w-5 h-5 text-green-400" />
         Mis Clientes
@@ -102,13 +102,13 @@ const CoachUserList = ({ selectedUser, onSelectUser, className }) => {
           placeholder="Buscar cliente..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="input-field w-full pl-9 bg-[#282d34] border-slate-700 text-white"
+          className="input-field w-full pl-9 bg-[#282d34] border-border text-white"
         />
       </div>
       {loading ? (
-        <div className="text-center text-gray-400 py-4">Cargando clientes...</div>
+        <div className="text-center text-muted-foreground py-4">Cargando clientes...</div>
       ) : users.length === 0 ? (
-        <div className="text-center text-gray-500 py-8">
+        <div className="text-center text-muted-foreground py-8">
           <p>No tienes clientes asignados.</p>
         </div>
       ) : (
@@ -127,12 +127,12 @@ const CoachUserList = ({ selectedUser, onSelectUser, className }) => {
                     "w-full text-left flex items-center space-x-3 p-3 rounded-lg transition-all duration-200 border",
                     selectedUser?.user_id === user.user_id
                       ? 'bg-green-600/20 border-green-500/50 text-white shadow-[0_0_15px_rgba(34,197,94,0.2)]'
-                      : 'bg-slate-800/50 border-slate-700/50 text-gray-300 hover:bg-slate-800 hover:border-slate-600'
+                      : 'bg-muted/65 border-border/50 text-muted-foreground hover:bg-muted hover:border-input'
                   )}
                 >
                   <div className={cn(
                     "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-colors",
-                    selectedUser?.user_id === user.user_id ? 'bg-green-500 text-white' : 'bg-slate-700 text-gray-400'
+                    selectedUser?.user_id === user.user_id ? 'bg-green-500 text-white' : 'bg-slate-700 text-muted-foreground'
                   )}>
                     <span className="text-xs font-bold">
                       {user.full_name?.charAt(0).toUpperCase() || '?'}
@@ -140,7 +140,7 @@ const CoachUserList = ({ selectedUser, onSelectUser, className }) => {
                   </div>
                   <div className="flex-grow min-w-0">
                     <p className="font-medium truncate text-sm">{user.full_name}</p>
-                    <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                   </div>
                 </button>
               </motion.li>

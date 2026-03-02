@@ -60,7 +60,7 @@ const ClassificationDialog = ({ template, open, onOpenChange, onUpdate }) => {
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-             <DialogContent className="bg-[#1a1e23] border-gray-700 text-white max-w-2xl">
+             <DialogContent className="bg-background border-border text-white max-w-2xl">
                 <DialogHeader>
                     <DialogTitle>Editar Clasificación de Plantilla</DialogTitle>
                     <DialogDescription>Define los ejes de clasificación para facilitar la búsqueda.</DialogDescription>
@@ -194,7 +194,7 @@ const TemplateCard = ({
                     className={cn(
                         "text-white h-8 text-xs z-10 relative transition-all duration-200",
                         isUserHasActiveDiet 
-                            ? "bg-gray-700 text-gray-400 cursor-not-allowed hover:bg-gray-700" 
+                            ? "bg-muted text-muted-foreground cursor-not-allowed hover:bg-muted" 
                             : "bg-green-700 hover:bg-green-600"
                     )}
                     disabled={isUserHasActiveDiet}
@@ -235,7 +235,7 @@ const TemplateCard = ({
                     "w-full h-full text-left bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800/80 p-5 rounded-xl transition-all flex flex-col justify-between shadow-lg border cursor-pointer hover:border-blue-500/30 hover:shadow-blue-500/10",
                     isActive 
                         ? "border-emerald-500/50 shadow-emerald-500/10 from-emerald-950/20 to-slate-900" 
-                        : "border-slate-700/50"
+                        : "border-border/50"
                 )}>
                     {isActive && (
                         <div className="absolute top-0 right-0 p-3 z-10">
@@ -259,7 +259,7 @@ const TemplateCard = ({
                                 </div>
                                 <h3 className="text-lg font-bold text-white leading-tight line-clamp-2 group-hover:text-blue-200 transition-colors">{template.name}</h3>
                                 {creatorRole === 'coach' && (isCreator || creatorName) && (
-                                    <p className="text-xs text-gray-400 mt-1">
+                                    <p className="text-xs text-muted-foreground mt-1">
                                         {isCreator ? 'Creado por ti' : `Creado por: ${creatorName}`}
                                     </p>
                                 )}
@@ -268,7 +268,7 @@ const TemplateCard = ({
                                 <Button 
                                     variant="ghost" 
                                     size="icon" 
-                                    className="h-6 w-6 text-gray-400 hover:text-white -mt-1 -mr-2" 
+                                    className="h-6 w-6 text-muted-foreground hover:text-foreground -mt-1 -mr-2" 
                                     onClick={(e) => { stopPropagation(e); setIsClassificationOpen(true); }}
                                 >
                                     <Edit2 className="h-3.5 w-3.5" />
@@ -284,38 +284,38 @@ const TemplateCard = ({
                                         <ClassificationBadge key={i} type={tag.type} value={tag.value} />
                                     ))}
                                     {remainingTags > 0 && (
-                                         <Badge variant="secondary" className="text-xs bg-slate-800 text-gray-400">+{remainingTags}</Badge>
+                                         <Badge variant="secondary" className="text-xs bg-muted text-muted-foreground">+{remainingTags}</Badge>
                                     )}
                                 </>
                              ) : (
-                                 <span className="text-xs text-gray-500 italic flex items-center gap-1"><Tag className="w-3 h-3"/> Sin clasificar</span>
+                                 <span className="text-xs text-muted-foreground italic flex items-center gap-1"><Tag className="w-3 h-3"/> Sin clasificar</span>
                              )}
                         </div>
                         
                         {canOpenRestrictions ? (
                             <Dialog open={isRestrictionsOpen} onOpenChange={setIsRestrictionsOpen}>
                                 <DialogTrigger asChild onClick={stopPropagation}>
-                                    <div className="space-y-2 pt-2 border-t border-slate-800/50 cursor-default">
+                                    <div className="space-y-2 pt-2 border-t border-border/50 cursor-default">
                                         {sensitivitiesText && (
                                             <Badge variant="outline" className="cursor-pointer w-full justify-start text-left h-auto py-1.5 group/badge border-orange-900/30 bg-orange-900/10 hover:bg-orange-900/20 hover:border-orange-500/50 pl-2">
                                                 <ShieldAlert className="w-4 h-4 mr-2 flex-shrink-0 text-orange-400 group-hover/badge:text-orange-300 transition-colors" />
                                                 <span className="font-semibold mr-1 text-orange-400 group-hover/badge:text-orange-300 transition-colors">Evita:</span>
-                                                <span className="truncate text-gray-400 group-hover/badge:text-gray-300 transition-colors text-xs">{sensitivitiesText}</span>
+                                                <span className="truncate text-muted-foreground group-hover/badge:text-muted-foreground transition-colors text-xs">{sensitivitiesText}</span>
                                             </Badge>
                                         )}
                                         {conditionsText && (
                                             <Badge variant="outline" className="cursor-pointer w-full justify-start text-left h-auto py-1.5 group/badge border-red-900/30 bg-red-900/10 hover:bg-red-900/20 hover:border-red-500/50 pl-2">
                                                 <HeartPulse className="w-4 h-4 mr-2 flex-shrink-0 text-red-400 group-hover/badge:text-red-300 transition-colors" />
                                                 <span className="font-semibold mr-1 text-red-400 group-hover/badge:text-red-300 transition-colors">Apta para:</span>
-                                                <span className="truncate text-gray-400 group-hover/badge:text-gray-300 transition-colors text-xs">{conditionsText}</span>
+                                                <span className="truncate text-muted-foreground group-hover/badge:text-muted-foreground transition-colors text-xs">{conditionsText}</span>
                                             </Badge>
                                         )}
                                         {!sensitivitiesText && !conditionsText && (
-                                            <p className="text-xs text-gray-500 italic">Sin restricciones médicas o sensibilidades configuradas.</p>
+                                            <p className="text-xs text-muted-foreground italic">Sin restricciones médicas o sensibilidades configuradas.</p>
                                         )}
                                     </div>
                                 </DialogTrigger>
-                                <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-3xl" onClick={(e) => e.stopPropagation()}>
+                                <DialogContent className="bg-card border-border text-white max-w-3xl" onClick={(e) => e.stopPropagation()}>
                                     <RestrictionsManager 
                                         entityId={template.id}
                                         entityType="diet_plans"
@@ -327,23 +327,23 @@ const TemplateCard = ({
                                 </DialogContent>
                             </Dialog>
                         ) : (
-                            <div className="space-y-2 pt-2 border-t border-slate-800/50 cursor-default">
+                            <div className="space-y-2 pt-2 border-t border-border/50 cursor-default">
                                 {sensitivitiesText && (
                                     <Badge variant="outline" className="w-full justify-start text-left h-auto py-1.5 group/badge border-orange-900/30 bg-orange-900/10 pl-2">
                                         <ShieldAlert className="w-4 h-4 mr-2 flex-shrink-0 text-orange-400" />
                                         <span className="font-semibold mr-1 text-orange-400">Evita:</span>
-                                        <span className="truncate text-gray-400 text-xs">{sensitivitiesText}</span>
+                                        <span className="truncate text-muted-foreground text-xs">{sensitivitiesText}</span>
                                     </Badge>
                                 )}
                                 {conditionsText && (
                                     <Badge variant="outline" className="w-full justify-start text-left h-auto py-1.5 group/badge border-red-900/30 bg-red-900/10 pl-2">
                                         <HeartPulse className="w-4 h-4 mr-2 flex-shrink-0 text-red-400" />
                                         <span className="font-semibold mr-1 text-red-400">Apta para:</span>
-                                        <span className="truncate text-gray-400 text-xs">{conditionsText}</span>
+                                        <span className="truncate text-muted-foreground text-xs">{conditionsText}</span>
                                     </Badge>
                                 )}
                                 {!sensitivitiesText && !conditionsText && (
-                                    <p className="text-xs text-gray-500 italic">Sin restricciones médicas o sensibilidades configuradas.</p>
+                                    <p className="text-xs text-muted-foreground italic">Sin restricciones médicas o sensibilidades configuradas.</p>
                                 )}
                             </div>
                         )}
@@ -351,18 +351,18 @@ const TemplateCard = ({
                         {/* Assigned Centers Display */}
                         {isGlobal && assignedCenters.length > 0 && (
                             <div className="pt-2">
-                                <h4 className="text-xs font-semibold text-gray-500 mb-1 flex items-center gap-1 uppercase tracking-wide">
+                                <h4 className="text-xs font-semibold text-muted-foreground mb-1 flex items-center gap-1 uppercase tracking-wide">
                                     <Building2 className="w-3 h-3" />
                                     Organizaciones ({assignedCenters.length})
                                 </h4>
                                 <div className="flex flex-wrap gap-1">
                                     {assignedCenters.slice(0, 3).map(center => (
-                                        <Badge key={center.id} variant="outline" className="text-[10px] px-1.5 py-0 bg-slate-800/50 border-slate-700 text-gray-300">
+                                        <Badge key={center.id} variant="outline" className="text-[10px] px-1.5 py-0 bg-muted/65 border-border text-muted-foreground">
                                             {center.name}
                                         </Badge>
                                     ))}
                                     {assignedCenters.length > 3 && (
-                                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-slate-800/50 border-slate-700 text-gray-400">
+                                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-muted/65 border-border text-muted-foreground">
                                             +{assignedCenters.length - 3}
                                         </Badge>
                                     )}
@@ -372,7 +372,7 @@ const TemplateCard = ({
 
                         {allowManagement && (
                             <div>
-                                <h4 className="text-xs font-semibold text-gray-500 mb-2 mt-2 flex items-center gap-1 uppercase tracking-wide">
+                                <h4 className="text-xs font-semibold text-muted-foreground mb-2 mt-2 flex items-center gap-1 uppercase tracking-wide">
                                     <UserCheck className="w-3 h-3" />
                                     Asignaciones ({assignedPlans.length})
                                 </h4>
@@ -389,7 +389,7 @@ const TemplateCard = ({
                                                                 </Badge>
                                                             </Link>
                                                         </TooltipTrigger>
-                                                        <TooltipContent className="bg-slate-800 border-slate-700 text-white">
+                                                        <TooltipContent className="bg-muted border-border text-white">
                                                             <p>Ver plan de {plan.profile.full_name}</p>
                                                         </TooltipContent>
                                                     </Tooltip>
@@ -400,7 +400,7 @@ const TemplateCard = ({
                                                 </Badge>
                                             )
                                         ))}
-                                        {assignedPlans.length > 3 && <span className="text-[10px] text-gray-500 self-center">+{assignedPlans.length - 3}</span>}
+                                        {assignedPlans.length > 3 && <span className="text-[10px] text-muted-foreground self-center">+{assignedPlans.length - 3}</span>}
                                     </div>
                                 ) : (
                                     <p className="text-[10px] text-gray-600 italic pl-4">Sin asignaciones.</p>
@@ -408,7 +408,7 @@ const TemplateCard = ({
                             </div>
                         )}
                     </div>
-                    <div className="mt-4 pt-4 border-t border-slate-700/50 flex justify-end gap-2 z-10 relative">
+                    <div className="mt-4 pt-4 border-t border-border/50 flex justify-end gap-2 z-10 relative">
                         {allowManagement && canAssignToCenter && (
                             <Tooltip>
                                 <TooltipTrigger asChild>
@@ -416,7 +416,7 @@ const TemplateCard = ({
                                         <Share2 className="w-4 h-4" />
                                     </Button>
                                 </TooltipTrigger>
-                                <TooltipContent className="bg-slate-800 border-slate-700 text-white">
+                                <TooltipContent className="bg-muted border-border text-white">
                                     <p>Asignar a Organización</p>
                                 </TooltipContent>
                             </Tooltip>
@@ -429,7 +429,7 @@ const TemplateCard = ({
                                         <ArrowUpCircle className="w-4 h-4" />
                                     </Button>
                                 </TooltipTrigger>
-                                <TooltipContent className="bg-slate-800 border-slate-700 text-white">
+                                <TooltipContent className="bg-muted border-border text-white">
                                     <p>Promover a Global</p>
                                 </TooltipContent>
                              </Tooltip>
@@ -442,7 +442,7 @@ const TemplateCard = ({
                                         <Trash2 className="w-4 h-4" />
                                     </Button>
                                 </AlertDialogTrigger>
-                                <AlertDialogContent onClick={stopPropagation} className="bg-slate-900 border-slate-700 text-white">
+                                <AlertDialogContent onClick={stopPropagation} className="bg-card border-border text-white">
                                     <AlertDialogHeader>
                                         <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                                         <AlertDialogDescription>

@@ -25,7 +25,7 @@ const testimonials = [
 
 const Testimonials = () => {
     return (
-        <section className="py-24 bg-[#1a1e23]">
+        <section className="py-24 bg-background">
             <div className="container mx-auto px-4 md:px-6">
                 <h2 className="text-3xl md:text-4xl font-bold text-center text-white mb-16">
                     Confían en nosotros
@@ -33,10 +33,10 @@ const Testimonials = () => {
 
                 <div className="grid md:grid-cols-3 gap-8">
                     {testimonials.map((t, i) => (
-                        <Card key={i} className="bg-[#15191e] border-gray-800 relative">
+                        <Card key={i} className="bg-[#15191e] border-border relative">
                             <CardContent className="pt-10">
                                 <Quote className="absolute top-6 left-6 h-8 w-8 text-green-500/20" />
-                                <p className="text-gray-300 italic mb-6 relative z-10">
+                                <p className="text-muted-foreground italic mb-6 relative z-10">
                                     "{t.content}"
                                 </p>
                                 <div className="flex items-center gap-4">

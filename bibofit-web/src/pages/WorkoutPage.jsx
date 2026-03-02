@@ -42,7 +42,7 @@ const WorkoutPage = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <Link to="/dashboard" className="inline-flex items-center text-gray-400 hover:text-white mb-6">
+          <Link to="/dashboard" className="inline-flex items-center text-muted-foreground hover:text-foreground mb-6">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Volver al calendario
           </Link>
@@ -68,7 +68,7 @@ const WorkoutPage = () => {
             >
               <div>
                 <h2 className="text-2xl font-bold text-white mb-2">{routine.name}</h2>
-                <p className="text-gray-400 mb-6">{routine.description}</p>
+                <p className="text-muted-foreground mb-6">{routine.description}</p>
               </div>
               <Button onClick={() => handleStartRoutine(routine.name)} variant="training" className="w-full">
                 <PlayCircle className="mr-2 h-5 w-5" />

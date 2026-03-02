@@ -40,7 +40,7 @@ const ClientRestrictionsDisplay = ({ restrictions, conflicts }) => {
         <div className="mt-2 space-y-2">
             {(restrictions.sensitivities?.length > 0) && (
                 <div>
-                    <h4 className="text-sm font-semibold text-gray-400 mb-1.5 flex items-center gap-2"><ShieldAlert size={14} className="text-orange-400"/> Sensibilidades</h4>
+                    <h4 className="text-sm font-semibold text-muted-foreground mb-1.5 flex items-center gap-2"><ShieldAlert size={14} className="text-orange-400"/> Sensibilidades</h4>
                     <div className="flex flex-wrap gap-1.5">
                         {restrictions.sensitivities.map(s => renderBadge(s, 'sensitivity'))}
                     </div>
@@ -48,7 +48,7 @@ const ClientRestrictionsDisplay = ({ restrictions, conflicts }) => {
             )}
             {(restrictions.conditions?.length > 0) && (
                 <div>
-                    <h4 className="text-sm font-semibold text-gray-400 mb-1.5 flex items-center gap-2"><HeartPulse size={14} className="text-red-400"/> Condiciones Médicas</h4>
+                    <h4 className="text-sm font-semibold text-muted-foreground mb-1.5 flex items-center gap-2"><HeartPulse size={14} className="text-red-400"/> Condiciones Médicas</h4>
                     <div className="flex flex-wrap gap-1.5">
                         {restrictions.conditions.map(c => renderBadge(c, 'condition'))}
                     </div>

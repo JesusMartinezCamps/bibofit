@@ -31,9 +31,9 @@ const PersonalDataStep = ({ onNext, isLoading }) => {
     <form onSubmit={handleSubmit} className="flex flex-col h-full">
       <div className="flex-1 space-y-6 overflow-y-auto pr-1">
         <div className="space-y-2">
-            <Label htmlFor="full_name" className="text-gray-300">Nombre Completo</Label>
+            <Label htmlFor="full_name" className="text-muted-foreground">Nombre Completo</Label>
             <div className="relative">
-                <User className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <User className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                     id="full_name"
                     value={formData.full_name}
@@ -46,9 +46,9 @@ const PersonalDataStep = ({ onNext, isLoading }) => {
         </div>
 
         <div className="space-y-2">
-            <Label htmlFor="phone" className="text-gray-300">Teléfono (Opcional)</Label>
+            <Label htmlFor="phone" className="text-muted-foreground">Teléfono (Opcional)</Label>
             <div className="relative">
-                <Phone className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <Phone className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                     id="phone"
                     type="tel"

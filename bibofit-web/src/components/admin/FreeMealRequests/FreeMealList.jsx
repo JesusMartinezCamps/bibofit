@@ -166,7 +166,7 @@ const FreeMealList = ({
 
   return (
     <>
-      <Card className="md:col-span-2 bg-[#1a1e23] border-gray-700 text-white">
+      <Card className="md:col-span-2 bg-background border-border text-white">
         <CardHeader>
           <CardTitle className="flex items-center">
             <UtensilsCrossed className="mr-2" /> {getTitle()}
@@ -179,12 +179,12 @@ const FreeMealList = ({
               <Loader2 className="animate-spin h-8 w-8 text-[#5ebe7d]" />
             </div>
           ) : !selectedUser ? (
-            <div className="text-center py-12 text-gray-400">
+            <div className="text-center py-12 text-muted-foreground">
               <Inbox className="mx-auto h-12 w-12" />
               <p>Selecciona un usuario de la lista</p>
             </div>
           ) : freeRecipes.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">
+            <div className="text-center py-12 text-muted-foreground">
               <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
               <p>{getEmptyMessage()}</p>
             </div>

@@ -16,7 +16,7 @@ import React from 'react';
       return (
         <div
           className={cn(
-            "grid items-center mt-1 pt-2 border-t border-dashed border-slate-600 text-sm font-bold gap-x-2 pl-4 text-[#4AD1E0]",
+            "grid items-center mt-1 pt-2 border-t border-dashed border-input text-sm font-bold gap-x-2 pl-4 text-[#4AD1E0]",
           )}
           style={gridStyle}
         >

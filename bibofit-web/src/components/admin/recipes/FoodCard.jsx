@@ -38,10 +38,10 @@ const FoodCard = ({ food, onSelect, isSelected, onDelete }) => {
       className={`relative group h-full`}
       onClick={() => onSelect(food)}
     >
-      <div className={`w-full h-full text-left bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800/80 p-4 rounded-xl transition-all flex flex-col justify-between shadow-lg border ${isSelected ? 'border-green-500 ring-2 ring-green-500/50' : 'border-slate-700/50'} cursor-pointer hover:shadow-green-500/10`}>
+      <div className={`w-full h-full text-left bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800/80 p-4 rounded-xl transition-all flex flex-col justify-between shadow-lg border ${isSelected ? 'border-green-500 ring-2 ring-green-500/50' : 'border-border/50'} cursor-pointer hover:shadow-green-500/10`}>
         <div className="flex-1 pr-4">
           <h3 className="text-lg font-bold text-white truncate">{food.name}</h3>
-          <p className="text-sm text-gray-400 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             {foodGroupsText}
             {food.season?.name && <span className="text-purple-400"> • {food.season.name}</span>}
           </p>
@@ -51,7 +51,7 @@ const FoodCard = ({ food, onSelect, isSelected, onDelete }) => {
             </p>
           )}
         </div>
-        <div className="mt-3 pt-3 border-t border-gray-700 flex items-center justify-between text-sm font-mono">
+        <div className="mt-3 pt-3 border-t border-border flex items-center justify-between text-sm font-mono">
           <span className="flex items-center text-orange-400" title="Calorías"><CaloriesIcon className="w-4 h-4 mr-1.5"/>{Math.round(calories)}</span>
           <span className="flex items-center text-red-400" title="Proteínas"><ProteinIcon className="w-4 h-4 mr-1.5"/>{Math.round(food.proteins || 0)}g</span>
           <span className="flex items-center text-yellow-400" title="Carbohidratos"><CarbsIcon className="w-4 h-4 mr-1.5"/>{Math.round(food.total_carbs || 0)}g</span>

@@ -15,8 +15,8 @@ import PlanRecipesView from '@/components/admin/diet-plans/PlanRecipesView';
 const TemplatePreviewDialog = ({ open, onOpenChange, template, onAssign, clientRestrictions }) => {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="w-full sm:w-[90vw] sm:max-w-[90vw] max-w-none h-[90vh] bg-[#1a1e23] border-gray-700 text-white flex flex-col p-0 overflow-hidden">
-                <DialogHeader className="px-6 py-4 bg-gray-900 border-b border-gray-800">
+            <DialogContent className="w-full sm:w-[90vw] sm:max-w-[90vw] max-w-none h-[90vh] bg-background border-border text-white flex flex-col p-0 overflow-hidden">
+                <DialogHeader className="px-6 py-4 bg-card border-b border-border">
                     <DialogTitle className="text-xl">Vista Previa: {template?.name}</DialogTitle>
                     <DialogDescription>Revisa el contenido de la plantilla antes de asignarla. Verás alertas si hay conflictos con las restricciones del cliente.</DialogDescription>
                 </DialogHeader>
@@ -29,7 +29,7 @@ const TemplatePreviewDialog = ({ open, onOpenChange, template, onAssign, clientR
                         />
                     )}
                 </div>
-                <DialogFooter className="px-6 py-4 bg-gray-900 border-t border-gray-800 flex justify-between sm:justify-between">
+                <DialogFooter className="px-6 py-4 bg-card border-t border-border flex justify-between sm:justify-between">
                     <Button variant="ghost" onClick={() => onOpenChange(false)}>Cerrar</Button>
                     <Button onClick={onAssign} className="bg-green-600 hover:bg-green-500 text-white">
                         Asignar esta Plantilla
@@ -43,7 +43,7 @@ const TemplatePreviewDialog = ({ open, onOpenChange, template, onAssign, clientR
 const SelectTemplateDialog = ({ open, onOpenChange, templates, onSelect, loading, onPreview }) => {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="w-full sm:w-[90vw] sm:max-w-[90vw] max-w-none h-[80vh] bg-[#1a1e23] border-gray-700 text-white flex flex-col">
+            <DialogContent className="w-full sm:w-[90vw] sm:max-w-[90vw] max-w-none h-[80vh] bg-background border-border text-white flex flex-col">
                 <DialogHeader>
                     <DialogTitle>Seleccionar Plantilla de Dieta</DialogTitle>
                     <DialogDescription>Elige una plantilla para asignar al cliente. Haz clic en una tarjeta para ver el detalle.</DialogDescription>
@@ -64,7 +64,7 @@ const SelectTemplateDialog = ({ open, onOpenChange, templates, onSelect, loading
                             ))}
                         </div>
                     ) : (
-                        <div className="text-center text-gray-400 p-8"><p>No se encontraron plantillas.</p></div>
+                        <div className="text-center text-muted-foreground p-8"><p>No se encontraron plantillas.</p></div>
                     )}
                 </div>
             </DialogContent>
@@ -262,8 +262,8 @@ const DietManagementPage = () => {
                         ))}
                     </div>
                 ) : (
-                    <div className="text-center text-white py-16 bg-gray-800/50 rounded-xl">
-                        <p className="text-gray-400">Este cliente aún no tiene planes de dieta asignados.</p>
+                    <div className="text-center text-white py-16 bg-muted/65 rounded-xl">
+                        <p className="text-muted-foreground">Este cliente aún no tiene planes de dieta asignados.</p>
                         <Button onClick={handleOpenAssignDialog} className="mt-4 bg-green-600 hover:bg-green-500 text-white">
                             Asignar su primer plan
                         </Button>

@@ -54,7 +54,7 @@ const FoodPreferenceSelector = ({
   
   // Styling for the chips
   const chipClassName = isPreferred ? "bg-green-600/20 text-green-400" : "bg-red-600/20 text-red-400";
-  const chipButtonClassName = isPreferred ? "text-green-400 hover:text-white" : "text-red-400 hover:text-white";
+  const chipButtonClassName = isPreferred ? "text-green-400 hover:text-foreground" : "text-red-400 hover:text-foreground";
   const tableName = isPreferred ? 'preferred_foods' : 'non_preferred_foods';
 
   const handleAddFood = async (food) => {
@@ -198,7 +198,7 @@ const FoodPreferenceSelector = ({
       </div>
       
       <div className="flex flex-wrap gap-2 mt-2 flex-1 content-start">
-        {selectedFoods.length === 0 && <p className="text-gray-500 text-sm italic w-full">Lista vacía.</p>}
+        {selectedFoods.length === 0 && <p className="text-muted-foreground text-sm italic w-full">Lista vacía.</p>}
         {selectedFoods.map((food) => (
             <div key={food.id} className={`flex items-center px-3 py-1 rounded-full text-sm ${chipClassName}`}>
               <span>{food.name}</span>
@@ -220,20 +220,20 @@ const FoodPreferenceSelector = ({
           if (!open) setSearchTerm('');
         }}
       >
-        <DialogContent className="w-[95%] max-w-xl h-[80vh] flex flex-col p-0 bg-[#1a1e23] border-gray-700">
-          <div className="p-4 border-b border-gray-700 space-y-4 flex-shrink-0">
+        <DialogContent className="w-[95%] max-w-xl h-[80vh] flex flex-col p-0 bg-background border-border">
+          <div className="p-4 border-b border-border space-y-4 flex-shrink-0">
             <DialogHeader>
               <DialogTitle className="text-left">
                 {isPreferred ? 'Seleccionar Alimentos Preferidos' : 'Seleccionar Alimentos No Deseados'}
               </DialogTitle>
             </DialogHeader>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar alimento o grupo (ej: verduras)..."
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                className="pl-9 bg-gray-800 border-gray-600 text-white focus:border-cyan-500"
+                className="pl-9 bg-muted border-input text-white focus:border-cyan-500"
               />
             </div>
           </div>
@@ -241,7 +241,7 @@ const FoodPreferenceSelector = ({
           <ScrollArea className="flex-1 p-2">
             <div className="space-y-1">
               {filteredItems.length === 0 ? (
-                <p className="text-center text-gray-400 py-8 text-sm">No se encontraron resultados.</p>
+                <p className="text-center text-muted-foreground py-8 text-sm">No se encontraron resultados.</p>
               ) : (
                 filteredItems.map((food) => {
                   const isSelected = selectedFoodIds.has(String(food.id));
@@ -256,14 +256,14 @@ const FoodPreferenceSelector = ({
                       className={`w-full p-3 rounded-lg transition-colors text-left border ${
                         isSelected
                           ? (isPreferred ? 'bg-green-900/20 border-green-500/40' : 'bg-red-900/20 border-red-500/40')
-                          : 'bg-transparent border-transparent hover:bg-gray-800/80'
+                          : 'bg-transparent border-transparent hover:bg-muted/80'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <p className="text-gray-100 font-medium truncate">{food.name}</p>
                           {foodGroups.length > 0 && (
-                            <p className="text-xs text-gray-400 mt-0.5 truncate">
+                            <p className="text-xs text-muted-foreground mt-0.5 truncate">
                               Grupo: {foodGroups.join(', ')}
                             </p>
                           )}
@@ -285,7 +285,7 @@ const FoodPreferenceSelector = ({
                             </Badge>
                           )}
                         </div>
-                        <div className={`flex items-center text-xs ${isSelected ? (isPreferred ? 'text-green-400' : 'text-red-400') : 'text-gray-500'}`}>
+                        <div className={`flex items-center text-xs ${isSelected ? (isPreferred ? 'text-green-400' : 'text-red-400') : 'text-muted-foreground'}`}>
                           {isSelected ? (
                             <>
                               <Check className="h-4 w-4 mr-1" /> Activo

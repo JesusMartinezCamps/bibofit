@@ -121,7 +121,7 @@ const PlanTemplateForm = ({ open, onOpenChange, template, onSuccess, centerId })
 
     return (
         <Dialog open={open} onOpenChange={handleClose}>
-            <DialogContent className="bg-[#1a1e23] border-gray-700 text-white max-w-md">
+            <DialogContent className="bg-background border-border text-white max-w-md">
                 <DialogHeader>
                     <DialogTitle>{template ? 'Renombrar Plantilla' : 'Nueva Plantilla de Dieta'}</DialogTitle>
                     <DialogDescription>
@@ -130,7 +130,7 @@ const PlanTemplateForm = ({ open, onOpenChange, template, onSuccess, centerId })
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-6 py-4">
                     <div className="space-y-2">
-                        <Label htmlFor="planName" className="text-gray-300">Nombre</Label>
+                        <Label htmlFor="planName" className="text-muted-foreground">Nombre</Label>
                         <Input 
                             id="planName" 
                             value={name} 
@@ -142,13 +142,13 @@ const PlanTemplateForm = ({ open, onOpenChange, template, onSuccess, centerId })
                     </div>
                     
                     <div className="space-y-3">
-                        <Label className="text-gray-300">Ámbito de la Plantilla</Label>
+                        <Label className="text-muted-foreground">Ámbito de la Plantilla</Label>
                         
                         {userRole === 'admin' ? (
                             <div className="space-y-3">
                                 <div className="grid grid-cols-2 gap-3">
                                     <div 
-                                        className={`cursor-pointer border rounded-lg p-4 flex flex-col items-center justify-center gap-2 transition-all ${scope === 'global' ? 'bg-blue-900/20 border-blue-500 text-blue-400 ring-1 ring-blue-500' : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700'}`}
+                                        className={`cursor-pointer border rounded-lg p-4 flex flex-col items-center justify-center gap-2 transition-all ${scope === 'global' ? 'bg-blue-900/20 border-blue-500 text-blue-400 ring-1 ring-blue-500' : 'bg-muted border-border text-muted-foreground hover:bg-muted'}`}
                                         onClick={() => setScope('global')}
                                     >
                                         <Globe className="w-6 h-6" />
@@ -156,7 +156,7 @@ const PlanTemplateForm = ({ open, onOpenChange, template, onSuccess, centerId })
                                     </div>
                                     
                                     <div 
-                                        className={`cursor-pointer border rounded-lg p-4 flex flex-col items-center justify-center gap-2 transition-all ${scope === 'center' ? 'bg-amber-900/20 border-amber-500 text-amber-400 ring-1 ring-amber-500' : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700'}`}
+                                        className={`cursor-pointer border rounded-lg p-4 flex flex-col items-center justify-center gap-2 transition-all ${scope === 'center' ? 'bg-amber-900/20 border-amber-500 text-amber-400 ring-1 ring-amber-500' : 'bg-muted border-border text-muted-foreground hover:bg-muted'}`}
                                         onClick={() => setScope('center')}
                                     >
                                         <Building2 className="w-6 h-6" />
@@ -166,12 +166,12 @@ const PlanTemplateForm = ({ open, onOpenChange, template, onSuccess, centerId })
                                 
                                 {scope === 'center' && (
                                     <div className="space-y-1 animate-in fade-in slide-in-from-top-2 duration-200">
-                                        <Label className="text-xs text-gray-400">Seleccionar Centro</Label>
+                                        <Label className="text-xs text-muted-foreground">Seleccionar Centro</Label>
                                         <Select value={selectedCenterId || ''} onValueChange={setSelectedCenterId}>
-                                            <SelectTrigger className="bg-gray-900 border-gray-700">
+                                            <SelectTrigger className="bg-card border-border">
                                                 <SelectValue placeholder="Selecciona un centro..." />
                                             </SelectTrigger>
-                                            <SelectContent className="bg-[#1a1e23] border-gray-700 text-white">
+                                            <SelectContent className="bg-background border-border text-white">
                                                 {centersList.map(center => (
                                                     <SelectItem key={center.id} value={center.id.toString()}>
                                                         {center.name}
@@ -184,13 +184,13 @@ const PlanTemplateForm = ({ open, onOpenChange, template, onSuccess, centerId })
                             </div>
                         ) : (
                             // View for Coaches
-                            <div className="w-full p-4 bg-gray-800/50 border border-gray-700 rounded-lg flex items-center gap-3">
+                            <div className="w-full p-4 bg-muted/65 border border-border rounded-lg flex items-center gap-3">
                                 <div className="h-10 w-10 rounded-full bg-amber-900/30 flex items-center justify-center text-amber-400 shrink-0">
                                     <Building2 className="w-5 h-5" />
                                 </div>
                                 <div>
                                     <p className="text-sm font-medium text-white">Plantilla de Centro</p>
-                                    <p className="text-xs text-gray-400">
+                                    <p className="text-xs text-muted-foreground">
                                         Esta plantilla será visible solo para los miembros de <span className="text-amber-300 font-semibold">{coachCenterName || 'tu centro'}</span>.
                                     </p>
                                 </div>

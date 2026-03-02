@@ -134,9 +134,9 @@ const IngredientRow = React.memo(({
   const conflictClasses = useMemo(() => {
     if (displayMode !== 'conflict' || !selectedFoodConflictInfo) {
       return {
-        border: 'border-slate-600',
-        text: 'text-slate-300',
-        bg: 'bg-slate-950',
+        border: 'border-input',
+        text: 'text-muted-foreground',
+        bg: 'bg-card',
         hoverBorder: 'hover:border-slate-500',
         hoverText: 'hover:text-slate-200',
         focusRing: 'focus:ring-slate-500',
@@ -174,9 +174,9 @@ const IngredientRow = React.memo(({
         };
       default:
         return {
-          border: 'border-slate-600',
-          text: 'text-slate-300',
-          bg: 'bg-slate-950',
+          border: 'border-input',
+          text: 'text-muted-foreground',
+          bg: 'bg-card',
           hoverBorder: 'hover:border-slate-500',
           hoverText: 'hover:text-slate-200',
           focusRing: 'focus:ring-slate-500',
@@ -198,14 +198,14 @@ const IngredientRow = React.memo(({
 
   const quantityInputClasses = cn(
     "h-9 text-xs w-full text-center font-numeric",
-    hasValue && foodDetails ? conflictClasses.border : 'border-gray-600',
-    hasValue && foodDetails ? conflictClasses.text : 'text-gray-400',
+    hasValue && foodDetails ? conflictClasses.border : 'border-input',
+    hasValue && foodDetails ? conflictClasses.text : 'text-muted-foreground',
     hasValue && foodDetails ? conflictClasses.focusRing : 'focus:ring-[#3DB477]',
   );
 
   const quantityUnitClasses = cn(
     "font-numeric",
-    hasValue && foodDetails ? conflictClasses.text : 'text-gray-400'
+    hasValue && foodDetails ? conflictClasses.text : 'text-muted-foreground'
   );
 
   return (
@@ -226,7 +226,7 @@ const IngredientRow = React.memo(({
             />
             {/* Show Food Group Name in small text */}
             {foodGroupName && (
-                <span className="text-[10px] text-gray-400 pl-1 mt-0.5 truncate block w-full">
+                <span className="text-[10px] text-muted-foreground pl-1 mt-0.5 truncate block w-full">
                     {foodGroupName}
                 </span>
             )}

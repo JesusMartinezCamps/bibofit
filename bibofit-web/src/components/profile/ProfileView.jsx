@@ -165,10 +165,10 @@ import React, { useEffect, useState } from 'react';
       
       return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
-          <Card className={cn("w-full mx-auto bg-[#1a1e23] border-gray-700 text-white shadow-2xl shadow-[#9B4467]/10", className)}>
-            <CardHeader className="text-center border-b border-gray-700 pb-6">
+          <Card className={cn("w-full mx-auto bg-background border-border text-white shadow-2xl shadow-[#9B4467]/10", className)}>
+            <CardHeader className="text-center border-b border-border pb-6">
               <CardTitle className="text-4xl font-bold text-white">{profile?.full_name}</CardTitle>
-              <CardDescription className="text-gray-400 font-small text-md">Toda la información en un único lugar.</CardDescription>
+              <CardDescription className="text-muted-foreground font-small text-md">Toda la información en un único lugar.</CardDescription>
             </CardHeader>
             <CardContent className="p-6 md:p-8">
               
@@ -229,14 +229,14 @@ import React, { useEffect, useState } from 'react';
                       <DetailItem label="Tipo de Dieta" value={dietPrefs.diet_types?.name} />
                       <DetailItem label="Sensibilidades" value={sensitivities.length > 0 ? sensitivities.join(', ') : 'Ninguna'} />
                       <div className="space-y-2 pt-2">
-                        <h4 className="text-sm font-semibold text-gray-400 flex items-center"><Sun className="w-4 h-4 mr-2 text-yellow-400"/>Comidas del Día</h4>
+                        <h4 className="text-sm font-semibold text-muted-foreground flex items-center"><Sun className="w-4 h-4 mr-2 text-yellow-400"/>Comidas del Día</h4>
                         {dayMeals.length > 0 ? (
-                          <div className="p-3 bg-gray-800/50 rounded-lg space-y-3">
+                          <div className="p-3 bg-muted/65 rounded-lg space-y-3">
                             {dayMeals.map(meal => (
                               <div key={meal.day_meal_id}>
                                 <p className="font-semibold text-gray-200">{meal.day_meals.name}</p>
                                 {meal.preferences && (
-                                    <div className="flex items-start text-xs text-gray-400 mt-1 pl-2 border-l-2 border-gray-600">
+                                    <div className="flex items-start text-xs text-muted-foreground mt-1 pl-2 border-l-2 border-input">
                                       <MessageSquare className="w-3 h-3 mr-2 mt-0.5 flex-shrink-0"/>
                                       <p className="italic">{meal.preferences}</p>
                                     </div>
@@ -244,9 +244,9 @@ import React, { useEffect, useState } from 'react';
                               </div>
                             ))}
                           </div>
-                        ) : <p className="text-xs text-gray-500">No se han configurado las comidas del día.</p>}
+                        ) : <p className="text-xs text-muted-foreground">No se han configurado las comidas del día.</p>}
                       </div>
-                    </> : <p className="text-gray-400">No se han especificado preferencias de dieta.</p>}
+                    </> : <p className="text-muted-foreground">No se han especificado preferencias de dieta.</p>}
                   </CollapsibleContent>
                 </Collapsible>
                 
@@ -278,7 +278,7 @@ import React, { useEffect, useState } from 'react';
                       <DetailItem label="Objetivo de Entrenamiento" value={trainingPrefs.training_goal} />
                       <DetailItem label="Molestias / Lesiones" value={trainingPrefs.discomforts} />
                       <DetailItem label="Lugar de Entrenamiento" value={trainingPrefs.training_location} />
-                    </> : <p className="text-gray-400">No se han especificado preferencias de entrenamiento.</p>}
+                    </> : <p className="text-muted-foreground">No se han especificado preferencias de entrenamiento.</p>}
                   </CollapsibleContent>
                 </Collapsible>
     

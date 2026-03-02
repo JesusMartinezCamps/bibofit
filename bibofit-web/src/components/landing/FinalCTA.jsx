@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 
 const FinalCTA = () => {
     return (
-        <section className="py-24 bg-[#1a1e23] border-t border-gray-800">
+        <section className="py-24 bg-background border-t border-border">
              <div className="container mx-auto px-4 md:px-6">
                 <div className="bg-gradient-to-r from-green-600 to-emerald-800 rounded-3xl p-8 md:p-16 text-center relative overflow-hidden">
                     {/* Decorative circles */}

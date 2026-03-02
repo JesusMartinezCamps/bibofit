@@ -68,7 +68,7 @@ const PricingPage = () => {
   const comparisonRows = useMemo(() => buildFeatureMatrix(visiblePlans), [visiblePlans]);
 
   return (
-    <div className="min-h-screen bg-[#1a1e23] text-white font-sans flex flex-col">
+    <div className="min-h-screen bg-background text-white font-sans flex flex-col">
       <Helmet>
         <title>Precios y Planes | Bibofit</title>
         <meta name="description" content="Elige el plan perfecto para tus objetivos de fitness y nutrición." />
@@ -82,7 +82,7 @@ const PricingPage = () => {
             <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400 mb-6">
               Invierte en tu salud
             </h1>
-            <p className="text-xl text-gray-400">
+            <p className="text-xl text-muted-foreground">
               Herramientas profesionales para resultados reales. Sin trucos, solo ciencia y tecnología aplicada a tu nutrición.
             </p>
           </div>
@@ -91,7 +91,7 @@ const PricingPage = () => {
 
           <div className="max-w-6xl mx-auto mt-24 mb-24">
             <h2 className="text-3xl font-bold text-center mb-12">Comparativa Detallada</h2>
-            <div className="overflow-x-auto bg-[#15191e] rounded-xl border border-gray-800 p-6">
+            <div className="overflow-x-auto bg-[#15191e] rounded-xl border border-border p-6">
               {loadingComparison ? (
                 <div className="flex justify-center items-center h-24">
                   <Loader2 className="h-7 w-7 animate-spin text-green-500" />
@@ -99,8 +99,8 @@ const PricingPage = () => {
               ) : (
                 <table className="w-full text-left min-w-[620px]">
                   <thead>
-                    <tr className="border-b border-gray-800">
-                      <th className="py-4 px-4 text-gray-400 font-medium">Funcionalidad</th>
+                    <tr className="border-b border-border">
+                      <th className="py-4 px-4 text-muted-foreground font-medium">Funcionalidad</th>
                       {visiblePlans.map((plan) => (
                         <th key={plan.id} className="py-4 px-4 text-center text-white font-bold">
                           {plan.name}
@@ -110,8 +110,8 @@ const PricingPage = () => {
                   </thead>
                   <tbody>
                     {comparisonRows.map((row) => (
-                      <tr key={row.feature} className="border-b border-gray-800/50 hover:bg-gray-800/20 transition-colors">
-                        <td className="py-4 px-4 text-gray-300">{row.feature}</td>
+                      <tr key={row.feature} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                        <td className="py-4 px-4 text-muted-foreground">{row.feature}</td>
                         {visiblePlans.map((plan) => {
                           const included = !!row.byPlan[plan.id];
                           return (
@@ -136,11 +136,11 @@ const PricingPage = () => {
             <h2 className="text-3xl font-bold text-center mb-12">Preguntas Frecuentes</h2>
             <Accordion type="single" collapsible className="space-y-4">
               {faqs.map((faq, idx) => (
-                <AccordionItem key={idx} value={`item-${idx}`} className="bg-[#15191e] border border-gray-800 rounded-lg px-6">
+                <AccordionItem key={idx} value={`item-${idx}`} className="bg-[#15191e] border border-border rounded-lg px-6">
                   <AccordionTrigger className="text-lg font-medium hover:text-green-400 hover:no-underline py-6">
                     {faq.question}
                   </AccordionTrigger>
-                  <AccordionContent className="text-gray-400 pb-6 leading-relaxed">{faq.answer}</AccordionContent>
+                  <AccordionContent className="text-muted-foreground pb-6 leading-relaxed">{faq.answer}</AccordionContent>
                 </AccordionItem>
               ))}
             </Accordion>

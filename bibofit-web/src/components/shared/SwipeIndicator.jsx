@@ -135,7 +135,7 @@ const SwipeIndicator = ({ isSwiping, offset, label = 'Siguiente día', variant =
           transition={{ duration: 0.1 }}
           className="fixed right-0 top-1/2 -translate-y-1/2 z-50 flex items-center justify-center p-4 pointer-events-none"
         >
-          <div className="bg-slate-800/80 rounded-full p-3 backdrop-blur-md border border-slate-700 shadow-xl flex items-center gap-2">
+          <div className="bg-muted/80 rounded-full p-3 backdrop-blur-md border border-border shadow-xl flex items-center gap-2">
             <ChevronLeft className="text-cyan-400 w-6 h-6" />
             <span className="text-cyan-400 font-medium text-sm pr-2 opacity-80">
               {label}

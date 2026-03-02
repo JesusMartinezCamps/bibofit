@@ -22,13 +22,13 @@ const NotificationPopup = ({ notification, onClose }) => {
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="bg-slate-900 border-slate-700 text-white">
+      <DialogContent className="bg-card border-border text-white">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3 text-2xl">
             {isPositive ? <CheckCircle className={iconClass} /> : <div className="p-1 rounded-full bg-gradient-to-br from-blue-600 to-cyan-500"><Info className="text-slate-900" size={20}/></div>}
             {notification.title}
           </DialogTitle>
-          <DialogDescription className="pt-2 text-gray-300 text-base">
+          <DialogDescription className="pt-2 text-muted-foreground text-base">
             {notification.message}
           </DialogDescription>
         </DialogHeader>

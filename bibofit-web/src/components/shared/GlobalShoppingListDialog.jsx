@@ -91,7 +91,7 @@ const PrivateShoppingList = ({ items, onAdd, onToggle, onRemove, loading, search
                     value={newItemName}
                     onChange={(e) => setNewItemName(e.target.value)}
                     placeholder="Añadir artículo..."
-                    className="bg-slate-800 border-slate-600 text-white focus:border-[#9d59ef]"
+                    className="bg-muted border-input text-white focus:border-[#9d59ef]"
                     onKeyDown={(e) => e.key === 'Enter' && handleAddClick()}
                 />
                 <Button onClick={handleAddClick} size="icon" className="bg-[#9d59ef] hover:bg-[#9d59ef]/90 flex-shrink-0">
@@ -105,7 +105,7 @@ const PrivateShoppingList = ({ items, onAdd, onToggle, onRemove, loading, search
                         key={item.id}
                         className={cn(
                             "flex items-center space-x-3 p-2 rounded-md transition-colors group",
-                            item.is_checked ? 'bg-slate-800/30 opacity-60' : 'bg-[#9d59ef]/20'
+                            item.is_checked ? 'bg-muted/30 opacity-60' : 'bg-[#9d59ef]/20'
                         )}
                     >
                         <Checkbox
@@ -114,7 +114,7 @@ const PrivateShoppingList = ({ items, onAdd, onToggle, onRemove, loading, search
                             onCheckedChange={() => onToggle(item.id, !item.is_checked)}
                             className="border-[#9d59ef]/80 data-[state=checked]:bg-[#9d59ef]/50 data-[state=checked]:border-[#9d59ef] data-[state=checked]:text-white mt-1"
                         />
-                        <Label htmlFor={`private-item-${item.id}`} className={cn("flex-1 text-base w-full block cursor-pointer", item.is_checked ? "text-gray-400 line-through" : "text-gray-200")}>
+                        <Label htmlFor={`private-item-${item.id}`} className={cn("flex-1 text-base w-full block cursor-pointer", item.is_checked ? "text-muted-foreground line-through" : "text-gray-200")}>
                             <SmartHighlight text={item.item_name} highlight={searchQuery} />
                         </Label>
                         <Button
@@ -188,7 +188,7 @@ const ShoppingListGroup = ({ title, icon, items, checkedItems, onCheckedChange, 
                                 className="border-[rgb(53_127_169)] data-[state=checked]:bg-[rgb(4_114_133_/_50%)] data-[state=checked]:border-[rgb(53_127_169)] data-[state=checked]:text-white mt-1"
                             />
                             <div className="flex-1 pointer-events-none">
-                                <Label htmlFor={`item-${itemKey}`} className={cn("text-base w-full block", isChecked ? "text-gray-400 line-through" : "text-gray-200")}>
+                                <Label htmlFor={`item-${itemKey}`} className={cn("text-base w-full block", isChecked ? "text-muted-foreground line-through" : "text-gray-200")}>
                                     <SmartHighlight text={item.name} highlight={searchQuery} />
                                     {(item.totalQuantity || item.displayQuantity) && (
                                         <span className={cn("font-bold", isChecked ? "text-cyan-400/50" : "text-cyan-400")}>
@@ -197,17 +197,17 @@ const ShoppingListGroup = ({ title, icon, items, checkedItems, onCheckedChange, 
                                     )}
                                 </Label>
                                  {item.recipeCounts && (
-                                    <p className="text-xs text-gray-400 mt-1 italic pl-1">
+                                    <p className="text-xs text-muted-foreground mt-1 italic pl-1">
                                         Para: {formatRecipeList(item.recipeCounts)}
                                     </p>
                                 )}
                                 {!item.recipeCounts && item.recipeName && (
-                                    <p className="text-xs text-gray-400 mt-1 italic pl-1">
+                                    <p className="text-xs text-muted-foreground mt-1 italic pl-1">
                                         Para: <SmartHighlight text={item.recipeName} highlight={searchQuery} />
                                     </p>
                                 )}
                                 {item.recipeNames && item.recipeNames.length > 0 && (
-                                     <p className="text-xs text-gray-400 mt-1 italic pl-1">
+                                     <p className="text-xs text-muted-foreground mt-1 italic pl-1">
                                         Para: {item.recipeNames.map((name, idx) => (
                                             <span key={idx}>
                                                 <SmartHighlight text={name} highlight={searchQuery} />
@@ -667,7 +667,7 @@ const GlobalShoppingListDialog = ({ open, onOpenChange, initialMode = 'planned',
 
         if (isEmptySearch) {
              return (
-                <div className="flex flex-col items-center justify-center py-10 text-gray-400 h-full">
+                <div className="flex flex-col items-center justify-center py-10 text-muted-foreground h-full">
                     <p>No se encontraron resultados para "{searchQuery}"</p>
                 </div>
              );
@@ -688,14 +688,14 @@ const GlobalShoppingListDialog = ({ open, onOpenChange, initialMode = 'planned',
         ) : (
             <div className="space-y-6">
                 <PrivateShoppingList items={currentPrivateItems} onAdd={handleAddPrivateItem} onToggle={handleTogglePrivateItem} onRemove={handleRemovePrivateItem} loading={loadingPrivate} searchQuery={searchQuery} />
-                <p className="text-center text-gray-400 py-10">{noItemsMessage}</p>
+                <p className="text-center text-muted-foreground py-10">{noItemsMessage}</p>
             </div>
         );
     };
 
     return (
         <Dialog open={open} onOpenChange={handleOpenChangeWithSync}>
-            <DialogContent className="bg-[#1a1e23] border-gray-700 text-white w-[95vw] max-w-4xl p-0 flex flex-col h-[80vh] max-h-[80vh]">
+            <DialogContent className="bg-background border-border text-white w-[95vw] max-w-4xl p-0 flex flex-col h-[80vh] max-h-[80vh]">
                 <TooltipProvider>
                     <ModalStateToggle
                         mode={listMode}
@@ -711,17 +711,17 @@ const GlobalShoppingListDialog = ({ open, onOpenChange, initialMode = 'planned',
                 
                 <div className="px-4 mt-4 flex-shrink-0">
                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input 
                             placeholder="Buscar ingrediente o receta..." 
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-9 pr-9 bg-slate-800/50 border-slate-700 focus:border-cyan-500/50 focus:ring-cyan-500/20 placeholder:text-gray-500"
+                            className="pl-9 pr-9 bg-muted/65 border-border focus:border-cyan-500/50 focus:ring-cyan-500/20 placeholder:text-muted-foreground"
                         />
                         {searchQuery && (
                             <button
                                 onClick={() => setSearchQuery('')}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                             >
                                 <X className="h-4 w-4" />
                             </button>

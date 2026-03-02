@@ -90,7 +90,7 @@ const DietObjectiveStep = ({ onNext, isLoading }) => {
 
         {/* OBJETIVO PRINCIPAL */}
         <div className="space-y-3">
-          <Label htmlFor="diet_goal_id" className="text-gray-300 flex items-center gap-2">
+          <Label htmlFor="diet_goal_id" className="text-muted-foreground flex items-center gap-2">
             <Target className="w-4 h-4 text-green-500" /> Objetivo Principal
           </Label>
           <Select
@@ -103,7 +103,7 @@ const DietObjectiveStep = ({ onNext, isLoading }) => {
             <SelectTrigger id="diet_goal_id" className="bf-form-control h-12 w-full">
               <SelectValue placeholder="Selecciona un objetivo..." />
             </SelectTrigger>
-            <SelectContent className="bg-gray-800 border-gray-700 text-white z-[9999]">
+            <SelectContent className="bg-muted border-border text-white z-[9999]">
               {dietGoals.map((g) => (
                 <SelectItem key={g.id} value={String(g.id)}>
                   {g.name}
@@ -112,7 +112,7 @@ const DietObjectiveStep = ({ onNext, isLoading }) => {
             </SelectContent>
           </Select>
           {selectedGoalDescription && (
-            <p className="text-xs text-gray-400 italic">{selectedGoalDescription}</p>
+            <p className="text-xs text-muted-foreground italic">{selectedGoalDescription}</p>
           )}
           {errors.diet_goal_id && (
             <p className="text-red-400 text-sm">{errors.diet_goal_id}</p>
@@ -121,7 +121,7 @@ const DietObjectiveStep = ({ onNext, isLoading }) => {
 
         {/* TIPO DE DIETA */}
         <div className="space-y-3">
-          <Label htmlFor="diet_type" className="text-gray-300 flex items-center gap-2">
+          <Label htmlFor="diet_type" className="text-muted-foreground flex items-center gap-2">
             <FileType className="w-4 h-4 text-purple-500" /> Tipo de Dieta Preferida
           </Label>
           <Select
@@ -131,7 +131,7 @@ const DietObjectiveStep = ({ onNext, isLoading }) => {
             <SelectTrigger id="diet_type" className="bf-form-control h-12 w-full">
               <SelectValue placeholder="Selecciona (Opcional)" />
             </SelectTrigger>
-            <SelectContent className="bg-gray-800 border-gray-700 text-white z-[9999]">
+            <SelectContent className="bg-muted border-border text-white z-[9999]">
               {dietTypes.map((type) => (
                 <SelectItem key={type.id} value={String(type.id)}>
                   {type.name}
@@ -143,7 +143,7 @@ const DietObjectiveStep = ({ onNext, isLoading }) => {
 
         {/* HISTORIAL */}
         <div className="space-y-3">
-          <Label htmlFor="history" className="text-gray-300 flex items-center gap-2">
+          <Label htmlFor="history" className="text-muted-foreground flex items-center gap-2">
             <History className="w-4 h-4 text-blue-500" /> Historial (Opcional)
           </Label>
           <Textarea

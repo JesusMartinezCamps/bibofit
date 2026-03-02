@@ -92,20 +92,20 @@ const TemplateUsersSection = ({ plan, onUpdate }) => {
     const isAssignedToMe = assignedUsers.some(u => u.user_id === user?.id);
 
     return (
-        <Card className="bg-slate-900/50 border-gray-700 text-white h-full">
+        <Card className="bg-card/75 border-border text-white h-full">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-xl font-bold text-green-400 flex items-center gap-2">
                     <Users className="w-5 h-5" />
                     Usuarios de la Plantilla
                 </CardTitle>
-                <Badge variant="secondary" className="bg-gray-800 text-gray-300">
+                <Badge variant="secondary" className="bg-muted text-muted-foreground">
                     {assignedUsers.length} asignados
                 </Badge>
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="min-h-[100px] max-h-[300px] overflow-y-auto pr-2 space-y-2 custom-scrollbar">
                     {loading ? (
-                        <p className="text-sm text-gray-500 italic text-center py-4">Cargando usuarios...</p>
+                        <p className="text-sm text-muted-foreground italic text-center py-4">Cargando usuarios...</p>
                     ) : assignedUsers.length > 0 ? (
                         assignedUsers.map((p) => {
                             const isCurrentUser = user?.id === p.user_id;
@@ -113,11 +113,11 @@ const TemplateUsersSection = ({ plan, onUpdate }) => {
                                 <div key={p.id} className={`flex items-center justify-between p-2 rounded-lg border transition-all group ${
                                     isCurrentUser 
                                         ? 'bg-green-900/20 border-green-500/50 hover:bg-green-900/30' 
-                                        : 'bg-[#0F1627] border-gray-800 hover:border-green-500/30 hover:bg-slate-800'
+                                        : 'bg-card border-border hover:border-green-500/30 hover:bg-muted'
                                 }`}>
                                     <Link to={`/admin/manage-diet/${p.user_id}`} className="flex-grow flex flex-col cursor-pointer">
                                         <span className={`text-sm font-medium transition-colors ${
-                                            isCurrentUser ? 'text-green-300 font-bold' : 'text-gray-200 group-hover:text-white'
+                                            isCurrentUser ? 'text-green-300 font-bold' : 'text-gray-200 group-hover:text-foreground'
                                         }`}>
                                             {p.profile.full_name} {isCurrentUser && "(Tú)"}
                                         </span>
@@ -125,7 +125,7 @@ const TemplateUsersSection = ({ plan, onUpdate }) => {
                                     <Button 
                                         size="sm" 
                                         variant="ghost" 
-                                        className="h-7 w-7 p-0 text-gray-500 hover:text-red-400 hover:bg-red-900/20"
+                                        className="h-7 w-7 p-0 text-muted-foreground hover:text-red-400 hover:bg-red-900/20"
                                         onClick={() => {
                                             setUserToDelete({ planId: p.id, name: p.profile.full_name });
                                             setIsDeleteDialogOpen(true);
@@ -137,7 +137,7 @@ const TemplateUsersSection = ({ plan, onUpdate }) => {
                             );
                         })
                     ) : (
-                        <div className="text-center py-6 text-gray-500 border border-dashed border-gray-800 rounded-lg bg-gray-900/20">
+                        <div className="text-center py-6 text-muted-foreground border border-dashed border-border rounded-lg bg-card/20">
                             <p className="text-sm">Ningún usuario asignado todavía.</p>
                         </div>
                     )}
@@ -158,7 +158,7 @@ const TemplateUsersSection = ({ plan, onUpdate }) => {
                         variant="outline"
                         className={`${
                             isAssignedToMe 
-                                ? "bg-gray-600/30 border-gray-600/50 text-gray-400 cursor-not-allowed" 
+                                ? "bg-gray-600/30 border-input/50 text-muted-foreground cursor-not-allowed" 
                                 : "bg-green-600/30 border-green-600/50 text-green-400 hover:bg-green-600/40 hover:text-green-300"
                         }`}
                         onClick={() => { 
@@ -184,7 +184,7 @@ const TemplateUsersSection = ({ plan, onUpdate }) => {
             />
 
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <AlertDialogContent className="bg-slate-900 border-slate-700 text-white">
+                <AlertDialogContent className="bg-card border-border text-white">
                     <AlertDialogHeader>
                         <AlertDialogTitle>¿Desasignar plantilla?</AlertDialogTitle>
                         <AlertDialogDescription>

@@ -25,8 +25,8 @@ const MacroVisualizer = ({ currentTarget, actual, loading, isSticky = false }) =
         <div className={cn(
             "space-y-4 sm:space-y-6 transition-all duration-300",
             isSticky 
-              ? "sticky !top-0 z-40 p-3 sm:p-4 bg-gray-900/95 backdrop-blur-md rounded-b-2xl border-b border-x border-gray-800 shadow-xl [filter:drop-shadow(0_4px_6px_rgb(0_0_0/50%))]" 
-              : "bg-gray-900/50 p-2 sm:p-6 rounded-xl"
+              ? "sticky !top-0 z-40 p-3 sm:p-4 bg-card/95 backdrop-blur-md rounded-b-2xl border-b border-x border-border shadow-xl [filter:drop-shadow(0_4px_6px_rgb(0_0_0/50%))]" 
+              : "bg-card/75 p-2 sm:p-6 rounded-xl"
         )}>
             <div className="grid grid-cols-3 gap-2 sm:gap-4">
                 <MacroProgress

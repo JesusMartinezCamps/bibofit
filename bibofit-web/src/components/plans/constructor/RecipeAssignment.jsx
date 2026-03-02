@@ -76,7 +76,7 @@ import React, { useState, useEffect } from 'react';
                                     ))}
                                     {recipesForMeal.length === 0 && (
                                          <div className="md:col-span-2 lg:col-span-3">
-                                            <p className="text-sm text-gray-500 text-center italic py-4 bg-gray-900/40 rounded-lg">No hay recetas asignadas a esta comida.</p>
+                                            <p className="text-sm text-muted-foreground text-center italic py-4 bg-card/40 rounded-lg">No hay recetas asignadas a esta comida.</p>
                                         </div>
                                     )}
                                 </div>

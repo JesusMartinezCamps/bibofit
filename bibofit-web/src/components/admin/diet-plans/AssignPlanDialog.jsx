@@ -381,8 +381,8 @@ const AssignPlanDialog = ({
                 onAccept={handleTourStepInfoComplete}
             />
 
-            <DialogContent className="w-[95vw] sm:w-[80vw] sm:max-w-[80vw] max-w-none h-[80vh] sm:h-[85vh] bg-[#1a1e23] border-gray-700 text-white flex flex-col overflow-hidden p-0 gap-0">
-                <div className="p-6 pb-4 border-b border-gray-700 shrink-0 bg-[#1a1e23]">
+            <DialogContent className="w-[95vw] sm:w-[80vw] sm:max-w-[80vw] max-w-none h-[80vh] sm:h-[85vh] bg-background border-border text-white flex flex-col overflow-hidden p-0 gap-0">
+                <div className="p-6 pb-4 border-b border-border shrink-0 bg-background">
                     <DialogHeader>
                         <DialogTitle>{getDialogTitle()}</DialogTitle>
                         <DialogDescription>{getDialogDescription()}</DialogDescription>
@@ -401,10 +401,10 @@ const AssignPlanDialog = ({
                                         onValueChange={setSelectedClientId}
                                         disabled={!!preselectedData} 
                                     >
-                                        <SelectTrigger className="bg-gray-800 border-gray-700 disabled:opacity-50">
+                                        <SelectTrigger className="bg-muted border-border disabled:opacity-50">
                                             <SelectValue placeholder="Seleccionar cliente" />
                                         </SelectTrigger>
-                                        <SelectContent className="bg-[#1a1e23] border-gray-700 text-white">
+                                        <SelectContent className="bg-background border-border text-white">
                                             {clients.map(client => (
                                                 <SelectItem key={client.user_id} value={client.user_id}>
                                                     {client.full_name}
@@ -420,7 +420,7 @@ const AssignPlanDialog = ({
                                 <Input 
                                     value={newPlanName} 
                                     onChange={(e) => setNewPlanName(e.target.value)}
-                                    className="bg-gray-800 border-gray-700 disabled:opacity-50"
+                                    className="bg-muted border-border disabled:opacity-50"
                                     disabled={!!preselectedData} 
                                 />
                             </div>
@@ -436,7 +436,7 @@ const AssignPlanDialog = ({
                                         placeholder="Seleccionar rango de fechas"
                                         withPortal
                                         shouldCloseOnSelect={false}
-                                        triggerClassName="w-full bg-gray-800 border border-gray-700 rounded-md text-white disabled:opacity-50"
+                                        triggerClassName="w-full bg-muted border border-border rounded-md text-white disabled:opacity-50"
                                         disabled={!!preselectedData} 
                                     />
                                 </div>
@@ -473,7 +473,7 @@ const AssignPlanDialog = ({
                             ) : userMeals.length === 0 ? (
                                 <div className="text-center p-4 bg-yellow-900/20 rounded-md border border-yellow-700/50">
                                     <p className="text-yellow-200">Este usuario no tiene configurados momentos de comida en su perfil base.</p>
-                                    <p className="text-sm text-gray-400 mt-2">No se podrán distribuir macros automáticamente. Debes configurar los momentos de comida en el perfil del cliente primero.</p>
+                                    <p className="text-sm text-muted-foreground mt-2">No se podrán distribuir macros automáticamente. Debes configurar los momentos de comida en el perfil del cliente primero.</p>
                                 </div>
                             ) : (
                                 <div className="space-y-3">
@@ -496,14 +496,14 @@ const AssignPlanDialog = ({
                     )}
                 </div>
 
-                <div className="p-6 pt-4 border-t border-gray-700 bg-[#1a1e23] shrink-0">
+                <div className="p-6 pt-4 border-t border-border bg-background shrink-0">
                     <DialogFooter className="flex justify-between sm:justify-between w-full">
                         <Button 
                             variant="ghost" 
                             onClick={handleBack} 
                             disabled={isAssigning}
                             className={cn(
-                                "mt-2 hover:bg-gray-600/50 hover:text-gray-300 sm:mt-0",
+                                "mt-2 hover:bg-gray-600/50 hover:text-muted-foreground sm:mt-0",
                                 (preselectedData && step === 2) && "hidden"
                             )}
                         >

@@ -168,7 +168,7 @@ import React, { useState, useMemo, useEffect } from 'react';
             />
           </div>
           
-            <div className="text-right text-xs text-gray-500 flex items-center justify-end gap-2 h-6">
+            <div className="text-right text-xs text-muted-foreground flex items-center justify-end gap-2 h-6">
               {calculatedTotalCarbs > 0 && (
                 <>
                   Calculado del desglose: 
@@ -195,7 +195,7 @@ import React, { useState, useMemo, useEffect } from 'react';
               const showTypeSync = calculatedTypeValue > 0 && formatNumber(manualTypeValue) !== formattedCalculatedTypeValue;
 
               return (
-                <div key={carbType.id} className="p-4 rounded-lg border border-gray-700/80">
+                <div key={carbType.id} className="p-4 rounded-lg border border-border/80">
                   <div className="space-y-1">
                     <div className="flex items-center gap-4">
                       <TooltipProvider>
@@ -203,7 +203,7 @@ import React, { useState, useMemo, useEffect } from 'react';
                           <TooltipTrigger asChild>
                             <Label htmlFor={`carb_type_${carbType.id}`} className="flex-1 cursor-help text-lg text-orange-400">{carbType.name}</Label>
                           </TooltipTrigger>
-                          <TooltipContent className="bg-[#282d34] text-white border-gray-600 max-w-xs">
+                          <TooltipContent className="bg-[#282d34] text-white border-input max-w-xs">
                             <p>{carbType.description}</p>
                           </TooltipContent>
                         </Tooltip>
@@ -216,7 +216,7 @@ import React, { useState, useMemo, useEffect } from 'react';
                         placeholder="0" unit="g" className="w-32 text-right"
                       />
                     </div>
-                    <div className="text-right text-xs text-gray-500 flex items-center justify-end gap-2 h-6">
+                    <div className="text-right text-xs text-muted-foreground flex items-center justify-end gap-2 h-6">
                       {classificationsForType.length > 0 && calculatedTypeValue > 0 && (
                           <>
                             Calculado del desglose: 
@@ -232,7 +232,7 @@ import React, { useState, useMemo, useEffect } from 'react';
                   {classificationsForType.length > 0 && (
                     <Collapsible open={isTypeOpen} onOpenChange={() => toggleOpen('types', carbType.id)} className="mt-2">
                       <CollapsibleTrigger asChild>
-                        <Button variant="ghost" className="w-full justify-start p-2 -ml-2 text-sm text-gray-400 hover:text-white hover:bg-slate-700">
+                        <Button variant="ghost" className="w-full justify-start p-2 -ml-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent">
                           <ChevronDown className={`h-4 w-4 mr-2 transform transition-transform ${isTypeOpen ? 'rotate-180' : ''}`} />
                           Desglose por Clasificación
                         </Button>
@@ -248,7 +248,7 @@ import React, { useState, useMemo, useEffect } from 'react';
                           const showClassificationSync = calculatedClassificationValue > 0 && formatNumber(manualClassificationValue) !== formattedCalculatedClassificationValue;
 
                           return (
-                            <div key={classification.id} className="p-3 rounded-md border border-gray-600/50">
+                            <div key={classification.id} className="p-3 rounded-md border border-input/50">
                               <div className="space-y-1">
                                 <div className="flex items-center gap-4">
                                   <TooltipProvider>
@@ -256,7 +256,7 @@ import React, { useState, useMemo, useEffect } from 'react';
                                       <TooltipTrigger asChild>
                                         <Label htmlFor={`carb_class_${classification.id}`} className="flex-1 cursor-help">{classification.name}</Label>
                                       </TooltipTrigger>
-                                      <TooltipContent className="bg-[#282d34] text-white border-gray-600 max-w-xs"><p>{classification.description}</p></TooltipContent>
+                                      <TooltipContent className="bg-[#282d34] text-white border-input max-w-xs"><p>{classification.description}</p></TooltipContent>
                                     </Tooltip>
                                   </TooltipProvider>
                                   <InputWithUnit
@@ -267,7 +267,7 @@ import React, { useState, useMemo, useEffect } from 'react';
                                     placeholder="0" unit="g" className="w-28 text-right"
                                   />
                                 </div>
-                                <div className="text-right text-xs text-gray-500 flex items-center justify-end gap-2 h-6">
+                                <div className="text-right text-xs text-muted-foreground flex items-center justify-end gap-2 h-6">
                                   {subtypes.length > 0 && calculatedClassificationValue > 0 && (
                                       <>
                                         Calculado del desglose: 
@@ -283,7 +283,7 @@ import React, { useState, useMemo, useEffect } from 'react';
                               {subtypes.length > 0 && (
                                 <Collapsible open={isClassificationOpen} onOpenChange={() => toggleOpen('classifications', classification.id)} className="mt-2">
                                   <CollapsibleTrigger asChild>
-                                    <Button variant="ghost" className="w-full justify-start p-2 -ml-2 text-xs text-gray-400 hover:text-white hover:bg-slate-700">
+                                    <Button variant="ghost" className="w-full justify-start p-2 -ml-2 text-xs text-muted-foreground hover:text-foreground hover:bg-accent">
                                       <ChevronsRight className={`h-4 w-4 mr-2 transform transition-transform ${isClassificationOpen ? 'rotate-90' : ''}`} />
                                       Desglose por Subtipos
                                     </Button>
@@ -293,8 +293,8 @@ import React, { useState, useMemo, useEffect } from 'react';
                                       <div key={subtype.id} className="flex items-center gap-4">
                                         <TooltipProvider>
                                           <Tooltip>
-                                            <TooltipTrigger asChild><Label htmlFor={`carb_subtype_${subtype.id}`} className="flex-1 cursor-help text-sm text-gray-300">{subtype.name}</Label></TooltipTrigger>
-                                            <TooltipContent className="bg-[#282d34] text-white border-gray-600 max-w-xs"><p>{subtype.description}</p></TooltipContent>
+                                            <TooltipTrigger asChild><Label htmlFor={`carb_subtype_${subtype.id}`} className="flex-1 cursor-help text-sm text-muted-foreground">{subtype.name}</Label></TooltipTrigger>
+                                            <TooltipContent className="bg-[#282d34] text-white border-input max-w-xs"><p>{subtype.description}</p></TooltipContent>
                                           </Tooltip>
                                         </TooltipProvider>
                                         <InputWithUnit

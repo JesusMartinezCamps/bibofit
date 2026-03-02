@@ -52,16 +52,16 @@ const ActiveAdvices = () => {
 
     if (loading) {
         return (
-            <Card className="bg-gray-800/50 border-gray-700 text-white shadow-lg">
+            <Card className="bg-muted/65 border-border text-white shadow-lg">
                 <CardContent className="p-6">
-                    <div className="flex items-center gap-2 text-gray-400"><Loader2 className="w-4 h-4 animate-spin" /> Cargando asesorías...</div>
+                    <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="w-4 h-4 animate-spin" /> Cargando asesorías...</div>
                 </CardContent>
             </Card>
         );
     }
 
     return (
-        <Card className="bg-gray-800/50 border-gray-700 text-white shadow-lg">
+        <Card className="bg-muted/65 border-border text-white shadow-lg">
             <CardContent className="p-6">
                 <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-3">
                     <UserCheck className="text-green-400" />
@@ -79,7 +79,7 @@ const ActiveAdvices = () => {
                                             </Badge>
                                         </Link>
                                     </TooltipTrigger>
-                                    <TooltipContent className="bg-slate-800 border-slate-700 text-white">
+                                    <TooltipContent className="bg-muted border-border text-white">
                                         <p>Plan: <span className="font-semibold">{client.name}</span></p>
                                     </TooltipContent>
                                 </Tooltip>
@@ -87,9 +87,9 @@ const ActiveAdvices = () => {
                         ))}
                     </div>
                 ) : (
-                    <div className="text-center py-4 px-6 bg-gray-800/50 rounded-lg flex items-center justify-center gap-3">
+                    <div className="text-center py-4 px-6 bg-muted/65 rounded-lg flex items-center justify-center gap-3">
                         <Sparkles className="text-yellow-400" />
-                        <p className="text-gray-400">No hay clientes con planes de dieta activos en este momento.</p>
+                        <p className="text-muted-foreground">No hay clientes con planes de dieta activos en este momento.</p>
                     </div>
                 )}
             </CardContent>

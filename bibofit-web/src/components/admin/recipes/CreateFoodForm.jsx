@@ -159,7 +159,7 @@ const CreateFoodForm = ({ foodToEdit, onFoodActionComplete, isEditing, isClientR
           {icon}
           <h3 className="text-xl font-bold text-white">{title}</h3>
         </div>
-        <ChevronsUpDown className={`h-5 w-5 text-gray-400 transition-transform ${openSections[id] ? 'rotate-180' : ''}`} />
+        <ChevronsUpDown className={`h-5 w-5 text-muted-foreground transition-transform ${openSections[id] ? 'rotate-180' : ''}`} />
       </CollapsibleTrigger>
       <CollapsibleContent className="mt-4 space-y-3">
         {children}
@@ -221,7 +221,7 @@ const CreateFoodForm = ({ foodToEdit, onFoodActionComplete, isEditing, isClientR
               <FoodFormSection title="Vitaminas" icon={<Zap className="h-5 w-5 text-blue-400" />} borderColor="border-blue-500/50" isCollapsible={true} isOpen={openSections.vitamins} onToggle={() => toggleSection('vitamins')}>
                 <VitaminFields allVitamins={allVitamins} selectedVitamins={selectedVitamins} onSelectedVitaminsChange={setSelectedVitamins} />
               </FoodFormSection>
-              <FoodFormSection title="Minerales" icon={<Droplets className="h-5 w-5 text-gray-400" />} borderColor="border-gray-500/50" isCollapsible={true} isOpen={openSections.minerals} onToggle={() => toggleSection('minerals')}>
+              <FoodFormSection title="Minerales" icon={<Droplets className="h-5 w-5 text-muted-foreground" />} borderColor="border-gray-500/50" isCollapsible={true} isOpen={openSections.minerals} onToggle={() => toggleSection('minerals')}>
                  <MineralFields allMinerals={allMinerals} selectedMinerals={selectedMinerals} onSelectedMineralsChange={setSelectedMinerals} />
               </FoodFormSection>
               <FoodFormSection title="Antioxidantes" icon={<Leaf className="h-5 w-5 text-purple-400" />} borderColor="border-purple-500/50" isCollapsible={true} isOpen={openSections.antioxidants} onToggle={() => toggleSection('antioxidants')}>

@@ -267,7 +267,7 @@ const DayMealsPreferencesForm = ({ userId }) => {
           {saveStatus === 'saved' && <span className="text-xs text-green-500 flex items-center"><CheckCircle2 className="w-3 h-3 mr-1" /> Guardado</span>}
       </div>
 
-      <p className="text-sm text-gray-400 -mt-4">Configura las comidas que realizas a lo largo del día y tus preferencias para cada una.</p>
+      <p className="text-sm text-muted-foreground -mt-4">Configura las comidas que realizas a lo largo del día y tus preferencias para cada una.</p>
       
       <div className="space-y-4">
         {dayMeals.map((meal, index) => {
@@ -286,7 +286,7 @@ const DayMealsPreferencesForm = ({ userId }) => {
           const isDeleteDisabled = index === 0 || dayMeals.length <= 1;
 
           return (
-            <div key={key} className="p-4 bg-gray-800/50 rounded-lg border border-gray-700 space-y-3">
+            <div key={key} className="p-4 bg-muted/65 rounded-lg border border-border space-y-3">
               <div className="flex items-center justify-between">
                 <Select
                   value={String(meal.day_meal_id)}
@@ -315,7 +315,7 @@ const DayMealsPreferencesForm = ({ userId }) => {
                 placeholder={placeholderText}
                 value={meal.preferences || ''}
                 onChange={(e) => handlePreferenceChange(meal.day_meal_id, e.target.value)}
-                className="bf-form-control min-h-[110px] placeholder:text-gray-500"
+                className="bf-form-control min-h-[110px] placeholder:text-muted-foreground"
               />
             </div>
           );

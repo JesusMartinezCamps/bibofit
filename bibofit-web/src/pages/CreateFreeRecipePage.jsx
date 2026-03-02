@@ -207,16 +207,16 @@ const CreateFreeRecipePage = () => {
                             )}
                         </div>
                         <div className="space-y-1">
-                            <label htmlFor="recipeName" className="block text-sm font-medium text-gray-300">Nombre de la Receta</label>
+                            <label htmlFor="recipeName" className="block text-sm font-medium text-muted-foreground">Nombre de la Receta</label>
                             <Input id="recipeName" type="text" placeholder="Ej: Pollo al curry con arroz" value={recipeName} onChange={(e) => setRecipeName(e.target.value)} className="input-field" />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label htmlFor="prepTime" className="block text-sm font-medium text-gray-300">Tiempo (min)</label>
+                                <label htmlFor="prepTime" className="block text-sm font-medium text-muted-foreground">Tiempo (min)</label>
                                 <Input id="prepTime" type="number" placeholder="Ej: 30" value={prepTime} onChange={(e) => setPrepTime(e.target.value)} className="input-field" />
                             </div>
                             <div>
-                                <label htmlFor="difficulty" className="block text-sm font-medium text-gray-300">Dificultad</label>
+                                <label htmlFor="difficulty" className="block text-sm font-medium text-muted-foreground">Dificultad</label>
                                 <Select value={difficulty} onValueChange={setDifficulty}>
                                     <SelectTrigger className="input-field"><SelectValue placeholder="Selecciona dificultad" /></SelectTrigger>
                                     <SelectContent><SelectItem value="Fácil">Fácil</SelectItem><SelectItem value="Media">Media</SelectItem><SelectItem value="Difícil">Difícil</SelectItem></SelectContent>
@@ -224,10 +224,10 @@ const CreateFreeRecipePage = () => {
                             </div>
                         </div>
                         <div>
-                            <label htmlFor="instructions" className="block text-sm font-medium text-gray-300">Instrucciones</label>
+                            <label htmlFor="instructions" className="block text-sm font-medium text-muted-foreground">Instrucciones</label>
                             <Textarea id="instructions" placeholder="Describe los pasos..." value={instructions} onChange={(e) => setInstructions(e.target.value)} className="input-field min-h-[120px]" />
                         </div>
-                        <div className="border-t border-gray-700 my-4"></div>
+                        <div className="border-t border-border my-4"></div>
                         <div className="space-y-4">
                             <h3 className="text-xl font-semibold">Ingredientes</h3>
                             <MacroDisplay macros={macros} title="Macros Totales de la Receta" />
@@ -260,7 +260,7 @@ const CreateFreeRecipePage = () => {
 
     const BackButton = () => (
         <Button variant="ghost" asChild>
-            <Link to={view === 'main' ? `/plan/dieta/${date}` : '#'} onClick={view !== 'main' ? () => setView('main') : undefined} className="flex items-center gap-2 text-gray-300 hover:text-white hover:bg-gray-700">
+            <Link to={view === 'main' ? `/plan/dieta/${date}` : '#'} onClick={view !== 'main' ? () => setView('main') : undefined} className="flex items-center gap-2 text-muted-foreground hover:text-foreground hover:bg-muted">
                 <ArrowLeft size={18} />
                 {view === 'main' ? 'Volver al Plan' : 'Volver a la receta'}
             </Link>
@@ -277,7 +277,7 @@ const CreateFreeRecipePage = () => {
                 <div className="mb-0 sm:mb-6">
                     <BackButton />
                 </div>
-                <Card className="bg-gray-900/50 border-gray-700 text-white">
+                <Card className="bg-card/75 border-border text-white">
                     <CardHeader>
                         <CardTitle className="text-3xl font-bold text-green-400">{getTitle()}</CardTitle>
                     </CardHeader>

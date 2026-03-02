@@ -212,7 +212,7 @@ const FreeRecipeDialog = ({ open, onOpenChange, userId, onRecipeCreated, dayMeal
 
   return (
     <Dialog open={open} onOpenChange={handleDialogClose}>
-      <DialogContent className="max-w-4xl h-[90vh] flex flex-col bg-gray-900 border-gray-700 text-white">
+      <DialogContent className="max-w-4xl h-[90vh] flex flex-col bg-card border-border text-white">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-green-400">{getDialogTitle()}</DialogTitle>
         </DialogHeader>

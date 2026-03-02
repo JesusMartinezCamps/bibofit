@@ -51,7 +51,7 @@ const AdherenceTracker = ({ userId }) => {
     const maxPlanned = Math.max(...adherenceData.map(d => d.planned_meals_count), 0);
 
     return (
-        <Card className="bg-slate-900/50 border-gray-700 text-white">
+        <Card className="bg-card/75 border-border text-white">
             <CardHeader>
                 <CardTitle>Seguimiento de Adherencia (Últimos 7 días)</CardTitle>
                 <div className="flex items-center gap-4 mt-2">
@@ -59,7 +59,7 @@ const AdherenceTracker = ({ userId }) => {
                         {weeklyRatio.toFixed(1)}%
                     </p>
                     <div className="flex flex-col">
-                        <span className="text-sm text-gray-400">Ratio Semanal</span>
+                        <span className="text-sm text-muted-foreground">Ratio Semanal</span>
                         {weeklyRatio > 75 ? <TrendingUp className="text-green-500" /> : <TrendingDown className="text-red-500" />}
                     </div>
                 </div>
@@ -86,13 +86,13 @@ const AdherenceTracker = ({ userId }) => {
                                     />
                                 </div>
                             </AnimatePresence>
-                            <span className="text-xs text-gray-400 capitalize pt-1">{format(new Date(day.log_date), 'EEE', { locale: es })}</span>
+                            <span className="text-xs text-muted-foreground capitalize pt-1">{format(new Date(day.log_date), 'EEE', { locale: es })}</span>
                         </div>
                     ))}
                 </div>
                 <div className="flex justify-center gap-6 mt-4">
-                    <div className="flex items-center gap-2"><div className="w-3 h-3 bg-blue-900/50 rounded-sm"></div><span className="text-sm text-gray-300">Planificadas</span></div>
-                    <div className="flex items-center gap-2"><div className="w-3 h-3 bg-green-500 rounded-sm"></div><span className="text-sm text-gray-300">Consumidas</span></div>
+                    <div className="flex items-center gap-2"><div className="w-3 h-3 bg-blue-900/50 rounded-sm"></div><span className="text-sm text-muted-foreground">Planificadas</span></div>
+                    <div className="flex items-center gap-2"><div className="w-3 h-3 bg-green-500 rounded-sm"></div><span className="text-sm text-muted-foreground">Consumidas</span></div>
                 </div>
             </CardContent>
         </Card>

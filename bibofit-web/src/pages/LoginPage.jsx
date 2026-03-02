@@ -105,7 +105,7 @@ const LoginPage = () => {
         <meta name="description" content="Accede a tu plataforma de entrenamiento personal con Bibofit" />
       </Helmet>
 
-      <div className="min-h-screen bg-[#1a1e23]">
+      <div className="min-h-screen bg-background">
         <LandingNavbar showNavigationOptions={false} />
         
         <div className="min-h-screen hero-gradient flex items-center justify-center p-4 pt-24">
@@ -126,12 +126,12 @@ const LoginPage = () => {
                   <AppIcon className="w-10 h-10 text-black" />
                 </motion.div>
                 <h1 className="text-3xl font-bold text-white mb-2">Iniciar Sesión</h1>
-                <p className="text-gray-400">Accede a tu cuenta para continuar.</p>
+                <p className="text-muted-foreground">Accede a tu cuenta para continuar.</p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">Email</label>
                   <input 
                     type="email" 
                     value={email} 
@@ -142,7 +142,7 @@ const LoginPage = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Contraseña</label>
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">Contraseña</label>
                   <input 
                     type="password" 
                     value={password} 
@@ -155,7 +155,7 @@ const LoginPage = () => {
                 <Button 
                   type="submit" 
                   disabled={isLoading || authLoading} 
-                  className="w-full btn-primary text-white bg-green-500/50 border border-gray-700 hover:bg-green-800 hover:text-white"
+                  className="w-full btn-primary text-white bg-green-500/50 border border-border hover:bg-green-800 hover:text-foreground"
                 >
                   {isLoading || authLoading ? (
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
@@ -167,10 +167,10 @@ const LoginPage = () => {
 
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-gray-600"></span>
+                  <span className="w-full border-t border-input"></span>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="bg-[#282d34] px-2 text-gray-400">O continúa con</span>
+                  <span className="bg-[#282d34] px-2 text-muted-foreground">O continúa con</span>
                 </div>
               </div>
 
@@ -179,13 +179,13 @@ const LoginPage = () => {
                   variant="outline" 
                   onClick={handleOAuth} 
                   disabled={isLoading || authLoading} 
-                  className="text-white bg-blue-500/30 border border-gray-700 hover:bg-gray-800 hover:text-white w-full"
+                  className="text-white bg-blue-500/30 border border-border hover:bg-muted hover:text-foreground w-full"
                 >
                   <GoogleLogo className="mr-2" /> Google
                 </Button>
               </div>
 
-              <div className="mt-8 text-center text-sm text-gray-400 space-y-2">
+              <div className="mt-8 text-center text-sm text-muted-foreground space-y-2">
                 <p>
                   ¿No tienes una cuenta?{' '}
                   <Link to="/signup" className="font-medium text-green-400 hover:underline">

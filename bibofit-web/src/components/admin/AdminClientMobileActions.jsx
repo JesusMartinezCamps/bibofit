@@ -36,14 +36,14 @@ const AdminClientMobileActions = ({ userId }) => {
 
   return (
     <>
-      <div className="md:hidden sticky top-[64px] bg-[#282d34] z-20 p-2 my-4 w-full flex justify-around items-center border-y border-gray-700 shadow-lg">
+      <div className="md:hidden sticky top-[64px] bg-[#282d34] z-20 p-2 my-4 w-full flex justify-around items-center border-y border-border shadow-lg">
         <Button size="sm" className="flex-1 mx-1 bg-purple-600 hover:bg-purple-700 text-white" onClick={handleAssignRecipeClick}>
           <Plus className="h-4 w-4 mr-1" /> Receta
         </Button>
-        <Button size="sm" className="flex-1 mx-1 bg-gray-600 hover:bg-gray-700 text-white" variant="outline" onClick={() => setWeightLogOpen(true)}>
+        <Button size="sm" className="flex-1 mx-1 bg-gray-600 hover:bg-muted text-white" variant="outline" onClick={() => setWeightLogOpen(true)}>
           <Scale className="h-4 w-4 mr-1" /> Peso
         </Button>
-        <Button size="sm" className="flex-1 mx-1 bg-gray-600 hover:bg-gray-700 text-white" variant="outline" onClick={() => setFreeMealOpen(true)}>
+        <Button size="sm" className="flex-1 mx-1 bg-gray-600 hover:bg-muted text-white" variant="outline" onClick={() => setFreeMealOpen(true)}>
           <UtensilsCrossed className="h-4 w-4 mr-1" /> C. Libre
         </Button>
       </div>

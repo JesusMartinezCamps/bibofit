@@ -130,7 +130,7 @@ const AdvisoryVisualizer = () => {
                   <Badge variant="outline" className="border-amber-500/30 text-amber-400 bg-amber-500/10">
                     {clientNotes.length}
                   </Badge>
-                  {isNotesOpen ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+                  {isNotesOpen ? <ChevronUp className="w-5 h-5 text-muted-foreground" /> : <ChevronDown className="w-5 h-5 text-muted-foreground" />}
                 </div>
               </CollapsibleTrigger>
 
@@ -141,19 +141,19 @@ const AdvisoryVisualizer = () => {
                       <div
                         key={note.id}
                         onClick={(e) => { e.stopPropagation(); handleEditReminder(note); }}
-                        className="bg-slate-900/50 p-4 rounded-xl border border-slate-800/50 hover:border-amber-500/50 hover:bg-slate-800/80 transition-all group cursor-pointer"
+                        className="bg-card/75 p-4 rounded-xl border border-border/50 hover:border-amber-500/50 hover:bg-muted/80 transition-all group cursor-pointer"
                       >
                         <div className="flex justify-between items-start mb-2">
                           <h4 className="font-semibold text-amber-200 group-hover:text-amber-100 transition-colors">{note.title}</h4>
-                          <span className="text-[10px] text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full border border-slate-700">
+                          <span className="text-[10px] text-slate-500 bg-muted px-2 py-0.5 rounded-full border border-border">
                             {format(new Date(note.created_at), 'd MMM', { locale: es })}
                           </span>
                         </div>
-                        <p className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">{note.content}</p>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{note.content}</p>
                         {note.category && (
                           <div className="flex flex-wrap gap-1 mt-3">
                             {note.category.split(',').map((cat, idx) => (
-                              <span key={idx} className="text-[10px] text-slate-400 bg-slate-800/80 px-1.5 py-0.5 rounded border border-slate-700 flex items-center">
+                              <span key={idx} className="text-[10px] text-muted-foreground bg-muted/80 px-1.5 py-0.5 rounded border border-border flex items-center">
                                 <Tag className="w-2.5 h-2.5 mr-1" />
                                 {cat}
                               </span>
@@ -163,7 +163,7 @@ const AdvisoryVisualizer = () => {
                       </div>
                     ))
                   ) : (
-                    <div className="flex flex-col items-center justify-center py-6 text-center text-gray-500">
+                    <div className="flex flex-col items-center justify-center py-6 text-center text-muted-foreground">
                       <StickyNote className="w-8 h-8 mb-2 opacity-20" />
                       <p className="text-sm">No hay notas para este cliente.</p>
                     </div>
@@ -188,7 +188,7 @@ const AdvisoryVisualizer = () => {
                   <Badge variant="outline" className="border-blue-500/30 text-blue-400 bg-blue-500/10">
                     {upcomingEvents.length}
                   </Badge>
-                  {isEventsOpen ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+                  {isEventsOpen ? <ChevronUp className="w-5 h-5 text-muted-foreground" /> : <ChevronDown className="w-5 h-5 text-muted-foreground" />}
                 </div>
               </CollapsibleTrigger>
 
@@ -199,7 +199,7 @@ const AdvisoryVisualizer = () => {
                       <div
                         key={event.id}
                         onClick={(e) => { e.stopPropagation(); handleEditReminder(event); }}
-                        className="flex items-center gap-4 bg-slate-900/50 p-3 rounded-xl border border-slate-800/50 hover:bg-slate-800 hover:border-blue-500/30 transition-all cursor-pointer"
+                        className="flex items-center gap-4 bg-card/75 p-3 rounded-xl border border-border/50 hover:bg-muted hover:border-blue-500/30 transition-all cursor-pointer"
                       >
                         <div className="flex-shrink-0 w-14 text-center bg-gradient-to-br from-blue-500/10 to-blue-600/5 rounded-lg py-2 border border-blue-500/20 shadow-sm">
                           <span className="block text-[10px] font-bold text-blue-300 uppercase tracking-wider">
@@ -212,7 +212,7 @@ const AdvisoryVisualizer = () => {
                         <div className="min-w-0 flex-1">
                           <h4 className="font-medium text-white truncate">{event.title}</h4>
                           {event.content && (
-                            <p className="text-xs text-slate-400 line-clamp-1 mt-0.5">{event.content}</p>
+                            <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{event.content}</p>
                           )}
                           <div className="flex items-center gap-2 mt-1.5">
                             <Clock className="w-3 h-3 text-slate-500" />
@@ -225,7 +225,7 @@ const AdvisoryVisualizer = () => {
                       </div>
                     ))
                   ) : (
-                    <div className="flex flex-col items-center justify-center py-6 text-center text-gray-500">
+                    <div className="flex flex-col items-center justify-center py-6 text-center text-muted-foreground">
                       <CalendarIcon className="w-8 h-8 mb-2 opacity-20" />
                       <p className="text-sm">No hay eventos próximos.</p>
                     </div>
@@ -236,7 +236,7 @@ const AdvisoryVisualizer = () => {
           </div>
         )}
 
-        <div className="w-full flex-grow flex flex-col bg-[#1a1e23] rounded-2xl border border-slate-800 shadow-xl overflow-hidden">
+        <div className="w-full flex-grow flex flex-col bg-background rounded-2xl border border-border shadow-xl overflow-hidden">
           {selectedUser ? (
             <div className="flex flex-col">
               <div className="p-4 md:p-6 pb-4">
@@ -271,7 +271,7 @@ const AdvisoryVisualizer = () => {
             <div className="w-full h-full flex flex-col items-center justify-center text-center p-8">
               <Users className="w-16 h-16 text-gray-600 mb-4" />
               <h3 className="text-2xl font-bold text-white">Selecciona un cliente</h3>
-              <p className="text-gray-400">Elige un cliente de la lista para ver sus asesorías en el calendario.</p>
+              <p className="text-muted-foreground">Elige un cliente de la lista para ver sus asesorías en el calendario.</p>
             </div>
           )}
         </div>

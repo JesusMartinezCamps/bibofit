@@ -9,7 +9,7 @@ const TotalsRow = ({ totalMacros, gridStyle }) => {
   return (
     <div 
       className={cn(
-        "grid items-center mt-2 pt-2 border-t-2 border-slate-700 text-sm font-bold gap-x-2 pl-4",
+        "grid items-center mt-2 pt-2 border-t-2 border-border text-sm font-bold gap-x-2 pl-4",
       )}
       style={gridStyle}
     >

@@ -257,7 +257,7 @@ const DietPreferencesForm = ({ userId: propUserId, onUpdate }) => {
         <FormBlock title="Información General" icon={Info} color="green">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                 <div className="flex flex-col space-y-2">
-                    <Label htmlFor="diet_goal_id" className="text-gray-300">Objetivo de Dieta</Label>
+                    <Label htmlFor="diet_goal_id" className="text-muted-foreground">Objetivo de Dieta</Label>
                     <Select 
                         value={formData.diet_goal_id || ''} 
                         onValueChange={(v) => handleChange('diet_goal_id', v)}
@@ -276,7 +276,7 @@ const DietPreferencesForm = ({ userId: propUserId, onUpdate }) => {
                     )}
                 </div>
                 <div className="flex flex-col space-y-2">
-                    <Label htmlFor="diet_type_id" className="text-gray-300">Tipo de Dieta</Label>
+                    <Label htmlFor="diet_type_id" className="text-muted-foreground">Tipo de Dieta</Label>
                     <Select value={formData.diet_type_id ? String(formData.diet_type_id) : ''} onValueChange={(v) => handleChange('diet_type_id', v ? parseInt(v, 10) : null)}>
                         <SelectTrigger id="diet_type_id" className="w-full bf-form-control"><SelectValue placeholder="Selecciona un tipo..." /></SelectTrigger>
                         <SelectContent className="z-[200]">{(dietTypes || []).map((t) => <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>)}</SelectContent>
@@ -312,13 +312,13 @@ const DietPreferencesForm = ({ userId: propUserId, onUpdate }) => {
                     </div>
                     
                     <div className="flex flex-wrap gap-2 mt-3">
-                      {selectedSensitivities.length === 0 && <p className="text-gray-500 text-sm italic">No hay sensibilidades seleccionadas.</p>}
+                      {selectedSensitivities.length === 0 && <p className="text-muted-foreground text-sm italic">No hay sensibilidades seleccionadas.</p>}
                       {selectedSensitivities.map(s => {
                         const details = allSensitivities.find(as => as.id === s.sensitivity_id);
                         return details ? (
                             <Badge key={s.sensitivity_id} variant="destructive" className="bg-orange-600/20 border border-orange-500/30 text-orange-300">
                                 {details.name} ({s.sensitivitie_level})
-                                <button type="button" onClick={() => handleRemoveSensitivity(s.sensitivity_id)} className="ml-2 hover:text-white"><X size={14}/></button>
+                                <button type="button" onClick={() => handleRemoveSensitivity(s.sensitivity_id)} className="ml-2 hover:text-foreground"><X size={14}/></button>
                             </Badge>
                         ) : null;
                       })}
@@ -340,10 +340,10 @@ const DietPreferencesForm = ({ userId: propUserId, onUpdate }) => {
                     </div>
                     
                     <div className="flex flex-wrap gap-2 mt-3">
-                      {selectedMedicalConditions.length === 0 && <p className="text-gray-500 text-sm italic">No hay condiciones seleccionadas.</p>}
+                      {selectedMedicalConditions.length === 0 && <p className="text-muted-foreground text-sm italic">No hay condiciones seleccionadas.</p>}
                       {selectedMedicalConditions.map(cId => {
                         const details = allMedicalConditions.find(amc => amc.id === cId);
-                        return details ? <Badge key={cId} variant="destructive" className="bg-red-600/20 border border-red-500/30 text-red-300">{details.name} <button type="button" onClick={() => handleRemoveCondition(cId)} className="ml-2 hover:text-white"><X size={14}/></button></Badge> : null;
+                        return details ? <Badge key={cId} variant="destructive" className="bg-red-600/20 border border-red-500/30 text-red-300">{details.name} <button type="button" onClick={() => handleRemoveCondition(cId)} className="ml-2 hover:text-foreground"><X size={14}/></button></Badge> : null;
                       })}
                     </div>
                 </div>
@@ -367,8 +367,8 @@ const DietPreferencesForm = ({ userId: propUserId, onUpdate }) => {
         items={availableSensitivities}
         onSelect={handleAddSensitivity}
         headerContent={
-            <div className="flex items-center gap-3 p-2 rounded-xl bg-slate-800/70 border border-slate-600/80">
-                <span className="text-sm text-gray-400 whitespace-nowrap">Nivel de sensibilidad:</span>
+            <div className="flex items-center gap-3 p-2 rounded-xl bg-muted/75 border border-input/80">
+                <span className="text-sm text-muted-foreground whitespace-nowrap">Nivel de sensibilidad:</span>
                 <Select value={sensitivityLevel} onValueChange={setSensitivityLevel}>
                     <SelectTrigger className="h-10 w-36 bf-form-control text-xs text-white">
                         <SelectValue />

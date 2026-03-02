@@ -5,7 +5,7 @@ import { Plus, Repeat } from 'lucide-react';
 const SnackSelectorDialog = ({ open, onOpenChange, onAddNew, onRepeat }) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#1a1e23] border-gray-700 text-white sm:max-w-[425px]">
+      <DialogContent className="bg-background border-border text-white sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle className="text-center text-2xl">Añadir Picoteo</DialogTitle>
           <DialogDescription className="text-center">
@@ -19,7 +19,7 @@ const SnackSelectorDialog = ({ open, onOpenChange, onAddNew, onRepeat }) => {
           >
             <Plus className="h-12 w-12 mb-3 text-[rgb(74_222_128)] transition-transform duration-300 group-hover:scale-110" />
             <span className="text-lg font-semibold">Añadir Picoteo</span>
-            <span className="text-sm text-gray-400">Crea un picoteo nuevo</span>
+            <span className="text-sm text-muted-foreground">Crea un picoteo nuevo</span>
           </button>
           <button
             onClick={onRepeat}
@@ -27,7 +27,7 @@ const SnackSelectorDialog = ({ open, onOpenChange, onAddNew, onRepeat }) => {
           >
             <Repeat className="h-12 w-12 mb-3 text-amber-400 transition-transform duration-300 group-hover:scale-110" />
             <span className="text-lg font-semibold">Repetir un Picoteo</span>
-            <span className="text-sm text-gray-400">Elige uno que ya comiste</span>
+            <span className="text-sm text-muted-foreground">Elige uno que ya comiste</span>
           </button>
         </div>
       </DialogContent>

@@ -32,9 +32,9 @@ const EditableField = ({
 
   if (!isEditing) {
     if (type === 'p') {
-      return <p className={cn('text-gray-300 whitespace-pre-wrap', className)}>{value || placeholder}</p>;
+      return <p className={cn('text-muted-foreground whitespace-pre-wrap', className)}>{value || placeholder}</p>;
     }
-    return <span className={cn('text-gray-300', className)}>{value || placeholder}</span>;
+    return <span className={cn('text-muted-foreground', className)}>{value || placeholder}</span>;
   }
 
   if (type === 'textarea') {
@@ -75,9 +75,9 @@ const EditableField = ({
         >
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
-        <SelectContent className="bg-[#282d34] border border-gray-700 text-white">
+        <SelectContent className="bg-[#282d34] border border-border text-white">
           {options.map((opt) => (
-            <SelectItem key={opt.value} value={opt.value} className="focus:bg-gray-700 focus:text-white">
+            <SelectItem key={opt.value} value={opt.value} className="focus:bg-muted focus:text-white">
               {opt.label}
             </SelectItem>
           ))}

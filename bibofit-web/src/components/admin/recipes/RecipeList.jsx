@@ -14,7 +14,7 @@ const RecipeList = ({ recipes, onAddRecipe, onEditRecipe, onDeleteRecipe, loadin
 
   if (!recipes || recipes.length === 0) {
     return (
-      <div className="text-center text-gray-400 py-10">
+      <div className="text-center text-muted-foreground py-10">
         <p>No se encontraron recetas.</p>
       </div>
     );

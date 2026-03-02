@@ -179,7 +179,7 @@ const AssignRecipeDialog = ({ recipe, open, onOpenChange, onAssigned, preselecte
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#1a1e23] border-gray-700 text-white">
+      <DialogContent className="bg-background border-border text-white">
         <DialogHeader>
           <DialogTitle>Asignar Receta: {recipe?.name}</DialogTitle>
           <DialogDescription>Asigna esta plantilla de receta a un plan de dieta de un cliente.</DialogDescription>

@@ -113,7 +113,7 @@ const CompletionStep = () => {
                 ¡Todo listo!
               </h2>
               
-              <p className="text-slate-300 text-lg mb-10 max-w-sm leading-relaxed">
+              <p className="text-muted-foreground text-lg mb-10 max-w-sm leading-relaxed">
                 Has completado tu perfil exitosamente. Ahora es momento de disfrutar de la comida y conseguir tus objetivos.
               </p>
 

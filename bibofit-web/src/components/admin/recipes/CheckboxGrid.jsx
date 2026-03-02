@@ -19,7 +19,7 @@ const CheckboxGrid = ({ title, options, selectedIds, onSelectionChange, color })
   return (
     <div className="space-y-3">
       <h3 className={cn("text-lg font-semibold", color === 'green' ? 'text-green-400' : 'text-red-400')}>{title}</h3>
-      <div className="rounded-md border border-gray-700 p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 gap-y-3 bg-gray-800/50">
+      <div className="rounded-md border border-border p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 gap-y-3 bg-muted/65">
         {options.map((option) => (
           <div key={option.id} className="flex items-center space-x-2">
             <Checkbox
@@ -30,7 +30,7 @@ const CheckboxGrid = ({ title, options, selectedIds, onSelectionChange, color })
             />
             <Label
               htmlFor={`${title}-${option.id}`}
-              className="text-sm font-medium leading-none text-gray-300 cursor-pointer"
+              className="text-sm font-medium leading-none text-muted-foreground cursor-pointer"
             >
               {option.name}
             </Label>

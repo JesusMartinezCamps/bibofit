@@ -96,7 +96,7 @@ const IngredientRowConflict = ({
 
   const borderColor = useMemo(() => {
     if (isUserCreated) return 'border-purple-500/50';
-    if (!conflict) return 'border-gray-700';
+    if (!conflict) return 'border-border';
     switch (conflict.type) {
       case 'preferred':
       case 'condition_recommend':
@@ -107,14 +107,14 @@ const IngredientRowConflict = ({
       case 'condition_avoid':
         return 'border-red-500/50';
       default:
-        return 'border-gray-700';
+        return 'border-border';
     }
   }, [conflict, isUserCreated]);
 
 
   return (
     <div ref={rowRef} className={cn(
-        "flex items-center gap-2 p-2 rounded-lg border bg-gray-800/50 transition-colors",
+        "flex items-center gap-2 p-2 rounded-lg border bg-muted/65 transition-colors",
         borderColor
     )}>
       <div className="flex-1 space-y-1">
@@ -145,10 +145,10 @@ const IngredientRowConflict = ({
             value={quantity}
             onChange={handleQuantityChange}
             onFocus={handleFocus}
-            className="w-24 bg-transparent border-gray-600 pr-8 text-right"
+            className="w-24 bg-transparent border-input pr-8 text-right"
             min="0"
           />
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">{unit}</span>
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{unit}</span>
         </div>
         <Button variant="ghost" size="icon" onClick={() => onRemove(index)} className="text-red-500 hover:bg-red-900/50">
           <X className="w-4 h-4" />

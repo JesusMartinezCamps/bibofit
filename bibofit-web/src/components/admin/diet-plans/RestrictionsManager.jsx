@@ -11,7 +11,7 @@ const SensitivityBadge = ({ sensitivity, onRemove, isSaving }) => {
     return (
         <Badge variant="destructive" className="bg-orange-900/50 border border-orange-700/60 text-orange-300 px-2 py-1 h-auto">
             {sensitivity.name}
-            <button type="button" onClick={() => onRemove(sensitivity.id)} disabled={isSaving} className="ml-2 hover:text-white disabled:opacity-50">
+            <button type="button" onClick={() => onRemove(sensitivity.id)} disabled={isSaving} className="ml-2 hover:text-foreground disabled:opacity-50">
                 <X size={14}/>
             </button>
         </Badge>
@@ -22,7 +22,7 @@ const ConditionBadge = ({ condition, onRemove, isSaving }) => {
     return (
         <Badge variant="destructive" className="bg-red-900/50 border border-red-500/30 text-red-300 px-2 py-1 h-auto">
             {condition.name}
-            <button type="button" onClick={() => onRemove(condition.id)} disabled={isSaving} className="ml-2 hover:text-white disabled:opacity-50">
+            <button type="button" onClick={() => onRemove(condition.id)} disabled={isSaving} className="ml-2 hover:text-foreground disabled:opacity-50">
                 <X size={14}/>
             </button>
         </Badge>
@@ -149,15 +149,15 @@ const RestrictionsManager = ({ entityId, entityType, onUpdate, className, hideHe
     return (
         <div className={cn("space-y-4", className)}>
             {!hideHeader && (
-                <div className="border-b border-gray-700/50 pb-4 mb-4">
+                <div className="border-b border-border/50 pb-4 mb-4">
                     <Label className="text-xl font-bold text-white mb-1 block">Gestor de Restricciones</Label>
-                    <p className="text-sm text-gray-400">Añade o elimina sensibilidades y condiciones médicas.</p>
+                    <p className="text-sm text-muted-foreground">Añade o elimina sensibilidades y condiciones médicas.</p>
                 </div>
             )}
             
             <div className={cn("grid gap-6", hideHeader ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1")}>
                 <div className="space-y-2">
-                    <Label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">Sensibilidades (Evitar)</Label>
+                    <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1">Sensibilidades (Evitar)</Label>
                     <div className="flex flex-col gap-2">
                         <Combobox
                             options={availableSensitivities}
@@ -166,7 +166,7 @@ const RestrictionsManager = ({ entityId, entityType, onUpdate, className, hideHe
                             searchPlaceholder="Buscar..."
                             noResultsText="No encontradas."
                             disabled={isSaving}
-                            triggerClassName="bg-[#0F1627] border-gray-700"
+                            triggerClassName="bg-card border-border"
                         />
                         <div className="flex flex-wrap gap-2 min-h-[2rem]">
                             {selectedSensitivities.map(s => {
@@ -185,7 +185,7 @@ const RestrictionsManager = ({ entityId, entityType, onUpdate, className, hideHe
                 </div>
 
                 <div className="space-y-2">
-                    <Label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">Condiciones (Apto para)</Label>
+                    <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1">Condiciones (Apto para)</Label>
                     <div className="flex flex-col gap-2">
                         <Combobox
                             options={availableMedicalConditions}
@@ -194,7 +194,7 @@ const RestrictionsManager = ({ entityId, entityType, onUpdate, className, hideHe
                             searchPlaceholder="Buscar..."
                             noResultsText="No encontradas."
                             disabled={isSaving}
-                            triggerClassName="bg-[#0F1627] border-gray-700"
+                            triggerClassName="bg-card border-border"
                         />
                         <div className="flex flex-wrap gap-2 min-h-[2rem]">
                             {selectedMedicalConditions.map(cId => {

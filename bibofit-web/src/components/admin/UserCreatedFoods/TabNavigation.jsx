@@ -13,7 +13,7 @@ const TabNavigation = ({ tabs, activeTab, onTabChange, pendingCount, usersWithPe
   const pendingBadgeCount = pendingCount ?? legacyPendingCount;
 
   return (
-    <div className="mb-6 border-b border-gray-700">
+    <div className="mb-6 border-b border-border">
       <nav className="-mb-px flex space-x-6" aria-label="Tabs">
         {normalizedTabs.map((tab) => (
           <button
@@ -23,7 +23,7 @@ const TabNavigation = ({ tabs, activeTab, onTabChange, pendingCount, usersWithPe
               'relative whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm transition-colors',
               activeTab === tab.value
                 ? 'border-green-400 text-green-300'
-                : 'border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-500'
+                : 'border-transparent text-muted-foreground hover:text-gray-200 hover:border-gray-500'
             )}
           >
             <div className="flex items-center gap-2">

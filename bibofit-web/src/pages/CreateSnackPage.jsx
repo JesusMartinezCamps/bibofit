@@ -199,7 +199,7 @@ const CreateSnackPage = () => {
                             <Label htmlFor="name" className="text-base">Nombre del Picoteo</Label>
                             <Input id="name" value={name} onChange={(e) => setName(e.target.value)} className="input-field mt-1 text-lg" placeholder="Ej: Un puñado de almendras" />
                         </div>
-                        <div className="border-t border-gray-700 my-4"></div>
+                        <div className="border-t border-border my-4"></div>
                         <div className="space-y-4">
                             <h3 className="text-xl font-semibold">Ingredientes</h3>
                             <MacroDisplay macros={totalMacros} title="Macros Totales del Picoteo" />
@@ -233,7 +233,7 @@ const CreateSnackPage = () => {
     const BackButton = () => {
         if (view === 'search') {
             return (
-                <Button variant="ghost" onClick={() => setView('main')} className="flex items-center gap-2 text-gray-300 hover:text-white hover:bg-gray-700">
+                <Button variant="ghost" onClick={() => setView('main')} className="flex items-center gap-2 text-muted-foreground hover:text-foreground hover:bg-muted">
                     <ArrowLeft size={18} />
                     Volver al picoteo
                 </Button>
@@ -241,7 +241,7 @@ const CreateSnackPage = () => {
         }
         return (
             <Button variant="ghost" asChild>
-                <Link to={`/plan/dieta/${date}`} className="flex items-center gap-2 text-gray-300 hover:text-white hover:bg-gray-700">
+                <Link to={`/plan/dieta/${date}`} className="flex items-center gap-2 text-muted-foreground hover:text-foreground hover:bg-muted">
                     <ArrowLeft size={18} />
                     Volver al Plan
                 </Link>
@@ -259,7 +259,7 @@ const CreateSnackPage = () => {
                 <div className="mb-0 sm:mb-6">
                     <BackButton />
                 </div>
-                <Card className="bg-gray-900/50 border-gray-700 text-white">
+                <Card className="bg-card/75 border-border text-white">
                     <CardHeader>
                         <CardTitle className="text-3xl font-bold text-orange-400">{getTitle()}</CardTitle>
                     </CardHeader>

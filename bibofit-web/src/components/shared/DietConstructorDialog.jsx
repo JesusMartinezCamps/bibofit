@@ -38,7 +38,7 @@ const DietConstructorDialog = ({ open, onOpenChange, userId, dietPlanId, onPlanU
 
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
-            <DialogContent className="bg-[#1a1e23] border-gray-700 text-white max-w-6xl h-[90vh] flex flex-col p-0">
+            <DialogContent className="bg-background border-border text-white max-w-6xl h-[90vh] flex flex-col p-0">
                 <div className="flex-grow overflow-y-auto px-6 pb-6 pt-6 styled-scrollbar-green">
                     {loading ? (
                         <div className="flex justify-center items-center h-full">
@@ -52,7 +52,7 @@ const DietConstructorDialog = ({ open, onOpenChange, userId, dietPlanId, onPlanU
                             isTemplate={isTemplate || dietPlan.is_template}
                         />
                     ) : (
-                        <p className="text-center text-gray-400 py-10">No hay un plan de dieta activo para configurar.</p>
+                        <p className="text-center text-muted-foreground py-10">No hay un plan de dieta activo para configurar.</p>
                     )}
                 </div>
             </DialogContent>

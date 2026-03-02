@@ -16,13 +16,13 @@ const ContentStateToggle = ({
 
   if (isSegmented) {
     return (
-      <div className={cn("grid grid-cols-2 gap-2 p-1 rounded-lg bg-slate-800 border border-slate-700", className)}>
+      <div className={cn("grid grid-cols-2 gap-2 p-1 rounded-lg bg-muted border border-border", className)}>
         <button
           onClick={() => onModeChange(optionOne.value)}
           disabled={loading}
           className={cn(
             "flex items-center justify-center gap-2 p-2 rounded-md transition-colors text-sm font-semibold",
-            mode === optionOne.value ? 'bg-slate-700 text-white' : 'text-gray-400 hover:bg-slate-700/50'
+            mode === optionOne.value ? 'bg-slate-700 text-white' : 'text-muted-foreground hover:bg-accent/50'
           )}
         >
           <IconOne className="h-4 w-4" />
@@ -33,7 +33,7 @@ const ContentStateToggle = ({
           disabled={loading}
           className={cn(
             "flex items-center justify-center gap-2 p-2 rounded-md transition-colors text-sm font-semibold",
-            mode === optionTwo.value ? 'bg-slate-700 text-white' : 'text-gray-400 hover:bg-slate-700/50'
+            mode === optionTwo.value ? 'bg-slate-700 text-white' : 'text-muted-foreground hover:bg-accent/50'
           )}
         >
           <IconTwo className="h-4 w-4" />
@@ -50,7 +50,7 @@ const ContentStateToggle = ({
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
       className={cn(
-        `relative flex items-center p-1 rounded-lg gap-2 border border-slate-700 bg-slate-800`,
+        `relative flex items-center p-1 rounded-lg gap-2 border border-border bg-muted`,
         className
       )}
     >
@@ -59,7 +59,7 @@ const ContentStateToggle = ({
         disabled={loading}
         className={cn(
           "flex items-center gap-2 p-2 rounded-md transition-colors relative z-10",
-          mode === optionOne.value ? 'text-white' : 'text-gray-400'
+          mode === optionOne.value ? 'text-white' : 'text-muted-foreground'
         )}
       >
         <IconOne className="h-4 w-4" />
@@ -70,7 +70,7 @@ const ContentStateToggle = ({
         disabled={loading}
         className={cn(
           "flex items-center gap-2 p-2 rounded-md transition-colors relative z-10",
-          mode === optionTwo.value ? 'text-white' : 'text-gray-400'
+          mode === optionTwo.value ? 'text-white' : 'text-muted-foreground'
         )}
       >
         <IconTwo className="h-4 w-4" />

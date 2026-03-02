@@ -44,9 +44,9 @@ const RecipeGroup = ({ group, searchTerm, ...props }) => {
                     <CollapsibleTrigger asChild>
                         <button 
                             className={cn(
-                                "flex items-center justify-center w-full py-2 text-xs font-medium rounded-md transition-all duration-300 ease-in-out border border-slate-700 mt-1 gap-2",
+                                "flex items-center justify-center w-full py-2 text-xs font-medium rounded-md transition-all duration-300 ease-in-out border border-border mt-1 gap-2",
                                 isOpen 
-                                    ? "bg-gradient-to-b from-slate-800/50 to-slate-900/50 text-slate-300 border-slate-800 shadow-inner" 
+                                    ? "bg-gradient-to-b from-slate-800/50 to-slate-900/50 text-muted-foreground border-border shadow-inner" 
                                     : "bg-slate-700 text-white hover:bg-slate-600 shadow-sm"
                             )}
                         >
@@ -54,7 +54,7 @@ const RecipeGroup = ({ group, searchTerm, ...props }) => {
                             {isOpen ? 'Ocultar variantes' : `Ver ${variants.length} variantes`}
                         </button>
                     </CollapsibleTrigger>
-                    <CollapsibleContent className="space-y-4 pt-4 pl-4 border-l-2 border-slate-800 mt-2 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95">
+                    <CollapsibleContent className="space-y-4 pt-4 pl-4 border-l-2 border-border mt-2 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95">
                         {variants.map(variant => (
                              <RecipeCard
                                 key={variant.id}
@@ -480,7 +480,7 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
                 <DialogContent 
-                    className="bg-[#1a1e23] border-gray-700 text-white max-w-4xl lg:max-w-6xl flex flex-col h-[90vh]"
+                    className="bg-background border-border text-white max-w-4xl lg:max-w-6xl flex flex-col h-[90vh]"
                     onOpenAutoFocus={(e) => e.preventDefault()}
                 >
                     <DialogHeader>
@@ -497,7 +497,7 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
                          {searchTerm && (
                             <button
                                 onClick={() => setSearchTerm('')}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                             >
                                 <X className="h-4 w-4" />
                             </button>
@@ -525,7 +525,7 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
                                 ))}
                             </div>
                         ) : (
-                            <div className="text-center text-gray-400 p-8"><p>No se encontraron recetas, o ya están todas añadidas.</p></div>
+                            <div className="text-center text-muted-foreground p-8"><p>No se encontraron recetas, o ya están todas añadidas.</p></div>
                         )}
                     </div>
                 </DialogContent>

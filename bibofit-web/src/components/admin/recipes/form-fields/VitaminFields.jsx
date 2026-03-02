@@ -53,7 +53,7 @@ const VitaminFields = ({ allVitamins, selectedVitamins, onSelectedVitaminsChange
           if (!vitaminInfo) return null;
           
           return (
-            <div key={vitamin_id} className="flex items-center gap-3 p-2 bg-gray-900/40 rounded-md border border-gray-700/60">
+            <div key={vitamin_id} className="flex items-center gap-3 p-2 bg-card/40 rounded-md border border-border/60">
               <span className="flex-1 font-medium text-white">{vitaminInfo.name}</span>
               <InputWithUnit
                 type="number"

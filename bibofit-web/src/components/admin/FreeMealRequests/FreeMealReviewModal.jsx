@@ -150,7 +150,7 @@ const FreeMealReviewModal = ({ isOpen, onOpenChange, freeMeal, onSuccess }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-none bg-slate-900 border-slate-700 text-white">
+      <DialogContent className="w-[95vw] max-w-none bg-card border-border text-white">
         <DialogHeader>
           <DialogTitle className="text-2xl text-white">Revisar y Gestionar Receta Libre</DialogTitle>
           <DialogDescription>

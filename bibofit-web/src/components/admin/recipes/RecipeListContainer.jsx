@@ -106,7 +106,7 @@ const RecipeListContainer = ({ onSelectRecipe, selectedRecipeId, onDeleteRecipe,
           className="input-field pr-10"
         />
         {searchTerm && (
-          <button type="button" onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white">
+          <button type="button" onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
             <X className="h-4 w-4" />
           </button>
         )}
@@ -154,7 +154,7 @@ const RecipeListContainer = ({ onSelectRecipe, selectedRecipeId, onDeleteRecipe,
                 ))}
               </div>
             ) : (
-              <div className="text-center text-gray-400 py-4">
+              <div className="text-center text-muted-foreground py-4">
                 No se encontraron resultados.
               </div>
             )}

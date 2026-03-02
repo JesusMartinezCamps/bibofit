@@ -65,7 +65,7 @@ import React, { useMemo } from 'react';
                 const text = `${food.name} (${Math.round(ing.grams || 0)}${unit})`;
                 const isUnsafe = unsafeFoodsSet.has(food.name);
                 return (
-                    <span key={ing.id || food.id} className={cn(isUnsafe ? "text-red-400" : "text-gray-400")}>
+                    <span key={ing.id || food.id} className={cn(isUnsafe ? "text-red-400" : "text-muted-foreground")}>
                         {text}
                     </span>
                 );
@@ -79,7 +79,7 @@ import React, { useMemo } from 'react';
                     className={cn(
                         "w-full h-full text-left bg-gradient-to-br p-5 rounded-xl transition-all flex flex-col justify-between shadow-lg border",
                         recipe.is_private ? 'from-blue-900/60 to-purple-900/40' : 'from-slate-900 via-slate-900 to-slate-800/80',
-                        isSafe ? "border-slate-700 hover:border-green-500/50 hover:shadow-green-500/10" : "border-red-500/60 hover:border-red-500 hover:shadow-red-500/10"
+                        isSafe ? "border-border hover:border-green-500/50 hover:shadow-green-500/10" : "border-red-500/60 hover:border-red-500 hover:shadow-red-500/10"
                     )}
                 >
                     <div className="flex-1">
@@ -101,13 +101,13 @@ import React, { useMemo } from 'react';
                                 </TooltipProvider>
                             )}
                         </div>
-                        <p className="text-sm text-gray-400 line-clamp-3">
+                        <p className="text-sm text-muted-foreground line-clamp-3">
                             {ingredientList.length > 0 ? 
                                 ingredientList.reduce((prev, curr) => [prev, ', ', curr]) 
                                 : 'Sin ingredientes'}
                         </p>
                     </div>
-                    <div className="mt-4 pt-4 border-t border-slate-700/50">
+                    <div className="mt-4 pt-4 border-t border-border/50">
                         <div className="flex items-center justify-between md:justify-start gap-4 text-sm font-mono">
                             <span className="flex items-center text-orange-400" title="Calorías"><CaloriesIcon className="w-4 h-4 mr-1"/>{Math.round(macros.calories || 0)}</span>
                             <span className="flex items-center text-red-400" title="Proteínas"><ProteinIcon className="w-4 h-4 mr-1"/>{Math.round(macros.proteins || 0)}g</span>

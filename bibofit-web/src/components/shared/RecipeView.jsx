@@ -411,7 +411,7 @@ const RecipeView = ({
     <div className="text-white space-y-6 p-2 sm:p-4 md:p-6">
       <div className="text-center mt-6 relative z-10">
         {recipeImageUrl && (
-          <div className="mb-4 overflow-hidden rounded-xl border border-slate-700/70 bg-slate-900/70">
+          <div className="mb-4 overflow-hidden rounded-xl border border-border/70 bg-card/85">
             <img
               src={recipeImageUrl}
               alt={`Imagen de ${recipe.name || 'receta'}`}
@@ -477,12 +477,12 @@ const RecipeView = ({
         <div
           className={cn(
             'grid grid-cols-3 gap-2 sm:gap-3 rounded-lg relative z-10',
-            isEditing ? 'sm:p-0.5' : 'p-3 bg-slate-800/50'
+            isEditing ? 'sm:p-0.5' : 'p-3 bg-muted/65'
           )}
         >
           <div className={cn('min-w-0', !isEditing && 'flex flex-col items-center justify-center text-center')}>
             <div className={cn('flex items-center gap-1 sm:gap-2 text-gray-200 font-semibold', !isEditing && 'justify-center')}>
-              {!isEditing && <ChefHat className="w-4 h-4 text-gray-400 shrink-0" />}
+              {!isEditing && <ChefHat className="w-4 h-4 text-muted-foreground shrink-0" />}
               <span className="truncate">Dificultad</span>
             </div>
             <div className="mt-1">
@@ -504,7 +504,7 @@ const RecipeView = ({
 
           <div className={cn('min-w-0', !isEditing && 'flex flex-col items-center justify-center text-center')}>
             <div className={cn('flex items-center gap-1 sm:gap-2 text-gray-200 font-semibold', !isEditing && 'justify-center')}>
-              {!isEditing && <Clock className="w-4 h-4 text-gray-400 shrink-0" />}
+              {!isEditing && <Clock className="w-4 h-4 text-muted-foreground shrink-0" />}
               <span className="truncate">Tiempo</span>
             </div>
             <div className="mt-1">
@@ -516,10 +516,10 @@ const RecipeView = ({
                     onChange={(e) => onFormChange({ target: { name: 'prep_time_min', value: e.target.value } })}
                     className="input-field bg-transparent border-dashed w-16 text-center p-0.5 pr-7"
                   />
-                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none">min</span>
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs pointer-events-none">min</span>
                 </div>
               ) : (
-                <span className="text-gray-300">{recipe.prep_time_min ? `${recipe.prep_time_min} min` : 'N/A'}</span>
+                <span className="text-muted-foreground">{recipe.prep_time_min ? `${recipe.prep_time_min} min` : 'N/A'}</span>
               )}
             </div>
           </div>
@@ -531,14 +531,14 @@ const RecipeView = ({
                 type="button"
                 variant="outline"
                 size="icon"
-                className="h-9 w-9 border-slate-600 bg-slate-900/60 hover:bg-slate-800 hover:text-gray-300 text-gray-200 shrink-0"
+                className="h-9 w-9 border-input bg-card/80 hover:bg-muted hover:text-muted-foreground text-gray-200 shrink-0"
                 onClick={() => setServingMultiplier((prev) => clampMultiplier(prev - 1))}
                 disabled={servingMultiplier <= 1}
               >
                 <Minus className="w-4 h-4" />
               </Button>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none">x</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-xs pointer-events-none">x</span>
                 <Input
                   type="number"
                   min={1}
@@ -552,7 +552,7 @@ const RecipeView = ({
                 type="button"
                 variant="outline"
                 size="icon"
-                className="h-9 w-9 border-slate-600 bg-slate-900/60 hover:bg-slate-800 hover:text-gray-300 text-gray-200 shrink-0"
+                className="h-9 w-9 border-input bg-card/80 hover:bg-muted hover:text-muted-foreground text-gray-200 shrink-0"
                 onClick={handleIncreaseMultiplier}
               >
                 <Plus className="w-4 h-4" />
@@ -560,7 +560,7 @@ const RecipeView = ({
             </div>
             <div
               className={cn(
-                'absolute -top-8 left-1/2 -translate-x-1/2 rounded-md bg-slate-900/95 border border-cyan-500/30 px-2 py-1 text-[11px] text-cyan-100 whitespace-nowrap shadow-lg transition-all duration-200',
+                'absolute -top-8 left-1/2 -translate-x-1/2 rounded-md bg-card/95 border border-cyan-500/30 px-2 py-1 text-[11px] text-cyan-100 whitespace-nowrap shadow-lg transition-all duration-200',
                 showMultiplierEasterEgg ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
               )}
             >
@@ -572,7 +572,7 @@ const RecipeView = ({
 
       {showPreparationSection && (
         <div className="relative z-10">
-          <h3 className="text-xl font-semibold mb-3 border-b border-gray-700 pb-2 bg-clip-text text-transparent bg-gradient-to-r from-green-300 to-teal-400">
+          <h3 className="text-xl font-semibold mb-3 border-b border-border pb-2 bg-clip-text text-transparent bg-gradient-to-r from-green-300 to-teal-400">
             Preparacion
           </h3>
           <EditableField
@@ -581,7 +581,7 @@ const RecipeView = ({
             isEditing={isEditing}
             placeholder="Anade aqui las instrucciones..."
             type={isEditing ? 'textarea' : 'p'}
-            className="text-gray-300 whitespace-pre-wrap"
+            className="text-muted-foreground whitespace-pre-wrap"
           />
         </div>
       )}
@@ -589,17 +589,17 @@ const RecipeView = ({
       <div
         className={cn(
           enableStickyMacros &&
-            'sticky top-0 bg-[#0C101D] -mx-2 px-2 sm:-mx-4 sm:px-4 md:-mx-6 md:px-6 py-2 shadow-xl border-b border-gray-800/60 mb-4',
+            'sticky top-0 bg-[#0C101D] -mx-2 px-2 sm:-mx-4 sm:px-4 md:-mx-6 md:px-6 py-2 shadow-xl border-b border-border/60 mb-4',
           'z-30'
         )}
       >
-        <h3 className="text-xl font-semibold mb-3 border-b border-gray-700 pb-2 bg-clip-text text-transparent bg-gradient-to-r from-green-300 to-teal-400">
+        <h3 className="text-xl font-semibold mb-3 border-b border-border pb-2 bg-clip-text text-transparent bg-gradient-to-r from-green-300 to-teal-400">
           Macros Totales
         </h3>
         <MacroSummaryGrid macros={scaledTotalMacros} />
         {isEditing && (mealTargetMacros || fetchedTargets) && !isTemplate && (
           <div className="mt-4">
-            <h4 className="text-sm font-semibold text-gray-400 mb-2 uppercase tracking-wider">
+            <h4 className="text-sm font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
               Macros Objetivo (Limite)
             </h4>
             <MacroTargetGrid targets={mealTargetMacros || fetchedTargets} />
@@ -610,7 +610,7 @@ const RecipeView = ({
       {actionButton && <div className="my-4 relative z-10">{actionButton}</div>}
 
       <div className="relative z-10">
-        <div className="flex justify-between items-center mb-3 border-b border-gray-700 pb-2">
+        <div className="flex justify-between items-center mb-3 border-b border-border pb-2">
           <h3 className="text-xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-green-300 to-teal-400">
             Ingredientes
           </h3>
@@ -650,9 +650,9 @@ const RecipeView = ({
                 ))}
               </div>
             ) : (
-              <div className="text-center py-10 border-2 border-dashed border-gray-700 rounded-lg">
-                <p className="text-gray-500">No hay ingredientes en esta receta.</p>
-                <p className="text-gray-500 mt-2">
+              <div className="text-center py-10 border-2 border-dashed border-border rounded-lg">
+                <p className="text-muted-foreground">No hay ingredientes en esta receta.</p>
+                <p className="text-muted-foreground mt-2">
                   Haz clic en el <PlusCircle className="inline w-4 h-4 mx-1" /> para anadir el primero.
                 </p>
               </div>
@@ -675,15 +675,15 @@ const RecipeView = ({
                   />
                 ))
               ) : (
-                <div className="text-center py-10 border-2 border-dashed border-gray-700 rounded-lg">
-                  <p className="text-gray-500">No hay ingredientes en esta receta.</p>
+                <div className="text-center py-10 border-2 border-dashed border-border rounded-lg">
+                  <p className="text-muted-foreground">No hay ingredientes en esta receta.</p>
                 </div>
               )}
             </ul>
           )}
 
           {showAutoBalance && (mealTargetMacros || fetchedTargets) && (
-            <div className="mt-4 pt-2 border-t border-gray-800">
+            <div className="mt-4 pt-2 border-t border-border">
               <Button
                 type="button"
                 onClick={() => {
@@ -695,7 +695,7 @@ const RecipeView = ({
                 }}
                 disabled={isBalancing || (disableAutoBalance && !onAutoBalanceBlocked)}
                 variant="outline"
-                className="w-full bg-slate-800 border-cyan-500 text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300 mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-muted border-cyan-500 text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300 mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isBalancing ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />

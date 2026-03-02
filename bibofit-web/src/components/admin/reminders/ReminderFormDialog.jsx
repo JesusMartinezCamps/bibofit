@@ -243,7 +243,7 @@ const ReminderFormDialog = ({ isOpen, onOpenChange, onSave, reminder, userId, ne
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] bg-slate-900 border-gray-700 text-white max-h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-[600px] bg-card border-border text-white max-h-[90vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle>{reminder ? 'Editar' : 'Nuevo'} Recordatorio</DialogTitle>
           <DialogDescription>Gestiona eventos, notas importantes y recurrencias para tu cliente.</DialogDescription>
@@ -253,21 +253,21 @@ const ReminderFormDialog = ({ isOpen, onOpenChange, onSave, reminder, userId, ne
           <div className="flex-1 overflow-y-auto pr-2 -mr-2 space-y-5 py-2 custom-scrollbar">
             
             {/* Toggle Nota / Evento */}
-            <div className="flex items-center justify-end space-x-3 mt-2 bg-slate-800/50 p-2 rounded-lg border border-slate-700/50 w-fit ml-auto">
-              <Label className={cn("cursor-pointer transition-colors", !isEvent ? 'text-amber-400 font-semibold' : 'text-gray-400')} onClick={() => setIsEvent(false)}>Nota</Label>
+            <div className="flex items-center justify-end space-x-3 mt-2 bg-muted/65 p-2 rounded-lg border border-border/50 w-fit ml-auto">
+              <Label className={cn("cursor-pointer transition-colors", !isEvent ? 'text-amber-400 font-semibold' : 'text-muted-foreground')} onClick={() => setIsEvent(false)}>Nota</Label>
               <Switch checked={isEvent} onCheckedChange={setIsEvent} className="data-[state=checked]:bg-blue-600 data-[state=unchecked]:bg-amber-500" />
-              <Label className={cn("cursor-pointer transition-colors", isEvent ? 'text-blue-400 font-semibold' : 'text-gray-400')} onClick={() => setIsEvent(true)}>Evento</Label>
+              <Label className={cn("cursor-pointer transition-colors", isEvent ? 'text-blue-400 font-semibold' : 'text-muted-foreground')} onClick={() => setIsEvent(true)}>Evento</Label>
             </div>
 
             {/* EVENT FIELDS */}
             {isEvent && (
-              <div className="space-y-4 animate-in slide-in-from-top-2 fade-in duration-300 p-4 bg-slate-950/30 rounded-xl border border-slate-800/50">
+              <div className="space-y-4 animate-in slide-in-from-top-2 fade-in duration-300 p-4 bg-card/70 rounded-xl border border-border/50">
                 <div className="grid grid-cols-1 gap-4">
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
                           <Label>{hasEndDate ? 'Rango de fechas' : 'Fecha del evento'}</Label>
                           <div className="flex items-center space-x-2">
-                              <Label className="text-xs text-gray-400 cursor-pointer" htmlFor="range-switch">Rango</Label>
+                              <Label className="text-xs text-muted-foreground cursor-pointer" htmlFor="range-switch">Rango</Label>
                               <Switch id="range-switch" checked={hasEndDate} onCheckedChange={setHasEndDate} className="scale-75" />
                           </div>
                       </div>
@@ -297,16 +297,16 @@ const ReminderFormDialog = ({ isOpen, onOpenChange, onSave, reminder, userId, ne
                 </div>
 
                 {/* RECURRENCE SECTION */}
-                <div className="space-y-3 border-t border-slate-800 pt-4 mt-2">
+                <div className="space-y-3 border-t border-border pt-4 mt-2">
                     <div className="flex items-center gap-2">
                          <Repeat className="w-4 h-4 text-blue-400" />
                          <Label>Frecuencia de Repetición</Label>
                     </div>
                     <Select value={recurrenceType} onValueChange={setRecurrenceType}>
-                        <SelectTrigger className="bg-slate-900 border-slate-700">
+                        <SelectTrigger className="bg-card border-border">
                             <SelectValue placeholder="Sin repetición" />
                         </SelectTrigger>
-                        <SelectContent className="bg-slate-800 border-slate-700 text-white">
+                        <SelectContent className="bg-muted border-border text-white">
                             <SelectItem value="none">No se repite</SelectItem>
                             <SelectItem value="daily">Diariamente</SelectItem>
                             <SelectItem value="weekly">Semanalmente</SelectItem>
@@ -319,15 +319,15 @@ const ReminderFormDialog = ({ isOpen, onOpenChange, onSave, reminder, userId, ne
                         <div className="space-y-4 pl-6 border-l-2 border-blue-500/20 ml-2 mt-2 animate-in fade-in slide-in-from-left-2">
                             {/* Interval setting */}
                             <div className="flex items-center gap-3">
-                                <Label className="text-xs text-gray-400">Repetir cada</Label>
+                                <Label className="text-xs text-muted-foreground">Repetir cada</Label>
                                 <Input 
                                     type="number" 
                                     min="1" 
                                     value={recurrenceInterval} 
                                     onChange={(e) => setRecurrenceInterval(e.target.value)}
-                                    className="w-16 h-8 text-center bg-slate-900 border-slate-700"
+                                    className="w-16 h-8 text-center bg-card border-border"
                                 />
-                                <Label className="text-xs text-gray-400">
+                                <Label className="text-xs text-muted-foreground">
                                     {recurrenceType === 'daily' ? 'días' : 
                                      recurrenceType === 'weekly' ? 'semanas' : 
                                      recurrenceType === 'monthly' ? 'meses' : 'años'}
@@ -337,7 +337,7 @@ const ReminderFormDialog = ({ isOpen, onOpenChange, onSave, reminder, userId, ne
                             {/* Weekly specific: Days selection */}
                             {recurrenceType === 'weekly' && (
                                 <div className="space-y-2">
-                                    <Label className="text-xs text-gray-400">Días de la semana:</Label>
+                                    <Label className="text-xs text-muted-foreground">Días de la semana:</Label>
                                     <div className="flex gap-1 flex-wrap">
                                         {DAYS_OF_WEEK.map((day) => (
                                             <button
@@ -348,7 +348,7 @@ const ReminderFormDialog = ({ isOpen, onOpenChange, onSave, reminder, userId, ne
                                                     "w-8 h-8 rounded-full text-xs font-medium transition-colors border",
                                                     recurrenceDays.includes(day.value) 
                                                         ? "bg-blue-600 border-blue-500 text-white" 
-                                                        : "bg-slate-900 border-slate-700 text-gray-400 hover:bg-slate-800"
+                                                        : "bg-card border-border text-muted-foreground hover:bg-muted"
                                                 )}
                                             >
                                                 {day.label}
@@ -386,25 +386,25 @@ const ReminderFormDialog = ({ isOpen, onOpenChange, onSave, reminder, userId, ne
                                     
                                     {monthlyType === 'date' ? (
                                         <div className="flex items-center gap-2">
-                                            <Label className="text-xs text-gray-400">El día</Label>
+                                            <Label className="text-xs text-muted-foreground">El día</Label>
                                             <Input 
                                                 type="number" 
                                                 min="1" 
                                                 max="31"
                                                 value={recurrenceMonthDay} 
                                                 onChange={(e) => setRecurrenceMonthDay(parseInt(e.target.value) || 1)}
-                                                className="w-16 h-8 text-center bg-slate-900 border-slate-700"
+                                                className="w-16 h-8 text-center bg-card border-border"
                                             />
-                                            <Label className="text-xs text-gray-400">de cada mes</Label>
+                                            <Label className="text-xs text-muted-foreground">de cada mes</Label>
                                         </div>
                                     ) : (
                                         <div className="flex items-center gap-2 flex-wrap">
-                                            <Label className="text-xs text-gray-400">El</Label>
+                                            <Label className="text-xs text-muted-foreground">El</Label>
                                             <Select value={recurrenceWeekNo.toString()} onValueChange={(v) => setRecurrenceWeekNo(parseInt(v))}>
-                                                <SelectTrigger className="w-[110px] h-8 bg-slate-900 border-slate-700 text-xs">
+                                                <SelectTrigger className="w-[110px] h-8 bg-card border-border text-xs">
                                                     <SelectValue />
                                                 </SelectTrigger>
-                                                <SelectContent className="bg-slate-800 border-slate-700">
+                                                <SelectContent className="bg-muted border-border">
                                                     <SelectItem value="1">Primer</SelectItem>
                                                     <SelectItem value="2">Segundo</SelectItem>
                                                     <SelectItem value="3">Tercer</SelectItem>
@@ -413,10 +413,10 @@ const ReminderFormDialog = ({ isOpen, onOpenChange, onSave, reminder, userId, ne
                                                 </SelectContent>
                                             </Select>
                                             <Select value={recurrenceDayOfWeek.toString()} onValueChange={(v) => setRecurrenceDayOfWeek(parseInt(v))}>
-                                                <SelectTrigger className="w-[110px] h-8 bg-slate-900 border-slate-700 text-xs">
+                                                <SelectTrigger className="w-[110px] h-8 bg-card border-border text-xs">
                                                     <SelectValue />
                                                 </SelectTrigger>
-                                                <SelectContent className="bg-slate-800 border-slate-700">
+                                                <SelectContent className="bg-muted border-border">
                                                     <SelectItem value="1">Lunes</SelectItem>
                                                     <SelectItem value="2">Martes</SelectItem>
                                                     <SelectItem value="3">Miércoles</SelectItem>
@@ -426,7 +426,7 @@ const ReminderFormDialog = ({ isOpen, onOpenChange, onSave, reminder, userId, ne
                                                     <SelectItem value="0">Domingo</SelectItem>
                                                 </SelectContent>
                                             </Select>
-                                            <Label className="text-xs text-gray-400">del mes</Label>
+                                            <Label className="text-xs text-muted-foreground">del mes</Label>
                                         </div>
                                     )}
                                 </div>
@@ -434,21 +434,21 @@ const ReminderFormDialog = ({ isOpen, onOpenChange, onSave, reminder, userId, ne
 
                              {/* Yearly specific info */}
                              {recurrenceType === 'yearly' && (
-                                <div className="text-xs text-gray-400 italic p-2 bg-slate-900/50 rounded border border-slate-800">
+                                <div className="text-xs text-muted-foreground italic p-2 bg-card/75 rounded border border-border">
                                     El evento se repetirá {recurrenceInterval > 1 ? `cada ${recurrenceInterval} años` : 'anualmente'} en la fecha: <span className="text-white font-medium">{startDate ? format(startDate, 'dd/MM/yyyy') : '...'}</span>
                                 </div>
                              )}
 
                             {/* End date for recurrence */}
                             <div className="pt-2">
-                                <Label className="text-xs text-gray-400 block mb-1">Terminar repetición (opcional):</Label>
+                                <Label className="text-xs text-muted-foreground block mb-1">Terminar repetición (opcional):</Label>
                                 <UnifiedDatePicker
                                     selected={recurrenceEndDate}
                                     onChange={setRecurrenceEndDate}
                                     isClearable
                                     placeholder="Nunca"
                                     withPortal
-                                    triggerClassName="min-h-[40px] bg-slate-900 text-sm"
+                                    triggerClassName="min-h-[40px] bg-card text-sm"
                                 />
                             </div>
                         </div>
@@ -467,19 +467,19 @@ const ReminderFormDialog = ({ isOpen, onOpenChange, onSave, reminder, userId, ne
                   value={title} 
                   onChange={(e) => setTitle(e.target.value)} 
                   placeholder={isEvent ? "Ej: Revisión presencial" : "Hay que recordar que..."} 
-                  className="bg-slate-950/50 border-slate-700 focus:ring-offset-0"
+                  className="bg-card/80 border-border focus:ring-offset-0"
               />
             </div>
 
             {/* CONTENIDO (Optional) -> Detalle */}
             <div className="space-y-2">
-              <Label htmlFor="content">Detalles <span className="text-gray-500 text-xs font-normal ml-1">(opcional)</span></Label>
+              <Label htmlFor="content">Detalles <span className="text-muted-foreground text-xs font-normal ml-1">(opcional)</span></Label>
               <Textarea 
                   id="content" 
                   value={content} 
                   onChange={(e) => setContent(e.target.value)} 
                   placeholder="Información adicional..." 
-                  className="bg-slate-950/50 border-slate-700 min-h-[100px] resize-none" 
+                  className="bg-card/80 border-border min-h-[100px] resize-none" 
               />
             </div>
 
@@ -492,13 +492,13 @@ const ReminderFormDialog = ({ isOpen, onOpenChange, onSave, reminder, userId, ne
                   variant="ghost" 
                   size="sm" 
                   onClick={() => setIsDeleteMode(!isDeleteMode)}
-                  className={cn("h-6 px-2 text-xs", isDeleteMode ? "text-red-400 bg-red-700/20 hover:text-gray-300 hover:bg-red-900/30" : "text-gray-500 hover:bg-red-900/30 hover:text-gray-300")}
+                  className={cn("h-6 px-2 text-xs", isDeleteMode ? "text-red-400 bg-red-700/20 hover:text-muted-foreground hover:bg-red-900/30" : "text-muted-foreground hover:bg-red-900/30 hover:text-muted-foreground")}
                 >
                   {isDeleteMode ? 'Terminar' : 'Eliminar'}
                 </Button>
               </div>
               
-              <div className={cn("flex flex-wrap gap-2 p-3 bg-slate-950/30 rounded-xl border border-slate-800/60 min-h-[3rem] items-center transition-colors", isDeleteMode && "border-red-900/30 bg-red-950/10")}>
+              <div className={cn("flex flex-wrap gap-2 p-3 bg-card/70 rounded-xl border border-border/60 min-h-[3rem] items-center transition-colors", isDeleteMode && "border-red-900/30 bg-red-950/10")}>
                 {availableCategories.map((cat) => {
                   const isSelected = selectedCategories.includes(cat);
                   
@@ -509,7 +509,7 @@ const ReminderFormDialog = ({ isOpen, onOpenChange, onSave, reminder, userId, ne
                       if (isSelected) {
                           badgeClass = isEvent ? eventCategoryClass : noteCategoryClass;
                       } else {
-                          badgeClass = "bg-slate-800 text-gray-400 border-slate-700 hover:bg-slate-700 hover:text-gray-200 cursor-pointer";
+                          badgeClass = "bg-muted text-muted-foreground border-border hover:bg-accent hover:text-gray-200 cursor-pointer";
                       }
                   }
 
@@ -549,7 +549,7 @@ const ReminderFormDialog = ({ isOpen, onOpenChange, onSave, reminder, userId, ne
                                   setNewCategoryName('');
                               }
                           }}
-                          className="h-7 text-xs w-24 px-2 bg-slate-800 border-slate-600"
+                          className="h-7 text-xs w-24 px-2 bg-muted border-input"
                           placeholder="Nueva..."
                         />
                         <Button size="icon" type="button" variant="ghost" onClick={handleAddCustomCategory} className="h-7 w-7 hover:bg-green-500/20 hover:text-green-400">
@@ -565,7 +565,7 @@ const ReminderFormDialog = ({ isOpen, onOpenChange, onSave, reminder, userId, ne
                         variant="ghost"
                         size="sm"
                         onClick={() => setIsAddingCategory(true)}
-                        className="h-7 px-2 text-xs border border-dashed border-slate-600 text-slate-400 hover:text-white hover:border-slate-400 hover:bg-slate-800 rounded-full"
+                        className="h-7 px-2 text-xs border border-dashed border-input text-muted-foreground hover:text-foreground hover:border-slate-400 hover:bg-muted rounded-full"
                       >
                         <Plus className="w-3 h-3 mr-1" /> Agregar
                       </Button>
@@ -573,7 +573,7 @@ const ReminderFormDialog = ({ isOpen, onOpenChange, onSave, reminder, userId, ne
                   </>
                 )}
               </div>
-              <p className="text-[10px] text-gray-500 pl-1">
+              <p className="text-[10px] text-muted-foreground pl-1">
                  {isDeleteMode 
                     ? "Haz clic en una categoría para eliminarla de la lista." 
                     : "Selecciona etiquetas para organizar."}
@@ -582,7 +582,7 @@ const ReminderFormDialog = ({ isOpen, onOpenChange, onSave, reminder, userId, ne
           </div>
 
           <DialogFooter className="mt-4 flex-shrink-0">
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="hover:bg-slate-800 text-gray-400 hover:text-white">
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="hover:bg-muted text-muted-foreground hover:text-foreground">
                 Cancelar
             </Button>
             <Button type="submit" disabled={isSubmitting} className={isEvent ? eventSubmitBtnClass : noteSubmitBtnClass}>

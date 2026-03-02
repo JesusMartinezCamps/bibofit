@@ -38,7 +38,7 @@ const WeekView = ({
   }, [userDayMeals]);
 
   if (!weekDates || !Array.isArray(weekDates)) {
-      return <div className="p-4 text-center text-gray-400">Cargando calendario...</div>;
+      return <div className="p-4 text-center text-muted-foreground">Cargando calendario...</div>;
   }
 
   return (
@@ -55,9 +55,9 @@ const WeekView = ({
                     dayElementsRef.current[index] = el;
                 }
             }}
-            className="bg-gray-800/50 p-2 rounded-lg min-h-[200px]"
+            className="bg-muted/65 p-2 rounded-lg min-h-[200px]"
           >
-            <h4 className="font-bold text-center text-white pb-2 mb-2 border-b border-gray-700 capitalize">
+            <h4 className="font-bold text-center text-white pb-2 mb-2 border-b border-border capitalize">
               <span className="text-lg mr-2">{format(date, 'd')}</span>
               {capitalize(format(date, 'eeee', { locale: es }))}
             </h4>
@@ -106,10 +106,10 @@ const WeekView = ({
                 return (
                   <div
                     key={`${dateString}-${meal.id}`}
-                    className="p-2 rounded-md bg-gray-900/40"
+                    className="p-2 rounded-md bg-card/40"
                   >
                     <div className="flex justify-between items-center mb-2">
-                      <h5 className="font-semibold text-sm text-gray-300">{meal.day_meal.name}</h5>
+                      <h5 className="font-semibold text-sm text-muted-foreground">{meal.day_meal.name}</h5>
                     </div>
                     <div className="space-y-2 min-h-[50px]">
                       {itemForSlot ? (
@@ -138,7 +138,7 @@ const WeekView = ({
                         </div>
                       ) : (
                         <button 
-                          className="w-full h-full text-center p-2 rounded-md border-2 border-dashed border-gray-600 hover:border-sky-500 hover:bg-sky-500/10 transition-all"
+                          className="w-full h-full text-center p-2 rounded-md border-2 border-dashed border-input hover:border-sky-500 hover:bg-sky-500/10 transition-all"
                           onClick={() => onAddRecipeClick(meal, date, 'plan_only')}
                         >
                           <p className="text-sm text-sky-400/80 italic">Vacío</p>

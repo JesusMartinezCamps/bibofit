@@ -50,7 +50,7 @@ import React from 'react';
                       {conflictingIngredientsData.map(conflict => (
                         <li key={conflict.id}>
                           <span className={cn("font-semibold", conflict.isPathology ? "text-red-400" : "text-orange-400")}>{conflict.foodName}</span>
-                          <span className="text-gray-400"> ({conflict.restrictionName})</span>
+                          <span className="text-muted-foreground"> ({conflict.restrictionName})</span>
                         </li>
                       ))}
                     </ul>
@@ -69,7 +69,7 @@ import React from 'react';
               createFoodUserId={userId}
             />
           </div>
-          <div className="flex justify-center pt-4 border-t border-gray-700">
+          <div className="flex justify-center pt-4 border-t border-border">
             <Button 
               onClick={handleSubmit} 
               disabled={isSubmitting} 

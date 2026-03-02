@@ -66,10 +66,10 @@ const RecipeForm = ({
             <SelectTrigger className="input-field">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-[#282d34] border border-gray-700 text-white z-50">
-              <SelectItem value="Fácil" className="focus:bg-gray-700 focus:text-white">Fácil</SelectItem>
-              <SelectItem value="Media" className="focus:bg-gray-700 focus:text-white">Media</SelectItem>
-              <SelectItem value="Difícil" className="focus:bg-gray-700 focus:text-white">Difícil</SelectItem>
+            <SelectContent className="bg-[#282d34] border border-border text-white z-50">
+              <SelectItem value="Fácil" className="focus:bg-muted focus:text-white">Fácil</SelectItem>
+              <SelectItem value="Media" className="focus:bg-muted focus:text-white">Media</SelectItem>
+              <SelectItem value="Difícil" className="focus:bg-muted focus:text-white">Difícil</SelectItem>
             </SelectContent>
           </Select>
         </div>

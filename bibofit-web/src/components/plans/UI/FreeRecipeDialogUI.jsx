@@ -35,7 +35,7 @@ const FreeRecipeDialogUI = ({
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="md:col-span-2">
-          <label htmlFor="recipeName" className="block text-sm font-medium text-gray-300 mb-1">Nombre de la Receta</label>
+          <label htmlFor="recipeName" className="block text-sm font-medium text-muted-foreground mb-1">Nombre de la Receta</label>
           <Input
             id="recipeName"
             type="text"
@@ -49,7 +49,7 @@ const FreeRecipeDialogUI = ({
 
       <div className="grid grid-cols-2 gap-4"> {/* Changed to grid-cols-2 for mobile */}
         <div>
-          <label htmlFor="prepTime" className="block text-sm font-medium text-gray-300 mb-1">Tiempo (min)</label>
+          <label htmlFor="prepTime" className="block text-sm font-medium text-muted-foreground mb-1">Tiempo (min)</label>
           <Input
             id="prepTime"
             type="number"
@@ -60,7 +60,7 @@ const FreeRecipeDialogUI = ({
           />
         </div>
         <div>
-          <label htmlFor="difficulty" className="block text-sm font-medium text-gray-300 mb-1">Dificultad</label>
+          <label htmlFor="difficulty" className="block text-sm font-medium text-muted-foreground mb-1">Dificultad</label>
           <Select value={difficulty} onValueChange={setDifficulty}>
               <SelectTrigger className="input-field">
                   <SelectValue placeholder="Selecciona dificultad" />
@@ -75,7 +75,7 @@ const FreeRecipeDialogUI = ({
       </div>
 
       <div>
-        <label htmlFor="instructions" className="block text-sm font-medium text-gray-300 mb-1">Instrucciones</label>
+        <label htmlFor="instructions" className="block text-sm font-medium text-muted-foreground mb-1">Instrucciones</label>
         <Textarea
           id="instructions"
           placeholder="Describe los pasos para preparar la receta..."

@@ -113,7 +113,7 @@ const MyFoodsPage = () => {
               <Apple className="w-10 h-10 text-green-400" />
               Mis Alimentos Creados
             </h1>
-            <p className="text-gray-400 mt-2">Aquí puedes ver el historial de los alimentos que has solicitado.</p>
+            <p className="text-muted-foreground mt-2">Aquí puedes ver el historial de los alimentos que has solicitado.</p>
           </div>
 
           <TabNavigation 
@@ -128,10 +128,10 @@ const MyFoodsPage = () => {
               <Loader2 className="w-12 h-12 animate-spin text-green-500" />
             </div>
           ) : filteredFoods.length === 0 ? (
-            <Card className="bg-gray-800/50 border-gray-700 text-center py-12">
+            <Card className="bg-muted/65 border-border text-center py-12">
               <CardContent>
-                <p className="text-gray-400">No tienes alimentos en esta categoría.</p>
-                {activeTab === 'pending' && <p className="text-gray-500 text-sm mt-2">Puedes solicitar un alimento nuevo desde "Mi Perfil".</p>}
+                <p className="text-muted-foreground">No tienes alimentos en esta categoría.</p>
+                {activeTab === 'pending' && <p className="text-muted-foreground text-sm mt-2">Puedes solicitar un alimento nuevo desde "Mi Perfil".</p>}
               </CardContent>
             </Card>
           ) : (
@@ -143,11 +143,11 @@ const MyFoodsPage = () => {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.5, delay: 0.1 * index }}
                 >
-                  <Card className="bg-gray-800/50 border-gray-700 hover:border-green-500/50 transition-colors relative">
+                  <Card className="bg-muted/65 border-border hover:border-green-500/50 transition-colors relative">
                     <CardHeader className="flex flex-row items-center justify-between">
                       <div>
                         <CardTitle className="text-white">{food.name}</CardTitle>
-                        <CardDescription className="text-gray-400">
+                        <CardDescription className="text-muted-foreground">
                           Solicitado el {format(new Date(food.created_at), 'dd MMMM, yyyy', { locale: es })}
                         </CardDescription>
                       </div>
@@ -156,7 +156,7 @@ const MyFoodsPage = () => {
                     {(activeTab === 'rejected' || activeTab === 'pending') && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <button className="absolute top-2 right-2 p-1.5 bg-red-900/50 rounded-full text-red-400 hover:bg-red-800/70 hover:text-white transition-all">
+                          <button className="absolute top-2 right-2 p-1.5 bg-red-900/50 rounded-full text-red-400 hover:bg-red-800/70 hover:text-foreground transition-all">
                             <XCircle size={18} />
                           </button>
                         </AlertDialogTrigger>

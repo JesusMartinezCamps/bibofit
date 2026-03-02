@@ -87,7 +87,7 @@ const FoodsWithSensitivitySection = ({ sensitivity, onUpdateFoods }) => {
     };
 
     return (
-        <div className="bg-slate-900/40 p-3 rounded-md border border-slate-700/50 w-full mt-3">
+        <div className="bg-card/40 p-3 rounded-md border border-border/50 w-full mt-3">
             <Collapsible open={isOpen} onOpenChange={setIsOpen}>
                 <div className="flex justify-between items-center">
                     <CollapsibleTrigger asChild>
@@ -102,13 +102,13 @@ const FoodsWithSensitivitySection = ({ sensitivity, onUpdateFoods }) => {
                 </div>
                 <CollapsibleContent className="pt-4 space-y-4">
                     <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
                             type="text"
                             placeholder="Buscar alimento en la lista..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10 bg-slate-800/60 border-slate-700"
+                            className="pl-10 bg-muted/70 border-border"
                         />
                     </div>
                     {isLoading && <Loader2 className="w-4 h-4 animate-spin text-orange-400" />}
@@ -127,7 +127,7 @@ const FoodsWithSensitivitySection = ({ sensitivity, onUpdateFoods }) => {
                                 </span>
                             ))
                         ) : (
-                            <p className="text-sm text-gray-400 italic w-full text-center py-2">
+                            <p className="text-sm text-muted-foreground italic w-full text-center py-2">
                                 {foods.length > 0 ? 'No se encontraron alimentos con ese nombre.' : 'No hay alimentos asociados a esta sensibilidad.'}
                             </p>
                         )}
@@ -136,7 +136,7 @@ const FoodsWithSensitivitySection = ({ sensitivity, onUpdateFoods }) => {
             </Collapsible>
 
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                <DialogContent className="bg-slate-900 border-slate-800 text-white">
+                <DialogContent className="bg-card border-border text-white">
                     <DialogHeader>
                         <DialogTitle>Añadir Alimento a {sensitivity.name}</DialogTitle>
                     </DialogHeader>

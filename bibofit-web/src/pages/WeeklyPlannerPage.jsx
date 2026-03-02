@@ -259,19 +259,19 @@ const WeeklyPlannerPage = () => {
                                 const dayOfWeek = getDay(day) === 0 ? 7 : getDay(day);
                                 const dayMeals = plannedMeals.filter(m => m.day_of_week === dayOfWeek);
                                 return (
-                                    <Card key={format(day, 'yyyy-MM-dd')} className="bg-slate-800/60 border-slate-700 text-white flex flex-col">
+                                    <Card key={format(day, 'yyyy-MM-dd')} className="bg-muted/70 border-border text-white flex flex-col">
                                         <CardHeader className="text-center pb-2">
                                             <CardTitle className="text-lg">{capitalize(format(day, 'EEEE', { locale: es }))}</CardTitle>
-                                            <p className="text-sm text-gray-400">{format(day, 'dd/MM')}</p>
+                                            <p className="text-sm text-muted-foreground">{format(day, 'dd/MM')}</p>
                                         </CardHeader>
                                         <CardContent className="space-y-3 flex-grow overflow-y-auto">
                                             {userDayMeals.map(meal => {
                                                 if (!meal || !meal.day_meal) return null;
                                                 const mealsForSlot = dayMeals.filter(m => m.day_meal && m.day_meal.id === meal.day_meal_id);
                                                 return (
-                                                  <div key={meal.id} className="p-3 bg-slate-900/50 rounded-lg">
+                                                  <div key={meal.id} className="p-3 bg-card/75 rounded-lg">
                                                       <div className="flex justify-between items-center mb-2">
-                                                          <h4 className="font-semibold text-gray-300">{meal.day_meal.name}</h4>
+                                                          <h4 className="font-semibold text-muted-foreground">{meal.day_meal.name}</h4>
                                                           <Button variant="ghost" size="icon" className="h-6 w-6 text-green-400 hover:text-green-300 hover:bg-green-500/10" onClick={() => handleAddRecipeClick(day, meal)}>
                                                               <Plus className="h-4 w-4"/>
                                                           </Button>
@@ -293,7 +293,7 @@ const WeeklyPlannerPage = () => {
                                                               inPlanner={true}
                                                           />
                                                       )) : (
-                                                          <p className="text-xs text-gray-500 italic text-center py-2">Sin planificar</p>
+                                                          <p className="text-xs text-muted-foreground italic text-center py-2">Sin planificar</p>
                                                       )}
                                                       </div>
                                                   </div>

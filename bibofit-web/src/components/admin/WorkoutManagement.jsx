@@ -58,7 +58,7 @@ const WorkoutManagement = () => {
       case 'Principiante': return 'bg-green-500 bg-opacity-20 text-green-300';
       case 'Intermedio': return 'bg-yellow-500 bg-opacity-20 text-yellow-300';
       case 'Avanzado': return 'bg-red-500 bg-opacity-20 text-red-300';
-      default: return 'bg-gray-500 bg-opacity-20 text-gray-300';
+      default: return 'bg-gray-500 bg-opacity-20 text-muted-foreground';
     }
   };
 
@@ -67,7 +67,7 @@ const WorkoutManagement = () => {
       case 'Fuerza': return 'bg-blue-500 bg-opacity-20 text-blue-300';
       case 'Cardio': return 'bg-orange-500 bg-opacity-20 text-orange-300';
       case 'Funcional': return 'bg-purple-500 bg-opacity-20 text-purple-300';
-      default: return 'bg-gray-500 bg-opacity-20 text-gray-300';
+      default: return 'bg-gray-500 bg-opacity-20 text-muted-foreground';
     }
   };
 
@@ -96,7 +96,7 @@ const WorkoutManagement = () => {
         className="glass-effect rounded-2xl p-6"
       >
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           <input
             type="text"
             placeholder="Buscar entrenamientos por nombre, cliente o categoría..."
@@ -108,7 +108,7 @@ const WorkoutManagement = () => {
       </motion.div>
 
       {loading ? (
-        <div className="text-center py-8 text-gray-400">Cargando entrenamientos...</div>
+        <div className="text-center py-8 text-muted-foreground">Cargando entrenamientos...</div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {filteredWorkouts.map((workout, index) => (
@@ -122,19 +122,19 @@ const WorkoutManagement = () => {
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
                   <h3 className="text-xl font-bold text-white mb-2">{workout.name}</h3>
-                  <div className="flex items-center space-x-2 text-gray-400 mb-2"><User className="w-4 h-4" /><span className="text-sm">{workout.userName}</span></div>
+                  <div className="flex items-center space-x-2 text-muted-foreground mb-2"><User className="w-4 h-4" /><span className="text-sm">{workout.userName}</span></div>
                   <div className="flex items-center space-x-2"><span className={`px-2 py-1 rounded-full text-xs font-medium ${getCategoryColor(workout.category)}`}>{workout.category}</span><span className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(workout.difficulty)}`}>{workout.difficulty}</span></div>
                 </div>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${workout.status === 'active' ? 'bg-green-500 bg-opacity-20 text-green-300' : 'bg-gray-500 bg-opacity-20 text-gray-300'}`}>{workout.status === 'active' ? 'Activo' : 'Inactivo'}</span>
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${workout.status === 'active' ? 'bg-green-500 bg-opacity-20 text-green-300' : 'bg-gray-500 bg-opacity-20 text-muted-foreground'}`}>{workout.status === 'active' ? 'Activo' : 'Inactivo'}</span>
               </div>
               <div className="grid grid-cols-2 gap-3 mb-4">
-                <div className="bg-[#1a1e23] rounded-lg p-3"><div className="flex items-center space-x-2"><Clock className="w-4 h-4 text-gray-400" /><div><p className="text-gray-400 text-xs">Duración</p><p className="text-white font-semibold">{workout.duration} min</p></div></div></div>
-                <div className="bg-[#1a1e23] rounded-lg p-3"><div className="flex items-center space-x-2"><Dumbbell className="w-4 h-4 text-gray-400" /><div><p className="text-gray-400 text-xs">Ejercicios</p><p className="text-white font-semibold">{workout.exerciseCount}</p></div></div></div>
+                <div className="bg-background rounded-lg p-3"><div className="flex items-center space-x-2"><Clock className="w-4 h-4 text-muted-foreground" /><div><p className="text-muted-foreground text-xs">Duración</p><p className="text-white font-semibold">{workout.duration} min</p></div></div></div>
+                <div className="bg-background rounded-lg p-3"><div className="flex items-center space-x-2"><Dumbbell className="w-4 h-4 text-muted-foreground" /><div><p className="text-muted-foreground text-xs">Ejercicios</p><p className="text-white font-semibold">{workout.exerciseCount}</p></div></div></div>
               </div>
-              <div className="mb-4"><p className="text-gray-400 text-sm">Última actualización: {new Date(workout.lastUpdated).toLocaleDateString('es-ES')}</p></div>
+              <div className="mb-4"><p className="text-muted-foreground text-sm">Última actualización: {new Date(workout.lastUpdated).toLocaleDateString('es-ES')}</p></div>
               <div className="flex items-center space-x-2">
                 <Button onClick={() => editWorkout(workout.id)} size="sm" className="btn-secondary flex-1"><Edit className="w-4 h-4 mr-2" />Editar</Button>
-                <Button onClick={() => deleteWorkout(workout.id)} size="sm" variant="ghost" className="text-gray-400 hover:text-red-400"><Trash2 className="w-4 h-4" /></Button>
+                <Button onClick={() => deleteWorkout(workout.id)} size="sm" variant="ghost" className="text-muted-foreground hover:text-red-400"><Trash2 className="w-4 h-4" /></Button>
               </div>
             </motion.div>
           ))}
@@ -149,7 +149,7 @@ const WorkoutManagement = () => {
           className="glass-effect rounded-2xl p-8 text-center"
         >
           <Dumbbell className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-          <p className="text-gray-400">No se encontraron entrenamientos</p>
+          <p className="text-muted-foreground">No se encontraron entrenamientos</p>
         </motion.div>
       )}
     </div>

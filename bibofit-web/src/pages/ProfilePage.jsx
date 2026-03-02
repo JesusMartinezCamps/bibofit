@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate, Link } from 'react-router-dom';
-import { User, Utensils, LogOut, ChevronRight, LineChart, CalendarCheck, RotateCcw, PlayCircle, Bell } from 'lucide-react'; 
+import { User, Utensils, LogOut, ChevronRight, LineChart, CalendarCheck, RotateCcw, PlayCircle, Bell, Moon, Sun } from 'lucide-react'; 
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,6 +29,7 @@ import ProfileTypeSubtitle from '@/components/profile/ProfileTypeSubtitle';
 import { useQuickStartGuide } from '@/contexts/QuickStartGuideContext';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { useNotifications } from '@/contexts/NotificationsContext';
+import { useTheme } from '@/contexts/ThemeContext';
 
 const ProfilePage = () => {
   const { signOut, user } = useAuth();
@@ -37,6 +38,7 @@ const ProfilePage = () => {
   const { openGuide } = useQuickStartGuide();
   const { startRepeatOnboarding } = useOnboarding();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const { isDark, toggleTheme } = useTheme();
   const [isNotificationsOpen, setIsNotificationsOpen] = React.useState(false);
   const profileName = user?.full_name?.trim();
   const profileTitle = profileName ? profileName : 'Mi Perfil';
@@ -67,25 +69,25 @@ const ProfilePage = () => {
       label: 'Mis Datos de Perfil',
       href: '/profile/data',
       icon: User,
-      color: 'bg-gradient-to-r from-purple-900 to-fuchsia-700 hover:from-purple-700 hover:to-fuchsia-500',
+      color: 'bg-gradient-to-r from-violet-700 to-violet-500 hover:from-violet-600 hover:to-fuchsia-500',
     },
     {
       label: 'Historial de Peso',
       href: '/profile/weight-history',
       icon: LineChart,
-      color: 'bg-gradient-to-r from-violet-900 to-violet-700 hover:from-violet-700 hover:to-violet-500',
+      color: 'bg-gradient-to-r from-emerald-700 to-green-600 hover:from-emerald-600 hover:to-green-500',
     },
     {
       label: 'Mis Recetas Libres',
       href: '/profile/my-free-recipes',
       icon: Utensils,
-      color: 'bg-gradient-to-r from-blue-900 to-indigo-700 hover:from-blue-700 hover:to-indigo-500',
+      color: 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400',
     },
      {
       label: 'Mi Dieta',
       href: '/my-plan',
       icon: CalendarCheck,
-      color: 'bg-gradient-to-r from-green-900 to-green-700 hover:from-green-700 hover:to-green-500',
+      color: 'bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400',
     } 
   ];
 
@@ -105,34 +107,45 @@ const ProfilePage = () => {
         >
           <div className="mb-10">
             <div className="flex items-start justify-between gap-3">
-              <h1 className="text-4xl md:text-5xl font-bold text-white">{profileTitle}</h1>
-              <Button
-                type="button"
-                variant="outline"
-                className="relative border-gray-600 bg-slate-900/70 text-gray-100 hover:bg-slate-800"
-                onClick={() => setIsNotificationsOpen(true)}
-              >
-                <Bell className="w-4 h-4 mr-2" />
-                Notificaciones
-                {unreadCount > 0 && (
-                  <span className="ml-2 inline-flex min-w-[1.25rem] h-5 px-1 items-center justify-center rounded-full bg-red-500 text-white text-xs font-semibold">
-                    {unreadCount > 99 ? '99+' : unreadCount}
-                  </span>
-                )}
-              </Button>
+              <h1 className="text-4xl md:text-5xl font-bold text-foreground">{profileTitle}</h1>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="relative border-border bg-card text-foreground hover:bg-accent"
+                  onClick={() => setIsNotificationsOpen(true)}
+                >
+                  <Bell className="mr-2 h-4 w-4" />
+                  Notificaciones
+                  {unreadCount > 0 && (
+                    <span className="ml-2 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-500 px-1 text-xs font-semibold text-white">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-border bg-card text-foreground hover:bg-accent"
+                  onClick={toggleTheme}
+                >
+                  {isDark ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
+                  {isDark ? 'Claro' : 'Oscuro'}
+                </Button>
+              </div>
             </div>
             <ProfileTypeSubtitle role={user?.role} />
             <div className="flex flex-col items-center justify-center gap-2 mt-4">
               <Button 
                   variant="link" 
-                  className="text-gray-500 hover:text-green-400 text-xs h-auto py-1" 
+                  className="h-auto py-1 text-xs text-muted-foreground hover:text-primary" 
                   onClick={handleResetOnboarding}
               >
                   <RotateCcw className="w-3 h-3 mr-1" /> Repetir Onboarding
               </Button>
               <Button 
                   variant="link" 
-                  className="text-gray-500 hover:text-emerald-400 text-xs h-auto py-1" 
+                  className="h-auto py-1 text-xs text-muted-foreground hover:text-primary" 
                   onClick={openGuide}
               >
                   <PlayCircle className="w-3 h-3 mr-1" /> Repetir Guía Rápida
@@ -151,7 +164,7 @@ const ProfilePage = () => {
                 <Link to={item.href}>
                   <Button
                     variant="secondary"
-                    className={`w-full h-20 text-lg justify-between px-6 ${item.color} text-white transition-all duration-300`}
+                    className={`h-20 w-full justify-between px-6 text-lg text-white transition-all duration-300 ${item.color}`}
                   >
                     <div className="flex items-center">
                       <item.icon className="mr-4 h-6 w-6" />
@@ -173,21 +186,21 @@ const ProfilePage = () => {
               <AlertDialogTrigger asChild>
                 <Button
                   variant="destructive"
-                  className="w-full max-w-sm mx-auto flex items-center gap-2 bg-red-800/80 hover:bg-red-700/90 text-white"
+                  className="mx-auto flex w-full max-w-sm items-center gap-2 bg-red-600/90 text-white hover:bg-red-500"
                 >
                   <LogOut className="w-5 h-5" />
                   Cerrar Sesión
                 </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent className="w-[90vw] md:w-full max-w-md bg-gray-900 border-gray-700 text-white">
+              <AlertDialogContent className="w-[90vw] max-w-md md:w-full">
                 <AlertDialogHeader>
                   <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                  <AlertDialogDescription className="text-gray-400">
+                  <AlertDialogDescription>
                     Esta acción cerrará tu sesión actual. Podrás volver a iniciar sesión en cualquier momento.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel className="bg-gray-100 border-gray-600 hover:bg-gray-600">Cancelar</AlertDialogCancel>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
                   <AlertDialogAction onClick={handleLogout} className="bg-red-600 hover:bg-red-700">
                     Cerrar Sesión
                   </AlertDialogAction>
@@ -199,12 +212,12 @@ const ProfilePage = () => {
       </main>
 
       <Dialog open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
-        <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-2xl">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <div className="flex items-center justify-between gap-3">
               <div>
                 <DialogTitle>Historial de Notificaciones</DialogTitle>
-                <DialogDescription className="text-gray-400">
+                <DialogDescription>
                   Aquí puedes revisar todas tus notificaciones recientes.
                 </DialogDescription>
               </div>
@@ -213,7 +226,7 @@ const ProfilePage = () => {
                 variant="secondary"
                 onClick={markAllAsRead}
                 disabled={!notifications?.some((n) => !n.is_read)}
-                className="bg-slate-700 hover:bg-slate-600 text-white"
+                className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
               >
                 Marcar todas
               </Button>
@@ -222,7 +235,7 @@ const ProfilePage = () => {
 
           <div className="max-h-[55vh] overflow-y-auto pr-1 space-y-2">
             {!notifications || notifications.length === 0 ? (
-              <div className="text-sm text-gray-400 py-8 text-center">
+              <div className="py-8 text-center text-sm text-muted-foreground">
                 No tienes notificaciones todavía.
               </div>
             ) : (
@@ -233,18 +246,18 @@ const ProfilePage = () => {
                   onClick={() => !n.is_read && markAsRead(n.id)}
                   className={`w-full text-left rounded-lg border p-3 transition-colors ${
                     n.is_read
-                      ? 'border-slate-700 bg-slate-800/50'
-                      : 'border-cyan-600/60 bg-cyan-900/20 hover:bg-cyan-900/30'
+                      ? 'border-border bg-muted/70'
+                      : 'border-primary/50 bg-primary/10 hover:bg-primary/15'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <p className="font-semibold text-sm text-white">{n.title}</p>
+                    <p className="text-sm font-semibold text-foreground">{n.title}</p>
                     {!n.is_read && (
-                      <span className="inline-flex w-2.5 h-2.5 mt-1 rounded-full bg-cyan-400" />
+                      <span className="mt-1 inline-flex h-2.5 w-2.5 rounded-full bg-primary" />
                     )}
                   </div>
-                  <p className="text-sm text-gray-300 mt-1">{n.message}</p>
-                  <p className="text-xs text-gray-500 mt-2">
+                  <p className="mt-1 text-sm text-muted-foreground">{n.message}</p>
+                  <p className="mt-2 text-xs text-muted-foreground/80">
                     {new Date(n.created_at).toLocaleString('es-ES')}
                   </p>
                 </button>

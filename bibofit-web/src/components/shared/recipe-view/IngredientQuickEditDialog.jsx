@@ -97,7 +97,7 @@ const IngredientQuickEditDialog = ({
   if (isReplacing) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="bg-[#0E1528] border-slate-700 text-white max-w-2xl p-0">
+        <DialogContent className="bg-[#0E1528] border-border text-white max-w-2xl p-0">
           <div className="p-4 h-[70vh]">
             <IngredientSearch
               selectedIngredients={searchSelectedIngredients}
@@ -125,7 +125,7 @@ const IngredientQuickEditDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#0E1528] border-slate-700 text-white max-w-lg">
+      <DialogContent className="bg-[#0E1528] border-border text-white max-w-lg">
         <DialogHeader>
           <DialogTitle className="text-xl bg-clip-text text-transparent bg-gradient-to-r from-green-300 to-teal-400">
             Ajustar Ingrediente
@@ -133,8 +133,8 @@ const IngredientQuickEditDialog = ({
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="rounded-lg border border-slate-700/70 bg-slate-900/60 p-3">
-            <p className="text-sm text-slate-400">Ingrediente</p>
+          <div className="rounded-lg border border-border/70 bg-card/80 p-3">
+            <p className="text-sm text-muted-foreground">Ingrediente</p>
             <p className="text-lg font-semibold text-slate-100">{selectedFood?.name || ingredient.food?.name}</p>
           </div>
 
@@ -150,7 +150,7 @@ const IngredientQuickEditDialog = ({
 
           <div className="flex items-center gap-3">
             <div className="flex-1">
-              <p className="text-xs text-slate-400 mb-1">Cantidad</p>
+              <p className="text-xs text-muted-foreground mb-1">Cantidad</p>
               <Input
                 type="number"
                 value={quantity}
@@ -158,14 +158,14 @@ const IngredientQuickEditDialog = ({
                 className="input-field bg-transparent border-dashed text-center"
               />
             </div>
-            <div className="pt-6 text-slate-300 text-sm">
+            <div className="pt-6 text-muted-foreground text-sm">
               {selectedFood?.food_unit === 'unidades' ? 'ud' : 'g'}
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-lg border border-slate-700/70 bg-slate-900/60 p-3">
-              <p className="text-xs text-slate-400 mb-1">Macros originales</p>
+            <div className="rounded-lg border border-border/70 bg-card/80 p-3">
+              <p className="text-xs text-muted-foreground mb-1">Macros originales</p>
               <div className="space-y-1 text-sm">
                 <p className="text-orange-300">Kcal: {Math.round(originalMacros.calories || 0)}</p>
                 <p className="text-red-300">Prot: {Math.round(originalMacros.proteins || 0)}g</p>
@@ -185,8 +185,8 @@ const IngredientQuickEditDialog = ({
           </div>
 
           {(selectedVitamins.length > 0 || selectedMinerals.length > 0) && (
-            <div className="rounded-lg border border-slate-700/70 bg-slate-900/60 p-3">
-              <p className="text-xs text-slate-400 mb-2">Vitaminas y Minerales</p>
+            <div className="rounded-lg border border-border/70 bg-card/80 p-3">
+              <p className="text-xs text-muted-foreground mb-2">Vitaminas y Minerales</p>
               <div className="flex flex-wrap gap-2">
                 {selectedVitamins.map((v) => (
                   <Badge key={`qv-${v.id}`} variant="outline" className="border-emerald-500/40 text-emerald-300 bg-emerald-900/20">

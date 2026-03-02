@@ -115,7 +115,7 @@ const AssignToCenterDialog = ({ open, onOpenChange, template, onSuccess }) => {
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="bg-[#1a1e23] border-gray-700 text-white max-w-md">
+            <DialogContent className="bg-background border-border text-white max-w-md">
                 <DialogHeader>
                     <DialogTitle>Asignar a Organizaciones</DialogTitle>
                     <DialogDescription>
@@ -129,13 +129,13 @@ const AssignToCenterDialog = ({ open, onOpenChange, template, onSuccess }) => {
                             <Loader2 className="h-8 w-8 animate-spin text-green-500" />
                         </div>
                     ) : centers.length === 0 ? (
-                        <p className="text-gray-400 text-center italic">No hay centros registrados en el sistema.</p>
+                        <p className="text-muted-foreground text-center italic">No hay centros registrados en el sistema.</p>
                     ) : (
                         <div className="space-y-2">
                             {centers.map(center => (
                                 <div 
                                     key={center.id} 
-                                    className="flex items-center space-x-3 p-3 rounded-lg border border-gray-800 bg-gray-900/50 hover:bg-gray-800 transition-colors cursor-pointer"
+                                    className="flex items-center space-x-3 p-3 rounded-lg border border-border bg-card/75 hover:bg-muted transition-colors cursor-pointer"
                                     onClick={() => handleToggle(center.id)}
                                 >
                                     <Checkbox 
@@ -148,7 +148,7 @@ const AssignToCenterDialog = ({ open, onOpenChange, template, onSuccess }) => {
                                         htmlFor={`center-${center.id}`} 
                                         className="cursor-pointer flex-grow flex items-center gap-2 text-sm font-medium"
                                     >
-                                        <Building2 className="w-4 h-4 text-gray-400" />
+                                        <Building2 className="w-4 h-4 text-muted-foreground" />
                                         {center.name}
                                     </Label>
                                 </div>

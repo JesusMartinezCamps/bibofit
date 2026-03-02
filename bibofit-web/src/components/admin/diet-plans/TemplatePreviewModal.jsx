@@ -84,12 +84,12 @@ const TemplatePreviewModal = ({
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-6xl h-[90vh] flex flex-col bg-slate-950 border-slate-800 text-white p-0 overflow-hidden">
-                <DialogHeader className="p-6 border-b border-slate-800 bg-slate-900/50">
+            <DialogContent className="max-w-6xl h-[90vh] flex flex-col bg-card border-border text-white p-0 overflow-hidden">
+                <DialogHeader className="p-6 border-b border-border bg-card/75">
                     <div className="flex justify-between items-center pr-8">
                         <div>
                             <DialogTitle className="text-2xl font-bold">{template?.name || 'Vista Previa'}</DialogTitle>
-                            <DialogDescription className="text-gray-400">
+                            <DialogDescription className="text-muted-foreground">
                                 {loading ? 'Cargando...' : 'Vista previa del contenido del plan nutricional'}
                             </DialogDescription>
                         </div>
@@ -126,11 +126,11 @@ const TemplatePreviewModal = ({
                             onUpdate={() => {}}
                         />
                     ) : (
-                        <div className="text-center text-gray-500 mt-10">No se pudo cargar la plantilla.</div>
+                        <div className="text-center text-muted-foreground mt-10">No se pudo cargar la plantilla.</div>
                     )}
                 </div>
                 
-                <div className="p-2 border-t border-slate-800 bg-slate-900 flex justify-end">
+                <div className="p-2 border-t border-border bg-card flex justify-end">
                     <Button variant="ghost" onClick={onClose}>Cerrar Vista Previa</Button>
                 </div>
             </DialogContent>

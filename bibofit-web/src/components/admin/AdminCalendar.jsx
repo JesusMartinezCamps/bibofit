@@ -166,7 +166,7 @@ const AdminCalendar = ({ selectedUser }) => {
 
   return (
     <>
-      <div className="w-full flex-grow flex flex-col bg-[#1a1e23] p-6 rounded-2xl">
+      <div className="w-full flex-grow flex flex-col bg-background p-6 rounded-2xl">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -182,7 +182,7 @@ const AdminCalendar = ({ selectedUser }) => {
                 variant="ghost" 
                 size="icon" 
                 onClick={() => navigateMonth(-1)} 
-                className="text-gray-300 hover:text-white hover:bg-green-500/20 transition-all duration-200 rounded-full"
+                className="text-muted-foreground hover:text-foreground hover:bg-green-500/20 transition-all duration-200 rounded-full"
               >
                 <ChevronLeft className="w-6 h-6" />
               </Button>
@@ -190,7 +190,7 @@ const AdminCalendar = ({ selectedUser }) => {
                 variant="ghost" 
                 size="icon" 
                 onClick={() => navigateMonth(1)} 
-                className="text-gray-300 hover:text-white hover:bg-green-500/20 transition-all duration-200 rounded-full"
+                className="text-muted-foreground hover:text-foreground hover:bg-green-500/20 transition-all duration-200 rounded-full"
               >
                 <ChevronRight className="w-6 h-6" />
               </Button>
@@ -265,12 +265,12 @@ const AdminCalendar = ({ selectedUser }) => {
       </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="calendar-dialog-content text-white border-gray-700 max-w-lg">
+        <DialogContent className="calendar-dialog-content text-white border-border max-w-lg">
           <DialogHeader>
             <DialogTitle className="calendar-dialog-title text-center bg-gradient-to-r from-white to-green-400 bg-clip-text text-transparent">
               ¿Qué quieres gestionar?
             </DialogTitle>
-            <DialogDescription className="calendar-dialog-description text-center text-gray-300">
+            <DialogDescription className="calendar-dialog-description text-center text-muted-foreground">
               Selecciona una opción para el {selectedDate?.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </DialogDescription>
           </DialogHeader>

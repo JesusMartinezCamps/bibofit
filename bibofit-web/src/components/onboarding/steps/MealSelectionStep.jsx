@@ -19,12 +19,12 @@ const MealSelectionStep = ({ onNext, isLoading }) => {
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto pr-1">
         <div className="text-center space-y-2 mb-6">
-          <p className="text-gray-400">¿Cuántas comidas harás al día?</p>
+          <p className="text-muted-foreground">¿Cuántas comidas harás al día?</p>
         </div>
 
         <div className="grid gap-4">
           {meals.map((meal) => (
-             <Card key={meal.id} className="bg-gray-800/50 border-gray-700 cursor-pointer hover:border-green-500/50 transition-colors">
+             <Card key={meal.id} className="bg-muted/65 border-border cursor-pointer hover:border-green-500/50 transition-colors">
                 <CardContent className="p-4 flex items-center justify-between">
                     <span className="font-medium text-white">{meal.name}</span>
                     <Button variant="ghost" size="sm" className="text-green-400 hover:text-green-300 hover:bg-green-400/10">
@@ -34,7 +34,7 @@ const MealSelectionStep = ({ onNext, isLoading }) => {
              </Card>
           ))}
           
-          <Button variant="outline" className="border-dashed border-gray-600 text-gray-400 h-14 w-full">
+          <Button variant="outline" className="border-dashed border-input text-muted-foreground h-14 w-full">
              <PlusCircle className="mr-2 h-4 w-4" /> Añadir Comida Extra
           </Button>
         </div>

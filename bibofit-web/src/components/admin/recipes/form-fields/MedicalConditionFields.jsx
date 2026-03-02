@@ -43,7 +43,7 @@ const MedicalConditionFields = ({ allMedicalConditions, selectedMedicalCondition
           if (!conditionInfo) return null;
           
           return (
-            <div key={condition_id} className="flex items-center gap-3 p-2 bg-gray-900/40 rounded-md border border-gray-700/60">
+            <div key={condition_id} className="flex items-center gap-3 p-2 bg-card/40 rounded-md border border-border/60">
               <span className="flex-1 font-medium text-white">{conditionInfo.name}</span>
               <div className="flex items-center gap-1">
                 <Button 
@@ -55,7 +55,7 @@ const MedicalConditionFields = ({ allMedicalConditions, selectedMedicalCondition
                     "h-8 px-2 text-xs",
                     relation_type === 'recommended' 
                       ? 'bg-green-500/20 text-green-400 border border-green-500/50' 
-                      : 'text-gray-400 hover:bg-green-500/10 hover:text-green-400'
+                      : 'text-muted-foreground hover:bg-green-500/10 hover:text-green-400'
                   )}
                 >
                   <ThumbsUp className="w-3.5 h-3.5 mr-1.5" />
@@ -70,7 +70,7 @@ const MedicalConditionFields = ({ allMedicalConditions, selectedMedicalCondition
                     "h-8 px-2 text-xs",
                     relation_type === 'to_avoid' 
                       ? 'bg-red-500/20 text-red-400 border border-red-500/50' 
-                      : 'text-gray-400 hover:bg-red-500/10 hover:text-red-400'
+                      : 'text-muted-foreground hover:bg-red-500/10 hover:text-red-400'
                   )}
                 >
                   <ThumbsDown className="w-3.5 h-3.5 mr-1.5" />

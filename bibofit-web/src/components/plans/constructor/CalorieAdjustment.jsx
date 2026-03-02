@@ -250,7 +250,7 @@ const CalorieAdjustment = ({
 
     return (
         <TooltipProvider>
-            <div className="space-y-4 rounded-lg border border-gray-700 bg-gray-900/30 p-4">
+            <div className="space-y-4 rounded-lg border border-border bg-card/30 p-4">
                 
                 {/* Active Target Display */}
                 <div className={cn(
@@ -276,11 +276,11 @@ const CalorieAdjustment = ({
                             <span className="text-4xl font-bold text-white font-numeric tracking-tight">
                                 {effectiveTdee}
                             </span>
-                            <span className="text-lg text-gray-500 font-medium">kcal/día</span>
+                            <span className="text-lg text-muted-foreground font-medium">kcal/día</span>
                         </div>
 
                         {activeOverride && activeOverride.created_at && (
-                            <div className="mt-3 flex items-center gap-2 text-xs text-gray-400 bg-black/20 w-fit px-3 py-1.5 rounded-full">
+                            <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground bg-black/20 w-fit px-3 py-1.5 rounded-full">
                                 <History className="w-3.5 h-3.5" />
                                 <span>
                                     Creado: {format(new Date(activeOverride.created_at), 'd MMM yyyy', { locale: es })}
@@ -296,13 +296,13 @@ const CalorieAdjustment = ({
                         type="button"
                         onClick={() => setActiveSelection({ type: 'system' })}
                         className={cn(
-                            "rounded-lg border bg-gray-900/50 p-4 text-left transition-all",
+                            "rounded-lg border bg-card/75 p-4 text-left transition-all",
                             isSystemTarget
                                 ? "border-purple-500/50 shadow-sm shadow-purple-900/30"
-                                : "border-gray-700 hover:border-purple-500/30"
+                                : "border-border hover:border-purple-500/30"
                         )}
                     >
-                        <h3 className="text-gray-300 text-sm font-medium flex items-center gap-2">
+                        <h3 className="text-muted-foreground text-sm font-medium flex items-center gap-2">
                             <Calculator className="w-4 h-4" />
                             TDEE Calculado por Bibofit
 
@@ -315,7 +315,7 @@ const CalorieAdjustment = ({
                         
                         <div className="mt-2 flex items-baseline gap-2">
                             <span className="text-2xl font-bold text-white font-numeric">{calculatedTdee}</span>
-                            <span className="text-xs text-gray-500">kcal</span>
+                            <span className="text-xs text-muted-foreground">kcal</span>
                         </div>
                     </button>
                 </div>
@@ -323,7 +323,7 @@ const CalorieAdjustment = ({
 
                 {/* Input Section */}
                 <div className="space-y-3 pt-2">
-                    <Label className="text-sm font-medium text-gray-300">Nuevo Ajuste Manual</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Nuevo Ajuste Manual</Label>
                     <div className="flex items-center gap-3">
                         <div className="relative flex-1">
                             <Input 
@@ -332,15 +332,15 @@ const CalorieAdjustment = ({
                                 value={manualCalories} 
                                 onChange={e => setManualCalories(e.target.value)} 
                                 className={cn(
-                                    "bg-gray-900 border-gray-700 text-white placeholder:text-gray-600 pl-10 h-11 text-lg font-numeric transition-colors focus:border-green-500 focus:ring-1 focus:ring-green-500",
+                                    "bg-card border-border text-white placeholder:text-gray-600 pl-10 h-11 text-lg font-numeric transition-colors focus:border-green-500 focus:ring-1 focus:ring-green-500",
                                     readOnly && "cursor-not-allowed opacity-50"
                                 )}
                                 disabled={readOnly || actionLoading}
                             />
-                            <div className="absolute left-3 top-3 text-gray-500">
+                            <div className="absolute left-3 top-3 text-muted-foreground">
                                 <Activity className="w-5 h-5"/>
                             </div>
-                            <div className="absolute right-3 top-3.5 text-xs text-gray-500 font-medium pointer-events-none">
+                            <div className="absolute right-3 top-3.5 text-xs text-muted-foreground font-medium pointer-events-none">
                                 KCAL
                             </div>
                         </div>
@@ -351,7 +351,7 @@ const CalorieAdjustment = ({
                                 "h-11 px-6 font-medium transition-all shadow-sm min-w-[120px]",
                                 hasInputValue 
                                 ? "bg-green-600 hover:bg-green-700 text-white shadow-green-900/20" 
-                                : "bg-gray-800 text-gray-500 border border-gray-700 cursor-not-allowed opacity-50"
+                                : "bg-muted text-muted-foreground border border-border cursor-not-allowed opacity-50"
                             )} 
                         >
                             {actionLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2"/> : <Save className="w-4 h-4 mr-2"/>}
@@ -361,8 +361,8 @@ const CalorieAdjustment = ({
                 </div>
 
                 {/* History Section */}
-                <div className="pt-6 border-t border-gray-800 space-y-4">
-                    <h5 className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                <div className="pt-6 border-t border-border space-y-4">
+                    <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                         <History className="w-3.5 h-3.5" />
                         Historial de Ajustes (clic para activar)
                     </h5>

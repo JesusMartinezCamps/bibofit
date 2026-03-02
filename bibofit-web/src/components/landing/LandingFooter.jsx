@@ -4,7 +4,7 @@ import { Dumbbell, Instagram, Twitter, Linkedin } from 'lucide-react';
 
 const LandingFooter = () => {
     return (
-        <footer className="bg-[#16191d] border-t border-gray-800 pt-16 pb-8">
+        <footer className="bg-[#16191d] border-t border-border pt-16 pb-8">
             <div className="container mx-auto px-4 md:px-6">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
                     {/* Brand */}
@@ -15,7 +15,7 @@ const LandingFooter = () => {
                             </div>
                             <span>Bibofit</span>
                         </Link>
-                        <p className="text-gray-400 text-sm leading-relaxed">
+                        <p className="text-muted-foreground text-sm leading-relaxed">
                             Plataforma integral para la gestión de entrenamiento y nutrición. Potenciamos a los profesionales del fitness.
                         </p>
                     </div>
@@ -23,7 +23,7 @@ const LandingFooter = () => {
                     {/* Links Column 1 */}
                     <div>
                         <h4 className="text-white font-bold mb-4">Producto</h4>
-                        <ul className="space-y-2 text-sm text-gray-400">
+                        <ul className="space-y-2 text-sm text-muted-foreground">
                             <li><a href="#features" className="hover:text-green-400">Características</a></li>
                             <li><a href="#pricing" className="hover:text-green-400">Precios</a></li>
                             <li><a href="#for-whom" className="hover:text-green-400">Para Clientes</a></li>
@@ -34,7 +34,7 @@ const LandingFooter = () => {
                     {/* Links Column 2 */}
                     <div>
                         <h4 className="text-white font-bold mb-4">Compañía</h4>
-                        <ul className="space-y-2 text-sm text-gray-400">
+                        <ul className="space-y-2 text-sm text-muted-foreground">
                             <li><Link to="/about" className="hover:text-green-400">Sobre Nosotros</Link></li>
                             <li><Link to="/contact" className="hover:text-green-400">Contacto</Link></li>
                             <li><Link to="/blog" className="hover:text-green-400">Blog</Link></li>
@@ -46,20 +46,20 @@ const LandingFooter = () => {
                     <div>
                          <h4 className="text-white font-bold mb-4">Síguenos</h4>
                          <div className="flex gap-4">
-                            <a href="#" className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:bg-green-500 hover:text-black transition-all">
+                            <a href="#" className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:bg-green-500 hover:text-black transition-all">
                                 <Instagram className="h-5 w-5" />
                             </a>
-                            <a href="#" className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:bg-green-500 hover:text-black transition-all">
+                            <a href="#" className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:bg-green-500 hover:text-black transition-all">
                                 <Twitter className="h-5 w-5" />
                             </a>
-                            <a href="#" className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:bg-green-500 hover:text-black transition-all">
+                            <a href="#" className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:bg-green-500 hover:text-black transition-all">
                                 <Linkedin className="h-5 w-5" />
                             </a>
                          </div>
                     </div>
                 </div>
 
-                <div className="border-t border-gray-800 pt-8 text-center text-sm text-gray-500">
+                <div className="border-t border-border pt-8 text-center text-sm text-muted-foreground">
                     <p>&copy; {new Date().getFullYear()} Bibofit. Todos los derechos reservados.</p>
                 </div>
             </div>

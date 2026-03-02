@@ -7,15 +7,15 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 const DietChangeRequestCard = ({ request, onReview }) => {
   if (!request || !request.profile) {
     return (
-      <Card className="bg-slate-800/50 border-gray-700/80 p-4 flex items-center justify-between flex-wrap gap-4 animate-pulse">
+      <Card className="bg-muted/65 border-border/80 p-4 flex items-center justify-between flex-wrap gap-4 animate-pulse">
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-gray-700 rounded-full"></div>
+          <div className="w-10 h-10 bg-muted rounded-full"></div>
           <div>
-            <div className="h-5 w-32 bg-gray-700 rounded mb-2"></div>
-            <div className="h-4 w-48 bg-gray-700 rounded"></div>
+            <div className="h-5 w-32 bg-muted rounded mb-2"></div>
+            <div className="h-4 w-48 bg-muted rounded"></div>
           </div>
         </div>
-        <div className="h-9 w-36 bg-gray-700 rounded"></div>
+        <div className="h-9 w-36 bg-muted rounded"></div>
       </Card>
     );
   }
@@ -25,7 +25,7 @@ const DietChangeRequestCard = ({ request, onReview }) => {
 
   return (
     <TooltipProvider>
-      <Card className="bg-slate-800/50 border-gray-700/80 p-4 flex items-center justify-between flex-wrap gap-4">
+      <Card className="bg-muted/65 border-border/80 p-4 flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-4">
           <Tooltip>
             <TooltipTrigger>
@@ -41,12 +41,12 @@ const DietChangeRequestCard = ({ request, onReview }) => {
           </Tooltip>
           <div>
             <p className="font-bold text-white text-lg">{request.profile.full_name}</p>
-            <p className="text-sm text-gray-300">
+            <p className="text-sm text-muted-foreground">
               Solicita <span className={`font-semibold ${isDuplicateRequest ? 'text-blue-400' : 'text-purple-400'}`}>
                 {isDuplicateRequest ? 'Duplicado' : 'Reemplazo'}
               </span> de la receta: <span className="font-semibold text-green-400">{recipeName}</span>
             </p>
-            <p className="text-xs text-gray-500">Solicitado el: {new Date(request.requested_at).toLocaleString()}</p>
+            <p className="text-xs text-muted-foreground">Solicitado el: {new Date(request.requested_at).toLocaleString()}</p>
           </div>
         </div>
         <Button onClick={() => onReview(request)} size="sm">

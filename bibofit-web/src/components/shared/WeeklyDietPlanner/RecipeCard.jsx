@@ -100,7 +100,7 @@ const RecipeCard = ({
         const isUnsafe = unsafeFoodsSet.has(food.name);
         const isRecommended = recommendedFoodsSet.has(food.name);
         
-        let className = "text-gray-300";
+        let className = "text-muted-foreground";
         if (isUnsafe) className = "text-red-400 font-medium";
         else if (isRecommended) className = "text-green-400 font-medium";
         
@@ -162,7 +162,7 @@ const RecipeCard = ({
     return (
       <div className={cn(
           "relative group h-full rounded-xl overflow-hidden shadow-lg border transition-all",
-          isSafe ? (isPrivate ? "border-slate-700 hover:border-violet-400/50 hover:shadow-violet-500/10" : (isPending ? "border-purple-700/50" : "border-slate-700 hover:border-green-500/50 hover:shadow-green-500/10")) : "border-red-500/60 hover:border-red-500 hover:shadow-red-500/10"
+          isSafe ? (isPrivate ? "border-border hover:border-violet-400/50 hover:shadow-violet-500/10" : (isPending ? "border-purple-700/50" : "border-border hover:border-green-500/50 hover:shadow-green-500/10")) : "border-red-500/60 hover:border-red-500 hover:shadow-red-500/10"
       )}>
         {/* Background Image with Zoom on Hover */}
         <div 
@@ -260,7 +260,7 @@ const RecipeCard = ({
   return (
     <div className={cn(
         "relative group flex h-24 overflow-hidden rounded-lg shadow-lg border",
-        isSafe ? "border-slate-700" : "border-red-500/60"
+        isSafe ? "border-border" : "border-red-500/60"
     )}>
       {/* Background Image with Zoom on Hover */}
       <div 

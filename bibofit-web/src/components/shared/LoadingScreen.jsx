@@ -36,7 +36,7 @@ const LoadingScreen = ({
               >
                 {message}
               </motion.h2>
-              <p className="text-slate-400 text-sm md:text-base animate-pulse">
+              <p className="text-muted-foreground text-sm md:text-base animate-pulse">
                 {submessage}
               </p>
             </motion.div>

@@ -13,7 +13,7 @@ const CreateFoodFromMealDialog = ({ open, onOpenChange, onFoodCreated, foodToCre
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#0C101C] border-gray-700 text-white w-[95vw] max-w-2xl h-auto max-h-[90vh] flex flex-col p-0">
+      <DialogContent className="bg-card border-border text-white w-[95vw] max-w-2xl h-auto max-h-[90vh] flex flex-col p-0">
         <DialogHeader className="p-6 pb-0">
           <DialogTitle>Añadir Nuevo Alimento</DialogTitle>
           <DialogDescription>

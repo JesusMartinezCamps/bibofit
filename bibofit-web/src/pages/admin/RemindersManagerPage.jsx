@@ -40,7 +40,7 @@ const ReminderCard = ({ reminder, onEdit, onDelete }) => {
 
     return (
       <Card 
-        className="bg-slate-800/50 border-gray-700 text-white relative group cursor-pointer transition-all hover:border-amber-500/50 hover:bg-slate-800 shadow-sm hover:shadow-md"
+        className="bg-muted/65 border-border text-white relative group cursor-pointer transition-all hover:border-amber-500/50 hover:bg-muted shadow-sm hover:shadow-md"
         onClick={() => onEdit(reminder)}
       >
         <CardHeader className="pb-3 pr-10">
@@ -49,7 +49,7 @@ const ReminderCard = ({ reminder, onEdit, onDelete }) => {
           </CardTitle>
           {reminder.type === 'event' && reminder.start_date && (
             <div className="flex flex-col gap-1 mt-1">
-                <div className="flex items-center gap-2 text-sm text-gray-400">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Calendar size={14} className="text-blue-400" />
                     <span>{format(parseISO(reminder.start_date), 'd MMM', { locale: es })}</span>
                     {reminder.end_date && <span>- {format(parseISO(reminder.end_date), 'd MMM', { locale: es })}</span>}
@@ -65,7 +65,7 @@ const ReminderCard = ({ reminder, onEdit, onDelete }) => {
         </CardHeader>
         <CardContent className="space-y-4">
           {reminder.content && (
-            <p className="text-gray-300 whitespace-pre-wrap line-clamp-3 text-sm">{reminder.content}</p>
+            <p className="text-muted-foreground whitespace-pre-wrap line-clamp-3 text-sm">{reminder.content}</p>
           )}
           
           {categories.length > 0 && (
@@ -188,7 +188,7 @@ const RemindersManagerPage = () => {
       {/* Left Panel: User List - Fixed height on mobile for stacked view, full height on desktop */}
       {!paramUserId && (
         <div className="w-full md:w-80 flex-shrink-0 h-64 md:h-full overflow-hidden">
-            <div className="h-full overflow-y-auto rounded-xl border border-gray-800 bg-slate-900/50">
+            <div className="h-full overflow-y-auto rounded-xl border border-border bg-card/75">
                 <UserList selectedUser={selectedUser} onSelectUser={setSelectedUser} />
             </div>
         </div>
@@ -196,8 +196,8 @@ const RemindersManagerPage = () => {
 
       {/* Right Panel: Reminders Manager - Flexible height on mobile to fill remaining space */}
       <div className="flex-grow h-full overflow-hidden flex flex-col">
-        <Card className="bg-slate-900/50 border-gray-700 text-white shadow-xl h-full flex flex-col">
-          <CardHeader className="border-b border-slate-800/60 pb-4 flex-shrink-0">
+        <Card className="bg-card/75 border-border text-white shadow-xl h-full flex flex-col">
+          <CardHeader className="border-b border-border/60 pb-4 flex-shrink-0">
             <div className="flex flex-row justify-between items-center">
                 <CardTitle className="text-xl md:text-2xl flex items-center gap-3">
                 <div className="p-2 bg-green-500/10 rounded-lg">
@@ -230,21 +230,21 @@ const RemindersManagerPage = () => {
           <CardContent className="pt-6 flex-grow overflow-y-auto custom-scrollbar">
             {!selectedUser ? (
               <div className="text-center py-20">
-                <div className="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
                     <User className="w-10 h-10 text-slate-600" />
                 </div>
-                <h3 className="text-lg font-medium text-gray-300">Sin cliente seleccionado</h3>
-                <p className="text-gray-500 mt-1">Selecciona un cliente de la lista para gestionar sus recordatorios.</p>
+                <h3 className="text-lg font-medium text-muted-foreground">Sin cliente seleccionado</h3>
+                <p className="text-muted-foreground mt-1">Selecciona un cliente de la lista para gestionar sus recordatorios.</p>
               </div>
             ) : (
               <>
                   <div className="relative flex-grow mb-8">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
                     <Input 
                       placeholder="Buscar por título, detalle o etiqueta..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 bg-slate-950/30 border-slate-800 focus:border-amber-500/50 transition-colors"
+                      className="pl-10 bg-card/70 border-border focus:border-amber-500/50 transition-colors"
                     />
                   </div>
 
@@ -255,14 +255,14 @@ const RemindersManagerPage = () => {
                     <div>
                       <h3 className="text-lg font-semibold mb-4 pb-2 flex items-center gap-2 text-amber-400/90">
                           <StickyNote size={18} /> Notas Generales
-                          <span className="text-xs bg-slate-800 text-gray-400 px-2 py-0.5 rounded-full ml-2">{notes.length}</span>
+                          <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full ml-2">{notes.length}</span>
                       </h3>
                       {notes.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                           {notes.map(r => <ReminderCard key={r.id} reminder={r} onEdit={handleEdit} onDelete={() => setDeletingId(r.id)} />)}
                         </div>
                       ) : (
-                        <div className="p-8 border border-dashed border-slate-800 rounded-xl text-center text-gray-500 bg-slate-900/20">
+                        <div className="p-8 border border-dashed border-border rounded-xl text-center text-muted-foreground bg-card/20">
                             <p>No hay notas creadas aún.</p>
                         </div>
                       )}
@@ -271,14 +271,14 @@ const RemindersManagerPage = () => {
                     <div>
                       <h3 className="text-lg font-semibold mb-4 pb-2 flex items-center gap-2 text-blue-400/90">
                           <Calendar size={18} /> Eventos
-                          <span className="text-xs bg-slate-800 text-gray-400 px-2 py-0.5 rounded-full ml-2">{events.length}</span>
+                          <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full ml-2">{events.length}</span>
                       </h3>
                       {events.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                           {events.map(r => <ReminderCard key={r.id} reminder={r} onEdit={handleEdit} onDelete={() => setDeletingId(r.id)} />)}
                         </div>
                       ) : (
-                         <div className="p-8 border border-dashed border-slate-800 rounded-xl text-center text-gray-500 bg-slate-900/20">
+                         <div className="p-8 border border-dashed border-border rounded-xl text-center text-muted-foreground bg-card/20">
                             <p>No hay eventos programados.</p>
                         </div>
                       )}

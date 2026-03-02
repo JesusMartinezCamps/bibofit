@@ -50,9 +50,9 @@ const DateTimeline = ({ currentDate, setCurrentDate, navigate, isAdminView, user
     const isTodayInPast = !isTodayVisible && isBefore(today, weekDates[0]);
 
     return (
-        <div className="flex items-center justify-center gap-2 bg-slate-900/50 p-2 rounded-xl border border-gray-700">
-            <Button variant="ghost" size="icon" onClick={() => changeWeek('prev')} className="text-gray-400 hover:bg-slate-800 hover:text-gray-300">
-                <ArrowLeft className={cn(isTodayInPast ? "text-cyan-400" : "text-gray-400")} />
+        <div className="flex items-center justify-center gap-2 bg-card/75 p-2 rounded-xl border border-border">
+            <Button variant="ghost" size="icon" onClick={() => changeWeek('prev')} className="text-muted-foreground hover:bg-muted hover:text-muted-foreground">
+                <ArrowLeft className={cn(isTodayInPast ? "text-cyan-400" : "text-muted-foreground")} />
             </Button>
             <div className="flex-grow grid grid-cols-7 gap-1">
                 {weekDates.map(date => {
@@ -60,9 +60,9 @@ const DateTimeline = ({ currentDate, setCurrentDate, navigate, isAdminView, user
                     const dayEvents = timelineEvents[dateString] || { reminders: 0, weight: 0, diet_logs: [], snacks: 0 };
                     const isCurrentDay = isToday(date);
                     return (
-                        <button key={dateString} onClick={() => handleDateClick(date)} className={cn("flex flex-col items-center p-2 rounded-lg transition-colors", isSameDay(date, currentDate) ? 'bg-slate-700' : 'hover:bg-slate-800')}>
-                            <span className={cn("text-xs uppercase font-bold", isCurrentDay ? "bg-gradient-to-t from-cyan-700 to-cyan-300 bg-clip-text text-transparent" : "text-gray-400")}>{format(date, 'eee', {locale: es})}</span>
-                            <span className={cn("text-lg font-bold", isSameDay(date, currentDate) ? 'text-white' : (isCurrentDay ? "bg-gradient-to-t from-cyan-700 to-cyan-300 bg-clip-text text-transparent" : "text-gray-300"))}>{format(date, 'd')}</span>
+                        <button key={dateString} onClick={() => handleDateClick(date)} className={cn("flex flex-col items-center p-2 rounded-lg transition-colors", isSameDay(date, currentDate) ? 'bg-slate-700' : 'hover:bg-muted')}>
+                            <span className={cn("text-xs uppercase font-bold", isCurrentDay ? "bg-gradient-to-t from-cyan-700 to-cyan-300 bg-clip-text text-transparent" : "text-muted-foreground")}>{format(date, 'eee', {locale: es})}</span>
+                            <span className={cn("text-lg font-bold", isSameDay(date, currentDate) ? 'text-white' : (isCurrentDay ? "bg-gradient-to-t from-cyan-700 to-cyan-300 bg-clip-text text-transparent" : "text-muted-foreground"))}>{format(date, 'd')}</span>
                             <div className="flex flex-wrap justify-center gap-1 mt-1 min-h-[12px] items-center">
                                 {isAdminView && dayEvents.reminders > 0 && <div className="w-2 h-2 rounded-full bg-amber-500" title="Recordatorio"></div>}
                                 {dayEvents.weight > 0 && <div className="w-2 h-2 rounded-full bg-purple-500" title="Peso registrado"></div>}
@@ -75,8 +75,8 @@ const DateTimeline = ({ currentDate, setCurrentDate, navigate, isAdminView, user
                     )
                 })}
             </div>
-            <Button variant="ghost" size="icon" onClick={() => changeWeek('next')} className="text-gray-400 hover:bg-slate-800 hover:text-gray-300">
-                <ArrowRight className={cn(isTodayInFuture ? "text-cyan-400" : "text-gray-400")} />
+            <Button variant="ghost" size="icon" onClick={() => changeWeek('next')} className="text-muted-foreground hover:bg-muted hover:text-muted-foreground">
+                <ArrowRight className={cn(isTodayInFuture ? "text-cyan-400" : "text-muted-foreground")} />
             </Button>
         </div>
     );
@@ -358,8 +358,8 @@ const combinedPlanRestrictions = useMemo(() => {
   const renderVisualizer = (isSticky = false) => {
     if (!activePlan) {
         return (
-            <div className={cn("h-full rounded-lg bg-gray-800/40 border border-gray-700 flex items-center justify-center", isSticky ? "p-4" : "")}>
-                <p className="text-gray-400 text-sm italic">No hay plan de dieta activo.</p>
+            <div className={cn("h-full rounded-lg bg-muted/40 border border-border flex items-center justify-center", isSticky ? "p-4" : "")}>
+                <p className="text-muted-foreground text-sm italic">No hay plan de dieta activo.</p>
             </div>
         );
     }
@@ -419,7 +419,7 @@ const combinedPlanRestrictions = useMemo(() => {
             className="space-y-2 sm:space-y-6 sm:p-1 relative"
         >
           {loading && (
-            <div className="absolute inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center rounded-xl">
+            <div className="absolute inset-0 z-50 bg-card/75 backdrop-blur-sm flex items-center justify-center rounded-xl">
               <Loader2 className="w-10 h-10 text-cyan-400 animate-spin" />
             </div>
           )}
@@ -461,12 +461,12 @@ const combinedPlanRestrictions = useMemo(() => {
                 <DateTimeline currentDate={currentDate} setCurrentDate={handleDateChange} navigate={navigate} isAdminView={isAdminView} userId={userId} refreshTrigger={timelineRefreshTrigger} activePlanId={activePlan?.id} />
           </div>
 
-          <Card className="bg-slate-900/50 border-gray-700 text-white overflow-hidden shadow-xl">
+          <Card className="bg-card/75 border-border text-white overflow-hidden shadow-xl">
             <CardHeader className="pb-3 pt-5 px-5">
               <div className="flex justify-between items-center">
                 <div className="hidden sm:block">
                   <CardTitle className="text-xl">Resumen del Plan</CardTitle>
-                  <CardDescription className="text-sm text-gray-400">Objetivos y estado diario.</CardDescription>
+                  <CardDescription className="text-sm text-muted-foreground">Objetivos y estado diario.</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -478,7 +478,7 @@ const combinedPlanRestrictions = useMemo(() => {
                           "p-3 rounded-lg border shadow-lg text-center cursor-pointer h-auto flex flex-col justify-center w-full transition-transform hover:scale-[1.02]",
                           weightForDay 
                               ? "bg-gradient-to-br from-purple-800/50 via-purple-600/20 to-gray-900/10 border-purple-500/50"
-                              : "bg-gradient-to-br from-gray-800/50 via-gray-600/20 to-gray-900/10 border-gray-700/50"
+                              : "bg-gradient-to-br from-gray-800/50 via-gray-600/20 to-gray-900/10 border-border/50"
                       )}
                   >
                       <h4 className={cn(
@@ -526,32 +526,32 @@ const combinedPlanRestrictions = useMemo(() => {
                   </div>
                   
                   {isAdminView && (
-                    <div className="p-3 rounded-lg border border-gray-700 space-y-3 flex-col justify-center w-full">
+                    <div className="p-3 rounded-lg border border-border space-y-3 flex-col justify-center w-full">
                         <Badge variant="silver" className="w-full justify-start text-left h-auto py-1.5 px-3 bg-transparent border-none">
                             <ShieldAlert className="w-5 h-5 mr-3 flex-shrink-0 text-orange-400" />
                             <span className="font-semibold mr-2 text-orange-400">Evita:</span>
                             <div className="flex flex-wrap gap-1.5 flex-1">
-                            {allSensitivities.length > 0 ? allSensitivities.map(s => <InfoBadge key={s.id} item={s} type="sensitivity" />) : <span className="text-gray-400 text-sm">Ninguna</span>}
+                            {allSensitivities.length > 0 ? allSensitivities.map(s => <InfoBadge key={s.id} item={s} type="sensitivity" />) : <span className="text-muted-foreground text-sm">Ninguna</span>}
                             </div>
                         </Badge>
                         <Badge variant="silver" className="w-full justify-start text-left h-auto py-1.5 px-3 bg-transparent border-none">
                             <HeartPulse className="w-5 h-5 mr-3 flex-shrink-0 text-red-400" />
                             <span className="font-semibold mr-2 text-red-400">Patologías:</span>
                             <div className="flex flex-wrap gap-1.5 flex-1">
-                            {allMedicalConditions.length > 0 ? allMedicalConditions.map(p => <InfoBadge key={p.id} item={p} type="medical_condition" />) : <span className="text-gray-400 text-sm">Ninguna</span>}
+                            {allMedicalConditions.length > 0 ? allMedicalConditions.map(p => <InfoBadge key={p.id} item={p} type="medical_condition" />) : <span className="text-muted-foreground text-sm">Ninguna</span>}
                             </div>
                         </Badge>
                     </div>
                   )}
 
                   {isAdminView && reminders.length > 0 && (
-                      <div className="p-3 rounded-lg border border-gray-700 space-y-3">
+                      <div className="p-3 rounded-lg border border-border space-y-3">
                           <h4 className="font-semibold text-amber-300 text-sm flex items-center gap-2"><StickyNote className="w-4 h-4"/>Recordatorios para hoy</h4>
                           {notes.length > 0 && (
                               <div className="space-y-2">
                                   <h5 className="text-xs font-bold uppercase text-amber-400/80">Notas</h5>
                                   {notes.map(r => (
-                                      <div key={r.id} onClick={() => handleEditReminder(r)} className="text-sm bg-slate-800/50 p-2 rounded-md cursor-pointer hover:bg-slate-800 transition-colors">
+                                      <div key={r.id} onClick={() => handleEditReminder(r)} className="text-sm bg-muted/65 p-2 rounded-md cursor-pointer hover:bg-muted transition-colors">
                                           <p className="font-bold text-amber-200 flex items-center gap-2">{r.title || 'Nota'} <Badge className={cn("font-normal text-xs", categoryColors[r.category])}>{r.category}</Badge></p>
                                           <p className="text-amber-200/80">{r.content}</p>
                                       </div>
@@ -562,7 +562,7 @@ const combinedPlanRestrictions = useMemo(() => {
                               <div className="space-y-2">
                                   <h5 className="text-xs font-bold uppercase text-amber-400/80">Eventos</h5>
                                   {events.map(r => (
-                                      <div key={r.id} onClick={() => handleEditReminder(r)} className="text-sm bg-slate-800/50 p-2 rounded-md cursor-pointer hover:bg-slate-800 transition-colors">
+                                      <div key={r.id} onClick={() => handleEditReminder(r)} className="text-sm bg-muted/65 p-2 rounded-md cursor-pointer hover:bg-muted transition-colors">
                                           <p className="font-bold text-amber-200 flex items-center gap-2">{r.title || 'Evento'} <Badge className={cn("font-normal text-xs", categoryColors[r.category])}>{r.category}</Badge></p>
                                           <p className="text-amber-200/80">{r.content}</p>
                                       </div>
@@ -579,13 +579,13 @@ const combinedPlanRestrictions = useMemo(() => {
           </Card>
 
           <div className="lg:hidden contents">
-              <div className="lg:hidden sticky !top-0 z-30 bg-slate-900/95 backdrop-blur-sm -mx-1 sm:mx-0 px-1 sm:px-0 py-2 rounded-b-xl shadow-[0_8px_15px_-5px_rgba(0,0,0,0.3)]">
+              <div className="lg:hidden sticky !top-0 z-30 bg-card/95 backdrop-blur-sm -mx-1 sm:mx-0 px-1 sm:px-0 py-2 rounded-b-xl shadow-[0_8px_15px_-5px_rgba(0,0,0,0.3)]">
                 {renderVisualizer(true)}
               </div>
           </div>
 
-          <Card className="bg-slate-900/50 border-gray-700 text-white shadow-xl">
-              <div className="p-4 border-b border-slate-800">
+          <Card className="bg-card/75 border-border text-white shadow-xl">
+              <div className="p-4 border-b border-border">
                   <ContentStateToggle
                       mode={viewMode}
                       onModeChange={(newMode) => setViewMode(newMode)}
@@ -599,7 +599,7 @@ const combinedPlanRestrictions = useMemo(() => {
                   <div className="flex justify-between items-center">
                       <div>
                           <CardTitle>{viewMode === 'list' ? 'Comidas del día' : 'Planificación de semana'}</CardTitle>
-                          {viewMode === 'week' && <CardDescription className="text-gray-400">Planifica tu semana y revisa la Compra Inteligente</CardDescription>}
+                          {viewMode === 'week' && <CardDescription className="text-muted-foreground">Planifica tu semana y revisa la Compra Inteligente</CardDescription>}
                       </div>
                       <div className="flex items-center gap-4">
                           <Button variant="outline" size="icon" className="bg-transparent border-[rgb(59_154_167)] text-[rgb(59_154_167)] hover:bg-[rgb(28_53_61)] hover:text-[rgb(59_154_167)]" onClick={handleShoppingListClick}>

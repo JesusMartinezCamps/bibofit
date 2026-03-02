@@ -243,16 +243,16 @@ const BibofitMock = () => {
   }, [totals, targets]);
 
   return (
-    <div className="relative rounded-2xl border border-gray-800 bg-[#15191e]/80 backdrop-blur-sm shadow-2xl overflow-hidden">
+    <div className="relative rounded-2xl border border-border bg-[#15191e]/80 backdrop-blur-sm shadow-2xl overflow-hidden">
       {/* Browser Header Mockup */}
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-800 bg-[#1a1e23]">
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-background">
         <div className="flex gap-1.5">
           <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50" />
           <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50" />
           <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50" />
         </div>
         <div className="flex-1 text-center">
-          <div className="inline-block px-3 py-0.5 rounded-full bg-black/30 text-[10px] text-gray-500 font-mono">
+          <div className="inline-block px-3 py-0.5 rounded-full bg-black/30 text-[10px] text-muted-foreground font-mono">
             bibofit.com/dashboard
           </div>
         </div>
@@ -602,15 +602,14 @@ const HeroSection = () => {
             </div>
 
             <h1 className="text-2xl lg:text-6xl font-extrabold text-white leading-tight mb-6">
-              La Evolución del Fitness, <br />
+              Una app que enfocada en que puedas seguir una dieta flexible, <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">
-                la app de nutrición más flexible.
+                ¿Lo peor de seguir una dieta? Es perder la libertad en la cocina. Bibofit la he diseñado para que precisamente se adapte a todo lo que le quieras cambiar, para que te quedes sin excusas para no mejorar tu dieta.
               </span>
             </h1>
 
-            <p className="text-lg text-gray-400 mb-8 leading-relaxed max-w-xl">
-              Bibofit es una app de nutrición que se adaptan automáticamente a tus decisiones diarias.
-              Flexibilidad total, con el control necesario para seguir progresando
+            <p className="text-lg text-muted-foreground mb-8 leading-relaxed max-w-xl">
+              
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 mb-8">
@@ -625,14 +624,14 @@ const HeroSection = () => {
                 <Button
                   variant="outline"
                   size="lg"
-                  className="w-full sm:w-auto border-gray-600 bg-emerald-200/10 text-green-300 hover:bg-green-100/10 hover:text-green-200 h-12 px-8"
+                  className="w-full sm:w-auto border-input bg-emerald-200/10 text-green-300 hover:bg-green-100/10 hover:text-green-200 h-12 px-8"
                 >
                   Iniciar Sesión
                 </Button>
               </Link>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-8 text-sm text-gray-400">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-8 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-green-500" />
                 <span>Sin tarjeta de crédito</span>

@@ -63,20 +63,20 @@ const CalorieAdjustmentHistory = ({
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center p-8 border-2 border-dashed border-gray-800 rounded-xl bg-gray-900/20">
+            <div className="flex items-center justify-center p-8 border-2 border-dashed border-border rounded-xl bg-card/20">
                 <Loader2 className="w-5 h-5 animate-spin text-green-500 mr-2" />
-                <p className="text-gray-500 text-sm animate-pulse">Cargando historial...</p>
+                <p className="text-muted-foreground text-sm animate-pulse">Cargando historial...</p>
             </div>
         );
     }
 
     if (sortedOverrides.length === 0) {
         return (
-            <div className="text-center py-8 border-2 border-dashed border-gray-800 rounded-xl bg-gray-900/20">
-                <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gray-800 mb-3">
-                    <History className="h-5 w-5 text-gray-500" />
+            <div className="text-center py-8 border-2 border-dashed border-border rounded-xl bg-card/20">
+                <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-muted mb-3">
+                    <History className="h-5 w-5 text-muted-foreground" />
                 </div>
-                <h3 className="text-sm font-medium text-gray-400">Sin historial</h3>
+                <h3 className="text-sm font-medium text-muted-foreground">Sin historial</h3>
                 <p className="mt-1 text-xs text-gray-600">No hay ajustes manuales previos.</p>
             </div>
         );
@@ -102,7 +102,7 @@ const CalorieAdjustmentHistory = ({
                             }
                         }}
                         className={cn(
-                            "border-gray-800 bg-gray-900/40 transition-all hover:bg-gray-900/60 group",
+                            "border-border bg-card/40 transition-all hover:bg-card/80 group",
                             onSelectOverride && "cursor-pointer",
                             isActive && "border-green-500/40 bg-green-500/10 shadow-sm shadow-green-900/20"
                         )}
@@ -113,14 +113,14 @@ const CalorieAdjustmentHistory = ({
                                     "h-8 w-8 rounded-full flex items-center justify-center border shrink-0",
                                     isActive 
                                         ? "bg-green-500/10 border-green-500/30 text-green-500" 
-                                        : "bg-gray-800 border-gray-700 text-gray-500"
+                                        : "bg-muted border-border text-muted-foreground"
                                 )}>
                                     {isActive ? <CheckCircle2 className="w-4 h-4"/> : <History className="w-4 h-4"/>}
                                 </div>
                                 <div>
                                     <div className="flex items-center gap-2 flex-wrap">
                                         <span className="text-lg font-bold text-white font-numeric">
-                                            {override.manual_calories} <span className="text-xs font-normal text-gray-500">kcal</span>
+                                            {override.manual_calories} <span className="text-xs font-normal text-muted-foreground">kcal</span>
                                         </span>
                                         {isActive && (
                                             <Badge className="bg-green-500/10 text-green-400 border-green-500/20 hover:bg-green-500/20 h-5 px-1.5 text-[10px]">
@@ -128,7 +128,7 @@ const CalorieAdjustmentHistory = ({
                                             </Badge>
                                         )}
                                     </div>
-                                    <p className="text-xs text-gray-400 capitalize flex items-center gap-1">
+                                    <p className="text-xs text-muted-foreground capitalize flex items-center gap-1">
                                         {override.created_at ? format(new Date(override.created_at), 'd MMM yyyy HH:mm', { locale: es }) : 'Reciente'}
                                     </p>
                                 </div>
@@ -146,10 +146,10 @@ const CalorieAdjustmentHistory = ({
                                             <Trash2 className="w-4 h-4" />
                                         </Button>
                                     </AlertDialogTrigger>
-                                    <AlertDialogContent className="bg-gray-950 border-gray-800 text-white z-[9999]">
+                                    <AlertDialogContent className="bg-card border-border text-white z-[9999]">
                                         <AlertDialogHeader>
                                             <AlertDialogTitle>¿Eliminar este ajuste?</AlertDialogTitle>
-                                            <AlertDialogDescription className="text-gray-400">
+                                            <AlertDialogDescription className="text-muted-foreground">
                                                 {isActive 
                                                     ? "Estás a punto de eliminar el ajuste VIGENTE. El sistema recalculará usando el siguiente registro más reciente o el TDEE base."
                                                     : "Esta acción eliminará permanentemente este registro del historial."
@@ -157,7 +157,7 @@ const CalorieAdjustmentHistory = ({
                                             </AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
-                                            <AlertDialogCancel className="bg-gray-900 border-gray-800 text-white hover:bg-gray-800 hover:text-white">
+                                            <AlertDialogCancel className="bg-card border-border text-white hover:bg-muted hover:text-foreground">
                                                 Cancelar
                                             </AlertDialogCancel>
                                             <AlertDialogAction 

@@ -14,11 +14,11 @@ const FormBlock = ({ title, icon: Icon, color, children }) => {
   const gradientClass = colorClasses[color] || 'from-gray-500 to-gray-600';
 
   return (
-    <div className="bg-gray-800/30 rounded-xl overflow-hidden border border-gray-700/50">
+    <div className="bg-muted/30 rounded-xl overflow-hidden border border-border/50">
       <div className={`h-1.5 bg-gradient-to-r ${gradientClass}`}></div>
       <div className="p-6">
         <div className="flex items-center gap-3 mb-6">
-          {Icon && <Icon className="w-6 h-6 text-gray-300" />}
+          {Icon && <Icon className="w-6 h-6 text-muted-foreground" />}
           <h3 className="text-xl font-bold text-white">{title}</h3>
         </div>
         <div className="space-y-6">

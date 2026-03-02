@@ -135,13 +135,13 @@ const FoodRestrictionsForm = ({ userId, onSaveStatusChange }) => {
             </div>
             
             <div className="flex flex-wrap gap-2 mt-3">
-              {selectedSensitivities.length === 0 && <p className="text-gray-500 text-sm italic">No hay sensibilidades seleccionadas.</p>}
+              {selectedSensitivities.length === 0 && <p className="text-muted-foreground text-sm italic">No hay sensibilidades seleccionadas.</p>}
               {selectedSensitivities.map(s => {
                 const details = allSensitivities.find(as => as.id === s.sensitivity_id);
                 return details ? (
                     <Badge key={s.sensitivity_id} variant="destructive" className="bg-orange-600/20 border border-orange-500/30 text-orange-300">
                         {details.name} ({s.sensitivitie_level})
-                        <button type="button" onClick={() => handleRemoveSensitivity(s.sensitivity_id)} className="ml-2 hover:text-white"><X size={14}/></button>
+                        <button type="button" onClick={() => handleRemoveSensitivity(s.sensitivity_id)} className="ml-2 hover:text-foreground"><X size={14}/></button>
                     </Badge>
                 ) : null;
               })}
@@ -163,10 +163,10 @@ const FoodRestrictionsForm = ({ userId, onSaveStatusChange }) => {
             </div>
             
             <div className="flex flex-wrap gap-2 mt-3">
-              {selectedMedicalConditions.length === 0 && <p className="text-gray-500 text-sm italic">No hay condiciones seleccionadas.</p>}
+              {selectedMedicalConditions.length === 0 && <p className="text-muted-foreground text-sm italic">No hay condiciones seleccionadas.</p>}
               {selectedMedicalConditions.map(cId => {
                 const details = allMedicalConditions.find(amc => amc.id === cId);
-                return details ? <Badge key={cId} variant="destructive" className="bg-red-600/20 border border-red-500/30 text-red-300">{details.name} <button type="button" onClick={() => handleRemoveCondition(cId)} className="ml-2 hover:text-white"><X size={14}/></button></Badge> : null;
+                return details ? <Badge key={cId} variant="destructive" className="bg-red-600/20 border border-red-500/30 text-red-300">{details.name} <button type="button" onClick={() => handleRemoveCondition(cId)} className="ml-2 hover:text-foreground"><X size={14}/></button></Badge> : null;
               })}
             </div>
         </div>
@@ -179,10 +179,10 @@ const FoodRestrictionsForm = ({ userId, onSaveStatusChange }) => {
         items={availableSensitivities}
         onSelect={handleAddSensitivity}
         headerContent={
-            <div className="flex items-center gap-3 p-2 rounded bg-gray-800/50 border border-gray-700">
-                <span className="text-sm text-gray-400 whitespace-nowrap">Nivel de sensibilidad:</span>
+            <div className="flex items-center gap-3 p-2 rounded bg-muted/65 border border-border">
+                <span className="text-sm text-muted-foreground whitespace-nowrap">Nivel de sensibilidad:</span>
                 <Select value={sensitivityLevel} onValueChange={setSensitivityLevel}>
-                    <SelectTrigger className="h-8 w-32 bg-gray-700 border-gray-600 text-xs text-white">
+                    <SelectTrigger className="h-8 w-32 bg-muted border-input text-xs text-white">
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>

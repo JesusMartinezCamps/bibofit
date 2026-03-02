@@ -167,8 +167,8 @@ const AllDietPlansPage = () => {
                         </div>
                     )}
                      {(!loading && filteredTemplates.length === 0) && (
-                        <div className="text-center py-16 bg-gray-800/30 rounded-xl">
-                            <p className="text-gray-400">No se encontraron plantillas. ¿Quieres crear una?</p>
+                        <div className="text-center py-16 bg-muted/30 rounded-xl">
+                            <p className="text-muted-foreground">No se encontraron plantillas. ¿Quieres crear una?</p>
                             <Button onClick={handleCreateNew} className="mt-4 calendar-dialog-button">Crear la Primera Plantilla</Button>
                         </div>
                     )}

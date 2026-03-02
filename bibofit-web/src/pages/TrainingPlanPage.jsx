@@ -29,7 +29,7 @@ const TrainingPlanPage = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <Button asChild variant="ghost" className="mb-6 text-gray-400 hover:text-white">
+          <Button asChild variant="ghost" className="mb-6 text-muted-foreground hover:text-foreground">
             <Link to="/plan">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Volver a El Plan
@@ -43,7 +43,7 @@ const TrainingPlanPage = () => {
               </div>
               <div>
                 <h1 className="text-3xl md:text-4xl font-bold text-white">Plan de Entreno</h1>
-                <p className="text-lg text-gray-400">Tu guía de entrenamiento completa.</p>
+                <p className="text-lg text-muted-foreground">Tu guía de entrenamiento completa.</p>
               </div>
             </div>
           </div>
@@ -57,7 +57,7 @@ const TrainingPlanPage = () => {
           className="text-center py-20 glass-effect rounded-2xl"
         >
           <h2 className="text-2xl font-bold text-white">Próximamente...</h2>
-          <p className="text-gray-400 mt-2">Aquí verás tu plan de entrenamiento semanal detallado.</p>
+          <p className="text-muted-foreground mt-2">Aquí verás tu plan de entrenamiento semanal detallado.</p>
         </motion.div>
 
       </main>

@@ -16,9 +16,9 @@ const FatInputRow = ({ type, value, onChange, isRow }) => {
                             {type.name}
                         </Label>
                     </TooltipTrigger>
-                    <TooltipContent className="bg-[#282d34] text-white border-gray-600 max-w-xs">
+                    <TooltipContent className="bg-[#282d34] text-white border-input max-w-xs">
                         <p className="font-bold mb-2">{type.name}</p>
-                        <p className="text-sm text-gray-300">{type.description}</p>
+                        <p className="text-sm text-muted-foreground">{type.description}</p>
                         {type.benefit_description && <p className="text-sm mt-2 text-green-400">Beneficios: {type.benefit_description}</p>}
                         {type.risk_description && <p className="text-sm mt-2 text-red-400">Riesgos: {type.risk_description}</p>}
                     </TooltipContent>

@@ -72,13 +72,13 @@ const RecipeCard = ({
           badge: "bg-green-900/20 text-green-400 border-green-500/30",
           button: "bg-green-600/30 hover:bg-green-500 text-white",
           buttonConflict: "bg-red-600 hover:bg-red-500 text-white",
-          border: "border-gray-800 hover:border-green-500/50"
+          border: "border-border hover:border-green-500/50"
       },
       sky: {
           badge: "bg-sky-900/20 text-sky-400 border-sky-500/30",
           button: "bg-sky-600 hover:bg-sky-500 text-white",
           buttonConflict: "bg-red-600 hover:bg-red-500 text-white",
-          border: "border-gray-800 hover:border-sky-500/50"
+          border: "border-border hover:border-sky-500/50"
       }
   }[themeColor] || themeClasses.green;
 
@@ -102,12 +102,12 @@ const RecipeCard = ({
     >
       {recipe.is_private && (
           <div className="absolute top-2 right-2 z-10">
-              <Lock className="w-4 h-4 text-gray-500" />
+              <Lock className="w-4 h-4 text-muted-foreground" />
           </div>
       )}
       <CardHeader className="p-4 pb-2 space-y-2">
         <div className="flex justify-between items-start">
-          <h3 className="font-bold text-lg text-gray-100 leading-tight line-clamp-2 group-hover:text-white transition-colors">
+          <h3 className="font-bold text-lg text-gray-100 leading-tight line-clamp-2 group-hover:text-foreground transition-colors">
             <HighlightedText text={recipe.name} highlight={highlight} />
           </h3>
         </div>
@@ -125,7 +125,7 @@ const RecipeCard = ({
                     Recomendado
                 </Badge>
             )}
-            <div className="flex items-center gap-3 text-xs text-gray-400">
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {recipe.prep_time_min || 0}m</span>
                 <span className="flex items-center gap-1">
                     <ChefHat className="w-3 h-3" /> 
@@ -137,10 +137,10 @@ const RecipeCard = ({
 
       <CardContent className="p-4 pt-2 flex-grow">
         <div className="space-y-1 mb-4">
-             <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-2">Ingredientes:</p>
+             <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-2">Ingredientes:</p>
              <ul className="space-y-1">
                 {(recipe.recipe_ingredients || []).slice(0, 6).map((ing, i) => {
-                    let ingredientColorClass = "text-gray-400"; // Default
+                    let ingredientColorClass = "text-muted-foreground"; // Default
                     let conflictIcon = null;
 
                     if (ing.food) {
@@ -163,7 +163,7 @@ const RecipeCard = ({
                     );
                 })}
                 {(recipe.recipe_ingredients || []).length > 6 && (
-                    <li className="text-xs text-gray-500 italic pl-2">
+                    <li className="text-xs text-muted-foreground italic pl-2">
                         +{(recipe.recipe_ingredients.length - 6)} más...
                     </li>
                 )}
@@ -172,7 +172,7 @@ const RecipeCard = ({
       </CardContent>
 
       <CardFooter className="p-4 pt-0 flex flex-col gap-3 mt-auto">
-        <div className="flex items-center justify-between w-full text-xs text-gray-400 bg-slate-900/50 p-2 rounded-md border border-slate-800">
+        <div className="flex items-center justify-between w-full text-xs text-muted-foreground bg-card/75 p-2 rounded-md border border-border">
             <div className="flex items-center gap-1" title="Calorías">
                 <CaloriesIcon className="w-3 h-3 text-orange-400" />
                 <span>{Math.round(macros.calories)}</span>

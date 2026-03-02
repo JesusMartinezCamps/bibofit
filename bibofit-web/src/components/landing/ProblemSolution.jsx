@@ -52,7 +52,7 @@ const ProblemSolution = () => {
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
             {copy.title}
           </h2>
-          <p className="text-gray-400 text-lg mb-6">{copy.subtitle}</p>
+          <p className="text-muted-foreground text-lg mb-6">{copy.subtitle}</p>
 
           <RoleToggle value={audience} onChange={setAudience} />
         </div>
@@ -77,7 +77,7 @@ const ProblemSolution = () => {
                 {copy.problemTitle}
               </h3>
 
-              <ul className="space-y-4 text-gray-300">
+              <ul className="space-y-4 text-muted-foreground">
                 {copy.problem.map((item, idx) => (
                   <li key={idx} className="flex items-start gap-3">
                     <span className="text-red-500 mt-1">✕</span>
@@ -107,7 +107,7 @@ const ProblemSolution = () => {
                 {copy.solutionTitle}
               </h3>
 
-              <ul className="space-y-4 text-gray-300">
+              <ul className="space-y-4 text-muted-foreground">
                 {copy.solution.map((item, idx) => (
                   <li key={idx} className="flex items-start gap-3">
                     <span className="text-green-500 mt-1">✓</span>
@@ -143,7 +143,7 @@ function RoleToggle({ value, onChange }) {
           className={`relative z-10 flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500/60 ${
             value === 'user'
               ? 'text-white'
-              : 'text-gray-400 hover:text-gray-200'
+              : 'text-muted-foreground hover:text-gray-200'
           }`}
           aria-pressed={value === 'user'}
         >
@@ -157,7 +157,7 @@ function RoleToggle({ value, onChange }) {
           className={`relative z-10 flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500/60 ${
             value === 'coach'
               ? 'text-white'
-              : 'text-gray-400 hover:text-gray-200'
+              : 'text-muted-foreground hover:text-gray-200'
           }`}
           aria-pressed={value === 'coach'}
         >

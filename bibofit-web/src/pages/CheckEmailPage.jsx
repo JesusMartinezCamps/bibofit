@@ -58,7 +58,7 @@ const CheckEmailPage = () => {
         />
       </Helmet>
 
-      <div className="min-h-screen bg-[#1a1e23]">
+      <div className="min-h-screen bg-background">
         <LandingNavbar showNavigationOptions={false} />
 
         <div className="min-h-screen hero-gradient flex items-center justify-center p-4 pt-24">
@@ -67,24 +67,24 @@ const CheckEmailPage = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
-              className="glass-effect rounded-2xl p-8 shadow-2xl border border-gray-700/50"
+              className="glass-effect rounded-2xl p-8 shadow-2xl border border-border/50"
             >
               <div className="text-center mb-8">
                 <div className="inline-flex items-center justify-center w-16 h-16 bg-green-500/20 rounded-full mb-4">
                   <MailCheck className="w-8 h-8 text-green-400" />
                 </div>
                 <h1 className="text-3xl font-bold text-white mb-2">Revisa tu correo</h1>
-                <p className="text-gray-300">
+                <p className="text-muted-foreground">
                   Hemos enviado un enlace de confirmación
                   {email ? ` a ${email}` : ''}.
                 </p>
               </div>
 
-              <div className="rounded-xl border border-gray-700/60 bg-[#11161d]/80 p-4 space-y-2 mb-6">
+              <div className="rounded-xl border border-border/60 bg-[#11161d]/80 p-4 space-y-2 mb-6">
                 <p className="text-sm text-gray-200">Siguientes pasos:</p>
-                <p className="text-sm text-gray-400">1. Abre el email de Bibofit.</p>
-                <p className="text-sm text-gray-400">2. Pulsa en "Confirmar mi cuenta".</p>
-                <p className="text-sm text-gray-400">3. Te llevaremos a una pantalla de confirmación para empezar.</p>
+                <p className="text-sm text-muted-foreground">1. Abre el email de Bibofit.</p>
+                <p className="text-sm text-muted-foreground">2. Pulsa en "Confirmar mi cuenta".</p>
+                <p className="text-sm text-muted-foreground">3. Te llevaremos a una pantalla de confirmación para empezar.</p>
               </div>
 
               <div className="space-y-3">
@@ -100,17 +100,17 @@ const CheckEmailPage = () => {
                 <Button
                   variant="outline"
                   onClick={() => navigate('/login')}
-                  className="w-full border-gray-600 text-white bg-transparent hover:bg-gray-800"
+                  className="w-full border-input text-white bg-transparent hover:bg-muted"
                 >
                   Ir a iniciar sesión
                 </Button>
               </div>
 
-              <p className="text-center text-xs text-gray-500 mt-6">
+              <p className="text-center text-xs text-muted-foreground mt-6">
                 Si no lo recibes en 1-2 minutos, revisa Spam o Promociones.
               </p>
 
-              <p className="text-center text-sm text-gray-400 mt-4">
+              <p className="text-center text-sm text-muted-foreground mt-4">
                 ¿Te has equivocado de correo?{' '}
                 <Link to="/signup" className="text-green-400 hover:underline">
                   Crear cuenta de nuevo

@@ -196,19 +196,19 @@ const AssignDietPlanPage = () => {
 
   if (isLoading) {
       return (
-          <div className="min-h-screen bg-[#1a1e23] flex flex-col items-center justify-center text-white gap-4">
+          <div className="min-h-screen bg-background flex flex-col items-center justify-center text-white gap-4">
               <Loader2 className="w-10 h-10 animate-spin text-green-500" />
-              <p className="text-gray-400">Cargando tu configuración...</p>
+              <p className="text-muted-foreground">Cargando tu configuración...</p>
           </div>
       );
   }
 
   return (
-    <div className="min-h-screen bg-[#1a1e23] text-white p-4 sm:p-8 relative overflow-y-auto overflow-x-hidden">
+    <div className="min-h-screen bg-background text-white p-4 sm:p-8 relative overflow-y-auto overflow-x-hidden">
         
         {/* Progress Indicator */}
         <div className="absolute top-4 right-4 sm:top-8 sm:right-8 z-10 flex flex-col items-end gap-2">
-            <div className="text-xs font-bold text-gray-500 uppercase tracking-widest hidden sm:block">
+            <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest hidden sm:block">
                 Paso {currentStep} de 2
             </div>
             <div className="flex gap-1">
@@ -216,7 +216,7 @@ const AssignDietPlanPage = () => {
                     <div 
                         key={step} 
                         className={`h-1.5 w-6 sm:w-8 rounded-full transition-colors duration-300 ${
-                            step <= currentStep ? 'bg-green-500' : 'bg-gray-700'
+                            step <= currentStep ? 'bg-green-500' : 'bg-muted'
                         }`}
                     />
                 ))}

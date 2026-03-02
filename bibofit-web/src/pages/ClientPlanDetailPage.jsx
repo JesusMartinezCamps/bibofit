@@ -57,7 +57,7 @@ const ClientPlanDetailPage = () => {
     }, [user, toast]);
 
     if (loading) {
-        return <div className="flex justify-center items-center h-screen bg-[#1a1e23]"><Loader2 className="w-10 h-10 animate-spin text-green-500" /></div>;
+        return <div className="flex justify-center items-center h-screen bg-background"><Loader2 className="w-10 h-10 animate-spin text-green-500" /></div>;
     }
 
     // CASE 1: Active Diet Exists
@@ -72,7 +72,7 @@ const ClientPlanDetailPage = () => {
                         <h1 className="text-3xl font-bold text-white bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-500">
                             Mi Plan Actual
                         </h1>
-                        <p className="text-gray-400 text-sm mt-1">
+                        <p className="text-muted-foreground text-sm mt-1">
                             {hasCoach 
                                 ? "Este plan está gestionado por tu entrenador. Solo puedes ver los detalles." 
                                 : "Este plan es gestionado por ti. Puedes editar macros y recetas."}
@@ -99,9 +99,9 @@ const ClientPlanDetailPage = () => {
                 <title>Sin Plan Activo - Gsus Martz</title>
             </Helmet>
             
-            <div className="bg-slate-900/50 border border-gray-800 rounded-2xl p-10 shadow-2xl max-w-lg w-full">
+            <div className="bg-card/75 border border-border rounded-2xl p-10 shadow-2xl max-w-lg w-full">
                 <div className="mb-6 flex justify-center">
-                    <div className="bg-gray-800 p-4 rounded-full">
+                    <div className="bg-muted p-4 rounded-full">
                          <span className="text-4xl">🥗</span>
                     </div>
                 </div>
@@ -111,7 +111,7 @@ const ClientPlanDetailPage = () => {
                 {hasCoach ? (
                     // Case 2.1: Has Coach
                     <div className="space-y-4">
-                        <p className="text-gray-400 text-lg">
+                        <p className="text-muted-foreground text-lg">
                             Todavía no tienes una dieta asignada.
                         </p>
                         <div className="bg-blue-900/20 border border-blue-800 p-4 rounded-lg text-blue-200 text-sm">
@@ -121,7 +121,7 @@ const ClientPlanDetailPage = () => {
                 ) : (
                     // Case 2.2: No Coach
                     <div className="space-y-6">
-                        <p className="text-gray-400 text-lg">
+                        <p className="text-muted-foreground text-lg">
                             Parece que aún no has seleccionado un plan nutricional.
                         </p>
                         <Button 
@@ -130,7 +130,7 @@ const ClientPlanDetailPage = () => {
                         >
                             Explorar plantillas de dieta <ArrowRight className="ml-2 w-5 h-5" />
                         </Button>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-muted-foreground">
                             Elige una plantilla base y personalízala según tus necesidades.
                         </p>
                     </div>

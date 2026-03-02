@@ -57,7 +57,7 @@ const ContentManagement = () => {
 
     return (
         <div className="p-4 md:p-8 text-white max-w-7xl mx-auto">
-            <h1 className="text-3xl md:text-4xl font-bold mb-8 border-b border-gray-700 pb-4">
+            <h1 className="text-3xl md:text-4xl font-bold mb-8 border-b border-border pb-4">
                 Gestión de Contenidos
             </h1>
 

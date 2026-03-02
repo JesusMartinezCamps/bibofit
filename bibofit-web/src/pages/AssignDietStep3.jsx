@@ -195,7 +195,7 @@ const AssignDietStep3 = ({
         <div className="w-full max-w-4xl mx-auto space-y-6 pb-20">
         <div className="text-center space-y-2 mb-8">
             <h1 className="text-2xl md:text-3xl font-bold text-white">Distribución de Macros por Momento</h1>
-            <p className="text-gray-400 text-sm md:text-base">Ajusta qué porcentaje de tus macros diarios irá a cada comida.</p>
+            <p className="text-muted-foreground text-sm md:text-base">Ajusta qué porcentaje de tus macros diarios irá a cada comida.</p>
         </div>
 
         <motion.div
@@ -220,7 +220,7 @@ const AssignDietStep3 = ({
                 variant="outline"
                 onClick={onPrevious}
                 disabled={isAssigning}
-                className="border-gray-600 text-gray-300 bg-gray-800 hover:bg-gray-700 hover:text-white px-6 py-6 w-full sm:w-auto"
+                className="border-input text-muted-foreground bg-muted hover:bg-muted hover:text-foreground px-6 py-6 w-full sm:w-auto"
             >
                 <ArrowLeft className="mr-2 w-5 h-5" />
                 Atrás

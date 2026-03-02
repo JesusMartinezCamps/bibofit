@@ -524,11 +524,11 @@ const UsersManagerPage = () => {
     const isViewScoped = searchTerm.trim().length > 0 || filterType !== 'all';
 
     const renderUserRow = (user) => (
-        <TableRow key={user.user_id} className="border-slate-800 hover:bg-slate-800/30">
+        <TableRow key={user.user_id} className="border-border hover:bg-muted/30">
             <TableCell>
                 <div className="flex flex-col">
                     <span className="font-medium text-white">{user.full_name || 'Sin nombre'}</span>
-                    <span className="text-xs text-gray-500">{user.email}</span>
+                    <span className="text-xs text-muted-foreground">{user.email}</span>
                 </div>
             </TableCell>
             <TableCell>
@@ -537,10 +537,10 @@ const UsersManagerPage = () => {
                     onValueChange={(val) => handleRoleChange(user.user_id, val)}
                     disabled={updatingRoleByUserId[user.user_id] || user.user_id === currentUser?.id}
                 >
-                    <SelectTrigger className="h-8 w-[130px] bg-transparent border-slate-700 text-xs">
+                    <SelectTrigger className="h-8 w-[130px] bg-transparent border-border text-xs">
                         <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-slate-800 border-slate-700 text-white">
+                    <SelectContent className="bg-muted border-border text-white">
                         {roles.map((role) => (
                             <SelectItem key={role.id} value={role.id.toString()}>
                                 {role.role.charAt(0).toUpperCase() + role.role.slice(1)}
@@ -557,12 +557,12 @@ const UsersManagerPage = () => {
                             {user.center_name}
                         </Badge>
                     ) : (
-                        <span className="text-xs text-gray-500 italic">Sin centro</span>
+                        <span className="text-xs text-muted-foreground italic">Sin centro</span>
                     )}
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6 text-gray-400 hover:text-yellow-500 hover:bg-gray-600"
+                        className="h-6 w-6 text-muted-foreground hover:text-yellow-500 hover:bg-gray-600"
                         onClick={() => {
                             setSelectedUserForCenter(user);
                             setIsCenterDialogOpen(true);
@@ -576,7 +576,7 @@ const UsersManagerPage = () => {
                 {user.role === 'client' && (
                     <div className="flex flex-wrap gap-2 items-center">
                         {user.assigned_coaches?.length > 0 ? user.assigned_coaches.map((coach) => (
-                            <Badge key={coach.assignment_id} variant="secondary" className="bg-slate-800 hover:bg-slate-700 text-gray-300 text-xs flex items-center gap-1 pr-1">
+                            <Badge key={coach.assignment_id} variant="secondary" className="bg-muted hover:bg-accent text-muted-foreground text-xs flex items-center gap-1 pr-1">
                                 {coach.full_name?.split(' ')[0]}
                                 <button onClick={() => handleRemoveCoach(coach.assignment_id)} className="hover:text-red-400 ml-1">
                                     <X className="w-3 h-3" />
@@ -588,7 +588,7 @@ const UsersManagerPage = () => {
                         <Button
                             variant="outline"
                             size="icon"
-                            className="h-6 w-6 rounded-full border-dashed border-slate-600 bg-cyan-800 text-white hover:text-white hover:bg-teal-700"
+                            className="h-6 w-6 rounded-full border-dashed border-input bg-cyan-800 text-white hover:text-foreground hover:bg-teal-700"
                             onClick={() => {
                                 setSelectedClientForCoach(user);
                                 setIsCoachDialogOpen(true);
@@ -604,7 +604,7 @@ const UsersManagerPage = () => {
                     <Button
                         variant="outline"
                         size="sm"
-                        className="text-xs text-white bg-cyan-800 h-7 border-slate-600 hover:text-white hover:bg-teal-700"
+                        className="text-xs text-white bg-cyan-800 h-7 border-input hover:text-foreground hover:bg-teal-700"
                         onClick={() => handleViewCenterClients(user)}
                         disabled={!user.center_id}
                     >
@@ -612,8 +612,8 @@ const UsersManagerPage = () => {
                     </Button>
                 )}
             </TableCell>
-            <TableCell className="text-gray-400">{user.age}</TableCell>
-            <TableCell className="text-gray-400 whitespace-nowrap">{user.registrationDate}</TableCell>
+            <TableCell className="text-muted-foreground">{user.age}</TableCell>
+            <TableCell className="text-muted-foreground whitespace-nowrap">{user.registrationDate}</TableCell>
             <TableCell className="text-right">
                 {isAdmin && user.user_id !== currentUser.id && (
                     <Button
@@ -647,56 +647,56 @@ const UsersManagerPage = () => {
                             <UserCog className="w-8 h-8 text-green-400" />
                             Gestión de Usuarios
                         </h1>
-                        <p className="text-gray-400 mt-1">Administra clientes, entrenadores, centros y asignaciones.</p>
+                        <p className="text-muted-foreground mt-1">Administra clientes, entrenadores, centros y asignaciones.</p>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-gray-400 bg-slate-900/60 border border-slate-700 px-3 py-2 rounded-lg">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground bg-card/80 border border-border px-3 py-2 rounded-lg">
                         {isRefreshing ? <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" /> : null}
                         {isRefreshing ? 'Sincronizando cambios...' : 'Datos sincronizados'}
                     </div>
                 </div>
 
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                    <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-4">
+                    <div className="rounded-xl border border-border bg-card/80 p-4">
                         <div className="flex items-center justify-between">
-                            <span className="text-xs text-gray-400">{isViewScoped ? 'Usuarios (vista)' : 'Total usuarios (app)'}</span>
+                            <span className="text-xs text-muted-foreground">{isViewScoped ? 'Usuarios (vista)' : 'Total usuarios (app)'}</span>
                             <Users className="w-4 h-4 text-cyan-400" />
                         </div>
                         <p className="text-2xl font-semibold text-white mt-2">{isViewScoped ? viewStats.total : appStats.total}</p>
-                        {isViewScoped && <p className="text-[11px] text-gray-500 mt-1">Total app: {appStats.total}</p>}
+                        {isViewScoped && <p className="text-[11px] text-muted-foreground mt-1">Total app: {appStats.total}</p>}
                     </div>
-                    <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-4">
+                    <div className="rounded-xl border border-border bg-card/80 p-4">
                         <div className="flex items-center justify-between">
-                            <span className="text-xs text-gray-400">{isViewScoped ? 'Entrenadores (vista)' : 'Entrenadores (app)'}</span>
+                            <span className="text-xs text-muted-foreground">{isViewScoped ? 'Entrenadores (vista)' : 'Entrenadores (app)'}</span>
                             <Briefcase className="w-4 h-4 text-green-400" />
                         </div>
                         <p className="text-2xl font-semibold text-white mt-2">{isViewScoped ? viewStats.coaches : appStats.coaches}</p>
-                        {isViewScoped && <p className="text-[11px] text-gray-500 mt-1">Total app: {appStats.coaches}</p>}
+                        {isViewScoped && <p className="text-[11px] text-muted-foreground mt-1">Total app: {appStats.coaches}</p>}
                     </div>
-                    <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-4">
+                    <div className="rounded-xl border border-border bg-card/80 p-4">
                         <div className="flex items-center justify-between">
-                            <span className="text-xs text-gray-400">{isViewScoped ? 'Clientes (vista)' : 'Clientes (app)'}</span>
+                            <span className="text-xs text-muted-foreground">{isViewScoped ? 'Clientes (vista)' : 'Clientes (app)'}</span>
                             <UserCheck className="w-4 h-4 text-blue-400" />
                         </div>
                         <p className="text-2xl font-semibold text-white mt-2">{isViewScoped ? viewStats.clients : appStats.clients}</p>
-                        {isViewScoped && <p className="text-[11px] text-gray-500 mt-1">Total app: {appStats.clients}</p>}
+                        {isViewScoped && <p className="text-[11px] text-muted-foreground mt-1">Total app: {appStats.clients}</p>}
                     </div>
-                    <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-4">
+                    <div className="rounded-xl border border-border bg-card/80 p-4">
                         <div className="flex items-center justify-between">
-                            <span className="text-xs text-gray-400">{isViewScoped ? 'Clientes sin coach (vista)' : 'Clientes sin coach (app)'}</span>
+                            <span className="text-xs text-muted-foreground">{isViewScoped ? 'Clientes sin coach (vista)' : 'Clientes sin coach (app)'}</span>
                             <UserX className="w-4 h-4 text-yellow-400" />
                         </div>
                         <p className="text-2xl font-semibold text-white mt-2">{isViewScoped ? viewStats.unassigned : appStats.unassigned}</p>
-                        {isViewScoped && <p className="text-[11px] text-gray-500 mt-1">Total app: {appStats.unassigned}</p>}
+                        {isViewScoped && <p className="text-[11px] text-muted-foreground mt-1">Total app: {appStats.unassigned}</p>}
                     </div>
                 </div>
 
-                <div className="flex flex-col lg:flex-row gap-3 lg:items-center justify-between rounded-xl border border-slate-800 bg-slate-900/50 p-3">
+                <div className="flex flex-col lg:flex-row gap-3 lg:items-center justify-between rounded-xl border border-border bg-card/75 p-3">
                     <div className="flex flex-col md:flex-row gap-3">
                         <Select value={filterType} onValueChange={setFilterType}>
-                            <SelectTrigger className="w-full md:w-[220px] bg-slate-800 border-slate-700 text-white">
+                            <SelectTrigger className="w-full md:w-[220px] bg-muted border-border text-white">
                                 <SelectValue placeholder="Filtrar usuarios" />
                             </SelectTrigger>
-                            <SelectContent className="bg-slate-800 border-slate-700 text-white">
+                            <SelectContent className="bg-muted border-border text-white">
                                 <SelectItem value="all">Todos</SelectItem>
                                 <SelectItem value="clients">Clientes</SelectItem>
                                 <SelectItem value="coaches">Entrenadores</SelectItem>
@@ -706,17 +706,17 @@ const UsersManagerPage = () => {
                         </Select>
 
                         <div className="relative w-full md:w-80">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                             <Input
                                 placeholder="Buscar por nombre o email..."
-                                className="pl-9 pr-8 bg-slate-800/50 border-slate-700 text-white"
+                                className="pl-9 pr-8 bg-muted/65 border-border text-white"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                             {searchTerm && (
                                 <button
                                     onClick={() => setSearchTerm('')}
-                                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+                                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
                                     aria-label="Limpiar búsqueda"
                                 >
                                     <X className="w-4 h-4" />
@@ -725,54 +725,54 @@ const UsersManagerPage = () => {
                         </div>
                     </div>
 
-                    <div className="text-xs text-gray-400">
+                    <div className="text-xs text-muted-foreground">
                         Mostrando {displayedUsers.length} de {sortedUsers.length} resultados
                     </div>
                 </div>
             </div>
 
-            <div className="rounded-xl border border-slate-800 bg-slate-900/50 overflow-hidden shadow-xl">
+            <div className="rounded-xl border border-border bg-card/75 overflow-hidden shadow-xl">
                 <div className="overflow-x-auto">
                     <Table>
-                        <TableHeader className="bg-slate-900">
-                            <TableRow className="hover:bg-slate-900 border-slate-800">
-                                <TableHead className="text-gray-300">
-                                    <button type="button" onClick={() => handleSort('user')} className="inline-flex items-center gap-1 hover:text-white">
+                        <TableHeader className="bg-card">
+                            <TableRow className="hover:bg-card border-border">
+                                <TableHead className="text-muted-foreground">
+                                    <button type="button" onClick={() => handleSort('user')} className="inline-flex items-center gap-1 hover:text-foreground">
                                         Usuario
                                         <ArrowUpDown className="w-3.5 h-3.5" />
                                     </button>
                                 </TableHead>
-                                <TableHead className="text-gray-300">
-                                    <button type="button" onClick={() => handleSort('role')} className="inline-flex items-center gap-1 hover:text-white">
+                                <TableHead className="text-muted-foreground">
+                                    <button type="button" onClick={() => handleSort('role')} className="inline-flex items-center gap-1 hover:text-foreground">
                                         Rol
                                         <ArrowUpDown className="w-3.5 h-3.5" />
                                     </button>
                                 </TableHead>
-                                <TableHead className="text-gray-300">
-                                    <button type="button" onClick={() => handleSort('center')} className="inline-flex items-center gap-1 hover:text-white">
+                                <TableHead className="text-muted-foreground">
+                                    <button type="button" onClick={() => handleSort('center')} className="inline-flex items-center gap-1 hover:text-foreground">
                                         Centro
                                         <ArrowUpDown className="w-3.5 h-3.5" />
                                     </button>
                                 </TableHead>
-                                <TableHead className="text-gray-300 w-[300px]">
-                                    <button type="button" onClick={() => handleSort('assignment')} className="inline-flex items-center gap-1 hover:text-white">
+                                <TableHead className="text-muted-foreground w-[300px]">
+                                    <button type="button" onClick={() => handleSort('assignment')} className="inline-flex items-center gap-1 hover:text-foreground">
                                         Asignaciones / Estado
                                         <ArrowUpDown className="w-3.5 h-3.5" />
                                     </button>
                                 </TableHead>
-                                <TableHead className="text-gray-300">
-                                    <button type="button" onClick={() => handleSort('age')} className="inline-flex items-center gap-1 hover:text-white">
+                                <TableHead className="text-muted-foreground">
+                                    <button type="button" onClick={() => handleSort('age')} className="inline-flex items-center gap-1 hover:text-foreground">
                                         Edad
                                         <ArrowUpDown className="w-3.5 h-3.5" />
                                     </button>
                                 </TableHead>
-                                <TableHead className="text-gray-300">
-                                    <button type="button" onClick={() => handleSort('createdAt')} className="inline-flex items-center gap-1 hover:text-white">
+                                <TableHead className="text-muted-foreground">
+                                    <button type="button" onClick={() => handleSort('createdAt')} className="inline-flex items-center gap-1 hover:text-foreground">
                                         Alta
                                         <ArrowUpDown className="w-3.5 h-3.5" />
                                     </button>
                                 </TableHead>
-                                <TableHead className="text-gray-300 text-right">Acciones</TableHead>
+                                <TableHead className="text-muted-foreground text-right">Acciones</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -780,7 +780,7 @@ const UsersManagerPage = () => {
                                 filterType === 'centers' ? (
                                     groupedUsersByCenter.map(([centerName, groupUsers]) => (
                                         <React.Fragment key={centerName}>
-                                            <TableRow className="border-slate-700 bg-slate-800/70 hover:bg-slate-800/70">
+                                            <TableRow className="border-border bg-muted/75 hover:bg-muted/75">
                                                 <TableCell colSpan={7} className="py-2">
                                                     <button
                                                         type="button"
@@ -809,7 +809,7 @@ const UsersManagerPage = () => {
                                 )
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={7} className="h-24 text-center text-gray-500">No se encontraron usuarios.</TableCell>
+                                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">No se encontraron usuarios.</TableCell>
                                 </TableRow>
                             )}
                         </TableBody>
@@ -819,13 +819,13 @@ const UsersManagerPage = () => {
 
             {filterType !== 'centers' && (
                 <div className="flex items-center justify-between gap-3">
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-muted-foreground">
                         Página {currentPage} de {totalPages}
                     </p>
                     <div className="flex items-center gap-2">
                         <Button
                             variant="outline"
-                            className="border-slate-700 text-gray-200 hover:bg-slate-800"
+                            className="border-border text-gray-200 hover:bg-muted"
                             disabled={currentPage <= 1}
                             onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                         >
@@ -833,7 +833,7 @@ const UsersManagerPage = () => {
                         </Button>
                         <Button
                             variant="outline"
-                            className="border-slate-700 text-gray-200 hover:bg-slate-800"
+                            className="border-border text-gray-200 hover:bg-muted"
                             disabled={currentPage >= totalPages}
                             onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                         >
@@ -844,17 +844,17 @@ const UsersManagerPage = () => {
             )}
 
             <Dialog open={isCenterDialogOpen} onOpenChange={setIsCenterDialogOpen}>
-                <DialogContent className="bg-[#1a1e23] border-gray-700 text-white">
+                <DialogContent className="bg-background border-border text-white">
                     <DialogHeader>
                         <DialogTitle>Asignar Centro</DialogTitle>
                         <DialogDescription>Selecciona el centro para {selectedUserForCenter?.full_name}</DialogDescription>
                     </DialogHeader>
                     <div className="py-4">
                         <Select onValueChange={(val) => handleCenterChange(selectedUserForCenter?.user_id, val)}>
-                            <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
+                            <SelectTrigger className="bg-card border-border text-white">
                                 <SelectValue placeholder="Seleccionar Centro" />
                             </SelectTrigger>
-                            <SelectContent className="bg-slate-800 border-slate-700 text-white">
+                            <SelectContent className="bg-muted border-border text-white">
                                 <SelectItem value="none">-- Sin Centro --</SelectItem>
                                 {centers.map((c) => (
                                     <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
@@ -866,7 +866,7 @@ const UsersManagerPage = () => {
             </Dialog>
 
             <Dialog open={isCoachDialogOpen} onOpenChange={setIsCoachDialogOpen}>
-                <DialogContent className="bg-[#1a1e23] border-gray-700 text-white">
+                <DialogContent className="bg-background border-border text-white">
                     <DialogHeader>
                         <DialogTitle>Asignar Entrenador</DialogTitle>
                         <DialogDescription>
@@ -878,10 +878,10 @@ const UsersManagerPage = () => {
                     </DialogHeader>
                     <div className="py-4">
                         <Select onValueChange={(val) => handleAddCoach(selectedClientForCoach?.user_id, val)}>
-                            <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
+                            <SelectTrigger className="bg-card border-border text-white">
                                 <SelectValue placeholder="Seleccionar Entrenador" />
                             </SelectTrigger>
-                            <SelectContent className="bg-slate-800 border-slate-700 text-white">
+                            <SelectContent className="bg-muted border-border text-white">
                                 {selectedClientForCoach && getAvailableCoaches(selectedClientForCoach).length > 0 ? (
                                     getAvailableCoaches(selectedClientForCoach).map((c) => (
                                         <SelectItem key={c.user_id} value={c.user_id}>
@@ -890,7 +890,7 @@ const UsersManagerPage = () => {
                                         </SelectItem>
                                     ))
                                 ) : (
-                                    <div className="p-2 text-sm text-gray-500 text-center">No hay entrenadores disponibles</div>
+                                    <div className="p-2 text-sm text-muted-foreground text-center">No hay entrenadores disponibles</div>
                                 )}
                             </SelectContent>
                         </Select>
@@ -899,7 +899,7 @@ const UsersManagerPage = () => {
             </Dialog>
 
             <Dialog open={isCenterClientsDialogOpen} onOpenChange={setIsCenterClientsDialogOpen}>
-                <DialogContent className="bg-[#1a1e23] border-gray-700 text-white sm:max-w-[600px]">
+                <DialogContent className="bg-background border-border text-white sm:max-w-[600px]">
                     <DialogHeader>
                         <DialogTitle>Clientes en {selectedCoachForClients?.center_name}</DialogTitle>
                         <DialogDescription>
@@ -909,10 +909,10 @@ const UsersManagerPage = () => {
                     <div className="py-4 max-h-[400px] overflow-y-auto space-y-2 pr-2">
                         {coachCenterClients.length > 0 ? (
                             coachCenterClients.map((client) => (
-                                <div key={client.user_id} className="flex items-center justify-between bg-slate-900/50 p-3 rounded border border-slate-800">
+                                <div key={client.user_id} className="flex items-center justify-between bg-card/75 p-3 rounded border border-border">
                                     <div className="flex flex-col">
                                         <span className="font-medium text-sm text-white">{client.full_name}</span>
-                                        <span className="text-xs text-gray-500">{client.email}</span>
+                                        <span className="text-xs text-muted-foreground">{client.email}</span>
                                     </div>
                                     <div>
                                         {client.assigned_coaches && client.assigned_coaches.length > 0 ? (
@@ -923,9 +923,9 @@ const UsersManagerPage = () => {
                                                     </Badge>
                                                 ) : (
                                                     <div className="flex flex-col items-end gap-1">
-                                                        <span className="text-[10px] text-gray-400">Asignado a:</span>
+                                                        <span className="text-[10px] text-muted-foreground">Asignado a:</span>
                                                         {client.assigned_coaches.map((ac) => (
-                                                            <Badge key={ac.assignment_id} variant="outline" className="text-[10px] border-slate-600 text-gray-300">
+                                                            <Badge key={ac.assignment_id} variant="outline" className="text-[10px] border-input text-muted-foreground">
                                                                 {ac.full_name}
                                                             </Badge>
                                                         ))}
@@ -941,7 +941,7 @@ const UsersManagerPage = () => {
                                 </div>
                             ))
                         ) : (
-                            <div className="text-center py-8 text-gray-500">
+                            <div className="text-center py-8 text-muted-foreground">
                                 No hay clientes registrados en este centro.
                             </div>
                         )}
@@ -950,13 +950,13 @@ const UsersManagerPage = () => {
             </Dialog>
 
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <AlertDialogContent className="bg-[#1a1e23] border-red-900/50 text-white max-w-lg">
+                <AlertDialogContent className="bg-background border-red-900/50 text-white max-w-lg">
                     <AlertDialogHeader>
                         <AlertDialogTitle className="flex items-center gap-2 text-red-500">
                             <AlertTriangle className="h-6 w-6" />
                             ¿Eliminar usuario permanentemente?
                         </AlertDialogTitle>
-                        <AlertDialogDescription className="space-y-3 pt-3 text-gray-300">
+                        <AlertDialogDescription className="space-y-3 pt-3 text-muted-foreground">
                             <p>
                                 Esta acción es <strong>irreversible</strong>. Estás a punto de eliminar al usuario
                                 <span className="font-bold text-white"> {userToDelete?.full_name} </span>
@@ -975,7 +975,7 @@ const UsersManagerPage = () => {
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter className="mt-4 gap-2">
-                        <AlertDialogCancel className="bg-slate-800 text-white border-slate-700 hover:bg-slate-700 hover:text-white">
+                        <AlertDialogCancel className="bg-muted text-white border-border hover:bg-accent hover:text-foreground">
                             Cancelar
                         </AlertDialogCancel>
                         <AlertDialogAction

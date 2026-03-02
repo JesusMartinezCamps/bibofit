@@ -62,7 +62,7 @@ const MealAdjustmentStep = ({ planData, onNext, onBack }) => {
 
     if (planLoading || isAnalyzing) {
         return (
-            <div className="flex flex-col items-center justify-center h-64 text-slate-400">
+            <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
                 <Loader2 className="w-8 h-8 animate-spin mb-4 text-green-500" />
                 <p>Analizando conflictos e identificando sustituciones...</p>
             </div>
@@ -74,7 +74,7 @@ const MealAdjustmentStep = ({ planData, onNext, onBack }) => {
             <div className="flex-1 overflow-y-auto pr-2 pb-6 styled-scrollbar space-y-6">
                 
                 <h2 className="text-xl font-semibold text-white">Revisión de Ingredientes</h2>
-                <p className="text-sm text-slate-400">El sistema ha analizado las recetas frente a las restricciones del cliente.</p>
+                <p className="text-sm text-muted-foreground">El sistema ha analizado las recetas frente a las restricciones del cliente.</p>
 
                 <ConflictSummary 
                     autoCount={autoSubstitutions.length}
@@ -89,11 +89,11 @@ const MealAdjustmentStep = ({ planData, onNext, onBack }) => {
                     <div className="space-y-3">
                         <h3 className="text-sm font-medium text-green-400 uppercase tracking-wider">Sustituciones Automáticas Aplicadas</h3>
                         {autoSubstitutions.map((item, idx) => (
-                            <Card key={idx} className="bg-slate-800/40 border-slate-700/50">
+                            <Card key={idx} className="bg-muted/40 border-border/50">
                                 <CardContent className="p-3 flex items-center justify-between">
                                     <div>
                                         <p className="text-sm font-medium text-slate-200">{item.recipeName}</p>
-                                        <div className="flex items-center gap-2 mt-1 text-xs text-slate-400">
+                                        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
                                             <span className="line-through text-red-400/70">{item.ingredient.food.name}</span>
                                             <ArrowRight className="w-3 h-3" />
                                             <span className="text-green-400">{allAvailableFoods?.find(f=>f.id === item.targetFoodId)?.name || 'Sustituto'}</span>
@@ -107,7 +107,7 @@ const MealAdjustmentStep = ({ planData, onNext, onBack }) => {
                 )}
 
                 {pendingConfirmations.length > 0 && (
-                    <div id="pending-section" className="space-y-3 pt-4 border-t border-slate-800">
+                    <div id="pending-section" className="space-y-3 pt-4 border-t border-border">
                         <h3 className="text-sm font-medium text-amber-400 uppercase tracking-wider">Sugerencias por Confirmar</h3>
                         {pendingConfirmations.map((item, idx) => (
                             <Card key={idx} className="bg-amber-900/10 border-amber-500/20">
@@ -120,13 +120,13 @@ const MealAdjustmentStep = ({ planData, onNext, onBack }) => {
                                         <Badge variant="outline" className="bg-amber-900/30 text-amber-300 border-amber-500/30">Requiere Acción</Badge>
                                     </div>
                                     
-                                    <p className="text-xs text-slate-400 mb-2">Selecciona un sustituto:</p>
+                                    <p className="text-xs text-muted-foreground mb-2">Selecciona un sustituto:</p>
                                     <div className="space-y-2">
                                         {item.substitutions.map(sub => {
                                             const targetName = allAvailableFoods?.find(f=>f.id === sub.target_food_id)?.name || 'Sustituto';
                                             return (
-                                                <div key={sub.id} className="flex items-center justify-between bg-slate-800/50 p-2 rounded border border-slate-700">
-                                                    <span className="text-sm text-slate-300">{targetName}</span>
+                                                <div key={sub.id} className="flex items-center justify-between bg-muted/65 p-2 rounded border border-border">
+                                                    <span className="text-sm text-muted-foreground">{targetName}</span>
                                                     <Button 
                                                         size="sm" 
                                                         variant="ghost" 
@@ -146,7 +146,7 @@ const MealAdjustmentStep = ({ planData, onNext, onBack }) => {
                 )}
 
                 {manualReviewItems.length > 0 && (
-                    <div id="manual-section" className="space-y-3 pt-4 border-t border-slate-800">
+                    <div id="manual-section" className="space-y-3 pt-4 border-t border-border">
                         <h3 className="text-sm font-medium text-red-400 uppercase tracking-wider">Requieren Revisión Manual</h3>
                         {manualReviewItems.map((item, idx) => (
                             <Card key={idx} className="bg-red-900/10 border-red-500/20">
@@ -169,7 +169,7 @@ const MealAdjustmentStep = ({ planData, onNext, onBack }) => {
                 )}
             </div>
 
-            <div className="pt-4 border-t border-slate-800 flex justify-between mt-auto shrink-0 bg-slate-950">
+            <div className="pt-4 border-t border-border flex justify-between mt-auto shrink-0 bg-card">
                 <Button variant="ghost" onClick={onBack} disabled={isProcessing}>Atrás</Button>
                 <Button 
                     onClick={handleContinue}

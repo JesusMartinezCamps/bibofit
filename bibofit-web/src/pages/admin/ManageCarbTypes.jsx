@@ -165,14 +165,14 @@ const ManageCarbTypes = () => {
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-3xl font-bold text-white">Gestión de Tipos de Carbohidratos</h1>
-                    <p className="text-gray-400">Administra la jerarquía de carbohidratos: Tipos {'>'} Clasificaciones {'>'} Subtipos</p>
+                    <p className="text-muted-foreground">Administra la jerarquía de carbohidratos: Tipos {'>'} Clasificaciones {'>'} Subtipos</p>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[calc(100vh-200px)]">
                 {/* Column 1: Carb Types */}
-                <Card className="bg-[#1a1e23] border-gray-800 flex flex-col h-full">
-                    <CardHeader className="pb-3 border-b border-gray-800">
+                <Card className="bg-background border-border flex flex-col h-full">
+                    <CardHeader className="pb-3 border-b border-border">
                         <div className="flex justify-between items-center">
                             <CardTitle className="text-lg font-semibold text-white flex items-center gap-2">
                                 <Layers className="h-5 w-5 text-blue-400" /> Tipos
@@ -189,12 +189,12 @@ const ManageCarbTypes = () => {
                                 <div 
                                     key={type.id} 
                                     onClick={() => { setSelectedType(type); setSelectedClassification(null); }}
-                                    className={`p-3 rounded-lg cursor-pointer transition-all border ${selectedType?.id === type.id ? 'bg-blue-900/20 border-blue-500/50' : 'bg-gray-800/30 border-transparent hover:bg-gray-800'}`}
+                                    className={`p-3 rounded-lg cursor-pointer transition-all border ${selectedType?.id === type.id ? 'bg-blue-900/20 border-blue-500/50' : 'bg-muted/30 border-transparent hover:bg-muted'}`}
                                 >
                                     <div className="flex justify-between items-start">
                                         <div>
                                             <h3 className={`font-medium ${selectedType?.id === type.id ? 'text-blue-300' : 'text-gray-200'}`}>{type.name}</h3>
-                                            {type.description && <p className="text-xs text-gray-500 line-clamp-2 mt-1">{type.description}</p>}
+                                            {type.description && <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{type.description}</p>}
                                         </div>
                                         {selectedType?.id === type.id && (
                                             <div className="flex gap-1">
@@ -214,8 +214,8 @@ const ManageCarbTypes = () => {
                 </Card>
 
                 {/* Column 2: Classifications */}
-                <Card className={`bg-[#1a1e23] border-gray-800 flex flex-col h-full ${!selectedType ? 'opacity-50 pointer-events-none' : ''}`}>
-                    <CardHeader className="pb-3 border-b border-gray-800">
+                <Card className={`bg-background border-border flex flex-col h-full ${!selectedType ? 'opacity-50 pointer-events-none' : ''}`}>
+                    <CardHeader className="pb-3 border-b border-border">
                         <div className="flex justify-between items-center">
                             <CardTitle className="text-lg font-semibold text-white flex items-center gap-2">
                                 <ListTree className="h-5 w-5 text-green-400" /> Clasificaciones
@@ -231,18 +231,18 @@ const ManageCarbTypes = () => {
                     <ScrollArea className="flex-1">
                         <div className="p-2 space-y-2">
                             {classifications.length === 0 && selectedType && (
-                                <p className="text-sm text-gray-500 text-center py-8">Sin clasificaciones</p>
+                                <p className="text-sm text-muted-foreground text-center py-8">Sin clasificaciones</p>
                             )}
                             {classifications.map(classification => (
                                 <div 
                                     key={classification.id} 
                                     onClick={() => setSelectedClassification(classification)}
-                                    className={`p-3 rounded-lg cursor-pointer transition-all border ${selectedClassification?.id === classification.id ? 'bg-green-900/20 border-green-500/50' : 'bg-gray-800/30 border-transparent hover:bg-gray-800'}`}
+                                    className={`p-3 rounded-lg cursor-pointer transition-all border ${selectedClassification?.id === classification.id ? 'bg-green-900/20 border-green-500/50' : 'bg-muted/30 border-transparent hover:bg-muted'}`}
                                 >
                                     <div className="flex justify-between items-start">
                                         <div>
                                             <h3 className={`font-medium ${selectedClassification?.id === classification.id ? 'text-green-300' : 'text-gray-200'}`}>{classification.name}</h3>
-                                            {classification.description && <p className="text-xs text-gray-500 line-clamp-2 mt-1">{classification.description}</p>}
+                                            {classification.description && <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{classification.description}</p>}
                                         </div>
                                         {selectedClassification?.id === classification.id && (
                                             <div className="flex gap-1">
@@ -262,8 +262,8 @@ const ManageCarbTypes = () => {
                 </Card>
 
                 {/* Column 3: Subtypes */}
-                <Card className={`bg-[#1a1e23] border-gray-800 flex flex-col h-full ${!selectedClassification ? 'opacity-50 pointer-events-none' : ''}`}>
-                    <CardHeader className="pb-3 border-b border-gray-800">
+                <Card className={`bg-background border-border flex flex-col h-full ${!selectedClassification ? 'opacity-50 pointer-events-none' : ''}`}>
+                    <CardHeader className="pb-3 border-b border-border">
                         <div className="flex justify-between items-center">
                             <CardTitle className="text-lg font-semibold text-white flex items-center gap-2">
                                 <Tag className="h-5 w-5 text-purple-400" /> Subtipos
@@ -279,17 +279,17 @@ const ManageCarbTypes = () => {
                     <ScrollArea className="flex-1">
                         <div className="p-2 space-y-2">
                              {subtypes.length === 0 && selectedClassification && (
-                                <p className="text-sm text-gray-500 text-center py-8">Sin subtipos</p>
+                                <p className="text-sm text-muted-foreground text-center py-8">Sin subtipos</p>
                             )}
                             {subtypes.map(subtype => (
                                 <div 
                                     key={subtype.id} 
-                                    className="p-3 rounded-lg bg-gray-800/30 border border-transparent hover:bg-gray-800 hover:border-gray-700 transition-all group"
+                                    className="p-3 rounded-lg bg-muted/30 border border-transparent hover:bg-muted hover:border-border transition-all group"
                                 >
                                     <div className="flex justify-between items-start">
                                         <div>
                                             <h3 className="font-medium text-gray-200">{subtype.name}</h3>
-                                            {subtype.description && <p className="text-xs text-gray-500 line-clamp-2 mt-1">{subtype.description}</p>}
+                                            {subtype.description && <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{subtype.description}</p>}
                                         </div>
                                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <Button size="icon" variant="ghost" className="h-6 w-6 hover:text-yellow-400" onClick={() => handleOpenModal('subtype', 'edit', subtype)}>
@@ -308,7 +308,7 @@ const ManageCarbTypes = () => {
             </div>
 
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent className="bg-[#1a1e23] border-gray-800 text-white">
+                <DialogContent className="bg-background border-border text-white">
                     <DialogHeader>
                         <DialogTitle>
                             {modalMode === 'create' ? 'Crear' : 'Editar'} {modalLevel === 'type' ? 'Tipo' : modalLevel === 'classification' ? 'Clasificación' : 'Subtipo'}
@@ -321,7 +321,7 @@ const ManageCarbTypes = () => {
                                 value={formData.name} 
                                 onChange={(e) => setFormData({...formData, name: e.target.value})}
                                 placeholder="Nombre del elemento"
-                                className="bg-gray-900 border-gray-700"
+                                className="bg-card border-border"
                             />
                         </div>
                         <div className="space-y-2">
@@ -330,7 +330,7 @@ const ManageCarbTypes = () => {
                                 value={formData.description} 
                                 onChange={(e) => setFormData({...formData, description: e.target.value})}
                                 placeholder="Breve descripción..."
-                                className="bg-gray-900 border-gray-700 resize-none h-24"
+                                className="bg-card border-border resize-none h-24"
                             />
                         </div>
                         <DialogFooter>
@@ -342,15 +342,15 @@ const ManageCarbTypes = () => {
             </Dialog>
 
             <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-                <AlertDialogContent className="bg-[#1a1e23] border-gray-800 text-white">
+                <AlertDialogContent className="bg-background border-border text-white">
                     <AlertDialogHeader>
                         <AlertDialogTitle>¿Eliminar elemento?</AlertDialogTitle>
-                        <AlertDialogDescription className="text-gray-400">
+                        <AlertDialogDescription className="text-muted-foreground">
                             Esta acción no se puede deshacer. Se eliminarán todos los elementos dependientes.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <div className="flex gap-3 justify-end">
-                        <AlertDialogCancel className="bg-gray-800 hover:bg-gray-700 text-white border-gray-700">Cancelar</AlertDialogCancel>
+                        <AlertDialogCancel className="bg-muted hover:bg-muted text-white border-border">Cancelar</AlertDialogCancel>
                         <AlertDialogAction onClick={handleConfirmDelete} className="bg-red-600 hover:bg-red-700">Eliminar</AlertDialogAction>
                     </div>
                 </AlertDialogContent>

@@ -226,7 +226,7 @@ const PlanTemplatesPage = () => {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-white">Plantillas de Dieta</h1>
-                    <p className="text-gray-400 mt-1">Gestiona y asigna plantillas base para tus clientes</p>
+                    <p className="text-muted-foreground mt-1">Gestiona y asigna plantillas base para tus clientes</p>
                 </div>
                 <Button onClick={() => { setSelectedTemplate(null); setIsCreateDialogOpen(true); }} className="bg-green-600 hover:bg-green-700 text-white">
                     <Plus className="mr-2 h-4 w-4" /> Nueva Plantilla
@@ -236,14 +236,14 @@ const PlanTemplatesPage = () => {
             {/* Scope Tabs */}
             <div className="w-full">
                 <Tabs value={scopeFilter} onValueChange={setScopeFilter} className="w-full md:w-auto">
-                    <TabsList className="bg-gray-800/50 border border-gray-700">
-                        <TabsTrigger value="all" className="data-[state=active]:bg-gray-700 data-[state=active]:text-gray-200 text-gray-300">
+                    <TabsList className="bg-muted/65 border border-border">
+                        <TabsTrigger value="all" className="data-[state=active]:bg-muted data-[state=active]:text-gray-200 text-muted-foreground">
                             Todas
                         </TabsTrigger>
-                        <TabsTrigger value="global" className="data-[state=active]:bg-blue-900/50 data-[state=active]:text-blue-200 text-gray-300">
+                        <TabsTrigger value="global" className="data-[state=active]:bg-blue-900/50 data-[state=active]:text-blue-200 text-muted-foreground">
                             <Globe className="w-3 h-3 mr-2" /> Globales
                         </TabsTrigger>
-                        <TabsTrigger value="center" className="data-[state=active]:bg-amber-900/50 data-[state=active]:text-amber-200 text-gray-300">
+                        <TabsTrigger value="center" className="data-[state=active]:bg-amber-900/50 data-[state=active]:text-amber-200 text-muted-foreground">
                             <Building2 className="w-3 h-3 mr-2" /> De Centro
                         </TabsTrigger>
                     </TabsList>
@@ -252,7 +252,7 @@ const PlanTemplatesPage = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                 {/* Filters Sidebar */}
-                <div className="lg:col-span-1 space-y-6 bg-[#1a1e23] p-6 rounded-xl border border-gray-800 h-fit bg-gradient-to-b from-gray-900/20 via-gray-800/10 to-gray-900/20">
+                <div className="lg:col-span-1 space-y-6 bg-background p-6 rounded-xl border border-border h-fit bg-gradient-to-b from-gray-900/20 via-gray-800/10 to-gray-900/20">
                     <div className="flex items-center justify-between">
                         <h2 className="font-semibold text-white flex items-center gap-2">
                             <Filter className="h-4 w-4  text-green-400" /> Filtros
@@ -266,25 +266,25 @@ const PlanTemplatesPage = () => {
                     
                     <div className="space-y-4">
                         <div className="space-y-2">
-                            <Label className="text-xs text-gray-400 uppercase">Búsqueda</Label>
+                            <Label className="text-xs text-muted-foreground uppercase">Búsqueda</Label>
                             <div className="relative">
-                                <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+                                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                                 <Input
                                     placeholder="Buscar por nombre..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="pl-8 bg-gray-900 border-gray-700 text-sm"
+                                    className="pl-8 bg-card border-border text-sm"
                                 />
                             </div>
                         </div>
 
                         <div className="space-y-2">
-                            <Label className="text-xs text-gray-400 uppercase">Objetivo</Label>
+                            <Label className="text-xs text-muted-foreground uppercase">Objetivo</Label>
                             <Select value={filters.objective} onValueChange={(v) => setFilters(prev => ({ ...prev, objective: v }))}>
-                                <SelectTrigger className="bg-gray-900 border-gray-700 text-sm">
+                                <SelectTrigger className="bg-card border-border text-sm">
                                     <SelectValue placeholder="Cualquiera" />
                                 </SelectTrigger>
-                                <SelectContent className="bg-[#1a1e23] border-gray-700 text-white">
+                                <SelectContent className="bg-background border-border text-white">
                                     <SelectItem value="all">Cualquiera</SelectItem>
                                     {AXIS_OPTIONS_STATIC.objective.map(opt => (
                                         <SelectItem key={opt} value={opt}>{opt}</SelectItem>
@@ -294,12 +294,12 @@ const PlanTemplatesPage = () => {
                         </div>
 
                         <div className="space-y-2">
-                            <Label className="text-xs text-gray-400 uppercase">Estilo de Vida</Label>
+                            <Label className="text-xs text-muted-foreground uppercase">Estilo de Vida</Label>
                             <Select value={filters.lifestyle} onValueChange={(v) => setFilters(prev => ({ ...prev, lifestyle: v }))}>
-                                <SelectTrigger className="bg-gray-900 border-gray-700 text-sm">
+                                <SelectTrigger className="bg-card border-border text-sm">
                                     <SelectValue placeholder="Cualquiera" />
                                 </SelectTrigger>
-                                <SelectContent className="bg-[#1a1e23] border-gray-700 text-white">
+                                <SelectContent className="bg-background border-border text-white">
                                     <SelectItem value="all">Cualquiera</SelectItem>
                                     {AXIS_OPTIONS_STATIC.lifestyle.map(opt => (
                                         <SelectItem key={opt} value={opt}>{opt}</SelectItem>
@@ -309,12 +309,12 @@ const PlanTemplatesPage = () => {
                         </div>
 
                         <div className="space-y-2">
-                            <Label className="text-xs text-gray-400 uppercase">Estilo Nutricional</Label>
+                            <Label className="text-xs text-muted-foreground uppercase">Estilo Nutricional</Label>
                             <Select value={filters.nutrition_style} onValueChange={(v) => setFilters(prev => ({ ...prev, nutrition_style: v }))}>
-                                <SelectTrigger className="bg-gray-900 border-gray-700 text-sm">
+                                <SelectTrigger className="bg-card border-border text-sm">
                                     <SelectValue placeholder="Cualquiera" />
                                 </SelectTrigger>
-                                <SelectContent className="bg-[#1a1e23] border-gray-700 text-white">
+                                <SelectContent className="bg-background border-border text-white">
                                     <SelectItem value="all">Cualquiera</SelectItem>
                                     {dietTypeOptions.map(opt => (
                                         <SelectItem key={opt.id} value={opt.name}>{opt.name}</SelectItem>
@@ -323,14 +323,14 @@ const PlanTemplatesPage = () => {
                             </Select>
                         </div>
 
-                        <div className="pt-4 border-t border-gray-800 space-y-4">
+                        <div className="pt-4 border-t border-border space-y-4">
                             <div className="space-y-2">
-                                <Label className="text-xs text-gray-400 uppercase">Sensibilidades a Evitar</Label>
+                                <Label className="text-xs text-muted-foreground uppercase">Sensibilidades a Evitar</Label>
                                 <Select value={filters.sensitivities} onValueChange={(v) => setFilters(prev => ({ ...prev, sensitivities: v }))}>
-                                    <SelectTrigger className="bg-gray-900 border-gray-700 text-sm">
+                                    <SelectTrigger className="bg-card border-border text-sm">
                                         <SelectValue placeholder="Ninguna específica" />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-[#1a1e23] border-gray-700 text-white">
+                                    <SelectContent className="bg-background border-border text-white">
                                         <SelectItem value="all">Todas</SelectItem>
                                         {sensitivitiesOptions.map(opt => (
                                             <SelectItem key={opt.id} value={opt.id.toString()}>{opt.name}</SelectItem>
@@ -340,12 +340,12 @@ const PlanTemplatesPage = () => {
                             </div>
 
                             <div className="space-y-2">
-                                <Label className="text-xs text-gray-400 uppercase">Patología (Apta para)</Label>
+                                <Label className="text-xs text-muted-foreground uppercase">Patología (Apta para)</Label>
                                 <Select value={filters.pathology} onValueChange={(v) => setFilters(prev => ({ ...prev, pathology: v }))}>
-                                    <SelectTrigger className="bg-gray-900 border-gray-700 text-sm">
+                                    <SelectTrigger className="bg-card border-border text-sm">
                                         <SelectValue placeholder="Ninguna específica" />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-[#1a1e23] border-gray-700 text-white">
+                                    <SelectContent className="bg-background border-border text-white">
                                         <SelectItem value="all">Todas</SelectItem>
                                         {pathologyOptions.map(opt => (
                                             <SelectItem key={opt.id} value={opt.id.toString()}>{opt.name}</SelectItem>
@@ -380,8 +380,8 @@ const PlanTemplatesPage = () => {
                             ))}
                         </div>
                     ) : (
-                        <div className="text-center py-12 bg-gray-800/20 rounded-xl border border-dashed border-gray-800">
-                            <p className="text-gray-500">No se encontraron plantillas con los filtros actuales.</p>
+                        <div className="text-center py-12 bg-muted/20 rounded-xl border border-dashed border-border">
+                            <p className="text-muted-foreground">No se encontraron plantillas con los filtros actuales.</p>
                             <Button variant="link" onClick={clearFilters} className="text-green-400">
                                 Limpiar filtros
                             </Button>

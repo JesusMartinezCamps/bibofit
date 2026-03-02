@@ -31,19 +31,19 @@ const SearchSelectionModal = ({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="w-[95%] max-w-md h-[80vh] flex flex-col p-0 bg-[#1a1e23] border-gray-700">
-                <div className="p-4 border-b border-gray-700 space-y-4 flex-shrink-0">
+            <DialogContent className="w-[95%] max-w-md h-[80vh] flex flex-col p-0 bg-background border-border">
+                <div className="p-4 border-b border-border space-y-4 flex-shrink-0">
                     <DialogHeader>
                         <DialogTitle className="text-left">{title}</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-3">
                         <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input 
                                 placeholder={searchPlaceholder} 
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="pl-9 bg-gray-800 border-gray-600 text-white focus:border-cyan-500"
+                                className="pl-9 bg-muted border-input text-white focus:border-cyan-500"
                             />
                         </div>
                         {headerContent}
@@ -52,16 +52,16 @@ const SearchSelectionModal = ({
                 <ScrollArea className="flex-1 p-2">
                     <div className="space-y-1">
                         {filteredItems.length === 0 ? (
-                            <p className="text-center text-gray-400 py-8 text-sm">No se encontraron resultados.</p>
+                            <p className="text-center text-muted-foreground py-8 text-sm">No se encontraron resultados.</p>
                         ) : (
                             filteredItems.map((item) => (
                                 <button
                                     key={item.id}
                                     onClick={() => handleSelect(item)}
-                                    className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-800/80 transition-colors group text-left"
+                                    className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted/80 transition-colors group text-left"
                                 >
                                     <span className="text-gray-200 font-medium">{item[displayKey]}</span>
-                                    <Plus className="h-4 w-4 text-gray-500 group-hover:text-green-400 transition-colors" />
+                                    <Plus className="h-4 w-4 text-muted-foreground group-hover:text-green-400 transition-colors" />
                                 </button>
                             ))
                         )}

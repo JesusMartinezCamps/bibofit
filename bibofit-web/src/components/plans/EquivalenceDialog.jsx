@@ -218,7 +218,7 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
   return (
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent
-        className="bg-slate-900 border-slate-800 text-slate-50 max-w-2xl p-0 overflow-hidden shadow-2xl rounded-2xl"
+        className="bg-card border-border text-slate-50 max-w-2xl p-0 overflow-hidden shadow-2xl rounded-2xl"
         onEscapeKeyDown={(event) => {
           if (isSubmitting) event.preventDefault();
         }}
@@ -231,7 +231,7 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
           variant="ghost"
           size="icon"
           onClick={() => onOpenChange(false)}
-          className="absolute right-3 top-9 z-30 h-9 w-9 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/70"
+          className="absolute right-3 top-9 z-30 h-9 w-9 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/75"
           aria-label="Cerrar"
         >
           <X className="h-5 w-5" />
@@ -239,7 +239,7 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
 
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 pointer-events-none" />
         
-        <DialogHeader className="p-6 pb-2 relative z-10 border-b border-slate-800/60 bg-slate-900/50 backdrop-blur-sm">
+        <DialogHeader className="p-6 pb-2 relative z-10 border-b border-border/60 bg-card/75 backdrop-blur-sm">
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2.5 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/20">
               <Utensils className="w-5 h-5 text-white" />
@@ -248,21 +248,21 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
               Aplicar Equivalencia
             </DialogTitle>
           </div>
-          <DialogDescription className="text-slate-400 text-base leading-relaxed">
+          <DialogDescription className="text-muted-foreground text-base leading-relaxed">
             Selecciona una comida futura para compensar las calorías de este {sourceItemType === 'snack' ? 'picoteo' : (sourceItemType === 'free_recipe' ? 'comida libre' : 'receta')}.
           </DialogDescription>
           
-          <div className="mt-4 flex items-center justify-between p-4 bg-slate-800/50 rounded-xl border border-slate-700/50 shadow-inner">
+          <div className="mt-4 flex items-center justify-between p-4 bg-muted/65 rounded-xl border border-border/50 shadow-inner">
              <div className="flex flex-col">
-               <span className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1">Calorías a Compensar</span>
+               <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Calorías a Compensar</span>
                <span className="text-2xl font-bold text-red-400 tabular-nums tracking-tight">
                  {caloriesToCompensate} <span className="text-sm font-medium text-red-400/70">kcal</span>
                </span>
              </div>
              <div className="h-8 w-px bg-slate-700/50 mx-4 hidden sm:block"></div>
              <div className="hidden sm:flex flex-col items-end">
-               <span className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1">Impacto Estimado</span>
-               <span className="text-sm text-slate-300">Se ajustarán las porciones automáticamente</span>
+               <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Impacto Estimado</span>
+               <span className="text-sm text-muted-foreground">Se ajustarán las porciones automáticamente</span>
              </div>
           </div>
         </DialogHeader>
@@ -273,7 +273,7 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
               <div className="p-3 bg-blue-500/10 rounded-full">
                 <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
               </div>
-              <p className="text-sm text-slate-400 font-medium">Buscando opciones compatibles...</p>
+              <p className="text-sm text-muted-foreground font-medium">Buscando opciones compatibles...</p>
             </div>
           ) : availableMeals.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -299,8 +299,8 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
                           isSelected 
                             ? 'bg-gradient-to-br from-blue-600 to-indigo-600 border-blue-500/50 shadow-lg shadow-blue-500/20' 
                             : isTodayMeal
-                              ? 'bg-blue-500/10 border-slate-700 hover:border-blue-500/30 hover:bg-blue-500/30 hover:shadow-md'
-                              : 'bg-slate-900/40 border-slate-700/50 hover:border-indigo-500/30 hover:bg-slate-800/60'
+                              ? 'bg-blue-500/10 border-border hover:border-blue-500/30 hover:bg-blue-500/30 hover:shadow-md'
+                              : 'bg-card/40 border-border/50 hover:border-indigo-500/30 hover:bg-muted/70'
                         )}
                       >
                         {isSelected && (
@@ -313,7 +313,7 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
                           <div className="flex justify-between items-start mb-2">
                              <div className={cn(
                                "px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider inline-flex items-center gap-1",
-                               isSelected ? "bg-white/20 text-white" : isTodayMeal ? "bg-blue-500/10 text-blue-400" : "bg-slate-700 text-slate-400"
+                               isSelected ? "bg-white/20 text-white" : isTodayMeal ? "bg-blue-500/10 text-blue-400" : "bg-slate-700 text-muted-foreground"
                              )}>
                                <CalendarDays className="w-3 h-3" />
                                {meal.subLabel}
@@ -325,14 +325,14 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
                           
                           <h3 className={cn(
                             "font-semibold text-lg leading-tight transition-colors",
-                            isSelected ? "text-white" : "text-slate-200 group-hover:text-white"
+                            isSelected ? "text-white" : "text-slate-200 group-hover:text-foreground"
                           )}>
                             {meal.label}
                           </h3>
                           
                           <div className={cn(
                             "mt-3 text-xs flex items-center gap-1 transition-colors",
-                            isSelected ? "text-blue-100" : "text-slate-500 group-hover:text-slate-400"
+                            isSelected ? "text-blue-100" : "text-slate-500 group-hover:text-muted-foreground"
                           )}>
                              <span>Objetivo original:</span>
                              <span className="font-medium">{Math.round(meal.target_calories || 0)} kcal</span>
@@ -353,21 +353,21 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
               </AnimatePresence>
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-12 text-center bg-slate-800/30 rounded-xl border border-slate-800 border-dashed">
-              <div className="p-4 bg-slate-800 rounded-full mb-3 text-slate-500">
+            <div className="flex flex-col items-center justify-center py-12 text-center bg-muted/30 rounded-xl border border-border border-dashed">
+              <div className="p-4 bg-muted rounded-full mb-3 text-slate-500">
                 <CalendarDays className="w-8 h-8" />
               </div>
-              <h3 className="text-slate-300 font-medium text-lg mb-1">Sin opciones disponibles</h3>
+              <h3 className="text-muted-foreground font-medium text-lg mb-1">Sin opciones disponibles</h3>
               <p className="text-slate-500 max-w-xs text-sm">No hay comidas futuras planificadas donde aplicar esta equivalencia.</p>
             </div>
           )}
         </div>
 
-        <DialogFooter className="p-6 border-t border-slate-800/60 bg-slate-900/50 backdrop-blur-sm relative z-20 flex flex-col sm:flex-row gap-3">
+        <DialogFooter className="p-6 border-t border-border/60 bg-card/75 backdrop-blur-sm relative z-20 flex flex-col sm:flex-row gap-3">
           <Button 
             variant="ghost" 
             onClick={() => onOpenChange(false)}
-            className="w-full sm:w-auto text-slate-400 hover:text-white hover:bg-slate-800"
+            className="w-full sm:w-auto text-muted-foreground hover:text-foreground hover:bg-muted"
           >
             Cancelar
           </Button>
@@ -377,7 +377,7 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
             className={cn(
               'w-full sm:w-auto relative overflow-hidden transition-all duration-300 shadow-lg',
               (!selectedMeal || caloriesToCompensate <= 0)
-                ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
+                ? 'bg-muted text-slate-500 cursor-not-allowed border border-border'
                 : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-500/25 hover:shadow-blue-500/40 hover:-translate-y-0.5'
             )}
           >
@@ -394,7 +394,7 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
             )}
           </Button>
           {isSubmitting && (
-            <p className="text-xs text-slate-400 sm:ml-2">
+            <p className="text-xs text-muted-foreground sm:ml-2">
               Espera un momento, estamos recalculando tu plan.
             </p>
           )}

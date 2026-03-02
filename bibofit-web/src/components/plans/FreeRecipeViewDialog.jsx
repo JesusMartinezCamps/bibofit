@@ -484,7 +484,7 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
     return (
       <>
         <Dialog open={open} onOpenChange={handleClose}>
-          <DialogContent className="bg-[#0C101D] border-gray-700 text-white w-[95vw] max-w-4xl h-[90vh] flex flex-col p-0">
+          <DialogContent className="bg-[#0C101D] border-border text-white w-[95vw] max-w-4xl h-[90vh] flex flex-col p-0">
             {!isSearching && (
               <div className="flex justify-between items-center bg-sky-900/30">
                   {mode === 'view' && canShowEquivalence && (
@@ -546,7 +546,7 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
                           // Action button removed from here, only kept at bottom
                         />
                         {onSelect && (
-                            <div className="p-6 pt-4 border-t border-gray-800 mt-auto bg-[#0C101D]">
+                            <div className="p-6 pt-4 border-t border-border mt-auto bg-[#0C101D]">
                                 {renderAddButton()}
                             </div>
                         )}
@@ -585,7 +585,7 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
                                     {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                                     Guardar como nueva receta
                                 </Button>
-                                <p className="text-xs text-gray-400 text-center mt-2">
+                                <p className="text-xs text-muted-foreground text-center mt-2">
                                     Se creará una nueva versión pendiente de aprobación. La receta original no se modificará.
                                 </p>
                             </div>

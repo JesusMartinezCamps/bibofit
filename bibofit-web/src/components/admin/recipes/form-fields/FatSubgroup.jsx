@@ -8,7 +8,7 @@ const FatSubgroup = ({ title, fatTypes, breakdown, onChange, isFirstRow = false 
     
     return (
         <div className="macro-subgroup">
-            {title && <Label className="text-gray-300 mb-4 block px-4">{title}</Label>}
+            {title && <Label className="text-muted-foreground mb-4 block px-4">{title}</Label>}
             <div className={cn("px-4 grid gap-x-6 gap-y-4", gridColsClass)}>
                 {fatTypes.map(type => (
                     <FatInputRow

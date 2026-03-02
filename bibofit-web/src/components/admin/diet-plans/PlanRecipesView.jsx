@@ -10,8 +10,8 @@ import RecipeCard from '@/components/shared/WeeklyDietPlanner/RecipeCard';
 import { useAuth } from '@/contexts/AuthContext';
 
 const MealSection = ({ meal, recipes, onAdd, onEdit, onDelete, allFoods, planRestrictions, user, readOnly }) => (
-    <div key={meal.id} className="bg-slate-900/50 rounded-lg border border-gray-800 overflow-hidden">
-        <div className="flex items-center justify-between gap-3 p-3 border-b border-gray-800 bg-slate-900/80">
+    <div key={meal.id} className="bg-card/75 rounded-lg border border-border overflow-hidden">
+        <div className="flex items-center justify-between gap-3 p-3 border-b border-border bg-card/90">
             <h3 className="text-lg font-bold text-white">{meal.name}</h3>
             {!readOnly && (
                 <Button onClick={() => onAdd(meal)} size="icon" variant="ghost" className="h-7 w-7 text-green-500 hover:bg-green-500/10 hover:text-green-400">
@@ -39,7 +39,7 @@ const MealSection = ({ meal, recipes, onAdd, onEdit, onDelete, allFoods, planRes
                 ))
             ) : (
                 <div className="md:col-span-2 lg:col-span-3 xl:col-span-4 p-4">
-                    <p className="text-sm text-gray-500 text-center italic py-4 bg-gray-900/40 rounded-lg">No hay recetas asignadas a esta comida.</p>
+                    <p className="text-sm text-muted-foreground text-center italic py-4 bg-card/40 rounded-lg">No hay recetas asignadas a esta comida.</p>
                 </div>
             )}
         </div>
@@ -236,7 +236,7 @@ const PlanRecipesView = ({ plan, onUpdate, readOnly = false, clientRestrictions 
 
     return (
         <>
-            <Card className="bg-slate-900/50 border-gray-700 text-white overflow-hidden shadow-xl">
+            <Card className="bg-card/75 border-border text-white overflow-hidden shadow-xl">
                 {!readOnly && (
                     <CardHeader>
                         <CardTitle>Recetas en la Plantilla</CardTitle>

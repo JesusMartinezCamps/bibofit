@@ -66,7 +66,7 @@ const FreeRecipeCard = ({
                 </p>
               </div>
             </div>
-            <p className="text-sm text-gray-400 line-clamp-3">
+            <p className="text-sm text-muted-foreground line-clamp-3">
               {ingredientList.length > 0 
                 ? ingredientList.reduce((prev, curr) => [prev, ', ', curr])
                 : 'Sin ingredientes'

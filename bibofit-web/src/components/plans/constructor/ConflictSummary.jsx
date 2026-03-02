@@ -32,40 +32,40 @@ const ConflictSummary = ({
     }
 
     return (
-        <Card className="bg-slate-900 border-slate-800 mb-6">
+        <Card className="bg-card border-border mb-6">
             <CardContent className="p-4">
                 <div className="flex justify-between items-center mb-2">
                     <h3 className="text-sm font-medium text-slate-200">Resolución de Conflictos</h3>
-                    <span className="text-xs text-slate-400">{resolvedCount} de {totalConflicts} resueltos</span>
+                    <span className="text-xs text-muted-foreground">{resolvedCount} de {totalConflicts} resueltos</span>
                 </div>
                 
-                <Progress value={progress} className="h-2 bg-slate-800 mb-4" indicatorClassName="bg-green-500" />
+                <Progress value={progress} className="h-2 bg-muted mb-4" indicatorClassName="bg-green-500" />
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div className="bg-slate-800/50 p-3 rounded-md border border-slate-700/50 flex flex-col items-center justify-center text-center">
+                    <div className="bg-muted/65 p-3 rounded-md border border-border/50 flex flex-col items-center justify-center text-center">
                         <CheckCircle2 className="w-5 h-5 text-green-400 mb-1" />
                         <span className="text-2xl font-bold text-slate-100">{autoCount}</span>
-                        <span className="text-xs text-slate-400">Automatizados</span>
+                        <span className="text-xs text-muted-foreground">Automatizados</span>
                     </div>
                     
                     <button 
                         onClick={onScrollToPending}
                         disabled={pendingCount === 0}
-                        className={`p-3 rounded-md border flex flex-col items-center justify-center text-center transition-colors ${pendingCount > 0 ? 'bg-amber-900/20 border-amber-500/30 hover:bg-amber-900/30 cursor-pointer' : 'bg-slate-800/50 border-slate-700/50 opacity-50 cursor-not-allowed'}`}
+                        className={`p-3 rounded-md border flex flex-col items-center justify-center text-center transition-colors ${pendingCount > 0 ? 'bg-amber-900/20 border-amber-500/30 hover:bg-amber-900/30 cursor-pointer' : 'bg-muted/65 border-border/50 opacity-50 cursor-not-allowed'}`}
                     >
                         <Clock className={`w-5 h-5 mb-1 ${pendingCount > 0 ? 'text-amber-400' : 'text-slate-500'}`} />
                         <span className="text-2xl font-bold text-slate-100">{pendingCount}</span>
-                        <span className="text-xs text-slate-400">Por confirmar</span>
+                        <span className="text-xs text-muted-foreground">Por confirmar</span>
                     </button>
                     
                     <button 
                         onClick={onScrollToManual}
                         disabled={manualCount === 0}
-                        className={`p-3 rounded-md border flex flex-col items-center justify-center text-center transition-colors ${manualCount > 0 ? 'bg-red-900/20 border-red-500/30 hover:bg-red-900/30 cursor-pointer' : 'bg-slate-800/50 border-slate-700/50 opacity-50 cursor-not-allowed'}`}
+                        className={`p-3 rounded-md border flex flex-col items-center justify-center text-center transition-colors ${manualCount > 0 ? 'bg-red-900/20 border-red-500/30 hover:bg-red-900/30 cursor-pointer' : 'bg-muted/65 border-border/50 opacity-50 cursor-not-allowed'}`}
                     >
                         <AlertTriangle className={`w-5 h-5 mb-1 ${manualCount > 0 ? 'text-red-400' : 'text-slate-500'}`} />
                         <span className="text-2xl font-bold text-slate-100">{manualCount}</span>
-                        <span className="text-xs text-slate-400">Revisión manual</span>
+                        <span className="text-xs text-muted-foreground">Revisión manual</span>
                     </button>
                 </div>
             </CardContent>

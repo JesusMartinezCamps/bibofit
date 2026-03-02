@@ -15,10 +15,10 @@ import UnifiedDatePicker from '@/components/shared/UnifiedDatePicker';
 
 const InfoItem = ({ icon, label, value, valueClassName, children, asLink, to }) => {
     const content = (
-        <div className={`flex items-start space-x-3 ${asLink ? 'hover:bg-gray-700/50 p-2 -m-2 rounded-lg transition-colors' : ''}`}>
-            <div className="bg-gray-700/50 p-2 rounded-lg">{icon}</div>
+        <div className={`flex items-start space-x-3 ${asLink ? 'hover:bg-muted/50 p-2 -m-2 rounded-lg transition-colors' : ''}`}>
+            <div className="bg-muted/50 p-2 rounded-lg">{icon}</div>
             <div>
-                <p className="text-sm text-gray-400">{label}</p>
+                <p className="text-sm text-muted-foreground">{label}</p>
                 {children ? children : <p className={`font-semibold text-white ${valueClassName}`}>{value || 'N/A'}</p>}
             </div>
         </div>
@@ -72,12 +72,12 @@ const ClientDietSummary = ({ client, dietPlans, onPlanUpdate, loading }) => {
     };
 
     if (loading) {
-        return <Skeleton className="h-96 w-full bg-gray-800" />;
+        return <Skeleton className="h-96 w-full bg-muted" />;
     }
 
     if (!client) {
         return (
-            <Card className="bg-gray-800/50 border-gray-700 text-white">
+            <Card className="bg-muted/65 border-border text-white">
                 <CardContent className="p-6">
                     <p>No se encontraron datos del cliente.</p>
                 </CardContent>
@@ -92,7 +92,7 @@ const ClientDietSummary = ({ client, dietPlans, onPlanUpdate, loading }) => {
     const sensitivities = client.user_sensitivities?.map(s => s.sensitivities).filter(Boolean) || [];
 
     return (
-        <Card className="bg-gray-800/50 border-gray-700 text-white shadow-lg">
+        <Card className="bg-muted/65 border-border text-white shadow-lg">
             <CardContent className="p-6">
                 <div className="grid grid-cols-1 gap-6">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
@@ -125,7 +125,7 @@ const ClientDietSummary = ({ client, dietPlans, onPlanUpdate, loading }) => {
                                         </InfoItem>
                                     </div>
                                 </DialogTrigger>
-                                <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-3xl">
+                                <DialogContent className="bg-card border-border text-white max-w-3xl">
                                     <RestrictionsManager 
                                         entityId={client.user_id}
                                         entityType="profiles"
@@ -147,7 +147,7 @@ const ClientDietSummary = ({ client, dietPlans, onPlanUpdate, loading }) => {
                                         placeholder="Seleccionar rango"
                                         shouldCloseOnSelect={false}
                                         withPortal
-                                        triggerClassName="font-semibold text-white bg-gray-700/50 border border-gray-600 rounded-md px-3 py-1.5 hover:bg-gray-700 transition-colors w-full text-center"
+                                        triggerClassName="font-semibold text-white bg-muted/50 border border-input rounded-md px-3 py-1.5 hover:bg-muted transition-colors w-full text-center"
                                     />
                                 ) : <p className="font-semibold text-white">No hay plan activo</p>}
                             </InfoItem>

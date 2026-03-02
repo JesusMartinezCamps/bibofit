@@ -188,7 +188,7 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
       const coloredIngredients = [];
 
       if (!ingredients || ingredients.length === 0) {
-          return { greenCount: 0, redCount: 0, display: <span className="text-gray-500 italic">No hay ingredientes</span> };
+          return { greenCount: 0, redCount: 0, display: <span className="text-muted-foreground italic">No hay ingredientes</span> };
       }
 
       const items = ingredients.map((ing, index) => {
@@ -216,12 +216,12 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
         const text = `${name} (${Math.round(quantity || 0)}${unit})`;
 
         if (!foodToCheck) {
-            coloredIngredients.push({ text, colorClass: 'text-gray-400' });
-            return <span key={index} className="text-gray-400">{getHighlightedText(text, searchQuery)}</span>;
+            coloredIngredients.push({ text, colorClass: 'text-muted-foreground' });
+            return <span key={index} className="text-muted-foreground">{getHighlightedText(text, searchQuery)}</span>;
         }
 
         const conflict = getConflictInfo(foodToCheck, userRestrictions);
-        let colorClass = 'text-gray-400'; // Neutral default
+        let colorClass = 'text-muted-foreground'; // Neutral default
 
         if (conflict) {
             if (conflict.type === 'preferred' || conflict.type === 'condition_recommend') {
@@ -442,7 +442,7 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="bg-[#1a1e23] border-gray-700 text-white sm:max-w-md p-0 sm:p-0 flex flex-col h-[80vh] sm:h-[650px]">
+        <DialogContent className="bg-background border-border text-white sm:max-w-md p-0 sm:p-0 flex flex-col h-[80vh] sm:h-[650px]">
           <div className="p-6 pb-2 flex-shrink-0 space-y-4">
             <DialogHeader>
               <DialogTitle className="text-center text-2xl">Repetir una Receta</DialogTitle>
@@ -452,17 +452,17 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
             </DialogHeader>
             
             <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                     placeholder="Buscar por nombre o ingrediente..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 bg-slate-800 border-slate-700 focus:border-sky-500"
+                    className="pl-9 bg-muted border-border focus:border-sky-500"
                 />
                 {searchQuery && (
                     <button 
                         onClick={() => setSearchQuery('')}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     >
                         <X className="h-4 w-4" />
                     </button>
@@ -471,10 +471,10 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
 
             <div className="flex justify-center">
                 <Select value={filterType} onValueChange={setFilterType}>
-                    <SelectTrigger className="w-full bg-slate-800 border-slate-700 text-white h-9 text-sm">
+                    <SelectTrigger className="w-full bg-muted border-border text-white h-9 text-sm">
                         <SelectValue placeholder="Filtrar recetas" />
                     </SelectTrigger>
-                    <SelectContent className="bg-slate-800 border-slate-700 text-white">
+                    <SelectContent className="bg-muted border-border text-white">
                         <SelectItem value="all">Todas las recetas</SelectItem>
                         <SelectItem value="free">Mis recetas libres</SelectItem>
                         <SelectItem value="template">Plantillas de recetas</SelectItem>
@@ -502,14 +502,14 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
                           className={cn(
                             "w-full text-left p-4 rounded-lg transition-colors flex flex-col gap-3 border",
                             isTemplate 
-                                ? "bg-slate-900/60 hover:bg-slate-800/80 border-slate-700/50" 
-                                : "bg-gray-800/60 hover:bg-gray-700/80 border-gray-700/50"
+                                ? "bg-card/80 hover:bg-muted/80 border-border/50" 
+                                : "bg-muted/70 hover:bg-muted/80 border-border/50"
                           )}
                         >
                           <div className="flex justify-between items-start w-full pr-6">
                             <div className="flex flex-col gap-1">
                                 {lastEaten && (
-                                    <div className="flex items-center text-xs text-gray-400">
+                                    <div className="flex items-center text-xs text-muted-foreground">
                                         <Calendar className="w-3 h-3 mr-1.5" />
                                         {lastEaten}
                                     </div>
@@ -547,7 +547,7 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
                             </p>
                           </div>
                           
-                          <div className="flex items-center gap-4 text-xs text-gray-400">
+                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
                             {recipe.difficulty && (
                               <span className="flex items-center gap-1.5"><BarChart3 className="h-3.5 w-3.5" /> {recipe.difficulty}</span>
                             )}
@@ -555,7 +555,7 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
                               <span className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> {recipe.prep_time_min} min</span>
                             )}
                           </div>
-                          <div className="text-xs border-t border-gray-700/50 pt-2 mt-2 w-full">
+                          <div className="text-xs border-t border-border/50 pt-2 mt-2 w-full">
                             <p className="line-clamp-3 leading-relaxed">
                                 {recipe.display}
                             </p>
@@ -576,7 +576,7 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
                     );
                   })
                 ) : (
-                  <div className="flex flex-col items-center justify-center h-full text-gray-500 italic py-10">
+                  <div className="flex flex-col items-center justify-center h-full text-muted-foreground italic py-10">
                     <Sparkles className="h-10 w-10 mb-4 text-gray-600" />
                     {searchQuery ? "No se encontraron resultados." : "No hay recetas disponibles."}
                   </div>

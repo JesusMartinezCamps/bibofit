@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 
 const MacroInput = ({ value, onChange, icon, label, colorClass, grams,  readOnly = false }) => (
-    <div className={cn("flex items-center justify-between gap-2 bg-gray-800/60 p-2 rounded-md border border-gray-700", readOnly && "opacity-70")}>
+    <div className={cn("flex items-center justify-between gap-2 bg-muted/70 p-2 rounded-md border border-border", readOnly && "opacity-70")}>
         <Label className="flex items-center gap-2 w-36 whitespace-nowrap">
             {icon} {label}
         </Label>
@@ -25,11 +25,11 @@ const MacroInput = ({ value, onChange, icon, label, colorClass, grams,  readOnly
                 type="text"
                 value={value}
                 onChange={onChange}
-                className={cn("input-field pr-6 text-center", readOnly && "cursor-not-allowed bg-gray-900 text-gray-500")}
+                className={cn("input-field pr-6 text-center", readOnly && "cursor-not-allowed bg-card text-muted-foreground")}
                 pattern="\d*"
                 disabled={readOnly}
             />
-            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span>
+            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
         </div>
         <div className="flex items-center gap-2 w-20 justify-end">
             <span className={`text-xl font-bold font-numeric ${colorClass}`}>{grams}g</span>
@@ -139,19 +139,19 @@ const MacroDistribution = ({
     const totalCaloriesFromMacros = totalGrams.protein * 4 + totalGrams.carbs * 4 + totalGrams.fat * 9;
 
     return (
-        <Card className="bg-slate-900/50 border-gray-700 text-white overflow-hidden shadow-xl">
+        <Card className="bg-card/75 border-border text-white overflow-hidden shadow-xl">
         <Collapsible open={open} onOpenChange={setOpen}>
 
             <CardHeader className="px-4">
             <CollapsibleTrigger asChild>
                 <button
                 type="button"
-                className="w-full flex items-center justify-between text-left p-2 rounded-md hover:bg-gray-800/40 transition"
+                className="w-full flex items-center justify-between text-left p-2 rounded-md hover:bg-muted/40 transition"
                 >
                 <div>
                     <CardTitle className="flex items-center gap-2">
                         1. Ajuste de Calorías y Macros
-                        {readOnly && <Lock className="w-4 h-4 text-gray-500" />}
+                        {readOnly && <Lock className="w-4 h-4 text-muted-foreground" />}
                     </CardTitle>
                     <CardDescription>
                     Define tu objetivo calórico y ajusta la distribución porcentual.
@@ -194,8 +194,8 @@ const MacroDistribution = ({
                             supabase={supabase}
                         />
                     )}
-                    <div className="rounded-lg p-4 border border-gray-700 space-y-4 mt-4 bg-gray-900/30">
-                        <div className="flex justify-between items-center pb-4 border-b border-gray-700">
+                    <div className="rounded-lg p-4 border border-border space-y-4 mt-4 bg-card/30">
+                        <div className="flex justify-between items-center pb-4 border-b border-border">
                             <div className="flex items-center gap-3">
                                 <CaloriesIcon className="w-6 h-6 text-orange-400" />
                                 <div>
@@ -243,7 +243,7 @@ const MacroDistribution = ({
                             />
                         </div>
                         
-                        <div className="border-t border-gray-700 pt-3 flex flex-col gap-2">
+                        <div className="border-t border-border pt-3 flex flex-col gap-2">
                             <div className="flex justify-between items-center text-lg">
                                 <Label>Total Porcentajes</Label>
                                 <p className={`font-bold ${isInvalid ? 'text-red-500' : 'text-green-500'}`}>

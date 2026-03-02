@@ -119,7 +119,7 @@ const FatFields = ({
 
     const isUnhealthy = unhealthyFats.some(uf => uf.id === classification.id);
     const labelColor = isUnhealthy ? 'text-red-400' : 'text-green-400';
-    const borderColor = isUnhealthy ? 'border-red-700/80' : 'border-gray-700/80';
+    const borderColor = isUnhealthy ? 'border-red-700/80' : 'border-border/80';
     const syncColor = isUnhealthy ? 'text-red-400 hover:bg-red-200/50' : 'text-green-400 hover:bg-green-200/50';
     const focusRingColor = isUnhealthy ? 'focus:ring-red-500' : 'focus:ring-green-500';
 
@@ -133,7 +133,7 @@ const FatFields = ({
                   <TooltipTrigger asChild>
                     <Label htmlFor={`fat_class_${classification.id}`} className={cn("flex-1 cursor-help text-lg", labelColor)}>{classification.name}</Label>
                   </TooltipTrigger>
-                  <TooltipContent className="bg-[#282d34] text-white border-gray-600 max-w-xs">
+                  <TooltipContent className="bg-[#282d34] text-white border-input max-w-xs">
                     <p className="font-bold mb-2">{classification.name}</p>
                     {classification.benefits && <p className="text-sm text-green-400">Beneficios: {classification.benefits}</p>}
                     {classification.risks && <p className="text-sm mt-2 text-red-400">Riesgos: {classification.risks}</p>}
@@ -154,7 +154,7 @@ const FatFields = ({
               />
             </div>
             {typesInClassification.length > 0 && (
-              <div className="text-xs text-gray-400 text-right flex items-center justify-end gap-2 h-6">
+              <div className="text-xs text-muted-foreground text-right flex items-center justify-end gap-2 h-6">
                 {calculatedValue > 0 && (
                   <>
                     Calculado del desglose: 
@@ -169,23 +169,23 @@ const FatFields = ({
           {typesInClassification.length > 0 && (
             <Collapsible open={isOpen} onOpenChange={() => toggleOpen(classification.id)} className="mt-4">
               <CollapsibleTrigger asChild>
-                <Button variant="ghost" className="w-full justify-start p-2 -ml-2 text-sm text-gray-400 hover:text-white hover:bg-slate-700">
+                <Button variant="ghost" className="w-full justify-start p-2 -ml-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent">
                   <ChevronDown className={`h-4 w-4 mr-2 transform transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
                   Desglose por Tipos de Grasa
                 </Button>
               </CollapsibleTrigger>
-              <CollapsibleContent className="mt-4 pt-4 border-t border-gray-700/50 space-y-4">
+              <CollapsibleContent className="mt-4 pt-4 border-t border-border/50 space-y-4">
                 {isPoliunsaturated ? (
                   <>
                     {omega3Types.length > 0 && (
                       <div className="space-y-2">
-                        <Label className="text-gray-300">Omega 3</Label>
+                        <Label className="text-muted-foreground">Omega 3</Label>
                         {omega3Types.map(type => <FatInputRow key={type.id} type={type} value={fatTypeBreakdown[type.id] || ''} onChange={(value) => onFatTypeChange(type.id, value)} isRow={true} />)}
                       </div>
                     )}
                     {omega6Types.length > 0 && (
                       <div className="space-y-2">
-                         <Label className="text-gray-300">Omega 6</Label>
+                         <Label className="text-muted-foreground">Omega 6</Label>
                         {omega6Types.map(type => <FatInputRow key={type.id} type={type} value={fatTypeBreakdown[type.id] || ''} onChange={(value) => onFatTypeChange(type.id, value)} isRow={true} />)}
                       </div>
                     )}
@@ -207,7 +207,7 @@ const FatFields = ({
     if (!classification) return null;
     const isUnhealthy = unhealthyFats.some(uf => uf.id === classification.id);
     const labelColor = isUnhealthy ? 'text-red-400' : 'text-green-400';
-    const borderColor = isUnhealthy ? 'border-red-700/80' : 'border-gray-700/80';
+    const borderColor = isUnhealthy ? 'border-red-700/80' : 'border-border/80';
     const focusRingColor = isUnhealthy ? 'focus:ring-red-500' : 'focus:ring-green-500';
 
     return (
@@ -218,7 +218,7 @@ const FatFields = ({
               <TooltipTrigger asChild>
                 <Label htmlFor={`fat_class_${classification.id}`} className={cn("flex-1 cursor-help text-lg", labelColor)}>{classification.name}</Label>
               </TooltipTrigger>
-              <TooltipContent className="bg-[#282d34] text-white border-gray-600 max-w-xs">
+              <TooltipContent className="bg-[#282d34] text-white border-input max-w-xs">
                 <p className="font-bold mb-2">{classification.name}</p>
                 {classification.benefits && <p className="text-sm text-green-400">Beneficios: {classification.benefits}</p>}
                 {classification.risks && <p className="text-sm mt-2 text-red-400">Riesgos: {classification.risks}</p>}
@@ -259,7 +259,7 @@ const FatFields = ({
             placeholder="0" unit="g" className="w-32 text-right"
         />
       </div>
-      <div className="text-xs text-gray-500 text-right flex items-center justify-end gap-2 h-6">
+      <div className="text-xs text-muted-foreground text-right flex items-center justify-end gap-2 h-6">
         {calculatedTotalFats > 0 && (
           <>
               Calculado del desglose: 

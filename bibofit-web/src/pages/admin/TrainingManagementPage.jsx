@@ -27,7 +27,7 @@ const TrainingManagementPage = () => {
                            </Button>
                         </div>
                     </div>
-                    <Card className="bg-[#1a1e23] border-gray-700 text-white">
+                    <Card className="bg-background border-border text-white">
                         <CardHeader>
                             <CardTitle className="text-2xl font-bold flex items-center text-white">
                                 <Construction className="mr-3 text-[#F44C40]" />
@@ -36,8 +36,8 @@ const TrainingManagementPage = () => {
                         </CardHeader>
                         <CardContent>
                             <div className="text-center py-16">
-                                <h2 className="text-3xl font-bold text-gray-400">Página en Construcción</h2>
-                                <p className="text-gray-500 mt-2">Esta sección estará disponible próximamente.</p>
+                                <h2 className="text-3xl font-bold text-muted-foreground">Página en Construcción</h2>
+                                <p className="text-muted-foreground mt-2">Esta sección estará disponible próximamente.</p>
                             </div>
                         </CardContent>
                     </Card>

@@ -239,7 +239,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 
       return (
         <Dialog open={open} onOpenChange={handleClose}>
-          <DialogContent className="bg-[#1D2730] border-gray-700 text-white p-0 flex flex-col max-h-[90vh] w-[95vw] max-w-lg min-h-[550px]">
+          <DialogContent className="bg-[#1D2730] border-border text-white p-0 flex flex-col max-h-[90vh] w-[95vw] max-w-lg min-h-[550px]">
             <ViewModeToggle
               mode={mode}
               onModeChange={handleModeChange}
@@ -269,11 +269,11 @@ import React, { useState, useEffect, useCallback } from 'react';
                         <DialogTitle className="text-2xl">Registro de Peso</DialogTitle>
                         <DialogDescription className="text-center">
                           {dateForDisplay.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                          {isAdminView && <span className="block text-sm text-gray-400 mt-1">Editando como administrador</span>}
+                          {isAdminView && <span className="block text-sm text-muted-foreground mt-1">Editando como administrador</span>}
                         </DialogDescription>
                       </div>
                       <div>
-                        <Label htmlFor="weight" className="text-gray-300">Peso (kg)</Label>
+                        <Label htmlFor="weight" className="text-muted-foreground">Peso (kg)</Label>
                         <Input
                           id="weight"
                           type="number"
@@ -286,7 +286,7 @@ import React, { useState, useEffect, useCallback } from 'react';
                         />
                       </div>
                       <div>
-                        <Label htmlFor="comment" className="text-gray-300">Comentario (Opcional)</Label>
+                        <Label htmlFor="comment" className="text-muted-foreground">Comentario (Opcional)</Label>
                         <Textarea
                           id="comment"
                           value={comment}
@@ -296,7 +296,7 @@ import React, { useState, useEffect, useCallback } from 'react';
                         />
                       </div>
                       <div>
-                        <Label className="text-gray-300">Nivel de Saciedad</Label>
+                        <Label className="text-muted-foreground">Nivel de Saciedad</Label>
                         <div className="flex justify-center gap-2 sm:gap-4 mt-2">
                           {satietyLevels.map((level) => (
                             <button
@@ -306,17 +306,17 @@ import React, { useState, useEffect, useCallback } from 'react';
                               className={`flex flex-col items-center p-2 sm:p-3 rounded-lg border-2 transition-all flex-1 ${
                                 satietyLevelId === level.id
                                   ? 'border-violet-500 bg-violet-500/20'
-                                  : 'border-gray-600 hover:border-gray-500'
+                                  : 'border-input hover:border-gray-500'
                               }`}
                             >
                               <span className="text-2xl sm:text-3xl mb-1">{level.emoji}</span>
-                              <span className="text-xs text-gray-300 text-center">{level.name}</span>
+                              <span className="text-xs text-muted-foreground text-center">{level.name}</span>
                             </button>
                           ))}
                         </div>
                       </div>
-                      <div className="pt-4 mt-4 border-t border-gray-700/50">
-                        <Label htmlFor="logDate" className="text-gray-400">Fecha del Registro</Label>
+                      <div className="pt-4 mt-4 border-t border-border/50">
+                        <Label htmlFor="logDate" className="text-muted-foreground">Fecha del Registro</Label>
                         <div className="mt-1">
                           <UnifiedDatePicker
                             id="logDate"
@@ -336,14 +336,14 @@ import React, { useState, useEffect, useCallback } from 'react';
                             <h3 className="text-xl font-bold capitalize">
                                 {format(dateForDisplay, "eeee, d 'de' MMMM. yyyy", { locale: es })}
                             </h3>
-                            <p className="text-4xl font-light">{weight} <span className="text-2xl text-gray-400">kg</span></p>
+                            <p className="text-4xl font-light">{weight} <span className="text-2xl text-muted-foreground">kg</span></p>
                             {selectedSatietyLevel && (
                               <div className="flex items-center justify-center gap-2">
                                 <span className="text-2xl">{selectedSatietyLevel.emoji}</span>
-                                <span className="text-gray-300">{selectedSatietyLevel.name}</span>
+                                <span className="text-muted-foreground">{selectedSatietyLevel.name}</span>
                               </div>
                             )}
-                            {comment && <p className="text-gray-300 italic">"{comment}"</p>}
+                            {comment && <p className="text-muted-foreground italic">"{comment}"</p>}
                         </div>
                     </div>
                   )}
@@ -352,7 +352,7 @@ import React, { useState, useEffect, useCallback } from 'react';
             </div>
 
             {logId && (
-              <div className="p-6 border-t border-gray-700 flex justify-center">
+              <div className="p-6 border-t border-border flex justify-center">
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="ghost" className="text-red-400 hover:text-red-300 hover:bg-red-500/10">
@@ -363,7 +363,7 @@ import React, { useState, useEffect, useCallback } from 'react';
                   <AlertDialogContent className="w-[90vw] md:w-full max-w-md">
                     <AlertDialogHeader>
                       <AlertDialogTitle>¿Eliminar registro de peso?</AlertDialogTitle>
-                      <AlertDialogDescription className="text-gray-400">
+                      <AlertDialogDescription className="text-muted-foreground">
                         Esta acción no se puede deshacer. Se eliminará permanentemente el registro de peso del {dateForDisplay.toLocaleDateString('es-ES')}.
                       </AlertDialogDescription>
                     </AlertDialogHeader>

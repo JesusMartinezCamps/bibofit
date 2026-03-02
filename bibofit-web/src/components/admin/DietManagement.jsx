@@ -88,7 +88,7 @@ const DietManagement = () => {
             <button
               type="button"
               onClick={() => setSearchTerm('')}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
               aria-label="Limpiar búsqueda"
             >
               <X className="w-5 h-5" />
@@ -98,7 +98,7 @@ const DietManagement = () => {
       </motion.div>
 
       {loading ? (
-        <div className="text-center py-8 text-gray-400">Cargando dietas...</div>
+        <div className="text-center py-8 text-muted-foreground">Cargando dietas...</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredDiets.map((diet, index) => (
@@ -112,7 +112,7 @@ const DietManagement = () => {
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <h3 className="text-xl font-bold text-white mb-1">{diet.name}</h3>
-                  <div className="flex items-center space-x-2 text-gray-400">
+                  <div className="flex items-center space-x-2 text-muted-foreground">
                     <User className="w-4 h-4" />
                     <span className="text-sm">{diet.userName}</span>
                   </div>
@@ -120,15 +120,15 @@ const DietManagement = () => {
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                   diet.is_active 
                     ? 'bg-green-500 bg-opacity-20 text-green-300'
-                    : 'bg-gray-500 bg-opacity-20 text-gray-300'
+                    : 'bg-gray-500 bg-opacity-20 text-muted-foreground'
                 }`}>
                   {diet.is_active ? 'Activo' : 'Inactivo'}
                 </span>
               </div>
-              <div className="mb-4"><p className="text-gray-400 text-sm">{new Date(diet.startDate).toLocaleDateString('es-ES')} - {new Date(diet.endDate).toLocaleDateString('es-ES')}</p></div>
+              <div className="mb-4"><p className="text-muted-foreground text-sm">{new Date(diet.startDate).toLocaleDateString('es-ES')} - {new Date(diet.endDate).toLocaleDateString('es-ES')}</p></div>
               <div className="flex items-center space-x-2">
                 <Button onClick={() => editDiet(diet.id)} size="sm" className="btn-secondary flex-1"><Edit className="w-4 h-4 mr-2" />Editar</Button>
-                <Button onClick={() => deleteDiet(diet.id)} size="sm" variant="ghost" className="text-gray-400 hover:text-red-400"><Trash2 className="w-4 h-4" /></Button>
+                <Button onClick={() => deleteDiet(diet.id)} size="sm" variant="ghost" className="text-muted-foreground hover:text-red-400"><Trash2 className="w-4 h-4" /></Button>
               </div>
             </motion.div>
           ))}
@@ -143,7 +143,7 @@ const DietManagement = () => {
           className="glass-effect rounded-2xl p-8 text-center"
         >
           <Apple className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-          <p className="text-gray-400">No se encontraron planes nutricionales</p>
+          <p className="text-muted-foreground">No se encontraron planes nutricionales</p>
         </motion.div>
       )}
     </div>

@@ -272,7 +272,7 @@ const CentersManagementPage = () => {
                             <Building2 className="w-8 h-8 text-green-400" />
                             Gestión de Centros
                         </h1>
-                        <p className="text-gray-400 mt-1">Administra las ubicaciones, centros asociados y sus miembros.</p>
+                        <p className="text-muted-foreground mt-1">Administra las ubicaciones, centros asociados y sus miembros.</p>
                     </div>
                     <Button onClick={() => handleOpenDialog()} className="bg-green-600 hover:bg-green-700 text-white">
                         <Plus className="w-4 h-4 mr-2" />
@@ -280,16 +280,16 @@ const CentersManagementPage = () => {
                     </Button>
                 </motion.div>
 
-                <div className="rounded-xl border border-slate-800 bg-slate-900/50 overflow-hidden shadow-xl">
+                <div className="rounded-xl border border-border bg-card/75 overflow-hidden shadow-xl">
                     <Table>
-                        <TableHeader className="bg-slate-900">
-                            <TableRow className="hover:bg-slate-900 border-slate-800">
-                                <TableHead className="text-gray-300 font-semibold">Nombre</TableHead>
-                                <TableHead className="text-gray-300 font-semibold">Ubicación</TableHead>
-                                <TableHead className="text-gray-300 font-semibold">Tipo</TableHead>
-                                <TableHead className="text-gray-300 font-semibold">Miembros</TableHead>
-                                <TableHead className="text-gray-300 font-semibold">Fecha Creación</TableHead>
-                                <TableHead className="text-gray-300 font-semibold text-center">Acciones</TableHead>
+                        <TableHeader className="bg-card">
+                            <TableRow className="hover:bg-card border-border">
+                                <TableHead className="text-muted-foreground font-semibold">Nombre</TableHead>
+                                <TableHead className="text-muted-foreground font-semibold">Ubicación</TableHead>
+                                <TableHead className="text-muted-foreground font-semibold">Tipo</TableHead>
+                                <TableHead className="text-muted-foreground font-semibold">Miembros</TableHead>
+                                <TableHead className="text-muted-foreground font-semibold">Fecha Creación</TableHead>
+                                <TableHead className="text-muted-foreground font-semibold text-center">Acciones</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -303,33 +303,33 @@ const CentersManagementPage = () => {
                                 </TableRow>
                             ) : centers.length > 0 ? (
                                 centers.map((center) => (
-                                    <TableRow key={center.id} className="border-slate-800 hover:bg-slate-800/30">
+                                    <TableRow key={center.id} className="border-border hover:bg-muted/30">
                                         <TableCell className="font-medium text-white">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-green-500">
+                                                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-green-500">
                                                     <Building2 className="w-4 h-4" />
                                                 </div>
                                                 {center.name}
                                             </div>
                                         </TableCell>
-                                        <TableCell className="text-gray-400">
+                                        <TableCell className="text-muted-foreground">
                                             <div className="flex items-center gap-2">
                                                 <MapPin className="w-3 h-3" />
                                                 {center.location || 'No especificada'}
                                             </div>
                                         </TableCell>
                                         <TableCell>
-                                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-slate-800 text-gray-300 border border-slate-700">
+                                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-border">
                                                 {getTypeLabel(center.center_type)}
                                             </span>
                                         </TableCell>
                                         <TableCell>
-                                            <div className="flex items-center gap-2 text-gray-300">
+                                            <div className="flex items-center gap-2 text-muted-foreground">
                                                 <Users className="w-4 h-4 text-blue-400" />
                                                 {center.memberCount}
                                             </div>
                                         </TableCell>
-                                        <TableCell className="text-gray-400">
+                                        <TableCell className="text-muted-foreground">
                                             {center.created_at ? format(parseISO(center.created_at), 'dd/MM/yyyy', { locale: es }) : '-'}
                                         </TableCell>
                                         <TableCell className="text-right">
@@ -350,7 +350,7 @@ const CentersManagementPage = () => {
                                 ))
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={6} className="h-24 text-center text-gray-500">
+                                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                                         No se encontraron centros registrados.
                                     </TableCell>
                                 </TableRow>
@@ -362,7 +362,7 @@ const CentersManagementPage = () => {
 
             {/* Edit Center Dialog */}
             <Dialog open={isDialogOpen} onOpenChange={handleCloseDialog}>
-                <DialogContent className="bg-[#1a1e23] border-gray-700 text-white sm:max-w-[500px]">
+                <DialogContent className="bg-background border-border text-white sm:max-w-[500px]">
                     <DialogHeader>
                         <DialogTitle>{currentCenter ? 'Editar Centro' : 'Nuevo Centro'}</DialogTitle>
                         <DialogDescription>
@@ -372,31 +372,31 @@ const CentersManagementPage = () => {
                     
                     <form onSubmit={handleSubmit} className="space-y-4 py-4">
                         <div className="space-y-2">
-                            <label htmlFor="name" className="text-sm font-medium text-gray-300">Nombre del Centro</label>
+                            <label htmlFor="name" className="text-sm font-medium text-muted-foreground">Nombre del Centro</label>
                             <Input 
                                 id="name" 
                                 value={formData.name} 
                                 onChange={(e) => setFormData({...formData, name: e.target.value})} 
                                 placeholder="Ej: Gimnasio Central"
-                                className="bg-slate-900 border-slate-700 text-white"
+                                className="bg-card border-border text-white"
                                 required
                             />
                         </div>
                         
                         <div className="space-y-2">
-                            <label htmlFor="location" className="text-sm font-medium text-gray-300">Ubicación</label>
+                            <label htmlFor="location" className="text-sm font-medium text-muted-foreground">Ubicación</label>
                             <Input 
                                 id="location" 
                                 value={formData.location} 
                                 onChange={(e) => setFormData({...formData, location: e.target.value})} 
                                 placeholder="Ej: Calle Principal 123, Madrid"
-                                className="bg-slate-900 border-slate-700 text-white"
+                                className="bg-card border-border text-white"
                             />
                         </div>
 
                         <div className="space-y-2">
                             <div className="flex justify-between items-center">
-                                <label htmlFor="type" className="text-sm font-medium text-gray-300">Tipo de Centro</label>
+                                <label htmlFor="type" className="text-sm font-medium text-muted-foreground">Tipo de Centro</label>
                                 {!isAddingType && (
                                     <Button 
                                         type="button"
@@ -417,13 +417,13 @@ const CentersManagementPage = () => {
                                         value={newType}
                                         onChange={(e) => setNewType(e.target.value)}
                                         placeholder="Nuevo tipo..."
-                                        className="bg-slate-900 border-slate-700 text-white h-10"
+                                        className="bg-card border-border text-white h-10"
                                         autoFocus
                                     />
                                     <Button type="button" size="icon" onClick={handleAddType} className="bg-green-600 hover:bg-green-700 shrink-0">
                                         <Check className="w-4 h-4" />
                                     </Button>
-                                    <Button type="button" size="icon" variant="ghost" onClick={() => setIsAddingType(false)} className="text-gray-400 hover:text-white shrink-0">
+                                    <Button type="button" size="icon" variant="ghost" onClick={() => setIsAddingType(false)} className="text-muted-foreground hover:text-foreground shrink-0">
                                         <X className="w-4 h-4" />
                                     </Button>
                                 </div>
@@ -432,10 +432,10 @@ const CentersManagementPage = () => {
                                     value={formData.center_type} 
                                     onValueChange={(val) => setFormData({...formData, center_type: val})}
                                 >
-                                    <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
+                                    <SelectTrigger className="bg-card border-border text-white">
                                         <SelectValue placeholder="Selecciona un tipo" />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-slate-800 border-slate-700 text-white">
+                                    <SelectContent className="bg-muted border-border text-white">
                                         {centerTypes.map(type => (
                                             <SelectItem key={type} value={type}>{getTypeLabel(type)}</SelectItem>
                                         ))}
@@ -446,7 +446,7 @@ const CentersManagementPage = () => {
 
                         <DialogFooter className="pt-4 flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2">
                             <DialogClose asChild>
-                                <Button type="button" variant="outline" className="mt-4 sm:mt-0 border-slate-600 text-gray-800 hover:bg-slate-800 hover:text-white">Cancelar</Button>
+                                <Button type="button" variant="outline" className="mt-4 sm:mt-0 border-input text-gray-800 hover:bg-muted hover:text-foreground">Cancelar</Button>
                             </DialogClose>
                             <Button type="submit" disabled={isSubmitting} className="bg-green-600 hover:bg-green-700 text-white">
                                 {isSubmitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Guardando...</> : 'Guardar'}
@@ -458,7 +458,7 @@ const CentersManagementPage = () => {
 
             {/* Manage Members Dialog */}
              <Dialog open={isMembersDialogOpen} onOpenChange={setIsMembersDialogOpen}>
-                <DialogContent className="bg-[#1a1e23] border-gray-700 text-white sm:max-w-[600px]">
+                <DialogContent className="bg-background border-border text-white sm:max-w-[600px]">
                     <DialogHeader>
                         <DialogTitle>Gestionar Miembros - {currentMembersCenter?.name}</DialogTitle> {/* Ensure this is correct */}
                         <DialogDescription>Añade o elimina entrenadores y clientes de este centro.</DialogDescription>
@@ -467,10 +467,10 @@ const CentersManagementPage = () => {
                     <div className="space-y-4 py-4">
                         <div className="flex gap-2">
                              <Select onValueChange={setSelectedUserToAdd} value={selectedUserToAdd}>
-                                <SelectTrigger className="bg-slate-900 border-slate-700 text-white flex-1">
+                                <SelectTrigger className="bg-card border-border text-white flex-1">
                                     <SelectValue placeholder="Seleccionar usuario para añadir..." />
                                 </SelectTrigger>
-                                <SelectContent className="bg-slate-800 border-slate-700 text-white max-h-60">
+                                <SelectContent className="bg-muted border-border text-white max-h-60">
                                     {availableUsers.map(u => (
                                         <SelectItem key={u.user_id} value={u.user_id}>
                                             {u.full_name} ({u.role === 'coach' ? 'Entrenador' : 'Cliente'})
@@ -483,15 +483,15 @@ const CentersManagementPage = () => {
                             </Button>
                         </div>
 
-                        <div className="max-h-[300px] overflow-y-auto border border-slate-700 rounded-md bg-slate-900/50 p-2">
+                        <div className="max-h-[300px] overflow-y-auto border border-border rounded-md bg-card/75 p-2">
                             {centerMembers.length > 0 ? (
                                 <ul className="space-y-2">
                                     {centerMembers.map(member => (
-                                        <li key={member.user_id} className="flex justify-between items-center p-2 hover:bg-slate-800 rounded">
+                                        <li key={member.user_id} className="flex justify-between items-center p-2 hover:bg-muted rounded">
                                             <div className="flex flex-col">
                                                 <span className="text-sm font-medium text-white">{member.full_name}</span>
                                                 <div className="flex gap-2">
-                                                    <Badge variant="outline" className="text-[10px] border-gray-600 text-gray-400">{member.email}</Badge>
+                                                    <Badge variant="outline" className="text-[10px] border-input text-muted-foreground">{member.email}</Badge>
                                                     <Badge className={`text-[10px] ${member.role === 'coach' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-blue-500/20 text-blue-400'}`}>
                                                         {member.role === 'coach' ? 'Entrenador' : 'Cliente'}
                                                     </Badge>
@@ -501,7 +501,7 @@ const CentersManagementPage = () => {
                                                 variant="ghost" 
                                                 size="sm" 
                                                 onClick={() => handleRemoveMember(member.user_id)} 
-                                                className="text-gray-500 hover:text-red-400 hover:bg-transparent"
+                                                className="text-muted-foreground hover:text-red-400 hover:bg-transparent"
                                             >
                                                 <Trash2 className="w-4 h-4" />
                                             </Button>
@@ -509,7 +509,7 @@ const CentersManagementPage = () => {
                                     ))}
                                 </ul>
                             ) : (
-                                <p className="text-center text-gray-500 py-4">No hay miembros asignados.</p>
+                                <p className="text-center text-muted-foreground py-4">No hay miembros asignados.</p>
                             )}
                         </div>
                     </div>

@@ -12,7 +12,7 @@ const CarbDetailsFields = ({ allSubtypes, selectedSubtypeIds, carbData, onCarbDa
             {selectedSubtypeIds.map((subtypeId) => {
                 const data = carbData.find(d => d.subtype_id === subtypeId) || {};
                 return (
-                    <div key={subtypeId} className="p-4 bg-gray-900/40 rounded-lg border border-gray-700">
+                    <div key={subtypeId} className="p-4 bg-card/40 rounded-lg border border-border">
                         <h5 className="font-semibold text-green-400 mb-4">{getSubtypeName(subtypeId)}</h5>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                             <div className="space-y-2">

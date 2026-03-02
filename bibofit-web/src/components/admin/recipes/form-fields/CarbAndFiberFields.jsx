@@ -13,7 +13,7 @@ const CarbAndFiberFields = ({ carbTypes, breakdown, onChange }) => {
               <TooltipTrigger asChild>
                 <Label htmlFor={`carb_type_${type.id}`}>{type.name}</Label>
               </TooltipTrigger>
-              <TooltipContent className="bg-gray-800 text-white border-gray-700">
+              <TooltipContent className="bg-muted text-white border-border">
                 <p>{type.description}</p>
               </TooltipContent>
             </Tooltip>

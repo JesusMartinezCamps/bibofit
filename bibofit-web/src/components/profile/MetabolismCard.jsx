@@ -7,7 +7,7 @@ const MetabolismCard = ({ ger, tdee, className }) => {
   const tooltipText = "Valor aproximado, tu gasto real es imposible de calcular, ¡tómalo como una referencia!";
 
   return (
-    <Card className={`bg-[#1a1e23] border-gray-700 text-white ${className}`}>
+    <Card className={`bg-background border-border text-white ${className}`}>
       <CardHeader>
         <CardTitle className="flex items-center text-xl font-bold">
           <Flame className="mr-3 h-6 w-6 text-orange-500" />
@@ -17,11 +17,11 @@ const MetabolismCard = ({ ger, tdee, className }) => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="bg-gray-800/50 p-4 rounded-lg">
+        <div className="bg-muted/65 p-4 rounded-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <Flame className="h-5 w-5 text-orange-400 mr-2" />
-              <span className="text-sm font-medium text-gray-300">
+              <span className="text-sm font-medium text-muted-foreground">
                 Gasto energético en reposo (GER):
               </span>
             </div>
@@ -30,7 +30,7 @@ const MetabolismCard = ({ ger, tdee, className }) => {
                 {formatApproximateValue(ger)} kcal
               </span>
               {ger && (
-                <div className="absolute bottom-full right-0 mb-2 w-64 p-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
+                <div className="absolute bottom-full right-0 mb-2 w-64 p-2 bg-card text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
                   {tooltipText}
                   <div className="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
                 </div>
@@ -39,11 +39,11 @@ const MetabolismCard = ({ ger, tdee, className }) => {
           </div>
         </div>
 
-        <div className="bg-gray-800/50 p-4 rounded-lg">
+        <div className="bg-muted/65 p-4 rounded-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <Activity className="h-5 w-5 text-green-400 mr-2" />
-              <span className="text-sm font-medium text-gray-300">
+              <span className="text-sm font-medium text-muted-foreground">
                 Gasto diario total (TDEE):
               </span>
             </div>
@@ -52,7 +52,7 @@ const MetabolismCard = ({ ger, tdee, className }) => {
                 {formatApproximateValue(tdee)} kcal
               </span>
               {tdee && (
-                <div className="absolute bottom-full right-0 mb-2 w-64 p-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
+                <div className="absolute bottom-full right-0 mb-2 w-64 p-2 bg-card text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
                   {tooltipText}
                   <div className="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
                 </div>

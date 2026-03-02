@@ -19,10 +19,10 @@ const DateTrigger = forwardRef(
         className
       )}
     >
-      <span className={cn('truncate text-left', !value && 'text-gray-400')}>
+      <span className={cn('truncate text-left', !value && 'text-muted-foreground')}>
         {value || placeholder || 'Seleccionar fecha'}
       </span>
-      <Calendar className="h-4 w-4 shrink-0 text-gray-300" />
+      <Calendar className="h-4 w-4 shrink-0 text-muted-foreground" />
     </button>
   )
 );

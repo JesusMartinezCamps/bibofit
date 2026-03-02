@@ -8,7 +8,7 @@ import FoodsForConditionSection from './FoodsForConditionSection';
 
 const RestrictionCard = ({ item, onEdit, onDelete, color, type, onUpdateFoods }) => (
     <div 
-        className="group p-4 rounded-lg bg-slate-800/60 hover:bg-slate-800/80 border border-transparent hover:border-slate-700 transition-all flex flex-col"
+        className="group p-4 rounded-lg bg-muted/70 hover:bg-muted/80 border border-transparent hover:border-border transition-all flex flex-col"
     >
         <div 
             onClick={() => onEdit(item)} 

@@ -45,55 +45,43 @@ const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSen
     setLoading(true);
     try {
       const targetUserId = userId || user?.id;
-
-      let foodQuery = supabase
-        .from('food')
-        .select(`
-          id, name, proteins, total_carbs, total_fats, food_unit,
-          food_to_seasons(season(name)),
-          food_to_food_groups(food_groups(id, name)),
-          food_vitamins(vitamins(id, name)),
-          food_minerals(minerals(id, name)),
-          food_sensitivities(sensitivities(id, name))
-        `)
-        .is('user_id', null);
+      const foodSelect = `
+        id, name, proteins, total_carbs, total_fats, food_unit, status, user_id,
+        food_to_seasons(season(name)),
+        food_to_food_groups(food_groups(id, name)),
+        food_vitamins(vitamins(id, name)),
+        food_minerals(minerals(id, name)),
+        food_sensitivities(sensitivities(id, name))
+      `;
 
       const [
         { data: foodsData, error: foodsError },
         { data: userFoodsData, error: userFoodsError },
         userSensitivityIds
       ] = await Promise.all([
-        foodQuery.order('name', { ascending: true }),
+        supabase
+          .from('food')
+          .select(foodSelect)
+          .or('user_id.is.null,status.eq.approved_general')
+          .order('name', { ascending: true }),
         targetUserId ? supabase
           .from('food')
-          .select(`
-            id, name, proteins, total_carbs, total_fats, food_unit,
-            food_to_food_groups(food_groups(id, name)),
-            food_to_seasons(season:seasons(name)),
-            food_sensitivities(sensitivities(id, name)),
-            food_vitamins(vitamins(id, name)),
-            food_minerals(minerals(id, name))
-          `)
+          .select(foodSelect)
           .eq('user_id', targetUserId)
-          .neq('status', 'rejected')
+          .or('status.is.null,status.neq.rejected')
           .order('name', { ascending: true }) : Promise.resolve({ data: [], error: null }),
         fetchUserSensitivities()
       ]);
 
       if (foodsError) throw foodsError;
       if (userFoodsError) {
-          console.error("Supabase error:", JSON.stringify(userFoodsError, null, 2));
-          toast({
-              title: "Error de Supabase",
-              description: `Fetch error from food (private scope): ${userFoodsError.message}`,
-              variant: "destructive"
-          });
-          throw userFoodsError;
+          console.error("Supabase error (private foods):", JSON.stringify(userFoodsError, null, 2));
       }
 
 
       const transformedFoods = (foodsData || []).map(food => ({
         ...food,
+        is_user_created: !!food.user_id,
         carbs: food.total_carbs,
         fats: food.total_fats,
         food_groups: food.food_to_food_groups?.map(ftfg => ftfg.food_groups).filter(Boolean) || [],
@@ -107,7 +95,8 @@ const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSen
         food_sensitivities: userFood.food_sensitivities || [],
         food_vitamins: userFood.food_vitamins || [],
         food_minerals: userFood.food_minerals || [],
-        isUserCreated: true
+        is_user_created: true,
+        isUserCreated: true,
       }));
 
       setAllFoods(transformedFoods);
@@ -183,7 +172,14 @@ const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSen
   };
 
   const combinedFoods = useMemo(() => {
-    return [...allFoods, ...userCreatedFoods];
+    const mergedFoods = new Map();
+    [...allFoods, ...userCreatedFoods].forEach((food) => {
+      const key = String(food.id);
+      if (!mergedFoods.has(key) || food.isUserCreated) {
+        mergedFoods.set(key, food);
+      }
+    });
+    return Array.from(mergedFoods.values());
   }, [allFoods, userCreatedFoods]);
 
   const filteredFoods = useMemo(() => {
@@ -276,7 +272,7 @@ const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSen
                 ))}
               </motion.div>
             ) : (
-              <div className="text-center text-gray-400 py-4 space-y-3">
+              <div className="text-center text-muted-foreground py-4 space-y-3">
                 <p>{searchTerm ? 'No se encontraron resultados.' : 'No hay alimentos en la base de datos.'}</p>
                 {searchTerm.trim() && (
                   <Button

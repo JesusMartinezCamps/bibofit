@@ -116,7 +116,7 @@ const FreeMealRequestsPage = () => {
       </Helmet>
       <div className="p-4 md:p-8">
         <h1 className="text-3xl font-bold mb-2">Solicitudes de Recetas Libres</h1>
-        <p className="text-gray-400 mb-6">Revisa, aprueba o rechaza las recetas libres creadas por los clientes.</p>
+        <p className="text-muted-foreground mb-6">Revisa, aprueba o rechaza las recetas libres creadas por los clientes.</p>
         
         <TabNavigation 
           tabs={TABS} 

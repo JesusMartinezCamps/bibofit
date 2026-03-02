@@ -109,7 +109,7 @@ const ManageStores = () => {
       <main className="w-full px-4 py-8">
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <Breadcrumbs items={breadcrumbItems} />
-          <Card className="mt-4 bg-[#1a1e23] border-gray-700 text-white">
+          <Card className="mt-4 bg-background border-border text-white">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Gestionar Tiendas</CardTitle>
@@ -130,11 +130,11 @@ const ManageStores = () => {
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: stores.indexOf(store) * 0.05 }}
-                      className="flex items-center justify-between p-4 rounded-lg bg-slate-900 border border-slate-800"
+                      className="flex items-center justify-between p-4 rounded-lg bg-card border border-border"
                     >
                       <div>
                         <p className="font-semibold text-white">{store.name}</p>
-                        <p className="text-sm text-gray-400">{store.description}</p>
+                        <p className="text-sm text-muted-foreground">{store.description}</p>
                       </div>
                       {!isCoach && (
                         <div className="flex items-center gap-2">
@@ -152,7 +152,7 @@ const ManageStores = () => {
       </main>
 
       <Dialog open={isDialogOpen} onOpenChange={handleCloseDialog}>
-        <DialogContent className="bg-[#1a1e23] border-gray-700 text-white">
+        <DialogContent className="bg-background border-border text-white">
           <DialogHeader>
             <DialogTitle>{currentStore ? 'Editar Tienda' : 'Añadir Nueva Tienda'}</DialogTitle>
             <DialogDescription>
@@ -161,11 +161,11 @@ const ManageStores = () => {
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="name" className="text-gray-300">Nombre</label>
+              <label htmlFor="name" className="text-muted-foreground">Nombre</label>
               <Input id="name" name="name" value={formData.name} onChange={handleChange} required />
             </div>
             <div className="space-y-2">
-              <label htmlFor="description" className="text-gray-300">Descripción</label>
+              <label htmlFor="description" className="text-muted-foreground">Descripción</label>
               <Textarea id="description" name="description" value={formData.description} onChange={handleChange} />
             </div>
             <DialogFooter>

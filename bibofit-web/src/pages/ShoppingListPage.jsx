@@ -84,15 +84,15 @@ const PrivateShoppingList = ({ items, onAdd, onToggle, onRemove, loading, search
     }, [items]);
 
     return (
-        <Card className="bg-slate-900/50 border-purple-500/20 overflow-hidden transition-all duration-300">
+        <Card className="bg-card/75 border-purple-500/20 overflow-hidden transition-all duration-300">
             <Collapsible open={isOpen} onOpenChange={onOpenChange}>
-                <CollapsibleTrigger className="w-full flex items-center justify-between p-4 hover:bg-slate-800/50 transition-colors">
+                <CollapsibleTrigger className="w-full flex items-center justify-between p-4 hover:bg-muted/65 transition-colors">
                     <h3 className="text-lg font-semibold flex items-center gap-2 text-[rgb(206_165_255)]">
                         <Lock className="w-5 h-5" />
                         Lista Privada
-                        <span className="text-sm font-normal text-gray-500 ml-2">({items.length})</span>
+                        <span className="text-sm font-normal text-muted-foreground ml-2">({items.length})</span>
                     </h3>
-                    {isOpen ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+                    {isOpen ? <ChevronUp className="w-5 h-5 text-muted-foreground" /> : <ChevronDown className="w-5 h-5 text-muted-foreground" />}
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                     <div className="p-4 pt-0 animate-in slide-in-from-top-2 duration-200">
@@ -102,7 +102,7 @@ const PrivateShoppingList = ({ items, onAdd, onToggle, onRemove, loading, search
                                 value={newItemName}
                                 onChange={(e) => setNewItemName(e.target.value)}
                                 placeholder="Añadir artículo..."
-                                className="bg-slate-800 border-slate-600 text-white focus:border-[#9d59ef]"
+                                className="bg-muted border-input text-white focus:border-[#9d59ef]"
                                 onKeyDown={(e) => e.key === 'Enter' && handleAddClick()}
                             />
                             <Button onClick={handleAddClick} size="icon" className="bg-[#9d59ef] hover:bg-[#9d59ef]/90 flex-shrink-0">
@@ -111,13 +111,13 @@ const PrivateShoppingList = ({ items, onAdd, onToggle, onRemove, loading, search
                         </div>
                         <div className="space-y-3">
                             {loading && <Loader2 className="w-5 h-5 animate-spin mx-auto text-[#9d59ef]" />}
-                            {!loading && sortedItems.length === 0 && <p className="text-gray-500 text-sm italic text-center">Tu lista privada está vacía.</p>}
+                            {!loading && sortedItems.length === 0 && <p className="text-muted-foreground text-sm italic text-center">Tu lista privada está vacía.</p>}
                             {!loading && sortedItems.map((item) => (
                                 <div
                                     key={item.id}
                                     className={cn(
                                         "flex items-center space-x-3 p-2 rounded-md transition-colors group",
-                                        item.is_checked ? 'bg-slate-800/30 opacity-60' : 'bg-[#9d59ef]/10 hover:bg-[#9d59ef]/20'
+                                        item.is_checked ? 'bg-muted/30 opacity-60' : 'bg-[#9d59ef]/10 hover:bg-[#9d59ef]/20'
                                     )}
                                 >
                                     <Checkbox
@@ -126,7 +126,7 @@ const PrivateShoppingList = ({ items, onAdd, onToggle, onRemove, loading, search
                                         onCheckedChange={() => onToggle(item.id, !item.is_checked)}
                                         className="border-[#9d59ef]/80 data-[state=checked]:bg-[#9d59ef]/50 data-[state=checked]:border-[#9d59ef] data-[state=checked]:text-white mt-1"
                                     />
-                                    <Label htmlFor={`private-item-${item.id}`} className={cn("flex-1 text-base w-full block cursor-pointer select-none", item.is_checked ? "text-gray-400 line-through" : "text-gray-200")}>
+                                    <Label htmlFor={`private-item-${item.id}`} className={cn("flex-1 text-base w-full block cursor-pointer select-none", item.is_checked ? "text-muted-foreground line-through" : "text-gray-200")}>
                                         <SmartHighlight text={item.item_name} highlight={searchQuery} />
                                     </Label>
                                     <Button
@@ -178,15 +178,15 @@ const ShoppingListGroup = ({ title, icon, items, checkedItems, onCheckedChange, 
     if (items.length === 0) return null;
 
     return (
-        <Card className="bg-slate-900/50 border-slate-700 overflow-hidden transition-all duration-300">
+        <Card className="bg-card/75 border-border overflow-hidden transition-all duration-300">
             <Collapsible open={isOpen} onOpenChange={onOpenChange}>
-                <CollapsibleTrigger className="w-full flex items-center justify-between p-4 hover:bg-slate-800/50 transition-colors">
+                <CollapsibleTrigger className="w-full flex items-center justify-between p-4 hover:bg-muted/65 transition-colors">
                     <h3 className={cn("text-lg font-semibold flex items-center gap-2", colorClass)}>
                         {icon}
                         {title}
-                        <span className="text-sm font-normal text-gray-500 ml-2">({items.length})</span>
+                        <span className="text-sm font-normal text-muted-foreground ml-2">({items.length})</span>
                     </h3>
-                    {isOpen ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+                    {isOpen ? <ChevronUp className="w-5 h-5 text-muted-foreground" /> : <ChevronDown className="w-5 h-5 text-muted-foreground" />}
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                     <div className="p-4 pt-0 space-y-3 animate-in slide-in-from-top-2 duration-200">
@@ -199,7 +199,7 @@ const ShoppingListGroup = ({ title, icon, items, checkedItems, onCheckedChange, 
                                     key={itemKey}
                                     className={cn(
                                         "flex items-start space-x-3 p-3 rounded-lg cursor-pointer transition-all duration-200",
-                                        isChecked ? 'bg-slate-800/40 opacity-50' : 'bg-slate-800/60 hover:bg-slate-800'
+                                        isChecked ? 'bg-muted/40 opacity-50' : 'bg-muted/70 hover:bg-muted'
                                     )}
                                     onClick={() => onCheckedChange(item.id, !isChecked)}
                                 >
@@ -209,26 +209,26 @@ const ShoppingListGroup = ({ title, icon, items, checkedItems, onCheckedChange, 
                                         className="border-gray-500 data-[state=checked]:bg-cyan-600 data-[state=checked]:border-cyan-600 data-[state=checked]:text-white mt-1"
                                     />
                                     <div className="flex-1 pointer-events-none">
-                                        <Label htmlFor={`item-${itemKey}`} className={cn("text-base w-full block font-medium select-none", isChecked ? "text-gray-400 line-through" : "text-gray-200")}>
+                                        <Label htmlFor={`item-${itemKey}`} className={cn("text-base w-full block font-medium select-none", isChecked ? "text-muted-foreground line-through" : "text-gray-200")}>
                                             <SmartHighlight text={item.name} highlight={searchQuery} />
                                             {(item.totalQuantity || item.displayQuantity) && (
-                                                <span className={cn("ml-2 font-bold", isChecked ? "text-gray-500" : "text-cyan-400")}>
+                                                <span className={cn("ml-2 font-bold", isChecked ? "text-muted-foreground" : "text-cyan-400")}>
                                                     {Math.round(item.totalQuantity || item.displayQuantity)} {item.unit}
                                                 </span>
                                             )}
                                         </Label>
                                          {item.recipeCounts && (
-                                            <p className="text-xs text-gray-400 mt-1 italic pl-1 border-l-2 border-gray-700">
+                                            <p className="text-xs text-muted-foreground mt-1 italic pl-1 border-l-2 border-border">
                                                 Para: {formatRecipeList(item.recipeCounts)}
                                             </p>
                                         )}
                                         {!item.recipeCounts && item.recipeName && (
-                                            <p className="text-xs text-gray-400 mt-1 italic pl-1 border-l-2 border-gray-700">
+                                            <p className="text-xs text-muted-foreground mt-1 italic pl-1 border-l-2 border-border">
                                                 Para: <SmartHighlight text={item.recipeName} highlight={searchQuery} />
                                             </p>
                                         )}
                                         {item.recipeNames && item.recipeNames.length > 0 && (
-                                             <p className="text-xs text-gray-400 mt-1 italic pl-1 border-l-2 border-gray-700">
+                                             <p className="text-xs text-muted-foreground mt-1 italic pl-1 border-l-2 border-border">
                                                 Para: {item.recipeNames.map((name, idx) => (
                                                     <span key={idx}>
                                                         <SmartHighlight text={name} highlight={searchQuery} />
@@ -820,7 +820,7 @@ const ShoppingListPage = () => {
             <div className="flex flex-col space-y-6">
                 {/* Header */}
                 <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" onClick={handleBack} className="hover:bg-slate-800 text-gray-400 hover:text-white">
+                    <Button variant="ghost" size="icon" onClick={handleBack} className="hover:bg-muted text-muted-foreground hover:text-foreground">
                         <ArrowLeft className="w-6 h-6" />
                     </Button>
                     <h1 className="text-3xl font-bold text-white flex items-center gap-2">
@@ -830,7 +830,7 @@ const ShoppingListPage = () => {
                 </div>
 
                 {/* Controls */}
-                <div className="bg-slate-900/50 p-2 rounded-xl border border-slate-700/50 shadow-xl space-y-4">
+                <div className="bg-card/75 p-2 rounded-xl border border-border/50 shadow-xl space-y-4">
                     <ContentStateToggle
                         mode={listMode}
                         onModeChange={handleModeChangeWithSync}
@@ -842,17 +842,17 @@ const ShoppingListPage = () => {
                     />
                     
                     <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input 
                             placeholder="Buscar ingrediente o receta..." 
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-9 pr-9 bg-slate-800 border-slate-700 focus:border-cyan-500/50 focus:ring-cyan-500/20 placeholder:text-gray-500 text-white"
+                            className="pl-9 pr-9 bg-muted border-border focus:border-cyan-500/50 focus:ring-cyan-500/20 placeholder:text-muted-foreground text-white"
                         />
                         {searchQuery && (
                             <button
                                 onClick={() => setSearchQuery('')}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                             >
                                 <X className="h-4 w-4" />
                             </button>
@@ -878,7 +878,7 @@ const ShoppingListPage = () => {
                 {loading ? (
                     <div className="flex flex-col justify-center items-center py-20 space-y-4">
                         <Loader2 className="h-12 w-12 animate-spin text-cyan-500" />
-                        <p className="text-gray-400 animate-pulse">Cargando tu lista...</p>
+                        <p className="text-muted-foreground animate-pulse">Cargando tu lista...</p>
                     </div>
                 ) : !error && (
                     <div className="space-y-6 pb-20 animate-in fade-in duration-500">
@@ -938,7 +938,7 @@ const ShoppingListPage = () => {
                             searchQuery={searchQuery}
                             isOpen={openSections.others}
                             onOpenChange={() => toggleSection('others')}
-                            colorClass="text-gray-300"
+                            colorClass="text-muted-foreground"
                         />
 
                         {(!filteredData.privateItems.length && 
@@ -946,10 +946,10 @@ const ShoppingListPage = () => {
                           !filteredData.listData.carbs.length && 
                           !filteredData.listData.fats.length && 
                           !filteredData.listData.others.length) && (
-                            <div className="text-center py-12 bg-slate-900/30 rounded-xl border border-dashed border-slate-700">
+                            <div className="text-center py-12 bg-card/30 rounded-xl border border-dashed border-border">
                                 <ShoppingCart className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                                <p className="text-gray-400 text-lg">No se encontraron artículos.</p>
-                                <p className="text-gray-500 text-sm mt-1">Prueba a cambiar el modo de vista o añadir artículos privados.</p>
+                                <p className="text-muted-foreground text-lg">No se encontraron artículos.</p>
+                                <p className="text-muted-foreground text-sm mt-1">Prueba a cambiar el modo de vista o añadir artículos privados.</p>
                             </div>
                         )}
                     </div>

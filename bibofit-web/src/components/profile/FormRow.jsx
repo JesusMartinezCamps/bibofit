@@ -65,7 +65,7 @@ const FormRow = ({ id, label, type = 'text', value, onChange, placeholder, optio
               onCheckedChange={handleCheckboxChange}
               className={cn(checkboxColorClass)}
             />
-            <Label htmlFor={id} className="cursor-pointer select-none text-gray-300">{label}</Label>
+            <Label htmlFor={id} className="cursor-pointer select-none text-muted-foreground">{label}</Label>
           </div>
         );
       case 'date':
@@ -95,7 +95,7 @@ const FormRow = ({ id, label, type = 'text', value, onChange, placeholder, optio
 
   return (
     <div className="flex flex-col space-y-1.5">
-      {type !== 'checkbox' && <Label htmlFor={id} className="text-gray-300">{label}</Label>}
+      {type !== 'checkbox' && <Label htmlFor={id} className="text-muted-foreground">{label}</Label>}
       {renderInput()}
     </div>
   );

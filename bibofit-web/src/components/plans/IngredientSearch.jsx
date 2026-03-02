@@ -176,7 +176,7 @@ const IngredientSearch = ({
   };
 
   const getBorderColor = (conflict) => {
-    if (!conflict) return 'border-gray-700 hover:border-blue-500';
+    if (!conflict) return 'border-border hover:border-blue-500';
     switch (conflict.type) {
       case 'preferred':
       case 'condition_recommend':
@@ -188,7 +188,7 @@ const IngredientSearch = ({
       case 'condition_avoid':
         return 'border-red-500/80 hover:border-red-600 bg-red-900/20';
       default:
-        return 'border-gray-700 hover:border-blue-500';
+        return 'border-border hover:border-blue-500';
     }
   };
 
@@ -279,7 +279,7 @@ const IngredientSearch = ({
           </div>
         ) : (
           searchTerm.trim() && (
-            <div className="text-center text-gray-400 pt-8 space-y-3">
+            <div className="text-center text-muted-foreground pt-8 space-y-3">
               <p>No se encontraron resultados.</p>
               <Button
                 type="button"

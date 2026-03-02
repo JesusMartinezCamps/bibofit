@@ -77,39 +77,39 @@ const RestrictionForm = ({ item, onSave, onCancel }) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label htmlFor="name" className="block text-sm font-medium text-gray-300">Nombre</label>
+        <label htmlFor="name" className="block text-sm font-medium text-muted-foreground">Nombre</label>
         <Input type="text" name="name" id="name" value={formData.name} onChange={handleChange} required className="mt-1" />
       </div>
       <div>
-        <label htmlFor="description" className="block text-sm font-medium text-gray-300">Descripción</label>
+        <label htmlFor="description" className="block text-sm font-medium text-muted-foreground">Descripción</label>
         <textarea name="description" id="description" value={formData.description} onChange={handleChange} rows="3" className="mt-1 textarea-field w-full" />
       </div>
        {isSensitivity && (
          <div>
-            <label htmlFor="recommendations" className="block text-sm font-medium text-gray-300">Recomendaciones</label>
+            <label htmlFor="recommendations" className="block text-sm font-medium text-muted-foreground">Recomendaciones</label>
             <textarea name="recommendations" id="recommendations" value={formData.recommendations} onChange={handleChange} rows="3" className="mt-1 textarea-field w-full" />
          </div>
       )}
        {!isSensitivity && (
          <>
          <div>
-            <label htmlFor="objective" className="block text-sm font-medium text-gray-300">Objetivo</label>
+            <label htmlFor="objective" className="block text-sm font-medium text-muted-foreground">Objetivo</label>
             <textarea name="objective" id="objective" value={formData.objective} onChange={handleChange} rows="2" className="mt-1 textarea-field w-full" />
         </div>
         <div>
-            <label htmlFor="recommendations" className="block text-sm font-medium text-gray-300">Recomendaciones (Qué hacer)</label>
+            <label htmlFor="recommendations" className="block text-sm font-medium text-muted-foreground">Recomendaciones (Qué hacer)</label>
             <textarea name="recommendations" id="recommendations" value={formData.recommendations} onChange={handleChange} rows="3" className="mt-1 textarea-field w-full" />
         </div>
         </>
       )}
       <div>
-        <label htmlFor="to_avoid" className="block text-sm font-medium text-gray-300">A evitar</label>
+        <label htmlFor="to_avoid" className="block text-sm font-medium text-muted-foreground">A evitar</label>
         <textarea name="to_avoid" id="to_avoid" value={formData.to_avoid} onChange={handleChange} rows="3" className="mt-1 textarea-field w-full" />
       </div>
       {isSensitivity && (
         <div className="flex items-center">
-            <input type="checkbox" name="is_ue_regulated" id="is_ue_regulated" checked={formData.is_ue_regulated} onChange={handleChange} className="h-4 w-4 rounded border-gray-600 bg-gray-700 text-green-600 focus:ring-green-500" />
-            <label htmlFor="is_ue_regulated" className="ml-2 block text-sm text-gray-300">Alergeno regulado por la UE</label>
+            <input type="checkbox" name="is_ue_regulated" id="is_ue_regulated" checked={formData.is_ue_regulated} onChange={handleChange} className="h-4 w-4 rounded border-input bg-muted text-green-600 focus:ring-green-500" />
+            <label htmlFor="is_ue_regulated" className="ml-2 block text-sm text-muted-foreground">Alergeno regulado por la UE</label>
         </div>
       )}
       <div className="flex justify-end gap-2 pt-4">
@@ -245,7 +245,7 @@ const FoodRestrictionsPage = () => {
       <main className="w-full px-4 py-8">
         <h1 className="text-3xl font-bold text-white mb-6">Gestión de Restricciones Alimentarias</h1>
         <Tabs defaultValue="sensitivities" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-slate-800">
+          <TabsList className="grid w-full grid-cols-2 bg-muted">
             <TabsTrigger value="sensitivities">Sensibilidades y Alergias</TabsTrigger>
             <TabsTrigger value="conditions">Condiciones Médicas</TabsTrigger>
           </TabsList>
@@ -277,7 +277,7 @@ const FoodRestrictionsPage = () => {
       </main>
 
        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="bg-slate-900 border-slate-700 text-white">
+        <DialogContent className="bg-card border-border text-white">
           <DialogHeader>
             <DialogTitle>{editingItem?.id ? 'Editar' : 'Nueva'} Restricción</DialogTitle>
             <DialogDescription>

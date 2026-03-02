@@ -3,7 +3,7 @@ import PricingComponent from '@/components/shared/PricingComponent';
 
 const PricingPreview = () => {
     return (
-        <div className="bg-[#1a1e23]">
+        <div className="bg-background">
             <PricingComponent />
         </div>
     );

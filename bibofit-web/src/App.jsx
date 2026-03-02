@@ -72,14 +72,15 @@ import { OnboardingProvider } from '@/contexts/OnboardingContext';
 import { SwipeGestureProvider } from '@/contexts/SwipeGestureContext';
 import { QuickStartGuideProvider } from '@/contexts/QuickStartGuideContext';
 import QuickStartGuideModal from '@/components/QuickStartGuideModal';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 
 const HomeRedirect = () => {
   const { user, loading } = useAuth();
   
   if (loading) {
     return (
-      <div className="flex h-full w-full bg-[#1a1e23] items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+      <div className="flex h-full w-full bg-background items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -228,14 +229,15 @@ const AppContent = () => {
     }, [location.pathname, showHeader, user]);
 
   return (
-    <div className="w-full h-full flex flex-col relative overflow-hidden bg-[#1a1e23]">
+    <div className="w-full h-full flex flex-col relative overflow-hidden bg-background text-foreground">
       <OnboardingWizard />
       <QuickStartGuideModal />
 
       {showHeader && <Header onShoppingListClick={() => navigate('/shopping-list')} />}
       
       <div className={cn(
-          "w-full text-white flex-1 overflow-y-auto sm:px-6", 
+          "w-full flex-1 overflow-y-auto sm:px-6",
+          showHeader && "app-main-shell",
           shouldRemoveMobilePadding && "px-0 sm:px-0",
           isProfileDataPage && "sm:px-6"
         )}>
@@ -278,19 +280,21 @@ function App() {
 
   return (
     <Router>
-      <AuthProvider>
-        <RealtimeProvider>
-          <NotificationsProvider>
-            <OnboardingProvider>
-                <SwipeGestureProvider>
-                  <QuickStartGuideProvider>
-                    <AppContent />
-                  </QuickStartGuideProvider>
-                </SwipeGestureProvider>
-            </OnboardingProvider>
-          </NotificationsProvider>
-        </RealtimeProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <RealtimeProvider>
+            <NotificationsProvider>
+              <OnboardingProvider>
+                  <SwipeGestureProvider>
+                    <QuickStartGuideProvider>
+                      <AppContent />
+                    </QuickStartGuideProvider>
+                  </SwipeGestureProvider>
+              </OnboardingProvider>
+            </NotificationsProvider>
+          </RealtimeProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </Router>
   );
 }

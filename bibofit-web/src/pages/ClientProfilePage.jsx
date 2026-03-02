@@ -59,19 +59,19 @@ const ClientProfilePage = () => {
           transition={{ duration: 0.5 }}
         >
           <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
-            <Link to="/admin-panel/advisories" className="inline-flex items-center text-gray-400 hover:text-white">
+            <Link to="/admin-panel/advisories" className="inline-flex items-center text-muted-foreground hover:text-foreground">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Volver a Asesorías
             </Link>
             <div className="flex items-center space-x-4">
               {/* Removed Diet and Workout Management Buttons here */}
 
-              <div className="flex items-center space-x-2 p-1 bg-gray-800/50 rounded-lg">
+              <div className="flex items-center space-x-2 p-1 bg-muted/65 rounded-lg">
                 <Button
                   onClick={() => handleViewModeChange('view')}
                   variant={viewMode === 'view' ? 'secondary' : 'ghost'}
                   size="sm"
-                  className={cn("flex items-center", viewMode !== 'view' && 'text-gray-400')}
+                  className={cn("flex items-center", viewMode !== 'view' && 'text-muted-foreground')}
                 >
                   <Eye className="mr-2 h-4 w-4" />
                   Vista
@@ -80,7 +80,7 @@ const ClientProfilePage = () => {
                   onClick={() => handleViewModeChange('edit')}
                   variant={viewMode === 'edit' ? 'secondary' : 'ghost'}
                   size="sm"
-                  className={cn("flex items-center", viewMode !== 'edit' && 'text-gray-400')}
+                  className={cn("flex items-center", viewMode !== 'edit' && 'text-muted-foreground')}
                 >
                   <Edit className="mr-2 h-4 w-4" />
                   Editar

@@ -38,7 +38,7 @@ import React, { useState, useCallback } from 'react';
             >
               <div className="text-center mb-8">
                 <h1 className="text-3xl md:text-4xl font-bold text-white">Mis Datos de Perfil</h1>
-                <p className="text-gray-400 mt-2">Aquí puedes editar toda tu información.</p>
+                <p className="text-muted-foreground mt-2">Aquí puedes editar toda tu información.</p>
               </div>
 
               <Tabs defaultValue="personal" className="w-full max-w-4xl mx-auto">

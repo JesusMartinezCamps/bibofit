@@ -29,7 +29,7 @@ const IntroStep = ({ onNext }) => {
         <h2 className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-200 drop-shadow-sm">
           ¡Hola!
         </h2>
-        <p className="text-slate-300 text-lg max-w-sm mx-auto leading-relaxed">
+        <p className="text-muted-foreground text-lg max-w-sm mx-auto leading-relaxed">
           Para que Bibofit se configure a tu medida, necesitamos que respondas a unas preguntas
         </p>
       </motion.div>

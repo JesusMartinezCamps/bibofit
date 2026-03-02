@@ -24,7 +24,7 @@ const RecipeDataForm = ({
 
   return (
     <div className="space-y-6">
-      <div className="space-y-4 p-4 rounded-lg bg-slate-900/50 border border-slate-800">
+      <div className="space-y-4 p-4 rounded-lg bg-card/75 border border-border">
         <h4 className="text-lg font-semibold text-green-400">Datos de la Receta</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
@@ -55,7 +55,7 @@ const RecipeDataForm = ({
         </div>
       </div>
 
-      <div className="p-4 rounded-lg bg-slate-900/50 border border-slate-800">
+      <div className="p-4 rounded-lg bg-card/75 border border-border">
         <NutrientSummary
           macros={macros}
           allVitamins={allVitamins}

@@ -76,7 +76,7 @@ const WorkoutPanel = ({ selectedDate }) => {
   };
 
   if (loading) {
-    return <div className="text-center py-8 text-gray-400">Cargando entrenamiento...</div>;
+    return <div className="text-center py-8 text-muted-foreground">Cargando entrenamiento...</div>;
   }
 
   if (!workout) {
@@ -85,7 +85,7 @@ const WorkoutPanel = ({ selectedDate }) => {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="glass-effect rounded-2xl p-8 text-center">
           <Dumbbell className="w-16 h-16 text-[#5ebe7d] mx-auto mb-4" />
           <h3 className="text-2xl font-bold text-white mb-2">No hay entrenamiento programado</h3>
-          <p className="text-gray-400 mb-6">Para el {selectedDate.toLocaleDateString('es-ES')}</p>
+          <p className="text-muted-foreground mb-6">Para el {selectedDate.toLocaleDateString('es-ES')}</p>
           <Button onClick={addExercise} className="btn-primary"><Plus className="w-5 h-5 mr-2" />Crear Entrenamiento</Button>
         </motion.div>
       </div>
@@ -98,18 +98,18 @@ const WorkoutPanel = ({ selectedDate }) => {
     <div className="max-w-6xl mx-auto space-y-8">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="text-center">
         <div className="flex items-center justify-center space-x-3 mb-4"><Dumbbell className="w-8 h-8 text-[#5ebe7d]" /><h2 className="text-3xl font-bold text-white">Entrenamiento</h2></div>
-        <p className="text-gray-400">{selectedDate.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+        <p className="text-muted-foreground">{selectedDate.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
       </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }} className="glass-effect rounded-2xl p-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-4">
           <div>
             <h3 className="text-2xl font-bold text-white mb-2">{workout.name}</h3>
-            <div className="flex items-center space-x-4 text-gray-400"><div className="flex items-center space-x-1"><Clock className="w-4 h-4" /><span>{workout.duration} min</span></div><div className="flex items-center space-x-1"><Target className="w-4 h-4" /><span>{workout.difficulty}</span></div></div>
+            <div className="flex items-center space-x-4 text-muted-foreground"><div className="flex items-center space-x-1"><Clock className="w-4 h-4" /><span>{workout.duration} min</span></div><div className="flex items-center space-x-1"><Target className="w-4 h-4" /><span>{workout.difficulty}</span></div></div>
           </div>
           <div className="mt-4 md:mt-0">
-            <div className="text-right"><p className="text-sm text-gray-400">Progreso</p><p className="text-2xl font-bold text-[#5ebe7d]">{Math.round(completionPercentage)}%</p></div>
-            <div className="w-32 bg-gray-700 rounded-full h-2 mt-2"><div className="bg-[#5ebe7d] h-2 rounded-full transition-all duration-300" style={{ width: `${completionPercentage}%` }}></div></div>
+            <div className="text-right"><p className="text-sm text-muted-foreground">Progreso</p><p className="text-2xl font-bold text-[#5ebe7d]">{Math.round(completionPercentage)}%</p></div>
+            <div className="w-32 bg-muted rounded-full h-2 mt-2"><div className="bg-[#5ebe7d] h-2 rounded-full transition-all duration-300" style={{ width: `${completionPercentage}%` }}></div></div>
           </div>
         </div>
       </motion.div>
@@ -121,12 +121,12 @@ const WorkoutPanel = ({ selectedDate }) => {
               <div className="flex-1">
                 <div className="flex items-center space-x-3 mb-3"><h4 className="text-xl font-semibold text-white">{exercise.name}</h4>{completedExercises.includes(exercise.id) && (<CheckCircle className="w-6 h-6 text-[#5ebe7d]" />)}</div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
-                  <div className="bg-[#1a1e23] rounded-lg p-3"><p className="text-gray-400 text-sm">Series</p><p className="text-white font-semibold">{exercise.sets}</p></div>
-                  <div className="bg-[#1a1e23] rounded-lg p-3"><p className="text-gray-400 text-sm">Reps</p><p className="text-white font-semibold">{exercise.reps}</p></div>
-                  <div className="bg-[#1a1e23] rounded-lg p-3"><p className="text-gray-400 text-sm">Peso</p><p className="text-white font-semibold">{exercise.weight}</p></div>
-                  <div className="bg-[#1a1e23] rounded-lg p-3"><p className="text-gray-400 text-sm">Descanso</p><p className="text-white font-semibold">{exercise.rest}</p></div>
+                  <div className="bg-background rounded-lg p-3"><p className="text-muted-foreground text-sm">Series</p><p className="text-white font-semibold">{exercise.sets}</p></div>
+                  <div className="bg-background rounded-lg p-3"><p className="text-muted-foreground text-sm">Reps</p><p className="text-white font-semibold">{exercise.reps}</p></div>
+                  <div className="bg-background rounded-lg p-3"><p className="text-muted-foreground text-sm">Peso</p><p className="text-white font-semibold">{exercise.weight}</p></div>
+                  <div className="bg-background rounded-lg p-3"><p className="text-muted-foreground text-sm">Descanso</p><p className="text-white font-semibold">{exercise.rest}</p></div>
                 </div>
-                {exercise.notes && (<div className="bg-[#1a1e23] rounded-lg p-3"><p className="text-gray-400 text-sm mb-1">Notas</p><p className="text-white text-sm">{exercise.notes}</p></div>)}
+                {exercise.notes && (<div className="bg-background rounded-lg p-3"><p className="text-muted-foreground text-sm mb-1">Notas</p><p className="text-white text-sm">{exercise.notes}</p></div>)}
               </div>
               <Button onClick={() => toggleExerciseComplete(exercise.id)} className={`ml-4 ${completedExercises.includes(exercise.id) ? 'bg-[#5ebe7d] hover:bg-[#4a9960] text-white' : 'btn-secondary'}`}>{completedExercises.includes(exercise.id) ? 'Completado' : 'Marcar'}</Button>
             </div>

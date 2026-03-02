@@ -49,7 +49,7 @@ const PricingComponent = ({ showTitle = true, className, surface = 'home' }) => 
         {showTitle && (
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Planes flexibles</h2>
-            <p className="text-gray-400">Comienza gratis y escala a medida que crece tu negocio.</p>
+            <p className="text-muted-foreground">Comienza gratis y escala a medida que crece tu negocio.</p>
           </div>
         )}
 
@@ -63,7 +63,7 @@ const PricingComponent = ({ showTitle = true, className, surface = 'home' }) => 
               <Card
                 key={plan.id}
                 className={cn(
-                  'bg-[#15191e] border-gray-800 flex flex-col relative transition-all duration-300 hover:border-gray-700',
+                  'bg-[#15191e] border-border flex flex-col relative transition-all duration-300 hover:border-border',
                   plan.isPopular && 'border-green-500/50 shadow-2xl shadow-green-900/10 transform md:-translate-y-4 z-10'
                 )}
               >
@@ -77,9 +77,9 @@ const PricingComponent = ({ showTitle = true, className, surface = 'home' }) => 
                   <h3 className="text-xl font-bold text-white">{plan.name}</h3>
                   <div className="text-3xl font-bold text-white mt-2">
                     {plan.displayPrice || `${plan.priceAmount}€`}{' '}
-                    <span className="text-sm font-normal text-gray-500">{PERIOD_LABEL[plan.billingType] || '/mes'}</span>
+                    <span className="text-sm font-normal text-muted-foreground">{PERIOD_LABEL[plan.billingType] || '/mes'}</span>
                   </div>
-                  <p className="text-sm text-gray-400 mt-2">{plan.subtitle || plan.description}</p>
+                  <p className="text-sm text-muted-foreground mt-2">{plan.subtitle || plan.description}</p>
                 </CardHeader>
 
                 <CardContent className="flex-1">
@@ -91,7 +91,7 @@ const PricingComponent = ({ showTitle = true, className, surface = 'home' }) => 
                         ) : (
                           <X className="h-5 w-5 text-gray-600 flex-shrink-0" />
                         )}
-                        <span className={feature.included ? 'text-gray-300' : 'text-gray-500'}>{feature.featureText}</span>
+                        <span className={feature.included ? 'text-muted-foreground' : 'text-muted-foreground'}>{feature.featureText}</span>
                       </li>
                     ))}
                   </ul>
@@ -105,7 +105,7 @@ const PricingComponent = ({ showTitle = true, className, surface = 'home' }) => 
                         'w-full font-semibold',
                         plan.isPopular
                           ? 'bg-green-500 hover:bg-green-600 text-black shadow-lg shadow-green-900/20'
-                          : 'border-gray-800 text-green-400 bg-gray-800 hover:text-green-300 hover:bg-gray-700 hover:border-gray-600'
+                          : 'border-border text-green-400 bg-muted hover:text-green-300 hover:bg-muted hover:border-input'
                       )}
                     >
                       {plan.ctaLabel || 'Empezar'}

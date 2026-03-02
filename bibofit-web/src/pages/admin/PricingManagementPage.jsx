@@ -391,7 +391,7 @@ const PricingManagementPage = () => {
 
       <main className="w-full px-4 py-8">
         <div className="max-w-7xl mx-auto text-white space-y-6">
-          <Card className="bg-[#1a1e23] border-gray-700 text-white">
+          <Card className="bg-background border-border text-white">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Planes y Ofertas</CardTitle>
@@ -423,11 +423,11 @@ const PricingManagementPage = () => {
                       <TableRow key={plan.id}>
                         <TableCell>
                           <div className="font-semibold">{plan.name}</div>
-                          <div className="text-xs text-gray-400">{plan.slug}</div>
+                          <div className="text-xs text-muted-foreground">{plan.slug}</div>
                         </TableCell>
                         <TableCell>
                           {Number(plan.price_amount || 0)} {plan.price_currency || 'EUR'}
-                          <div className="text-xs text-gray-400">{plan.billing_type === 'one_time' ? 'Pago unico' : 'Mensual'}</div>
+                          <div className="text-xs text-muted-foreground">{plan.billing_type === 'one_time' ? 'Pago unico' : 'Mensual'}</div>
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-1 flex-wrap">
@@ -458,7 +458,7 @@ const PricingManagementPage = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-[#1a1e23] border-gray-700 text-white">
+          <Card className="bg-background border-border text-white">
             <CardHeader>
               <CardTitle>Asignación Manual (Premium regalado)</CardTitle>
               <CardDescription>
@@ -468,10 +468,10 @@ const PricingManagementPage = () => {
             <CardContent className="space-y-4">
               <div className="grid md:grid-cols-3 gap-3">
                 <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-                  <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
+                  <SelectTrigger className="bg-card border-border text-white">
                     <SelectValue placeholder="Seleccionar usuario" />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-900 border-slate-700 text-white max-h-72">
+                  <SelectContent className="bg-card border-border text-white max-h-72">
                     {users.map((user) => (
                       <SelectItem key={user.user_id} value={user.user_id}>
                         {(user.full_name || user.email || user.user_id).slice(0, 80)}
@@ -481,10 +481,10 @@ const PricingManagementPage = () => {
                 </Select>
 
                 <Select value={selectedPlanId} onValueChange={setSelectedPlanId}>
-                  <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
+                  <SelectTrigger className="bg-card border-border text-white">
                     <SelectValue placeholder="Seleccionar plan" />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-900 border-slate-700 text-white">
+                  <SelectContent className="bg-card border-border text-white">
                     {activePlans.map((plan) => (
                       <SelectItem key={plan.id} value={String(plan.id)}>
                         {plan.name}
@@ -497,7 +497,7 @@ const PricingManagementPage = () => {
                   value={grantNotes}
                   onChange={(event) => setGrantNotes(event.target.value)}
                   placeholder="Nota (opcional)"
-                  className="bg-slate-900 border-slate-700"
+                  className="bg-card border-border"
                 />
               </div>
 
@@ -506,7 +506,7 @@ const PricingManagementPage = () => {
                 Asignar acceso manual
               </Button>
 
-              <div className="border border-slate-800 rounded-lg overflow-hidden">
+              <div className="border border-border rounded-lg overflow-hidden">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -534,7 +534,7 @@ const PricingManagementPage = () => {
       </main>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="bg-[#1a1e23] border-gray-700 text-white sm:max-w-[860px]">
+        <DialogContent className="bg-background border-border text-white sm:max-w-[860px]">
           <DialogHeader>
             <DialogTitle>{editingPlanId ? 'Editar plan' : 'Nuevo plan'}</DialogTitle>
             <DialogDescription>Configura nombre, precio, CTA, características y roles objetivo.</DialogDescription>
@@ -542,54 +542,54 @@ const PricingManagementPage = () => {
 
           <div className="space-y-4 max-h-[72vh] overflow-y-auto pr-1">
             <div className="grid md:grid-cols-3 gap-3">
-              <Input value={planForm.slug} onChange={(e) => setPlanForm((prev) => ({ ...prev, slug: e.target.value }))} placeholder="slug (pro)" className="bg-slate-900 border-slate-700" />
-              <Input value={planForm.name} onChange={(e) => setPlanForm((prev) => ({ ...prev, name: e.target.value }))} placeholder="Nombre" className="bg-slate-900 border-slate-700" />
-              <Input value={planForm.subtitle} onChange={(e) => setPlanForm((prev) => ({ ...prev, subtitle: e.target.value }))} placeholder="Subtitulo" className="bg-slate-900 border-slate-700" />
+              <Input value={planForm.slug} onChange={(e) => setPlanForm((prev) => ({ ...prev, slug: e.target.value }))} placeholder="slug (pro)" className="bg-card border-border" />
+              <Input value={planForm.name} onChange={(e) => setPlanForm((prev) => ({ ...prev, name: e.target.value }))} placeholder="Nombre" className="bg-card border-border" />
+              <Input value={planForm.subtitle} onChange={(e) => setPlanForm((prev) => ({ ...prev, subtitle: e.target.value }))} placeholder="Subtitulo" className="bg-card border-border" />
             </div>
 
             <Textarea
               value={planForm.description}
               onChange={(e) => setPlanForm((prev) => ({ ...prev, description: e.target.value }))}
               placeholder="Descripción"
-              className="bg-slate-900 border-slate-700"
+              className="bg-card border-border"
             />
 
             <div className="grid md:grid-cols-4 gap-3">
-              <Input value={planForm.priceAmount} onChange={(e) => setPlanForm((prev) => ({ ...prev, priceAmount: e.target.value }))} placeholder="Precio" className="bg-slate-900 border-slate-700" />
-              <Input value={planForm.priceCurrency} onChange={(e) => setPlanForm((prev) => ({ ...prev, priceCurrency: e.target.value.toUpperCase() }))} placeholder="Moneda" className="bg-slate-900 border-slate-700" />
+              <Input value={planForm.priceAmount} onChange={(e) => setPlanForm((prev) => ({ ...prev, priceAmount: e.target.value }))} placeholder="Precio" className="bg-card border-border" />
+              <Input value={planForm.priceCurrency} onChange={(e) => setPlanForm((prev) => ({ ...prev, priceCurrency: e.target.value.toUpperCase() }))} placeholder="Moneda" className="bg-card border-border" />
 
               <Select value={planForm.billingType} onValueChange={(value) => setPlanForm((prev) => ({ ...prev, billingType: value }))}>
-                <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
+                <SelectTrigger className="bg-card border-border text-white">
                   <SelectValue placeholder="Tipo cobro" />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-900 border-slate-700 text-white">
+                <SelectContent className="bg-card border-border text-white">
                   <SelectItem value="monthly">Mensual</SelectItem>
                   <SelectItem value="one_time">Pago unico</SelectItem>
                 </SelectContent>
               </Select>
 
-              <Input value={planForm.sortOrder} onChange={(e) => setPlanForm((prev) => ({ ...prev, sortOrder: e.target.value }))} placeholder="Orden" className="bg-slate-900 border-slate-700" />
+              <Input value={planForm.sortOrder} onChange={(e) => setPlanForm((prev) => ({ ...prev, sortOrder: e.target.value }))} placeholder="Orden" className="bg-card border-border" />
             </div>
 
             <div className="grid md:grid-cols-2 gap-3">
-              <Input value={planForm.ctaLabel} onChange={(e) => setPlanForm((prev) => ({ ...prev, ctaLabel: e.target.value }))} placeholder="Texto CTA" className="bg-slate-900 border-slate-700" />
-              <Input value={planForm.ctaLink} onChange={(e) => setPlanForm((prev) => ({ ...prev, ctaLink: e.target.value }))} placeholder="Destino CTA" className="bg-slate-900 border-slate-700" />
+              <Input value={planForm.ctaLabel} onChange={(e) => setPlanForm((prev) => ({ ...prev, ctaLabel: e.target.value }))} placeholder="Texto CTA" className="bg-card border-border" />
+              <Input value={planForm.ctaLink} onChange={(e) => setPlanForm((prev) => ({ ...prev, ctaLink: e.target.value }))} placeholder="Destino CTA" className="bg-card border-border" />
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-              <label className="flex items-center justify-between bg-slate-900 border border-slate-700 rounded-md p-2">
+              <label className="flex items-center justify-between bg-card border border-border rounded-md p-2">
                 <span>Popular</span>
                 <Switch checked={planForm.isPopular} onCheckedChange={(value) => setPlanForm((prev) => ({ ...prev, isPopular: value }))} />
               </label>
-              <label className="flex items-center justify-between bg-slate-900 border border-slate-700 rounded-md p-2">
+              <label className="flex items-center justify-between bg-card border border-border rounded-md p-2">
                 <span>Activo</span>
                 <Switch checked={planForm.isActive} onCheckedChange={(value) => setPlanForm((prev) => ({ ...prev, isActive: value }))} />
               </label>
-              <label className="flex items-center justify-between bg-slate-900 border border-slate-700 rounded-md p-2">
+              <label className="flex items-center justify-between bg-card border border-border rounded-md p-2">
                 <span>Mostrar Home</span>
                 <Switch checked={planForm.showOnHome} onCheckedChange={(value) => setPlanForm((prev) => ({ ...prev, showOnHome: value }))} />
               </label>
-              <label className="flex items-center justify-between bg-slate-900 border border-slate-700 rounded-md p-2">
+              <label className="flex items-center justify-between bg-card border border-border rounded-md p-2">
                 <span>Mostrar Pricing</span>
                 <Switch checked={planForm.showOnPricing} onCheckedChange={(value) => setPlanForm((prev) => ({ ...prev, showOnPricing: value }))} />
               </label>
@@ -609,15 +609,15 @@ const PricingManagementPage = () => {
                       value={feature.featureText}
                       onChange={(e) => handleFeatureChange(idx, 'featureText', e.target.value)}
                       placeholder="Texto de característica"
-                      className="bg-slate-900 border-slate-700"
+                      className="bg-card border-border"
                     />
                     <Input
                       value={feature.sortOrder}
                       onChange={(e) => handleFeatureChange(idx, 'sortOrder', e.target.value)}
                       placeholder="Orden"
-                      className="w-20 bg-slate-900 border-slate-700"
+                      className="w-20 bg-card border-border"
                     />
-                    <label className="flex items-center gap-2 text-xs text-gray-300">
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
                       <Switch checked={feature.included} onCheckedChange={(value) => handleFeatureChange(idx, 'included', value)} />
                       Incluida
                     </label>

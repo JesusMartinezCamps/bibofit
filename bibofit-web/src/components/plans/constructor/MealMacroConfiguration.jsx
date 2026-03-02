@@ -28,12 +28,12 @@ const MacroSlider = React.memo(({ label, colorClass, value, grams, onChange, dis
   return (
     <div className={cn("w-full min-w-[100px] flex flex-col gap-1.5", disabled && "opacity-50 pointer-events-none")} onClick={disabled ? onDisabledClick : undefined}>
       <div className="flex justify-between items-end text-xs">
-        <span className="text-gray-400 md:hidden font-medium">{label}</span>
+        <span className="text-muted-foreground md:hidden font-medium">{label}</span>
         <div className="flex items-baseline gap-1.5 ml-auto">
-          <span className={cn("text-lg font-bold tabular-nums leading-none", colorClass, disabled && "text-gray-500")}>
+          <span className={cn("text-lg font-bold tabular-nums leading-none", colorClass, disabled && "text-muted-foreground")}>
             {value || 0}%
           </span>
-          <span className="text-xs text-gray-500 font-medium tabular-nums">
+          <span className="text-xs text-muted-foreground font-medium tabular-nums">
             {grams}g
           </span>
         </div>
@@ -133,7 +133,7 @@ const MealRow = React.memo(({ meal, totalGrams, onMealPctChange, readOnly, disab
 
   return (
     <div className={cn(
-        "grid grid-cols-1 md:grid-cols-5 gap-4 items-center p-3 rounded-lg bg-gray-900/50 border border-transparent hover:border-gray-700/50 transition-colors",
+        "grid grid-cols-1 md:grid-cols-5 gap-4 items-center p-3 rounded-lg bg-card/75 border border-transparent hover:border-border/50 transition-colors",
         (readOnly || disabled) && "opacity-75"
     )}>
       <div className="flex justify-between items-center md:block">
@@ -185,25 +185,25 @@ const TotalRow = React.memo(({ mealTotals, gramTotals, floating = false }) => (
   <div className={cn(
       "grid grid-cols-1 md:grid-cols-5 gap-4 items-center p-3 rounded-lg border-t mt-2 transition-all duration-300",
       floating 
-        ? "bg-[#1a1e23] border-gray-700 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.3)] w-full" 
-        : "bg-gray-900/80 border-gray-700"
+        ? "bg-background border-border shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.3)] w-full" 
+        : "bg-card/90 border-border"
     )}>
     <span className="font-bold text-lg text-white">TOTAL</span>
     
     <span />
-    <div className="relative flex items-center justify-between bg-gray-800/50 rounded-lg border border-gray-700 px-3 h-10">
+    <div className="relative flex items-center justify-between bg-muted/65 rounded-lg border border-border px-3 h-10">
       <span className={cn("font-bold text-lg font-numeric", mealTotals.protein_pct !== 100 ? 'text-yellow-400' : 'text-green-400')}>
         {mealTotals.protein_pct}%
       </span>
       <span className="font-medium font-numeric text-red-400 text-sm">{gramTotals.protein}g</span>
     </div>
-    <div className="relative flex items-center justify-between bg-gray-800/50 rounded-lg border border-gray-700 px-3 h-10">
+    <div className="relative flex items-center justify-between bg-muted/65 rounded-lg border border-border px-3 h-10">
       <span className={cn("font-bold text-lg font-numeric", mealTotals.carbs_pct !== 100 ? 'text-yellow-400' : 'text-green-400')}>
         {mealTotals.carbs_pct}%
       </span>
       <span className="font-medium font-numeric text-yellow-400 text-sm">{gramTotals.carbs}g</span>
     </div>
-    <div className="relative flex items-center justify-between bg-gray-800/50 rounded-lg border border-gray-700 px-3 h-10">
+    <div className="relative flex items-center justify-between bg-muted/65 rounded-lg border border-border px-3 h-10">
       <span className={cn("font-bold text-lg font-numeric", mealTotals.fat_pct !== 100 ? 'text-yellow-400' : 'text-green-400')}>
         {mealTotals.fat_pct}%
       </span>
@@ -388,21 +388,21 @@ const MealMacroConfiguration = ({
   const isInteractive = forceUnlock || canUseAutoFrame;
 
   return (
-    <Card className={cn("bg-slate-900/50 border-gray-700 text-white shadow-xl w-full max-w-full box-border", readOnly && "opacity-80")}>
+    <Card className={cn("bg-card/75 border-border text-white shadow-xl w-full max-w-full box-border", readOnly && "opacity-80")}>
       <Collapsible open={open} onOpenChange={setOpen} className="w-full">
         <CardHeader className="px-4">
           <CollapsibleTrigger asChild>
             <button
               type="button"
               className={cn(
-                  "w-full flex items-center justify-between text-left p-2 rounded-md hover:bg-gray-800/40 transition",
+                  "w-full flex items-center justify-between text-left p-2 rounded-md hover:bg-muted/40 transition",
                   readOnly && "pointer-events-none"
               )}
             >
               <div>
                 <CardTitle className="flex items-center gap-2">
                     2. Configuración de Macros por Comida
-                    {(readOnly || !isInteractive) && <Lock className="w-4 h-4 text-gray-500" />}
+                    {(readOnly || !isInteractive) && <Lock className="w-4 h-4 text-muted-foreground" />}
                 </CardTitle>
                 <CardDescription className="mt-2">
                   Deslizando la barra superior, se modifica la barra de abajo. Siempre cuadra al 100%
@@ -431,7 +431,7 @@ const MealMacroConfiguration = ({
                          <Lock className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
                          <div>
                              <h4 className="text-sm font-bold text-blue-300">Configuración Avanzada Bloqueada</h4>
-                             <p className="text-sm text-gray-400 mt-1">
+                             <p className="text-sm text-muted-foreground mt-1">
                                  {autoFrameMessage} <Link to={autoFrameLink} className="text-green-400 underline">Ver Planes</Link>
                              </p>
                          </div>
@@ -444,7 +444,7 @@ const MealMacroConfiguration = ({
                   Reset
               </Button>
             </div>
-            <div className="hidden md:grid grid-cols-1 md:grid-cols-5 gap-4 px-4 text-sm text-gray-400 font-semibold mb-2 mt-4 uppercase tracking-wider z-10 py-2">
+            <div className="hidden md:grid grid-cols-1 md:grid-cols-5 gap-4 px-4 text-sm text-muted-foreground font-semibold mb-2 mt-4 uppercase tracking-wider z-10 py-2">
               <span>Comida</span> 
               <span className="text-center">Kcal</span>
               <span className="pl-1">Proteínas</span>
@@ -477,14 +477,14 @@ const MealMacroConfiguration = ({
                 </p>
               )}
 
-            <div className="mt-4 border border-gray-700 rounded-lg">
+            <div className="mt-4 border border-border rounded-lg">
               <TotalRow mealTotals={mealTotals} gramTotals={gramTotals} floating={false} />
             </div>
 
             {!hideSaveButton && !readOnly && (
-                <CardFooter className="flex justify-end mt-4 p-4 bg-slate-900/70 border-t border-gray-800 rounded-b-lg">
+                <CardFooter className="flex justify-end mt-4 p-4 bg-card/85 border-t border-border rounded-b-lg">
                     {!isInteractive ? (
-                        <div className="text-sm text-gray-400 flex items-center gap-2 italic">
+                        <div className="text-sm text-muted-foreground flex items-center gap-2 italic">
                             <Lock className="w-3 h-3"/> Actualiza a Premium para guardar
                         </div>
                     ) : (

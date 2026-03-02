@@ -25,7 +25,7 @@ const buttonVariants = cva(
         'outline-reminder': 'border-2 border-amber-400 bg-transparent text-amber-400 hover:bg-amber-500/20 hover:border-amber-400 hover:text-amber-300',
         'outline-yellow': 'border-2 border-yellow-500 bg-transparent text-yellow-400 hover:bg-yellow-500/20 hover:border-yellow-400 hover:text-yellow-300',
         'outline-lilac': 'border-2 border-violet-500 bg-transparent text-violet-400 hover:bg-violet-500/20 hover:border-violet-400 hover:text-violet-300',
-        'outline-dark': 'border border-input bg-slate-900/70 hover:bg-slate-800',
+        'outline-dark': 'border border-input bg-card/85 hover:bg-muted',
 				secondary:
           'bg-secondary text-secondary-foreground hover:bg-secondary/80',
 				ghost: 'hover:bg-accent hover:text-accent-foreground',

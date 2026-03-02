@@ -338,7 +338,7 @@ const ConflictResolutionDialog = ({ open, onOpenChange, conflicts, onRecipeUpdat
                     onEscapeKeyDown={(event) => event.preventDefault()}
                     onInteractOutside={(event) => event.preventDefault()}
                 >
-                    <DialogHeader className="border-b border-slate-800/80 px-6 py-5">
+                    <DialogHeader className="border-b border-border/80 px-6 py-5">
                         <DialogTitle className={`flex items-center gap-2 ${allConflictsResolved ? 'text-emerald-400' : 'text-orange-400'}`}>
                             {allConflictsResolved ? <CheckCircle className="w-6 h-6" /> : <AlertTriangle className="w-6 h-6" />}
                             Conflictos de Restricciones Detectados
@@ -355,7 +355,7 @@ const ConflictResolutionDialog = ({ open, onOpenChange, conflicts, onRecipeUpdat
                                 <section key={`${section.mealOrder}-${section.mealName}`} className="space-y-3">
                                     <div className="flex items-center justify-between">
                                         <h3 className="text-base font-semibold text-slate-200">{section.mealName}</h3>
-                                        <Badge variant="outline" className="border-slate-600 text-slate-300 bg-slate-900/60">
+                                        <Badge variant="outline" className="border-input text-muted-foreground bg-card/80">
                                             {section.items.length} receta{section.items.length === 1 ? '' : 's'}
                                         </Badge>
                                     </div>
@@ -456,7 +456,7 @@ const ConflictResolutionDialog = ({ open, onOpenChange, conflicts, onRecipeUpdat
                                                     >
                                                         Conflictos resueltos con éxito
                                                     </motion.h4>
-                                                    <p className="mt-1 text-sm text-slate-300/90">
+                                                    <p className="mt-1 text-sm text-muted-foreground/90">
                                                         Todo está listo para generar la dieta. Ya puedes continuar con la asignación final.
                                                     </p>
                                                 </div>
@@ -476,9 +476,9 @@ const ConflictResolutionDialog = ({ open, onOpenChange, conflicts, onRecipeUpdat
                         </div>
                     </div>
 
-                    <DialogFooter className="border-t border-slate-800/80 px-6 py-4">
+                    <DialogFooter className="border-t border-border/80 px-6 py-4">
                         <div className="flex items-center justify-between w-full">
-                             <p className="text-sm text-gray-400">
+                             <p className="text-sm text-muted-foreground">
                                 {remainingRecipesCount > 0 
                                     ? `Quedan ${remainingRecipesCount} recetas con conflictos por resolver.`
                                     : "Todos los conflictos han sido revisados."}
@@ -491,7 +491,7 @@ const ConflictResolutionDialog = ({ open, onOpenChange, conflicts, onRecipeUpdat
                                     onClick={handleConfirm}
                                     disabled={remainingRecipesCount > 0}
                                     variant="outline"
-                                    className="border-gray-500/60 bg-emerald-500/10 hover:text-green-400 text-emerald-300 hover:bg-emerald-500/20 disabled:bg-gray-700 disabled:text-gray-400"
+                                    className="border-gray-500/60 bg-emerald-500/10 hover:text-green-400 text-emerald-300 hover:bg-emerald-500/20 disabled:bg-muted disabled:text-muted-foreground"
                                 >
                                     Listo para Asignar
                                 </Button>

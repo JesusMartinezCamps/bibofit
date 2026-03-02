@@ -131,7 +131,7 @@ const MyFreeRecipesPage = () => {
               <Utensils className="w-10 h-10 text-blue-400" />
               Mis Recetas Libres
             </h1>
-            <p className="text-gray-400 mt-2">Aquí puedes ver el historial de las recetas que has creado.</p>
+            <p className="text-muted-foreground mt-2">Aquí puedes ver el historial de las recetas que has creado.</p>
           </div>
 
           <TabNavigation 
@@ -146,10 +146,10 @@ const MyFreeRecipesPage = () => {
               <Loader2 className="w-12 h-12 animate-spin text-blue-400" />
             </div>
           ) : filteredRecipes.length === 0 ? (
-            <Card className="bg-gray-800/50 border-gray-700 text-center py-12">
+            <Card className="bg-muted/65 border-border text-center py-12">
               <CardContent>
-                <p className="text-gray-400">No tienes recetas en esta categoría.</p>
-                 {activeTab === 'pending' && <p className="text-gray-500 text-sm mt-2">¡Anímate a crear una desde tu plan de dieta!</p>}
+                <p className="text-muted-foreground">No tienes recetas en esta categoría.</p>
+                 {activeTab === 'pending' && <p className="text-muted-foreground text-sm mt-2">¡Anímate a crear una desde tu plan de dieta!</p>}
               </CardContent>
             </Card>
           ) : (
@@ -163,19 +163,19 @@ const MyFreeRecipesPage = () => {
                 >
                   <Card 
                     onClick={() => handleCardClick(recipe)}
-                    className="bg-gray-800/50 border-gray-700 hover:border-blue-500/50 transition-colors cursor-pointer"
+                    className="bg-muted/65 border-border hover:border-blue-500/50 transition-colors cursor-pointer"
                   >
                     <CardHeader className="flex flex-row items-center justify-between">
                       <div>
                         <CardTitle className="text-white">{recipe.name}</CardTitle>
-                        <CardDescription className="text-gray-400">
+                        <CardDescription className="text-muted-foreground">
                           {recipe.day_meal?.name} - {format(new Date(recipe.created_at), 'dd MMMM, yyyy', { locale: es })}
                         </CardDescription>
                       </div>
                       {getStatusBadge(recipe.status)}
                     </CardHeader>
                     <CardContent>
-                      <p className="text-gray-300 text-sm">
+                      <p className="text-muted-foreground text-sm">
                         {formatIngredients(recipe.ingredients)}
                       </p>
                     </CardContent>

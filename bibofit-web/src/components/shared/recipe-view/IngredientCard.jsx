@@ -16,7 +16,7 @@ import FatsIcon from '@/components/icons/FatsIcon';
 const NutrientBadge = ({ nutrient }) => (
   <Badge
     variant="outline"
-    className="text-[10px] px-1.5 py-0 h-5 bg-slate-800/50 border-slate-700 text-gray-300"
+    className="text-[10px] px-1.5 py-0 h-5 bg-muted/65 border-border text-muted-foreground"
   >
     {nutrient.name}
   </Badge>
@@ -74,7 +74,7 @@ const getStatusColorClasses = (type) => {
     case 'preferred':
       return 'bg-gradient-to-br from-green-900/30 via-slate-800/20 to-slate-800/20 border-green-500/50 text-green-300';
     default:
-      return 'bg-gradient-to-br from-slate-800/60 via-slate-800/40 to-slate-800/40 border-slate-700/50 text-gray-200';
+      return 'bg-gradient-to-br from-slate-800/60 via-slate-800/40 to-slate-800/40 border-border/50 text-gray-200';
   }
 };
 
@@ -168,7 +168,7 @@ const IngredientCard = ({
 
   if (displayAsBullet) {
     return (
-      <li className="border-b border-slate-800/50 last:border-0">
+      <li className="border-b border-border/50 last:border-0">
         <div
           className={cn(
             'grid items-center gap-2 py-2',
@@ -200,7 +200,7 @@ const IngredientCard = ({
           <div
             className={cn(
               'flex items-center justify-between text-sm rounded-sm transition-colors w-full group min-w-0',
-              onQuickEdit && 'cursor-pointer hover:bg-slate-800/20'
+              onQuickEdit && 'cursor-pointer hover:bg-muted/20'
             )}
             onClick={() => onQuickEdit && onQuickEdit()}
           >
@@ -218,7 +218,7 @@ const IngredientCard = ({
               >
                 {food.name}
               </span>
-              <span className="text-gray-500 text-xs ml-2 whitespace-nowrap">
+              <span className="text-muted-foreground text-xs ml-2 whitespace-nowrap">
                 ({displayQuantity}
                 {food.food_unit === 'unidades' ? ' ud' : 'g'})
               </span>
@@ -295,7 +295,7 @@ const IngredientCard = ({
                   >
                     {food.name}
                   </div>
-                  <div className="text-[10px] text-gray-400 truncate mt-0.5">{foodGroupName}</div>
+                  <div className="text-[10px] text-muted-foreground truncate mt-0.5">{foodGroupName}</div>
                 </div>
                 <div className="w-2/5 inline-flex items-center justify-end">
                   <div className="flex flex-col items-end">
@@ -306,7 +306,7 @@ const IngredientCard = ({
                         onChange={onQuantityChange}
                         className="input-field bg-transparent border-dashed w-20 text-center"
                       />
-                      <span className="text-sm font-normal text-gray-400 ml-1">{unitLabel}</span>
+                      <span className="text-sm font-normal text-muted-foreground ml-1">{unitLabel}</span>
                     </div>
                     {safeMultiplier !== 1 && (
                       <span className="text-[10px] text-cyan-300 mt-0.5">
@@ -326,7 +326,7 @@ const IngredientCard = ({
               <div className="flex flex-col min-w-0">
                 <div className={cn('font-semibold flex flex-wrap items-center gap-2', statusColorClasses.split(' ').find((c) => c.startsWith('text-')))}>
                   <span>{food.name}</span>
-                  <span className="text-sm font-normal text-gray-400 font-numeric">
+                  <span className="text-sm font-normal text-muted-foreground font-numeric">
                     ({displayQuantity}
                     {food.food_unit === 'unidades' ? ' ud' : 'g'})
                   </span>
@@ -378,7 +378,7 @@ const IngredientCard = ({
         {isEditing && (vitamins.length > 0 || minerals.length > 0) && (
           <div
             className={cn(
-              'mt-2 pt-2 border-t border-slate-700/50 flex flex-wrap gap-1.5 col-span-full'
+              'mt-2 pt-2 border-t border-border/50 flex flex-wrap gap-1.5 col-span-full'
             )}
           >
             {vitamins.map((v) => (

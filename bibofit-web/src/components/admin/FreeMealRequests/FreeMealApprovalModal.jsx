@@ -343,7 +343,7 @@ const FreeMealApprovalModal = ({ freeMeal, isOpen, onOpenChange, onAction }) => 
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#1a1e23] border-gray-700 text-white w-[95vw] max-w-4xl max-h-[90vh] flex flex-col">
+      <DialogContent className="bg-background border-border text-white w-[95vw] max-w-4xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Revisar y Gestionar Receta Libre</DialogTitle>
           <DialogDescription>
@@ -382,7 +382,7 @@ const FreeMealApprovalModal = ({ freeMeal, isOpen, onOpenChange, onAction }) => 
                     {pendingIngredients.map((ing) => (
                       <div
                         key={ing.local_id}
-                        className="flex items-center justify-between bg-gray-800/50 p-2 rounded-md"
+                        className="flex items-center justify-between bg-muted/65 p-2 rounded-md"
                       >
                         <span className="text-purple-300 font-medium">{ing.name}</span>
                         <Button

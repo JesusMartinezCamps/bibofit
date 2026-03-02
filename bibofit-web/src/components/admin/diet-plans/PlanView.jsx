@@ -13,7 +13,7 @@ import { format } from 'date-fns';
 import { invokeAutoBalanceBatch } from '@/lib/autoBalanceClient';
 
 const MealSection = ({ meal, recipes, onAdd, onEdit, onDelete, allFoods, userRestrictions, userDayMeal, onAutoBalance, isBalancing, planUserId, readOnly = false }) => (
-    <div key={meal.id} className="bg-slate-900/50 p-4 rounded-lg border border-gray-800">
+    <div key={meal.id} className="bg-card/75 p-4 rounded-lg border border-border">
         <div className="flex items-center gap-3 mb-4 flex-wrap justify-between">
             <div className="flex items-center gap-2">
                 <h3 className="text-xl font-bold text-white">{meal.name}</h3>
@@ -39,7 +39,7 @@ const MealSection = ({ meal, recipes, onAdd, onEdit, onDelete, allFoods, userRes
             )}
         </div>
         {meal.preferences && (
-            <p className="text-sm italic text-gray-400 mb-4 pl-2 border-l-2 border-green-500/50">
+            <p className="text-sm italic text-muted-foreground mb-4 pl-2 border-l-2 border-green-500/50">
                 Nota: {meal.preferences}
             </p>
         )}
@@ -58,7 +58,7 @@ const MealSection = ({ meal, recipes, onAdd, onEdit, onDelete, allFoods, userRes
                 ))
             ) : (
                 <div className="md:col-span-2 lg:col-span-3 xl:col-span-4">
-                    <p className="text-sm text-gray-500 text-center italic py-4 bg-gray-900/40 rounded-lg">No hay recetas asignadas a esta comida.</p>
+                    <p className="text-sm text-muted-foreground text-center italic py-4 bg-card/40 rounded-lg">No hay recetas asignadas a esta comida.</p>
                 </div>
             )}
         </div>
@@ -434,7 +434,7 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOn
     
     return (
         <>
-            <Card className="bg-slate-900/50 border-gray-700 text-white overflow-hidden shadow-xl">
+            <Card className="bg-card/75 border-border text-white overflow-hidden shadow-xl">
                 <CardHeader>
                     <CardTitle>Momentos del Día</CardTitle>
                     <CardDescription>Gestiona las recetas para cada momento del día en este plan.</CardDescription>

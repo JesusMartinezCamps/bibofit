@@ -40,7 +40,7 @@ const FoodDetailModal = ({ food, isOpen, onClose, onActionComplete, allSensitivi
     
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-4xl h-[90vh] bg-slate-900 border-slate-800 text-white flex flex-col">
+            <DialogContent className="max-w-4xl h-[90vh] bg-card border-border text-white flex flex-col">
                 <DialogHeader>
                     <DialogTitle className="text-2xl text-cyan-400">Detalle del Alimento Solicitado</DialogTitle>
                     <DialogDescription>
@@ -59,7 +59,7 @@ const FoodDetailModal = ({ food, isOpen, onClose, onActionComplete, allSensitivi
                     />
                 </div>
 
-                <DialogFooter className="mt-4 pt-4 border-t border-slate-700">
+                <DialogFooter className="mt-4 pt-4 border-t border-border">
                     {isPending ? (
                         <>
                             <Button variant="destructive" onClick={handleRejectClick}>Rechazar</Button>

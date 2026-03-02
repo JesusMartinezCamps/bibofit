@@ -25,7 +25,7 @@ const PWAInstallPrompt = () => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="relative w-[90%] max-w-sm bg-gray-900 border border-gray-700 shadow-2xl rounded-2xl py-8 px-6 text-center overflow-hidden"
+            className="relative w-[90%] max-w-sm bg-card border border-border shadow-2xl rounded-2xl py-8 px-6 text-center overflow-hidden"
           >
             {/* Background glow effect */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />
@@ -55,7 +55,7 @@ const PWAInstallPrompt = () => {
                 Añadir Bibofit a la Pantalla de Inicio
               </h2>
               
-              <p className="text-gray-300 text-sm sm:text-base mb-8 leading-relaxed">
+              <p className="text-muted-foreground text-sm sm:text-base mb-8 leading-relaxed">
                 Sin instalacación, guárda la App en Inicio para tener un Acceso Rápido a Bibofit
               </p>
               
@@ -71,7 +71,7 @@ const PWAInstallPrompt = () => {
                   size="lg" 
                   variant="outline" 
                   onClick={handleDismiss} 
-                  className="w-full bg-gray-800 hover:bg-gray-700 text-gray-300 border-gray-700 font-medium py-6 rounded-xl transition-all active:scale-[0.98]"
+                  className="w-full bg-muted hover:bg-muted text-muted-foreground border-border font-medium py-6 rounded-xl transition-all active:scale-[0.98]"
                 >
                   Cerrar
                 </Button>

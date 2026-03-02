@@ -85,13 +85,13 @@ const FoodCard = ({
 
   return (
     <div 
-      className="relative group bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800/80 p-4 rounded-xl transition-all shadow-lg border border-slate-700/50 hover:shadow-purple-500/10 cursor-pointer"
+      className="relative group bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800/80 p-4 rounded-xl transition-all shadow-lg border border-border/50 hover:shadow-purple-500/10 cursor-pointer"
       onClick={handleCardClick}
     >
       <div className="flex justify-between items-start">
         <div className="flex-1">
           {showDate && food.created_at && (
-            <p className="text-sm text-gray-500 flex items-center mb-2">
+            <p className="text-sm text-muted-foreground flex items-center mb-2">
               <Calendar className="w-4 h-4 mr-2" />
               {formatDate(food.created_at)}
             </p>
@@ -102,7 +102,7 @@ const FoodCard = ({
               Sensibilidades: {sensitivityNames}
             </p>
           )}
-          <p className="text-sm text-gray-400 mt-1">{foodGroupNames}</p>
+          <p className="text-sm text-muted-foreground mt-1">{foodGroupNames}</p>
         </div>
         
         <div className="flex flex-col items-end space-y-1">
@@ -110,7 +110,7 @@ const FoodCard = ({
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <button 
-                  className="p-1.5 bg-red-900/50 rounded-full text-red-400 hover:bg-red-800/70 hover:text-white transition-all"
+                  className="p-1.5 bg-red-900/50 rounded-full text-red-400 hover:bg-red-800/70 hover:text-foreground transition-all"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <XCircle size={18} />
@@ -140,7 +140,7 @@ const FoodCard = ({
         </div>
       </div>
       
-      <div className="mt-3 pt-3 border-t border-gray-700 flex items-center justify-start gap-x-6 text-sm font-mono">
+      <div className="mt-3 pt-3 border-t border-border flex items-center justify-start gap-x-6 text-sm font-mono">
         <span className="flex items-center text-orange-400" title="Calorías"><CaloriesIcon className="w-4 h-4 mr-1.5"/>{Math.round(calories)}</span>
         <span className="flex items-center text-red-400" title="Proteínas"><ProteinIcon className="w-4 h-4 mr-1.5"/>{Math.round(food.proteins || 0)}g</span>
         <span className="flex items-center text-yellow-400" title="Carbohidratos"><CarbsIcon className="w-4 h-4 mr-1.5"/>{Math.round(food.total_carbs || 0)}g</span>

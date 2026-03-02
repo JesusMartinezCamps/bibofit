@@ -20,7 +20,7 @@ import React from 'react';
       };
       
       const content = (
-        <div className={cn("bg-gray-900/40 border rounded-lg overflow-hidden", borderColor, className)}>
+        <div className={cn("bg-card/40 border rounded-lg overflow-hidden", borderColor, className)}>
           <div className={cn(
               "flex items-center p-4",
               isCollapsible ? "cursor-pointer" : ""
@@ -39,7 +39,7 @@ import React from 'react';
         return (
           <Collapsible open={isOpen} onOpenChange={handleOpenChange}>
             <CollapsibleTrigger asChild>
-                <div className={cn("bg-gray-900/40 border rounded-lg overflow-hidden", borderColor, className)}>
+                <div className={cn("bg-card/40 border rounded-lg overflow-hidden", borderColor, className)}>
                     <div className="flex items-center p-4 cursor-pointer">
                         {icon && React.cloneElement(icon, { className: "mr-3 h-6 w-6" })}
                         <h2 className="text-xl font-bold text-white flex-grow">{title}</h2>
@@ -48,7 +48,7 @@ import React from 'react';
                 </div>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <div className={cn("bg-gray-900/40 border border-t-0 rounded-b-lg -mt-2", borderColor)}>
+              <div className={cn("bg-card/40 border border-t-0 rounded-b-lg -mt-2", borderColor)}>
                 <div className="p-4">
                   {children}
                 </div>
@@ -59,7 +59,7 @@ import React from 'react';
       }
       
       return (
-        <div className={cn("bg-gray-900/40 border rounded-lg overflow-hidden", borderColor, className)}>
+        <div className={cn("bg-card/40 border rounded-lg overflow-hidden", borderColor, className)}>
           <div className="flex items-center p-4">
             {icon && React.cloneElement(icon, { className: "mr-3 h-6 w-6" })}
             <h2 className="text-xl font-bold text-white flex-grow">{title}</h2>

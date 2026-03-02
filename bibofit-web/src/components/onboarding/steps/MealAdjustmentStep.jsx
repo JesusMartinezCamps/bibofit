@@ -363,13 +363,13 @@ const MealAdjustmentStep = ({ onNext, isLoading: isStepLoading }) => {
       {loading ? (
         <div className="flex flex-col items-center justify-center h-64">
             <Loader2 className="w-8 h-8 animate-spin text-green-500 mb-4" />
-            <p className="text-gray-400">Cargando configuración...</p>
+            <p className="text-muted-foreground">Cargando configuración...</p>
         </div>
       ) : (
         <div className="flex flex-col h-full">
           <div className="flex-1 overflow-y-auto pr-1 space-y-6">
             <div className="text-center space-y-2 mb-4">
-              <p className="text-gray-400">
+              <p className="text-muted-foreground">
                  Revisa la distribución de macros para tus comidas. 
                  Cuando estés listo, finaliza para generar tu plan.
               </p>

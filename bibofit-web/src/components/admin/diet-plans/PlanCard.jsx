@@ -82,13 +82,13 @@ import React, { useState, useMemo } from 'react';
         return (
             <>
                 <div onClick={handleCardClick} className="relative group h-full">
-                    <div className="w-full h-full text-left bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800/80 p-5 rounded-xl hover:shadow-green-500/10 transition-all flex flex-col justify-between shadow-lg border border-slate-700/50 cursor-pointer">    
+                    <div className="w-full h-full text-left bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800/80 p-5 rounded-xl hover:shadow-green-500/10 transition-all flex flex-col justify-between shadow-lg border border-border/50 cursor-pointer">    
                         <div className="flex-grow space-y-4">
                             <div>
                                  <h3 className="text-xl font-bold text-white line-clamp-2">{plan.name}</h3>
                                 {plan.source_template?.name && (
-                                    <p className="text-sm text-gray-400 mt-1">
-                                        Basada en: <span className="font-semibold text-gray-300">{plan.source_template.name}</span>
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                        Basada en: <span className="font-semibold text-muted-foreground">{plan.source_template.name}</span>
                                     </p>
                                 )}
                             </div>
@@ -98,14 +98,14 @@ import React, { useState, useMemo } from 'react';
                                     <Badge variant="silver" className="w-full justify-start text-left h-auto py-1.5 group/badge hover:border-orange-500/50">
                                         <ShieldAlert className="w-4 h-4 mr-2 flex-shrink-0 text-orange-400 group-hover/badge:text-orange-300 transition-colors" />
                                         <span className="font-semibold mr-1 text-orange-400 group-hover/badge:text-orange-300 transition-colors">Evita:</span>
-                                        <span className="truncate text-gray-300 group-hover/badge:text-white transition-colors">{clientSensitivities}</span>
+                                        <span className="truncate text-muted-foreground group-hover/badge:text-white transition-colors">{clientSensitivities}</span>
                                     </Badge>
                                 )}
                                 {clientConditions && (
                                     <Badge variant="silver" className="w-full justify-start text-left h-auto py-1.5 group/badge hover:border-red-500/50">
                                         <HeartPulse className="w-4 h-4 mr-2 flex-shrink-0 text-red-400 group-hover/badge:text-red-300 transition-colors" />
                                         <span className="font-semibold mr-1 text-red-400 group-hover/badge:text-red-300 transition-colors">Apta para:</span>
-                                        <span className="truncate text-gray-300 group-hover/badge:text-white transition-colors">{clientConditions}</span>
+                                        <span className="truncate text-muted-foreground group-hover/badge:text-white transition-colors">{clientConditions}</span>
                                     </Badge>
                                 )}
                             </div>
@@ -125,13 +125,13 @@ import React, { useState, useMemo } from 'react';
                                 />
                             </div>
                         </div>
-                        <div className="mt-4 pt-4 border-t border-slate-700/50 flex items-center justify-between">
+                        <div className="mt-4 pt-4 border-t border-border/50 flex items-center justify-between">
                             <Button 
                                 size="sm" 
                                 variant="ghost" 
                                 onClick={handleToggleClick}
                                 disabled={isToggling}
-                                className={`flex items-center gap-2 px-2 py-1 h-auto text-xs rounded-full ${plan.is_active ? 'text-green-300 bg-green-900/50 hover:text-green-200 hover:bg-green-800/60' : 'text-gray-400 bg-gray-700/50 hover:text-gray-300 hover:bg-gray-600/60'}`}
+                                className={`flex items-center gap-2 px-2 py-1 h-auto text-xs rounded-full ${plan.is_active ? 'text-green-300 bg-green-900/50 hover:text-green-200 hover:bg-green-800/60' : 'text-muted-foreground bg-muted/50 hover:text-muted-foreground hover:bg-gray-600/60'}`}
                             >
                                 {plan.is_active ? <ToggleRight className="w-4 h-4"/> : <ToggleLeft className="w-4 h-4"/>}
                                 {plan.is_active ? 'Activa' : 'Inactiva'}
@@ -149,7 +149,7 @@ import React, { useState, useMemo } from 'react';
                 </div>
     
                 <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                    <AlertDialogContent onClick={stopPropagation} className="bg-slate-900 border-slate-700 text-white">
+                    <AlertDialogContent onClick={stopPropagation} className="bg-card border-border text-white">
                         <AlertDialogHeader>
                             <AlertDialogTitle>¿Confirmas la eliminación?</AlertDialogTitle>
                             <AlertDialogDescription>

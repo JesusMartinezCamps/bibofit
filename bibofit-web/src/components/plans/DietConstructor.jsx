@@ -243,7 +243,7 @@ const DietConstructor = ({ userId, dietPlan, onPlanUpdate, isTemplate }) => {
                       <div>
                           <CardTitle className="text-2xl flex items-center gap-2">
                               Constructor del Plan - <span className="text-green-400">{dietPlan?.name}</span>
-                              {isFree && <span className="px-2 py-0.5 rounded-full bg-gray-700 text-gray-300 text-xs flex items-center gap-1 border border-gray-600"><Lock className="w-3 h-3"/> Free</span>}
+                              {isFree && <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-xs flex items-center gap-1 border border-input"><Lock className="w-3 h-3"/> Free</span>}
                           </CardTitle>
                           <CardDescription>{isTemplate ? "Estás editando una plantilla global." : "Configura el plan de dieta del cliente."}</CardDescription>
                       </div>

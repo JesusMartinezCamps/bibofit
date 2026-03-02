@@ -52,7 +52,7 @@ const CreateRecipePage = () => {
 
         <div className="mt-4 flex flex-col md:flex-row gap-8 md:items-start h-full">
           <div className={cn("w-full md:w-[30%]", mobileView === 'form' && 'hidden md:block')}>
-            <div className="h-full flex flex-col bg-slate-900/50 p-4 rounded-lg border border-slate-800 overflow-hidden">
+            <div className="h-full flex flex-col bg-card/75 p-4 rounded-lg border border-border overflow-hidden">
                 <RecipeListContainer
                   onSelectRecipe={handleToggleSelectRecipe}
                   selectedRecipeId={selectedRecipe?.id}
@@ -62,7 +62,7 @@ const CreateRecipePage = () => {
           </div>
 
           <div className={cn("w-full md:w-[70%]", mobileView === 'search' && 'hidden md:block')}>
-            <div className="h-full flex flex-col bg-slate-900/50 p-6 rounded-lg border border-slate-800">
+            <div className="h-full flex flex-col bg-card/75 p-6 rounded-lg border border-border">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold text-cyan-400">
                   {selectedRecipe ? `Editando: ${selectedRecipe.name}` : 'Creando Nueva Receta'}

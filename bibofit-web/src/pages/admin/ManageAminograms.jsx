@@ -112,7 +112,7 @@ const ManageAminograms = () => {
       <main className="w-full px-4 py-8">
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <Breadcrumbs items={breadcrumbItems} />
-          <Card className="mt-4 bg-[#1a1e23] border-gray-700 text-white">
+          <Card className="mt-4 bg-background border-border text-white">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Gestionar Aminogramas</CardTitle>
@@ -133,14 +133,14 @@ const ManageAminograms = () => {
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: aminograms.indexOf(item) * 0.05 }}
-                      className="flex items-start justify-between p-4 rounded-lg bg-slate-900 border border-slate-800"
+                      className="flex items-start justify-between p-4 rounded-lg bg-card border border-border"
                     >
                       <div className="flex-grow">
                         <p className="font-semibold text-white text-lg">{item.name}</p>
                         <div className="mt-2 space-y-2 text-sm">
-                          <p><strong className="text-green-400">Función:</strong> <span className="text-gray-300">{item.funcion}</span></p>
-                          <p><strong className="text-blue-400">Beneficios:</strong> <span className="text-gray-300">{item.beneficios}</span></p>
-                          <p><strong className="text-red-400">Deficiencias:</strong> <span className="text-gray-300">{item.deficiencias}</span></p>
+                          <p><strong className="text-green-400">Función:</strong> <span className="text-muted-foreground">{item.funcion}</span></p>
+                          <p><strong className="text-blue-400">Beneficios:</strong> <span className="text-muted-foreground">{item.beneficios}</span></p>
+                          <p><strong className="text-red-400">Deficiencias:</strong> <span className="text-muted-foreground">{item.deficiencias}</span></p>
                         </div>
                       </div>
                       {!isCoach && (
@@ -159,25 +159,25 @@ const ManageAminograms = () => {
       </main>
 
       <Dialog open={isDialogOpen} onOpenChange={handleCloseDialog}>
-        <DialogContent className="bg-[#1a1e23] border-gray-700 text-white">
+        <DialogContent className="bg-background border-border text-white">
           <DialogHeader>
             <DialogTitle>{currentAminogram ? 'Editar' : 'Añadir'} Aminoácido</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="name" className="text-gray-300">Nombre</label>
+              <label htmlFor="name" className="text-muted-foreground">Nombre</label>
               <Input id="name" name="name" value={formData.name} onChange={handleChange} required />
             </div>
             <div className="space-y-2">
-              <label htmlFor="funcion" className="text-gray-300">Función</label>
+              <label htmlFor="funcion" className="text-muted-foreground">Función</label>
               <Textarea id="funcion" name="funcion" value={formData.funcion} onChange={handleChange} />
             </div>
             <div className="space-y-2">
-              <label htmlFor="beneficios" className="text-gray-300">Beneficios</label>
+              <label htmlFor="beneficios" className="text-muted-foreground">Beneficios</label>
               <Textarea id="beneficios" name="beneficios" value={formData.beneficios} onChange={handleChange} />
             </div>
             <div className="space-y-2">
-              <label htmlFor="deficiencias" className="text-gray-300">Deficiencias</label>
+              <label htmlFor="deficiencias" className="text-muted-foreground">Deficiencias</label>
               <Textarea id="deficiencias" name="deficiencias" value={formData.deficiencias} onChange={handleChange} />
             </div>
             <DialogFooter>

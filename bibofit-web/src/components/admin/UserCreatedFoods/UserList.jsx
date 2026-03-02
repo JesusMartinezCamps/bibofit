@@ -12,7 +12,7 @@ const UserList = ({ users, loading, selectedUser, onSelectUser, activeTab }) => 
   );
   
   return (
-    <Card className="bg-[#1a1e23] border-gray-700 text-white">
+    <Card className="bg-background border-border text-white">
         <CardHeader>
             <CardTitle className="flex items-center">
               <User className="mr-2" /> Clientes con Solicitudes
@@ -45,7 +45,7 @@ const UserList = ({ users, loading, selectedUser, onSelectUser, activeTab }) => 
                             className={`w-full text-left flex items-center justify-between space-x-3 p-3 rounded-lg transition-colors duration-200 ${
                                 selectedUser?.user_id === user.user_id
                                 ? 'bg-gradient-to-r from-purple-600 to-pink-500 text-white shadow-lg'
-                                : 'bg-slate-800/60 hover:bg-slate-700/80'
+                                : 'bg-muted/70 hover:bg-accent/80'
                             }`}
                             >
                             <span className="font-medium truncate">{user.full_name}</span>

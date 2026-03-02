@@ -290,15 +290,15 @@ const RecipeEditor = ({
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h4 className="text-lg font-semibold text-[#5ebe7d]">Constructor de Ingredientes</h4>
-              <div className="flex items-center rounded-md bg-slate-900 p-0.5">
-                <Button type="button" onClick={() => setIngredientView('macros')} size="sm" className={`h-7 px-3 text-xs transition-colors ${ingredientView === 'macros' ? 'bg-slate-700 text-white shadow' : 'bg-transparent text-gray-400 hover:bg-slate-800'}`}>Macros</Button>
-                <Button type="button" onClick={() => setIngredientView('micros')} size="sm" className={`h-7 px-3 text-xs transition-colors ${ingredientView === 'micros' ? 'bg-slate-700 text-white shadow' : 'bg-transparent text-gray-400 hover:bg-slate-800'}`}>Micros</Button>
+              <div className="flex items-center rounded-md bg-card p-0.5">
+                <Button type="button" onClick={() => setIngredientView('macros')} size="sm" className={`h-7 px-3 text-xs transition-colors ${ingredientView === 'macros' ? 'bg-slate-700 text-white shadow' : 'bg-transparent text-muted-foreground hover:bg-muted'}`}>Macros</Button>
+                <Button type="button" onClick={() => setIngredientView('micros')} size="sm" className={`h-7 px-3 text-xs transition-colors ${ingredientView === 'micros' ? 'bg-slate-700 text-white shadow' : 'bg-transparent text-muted-foreground hover:bg-muted'}`}>Micros</Button>
               </div>
             </div>
             <div>
-              <div className="grid px-2 pb-2 text-xs font-semibold text-gray-400 border-b border-slate-700 gap-x-4" style={ingredientView === 'macros' ? macroGridStyle : { gridTemplateColumns: 'minmax(150px, 1fr) 1fr 1fr 40px' }}><span>Alimento</span>{ingredientView === 'macros' ? (<><span className="text-center">Cantidad</span><span className="text-center">Medida</span><span className="text-center">Kcal</span><span className="text-center">Proteína</span><span className="text-center">Hidratos</span><span className="text-center">Grasas</span></>) : (<><span>Vitaminas</span><span>Minerales</span></>)}<span /></div>
+              <div className="grid px-2 pb-2 text-xs font-semibold text-muted-foreground border-b border-border gap-x-4" style={ingredientView === 'macros' ? macroGridStyle : { gridTemplateColumns: 'minmax(150px, 1fr) 1fr 1fr 40px' }}><span>Alimento</span>{ingredientView === 'macros' ? (<><span className="text-center">Cantidad</span><span className="text-center">Medida</span><span className="text-center">Kcal</span><span className="text-center">Proteína</span><span className="text-center">Hidratos</span><span className="text-center">Grasas</span></>) : (<><span>Vitaminas</span><span>Minerales</span></>)}<span /></div>
               <div><AnimatePresence>{ingredients.map((ing) => <motion.div key={ing.local_id} initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -20 }}><IngredientRow ingredient={ing} view={ingredientView} allFoods={allFoods} availableFoods={availableFoods} calculateMacros={(ing) => calculateMacros(ing, allFoods)} onIngredientChange={handlers.handleIngredientChange} onRemove={handlers.removeIngredient} /></motion.div>)}</AnimatePresence></div>
-              {ingredientView === 'macros' && (<div className="grid items-center gap-x-4 px-2 py-2 text-sm font-semibold text-white border-t border-slate-700 mt-2 rounded-md bg-green-900/20" style={macroGridStyle}><span className="font-bold col-span-3">TOTALES</span><span className="text-center font-mono font-bold text-orange-400">{totalMacros.k.toFixed(0)} kcal</span><span className="text-center font-mono font-bold text-green-400">{totalMacros.p.toFixed(1)}g</span><span className="text-center font-mono font-bold text-yellow-400">{totalMacros.c.toFixed(1)}g</span><span className="text-center font-mono font-bold text-pink-400">{totalMacros.f.toFixed(1)}g</span></div>)}
+              {ingredientView === 'macros' && (<div className="grid items-center gap-x-4 px-2 py-2 text-sm font-semibold text-white border-t border-border mt-2 rounded-md bg-green-900/20" style={macroGridStyle}><span className="font-bold col-span-3">TOTALES</span><span className="text-center font-mono font-bold text-orange-400">{totalMacros.k.toFixed(0)} kcal</span><span className="text-center font-mono font-bold text-green-400">{totalMacros.p.toFixed(1)}g</span><span className="text-center font-mono font-bold text-yellow-400">{totalMacros.c.toFixed(1)}g</span><span className="text-center font-mono font-bold text-pink-400">{totalMacros.f.toFixed(1)}g</span></div>)}
               <div className="flex gap-2 mt-3">
                 <Button type="button" onClick={handlers.addIngredient} variant="outline" className="w-full border-dashed border-[#5ebe7d] text-[#5ebe7d] hover:bg-[#5ebe7d]/10"><PlusCircle className="w-4 h-4 mr-2" />Añadir Ingrediente</Button>
                 <Dialog open={isCreateFoodOpen} onOpenChange={setIsCreateFoodOpen}>
@@ -308,7 +308,7 @@ const RecipeEditor = ({
                       {isAdminView ? 'Crear Alimento' : 'Solicitar nuevo Alimento'}
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="bg-[#1a1e23] border-gray-700 text-white max-w-4xl">
+                  <DialogContent className="bg-background border-border text-white max-w-4xl">
                     <DialogHeader>
                       <DialogTitle>{isAdminView ? 'Crear un nuevo alimento' : 'Solicitar un nuevo alimento'}</DialogTitle>
                       <DialogDescription>{isAdminView ? 'Este alimento estará disponible para todas las recetas.' : 'Tu solicitud será revisada por el administrador.'}</DialogDescription>
@@ -322,7 +322,7 @@ const RecipeEditor = ({
 
           <div className="space-y-4">
             <div>
-              <h5 className="font-semibold text-gray-300 mb-2 text-lg text-[#5ebe7d]">Recuento de Vitaminas</h5>
+              <h5 className="font-semibold text-muted-foreground mb-2 text-lg text-[#5ebe7d]">Recuento de Vitaminas</h5>
               <div className="flex flex-wrap gap-2">
                 {allVitamins.filter(v => recipeNutrients.vitaminIds.includes(v.id)).map(v => (
                   <span key={v.id} className="bg-green-900/50 text-green-300 text-xs font-medium px-2.5 py-1 rounded-full">{v.name}</span>
@@ -330,7 +330,7 @@ const RecipeEditor = ({
               </div>
             </div>
             <div>
-              <h5 className="font-semibold text-gray-300 mb-2 text-lg text-[#5ebe7d]">Recuento de Minerales</h5>
+              <h5 className="font-semibold text-muted-foreground mb-2 text-lg text-[#5ebe7d]">Recuento de Minerales</h5>
               <div className="flex flex-wrap gap-2">
                 {allMinerals.filter(m => recipeNutrients.mineralIds.includes(m.id)).map(m => (
                   <span key={m.id} className="bg-green-900/50 text-green-300 text-xs font-medium px-2.5 py-1 rounded-full">{m.name}</span>

@@ -64,22 +64,22 @@ const Header = ({ onShoppingListClick }) => {
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
-      className="bg-[#1a1e23] border-b border-gray-700 sticky top-0 z-50 flex-none"
+      className="sticky top-0 z-50 flex-none border-b border-border bg-background/95 backdrop-blur"
     >
       <TooltipProvider>
         <div className="w-full px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Link to={getHomeLink()} className="flex items-center">
-                 <div className="w-10 h-10 bg-green-600/20 rounded-lg flex items-center justify-center border border-green-500/30">
-                    <AppIcon className="w-6 h-6 text-green-400" />
+                 <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-primary/35 bg-primary/15">
+                    <AppIcon className="h-6 w-6 text-primary" />
                  </div>
-                 <span className="ml-3 text-xl font-bold text-white hidden sm:block">Bibofit</span>
+                 <span className="ml-3 hidden text-xl font-bold text-foreground sm:block">Bibofit</span>
               </Link>
-              <nav className="flex items-center space-x-1 bg-gray-800/50 p-1 rounded-lg ml-2">
+              <nav className="ml-2 flex items-center space-x-1 rounded-lg bg-muted/70 p-1">
                 {isStaff && (
                   <>
-                    <Button asChild variant="ghost" className={cn("text-gray-300 hover:bg-gray-700 hover:text-white h-auto py-1.5 px-3 relative", location.pathname.includes('/content') && 'bg-gray-700 text-white')}>
+                    <Button asChild variant="ghost" className={cn("relative h-auto px-3 py-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground", location.pathname.includes('/content') && 'bg-secondary text-secondary-foreground')}>
                       <Link to={getContentLink()} className="flex items-center space-x-2">
                         <Shield className="w-4 h-4" />
                         <span className="hidden sm:inline">Contenidos</span>
@@ -91,7 +91,7 @@ const Header = ({ onShoppingListClick }) => {
                         )}
                       </Link>
                     </Button>
-                    <Button asChild variant="ghost" className={cn("text-gray-300 hover:bg-gray-700 hover:text-white h-auto py-1.5 px-3", location.pathname.includes('/reminders') && 'bg-gray-700 text-white')}>
+                    <Button asChild variant="ghost" className={cn("h-auto px-3 py-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground", location.pathname.includes('/reminders') && 'bg-secondary text-secondary-foreground')}>
                       <Link to={getRemindersLink()} className="flex items-center space-x-2">
                           <StickyNote className="w-4 h-4" />
                           <span className="hidden sm:inline">Recordatorios</span>
@@ -104,14 +104,14 @@ const Header = ({ onShoppingListClick }) => {
 
             <div className="flex items-center space-x-4">
               <div className="hidden sm:flex items-center space-x-3">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isCoach ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30' : 'bg-[#5ebe7d] text-white'}`}>
+                <div className={`flex h-8 w-8 items-center justify-center rounded-full ${isCoach ? 'border border-amber-500/30 bg-amber-500/20 text-amber-500' : 'bg-primary text-primary-foreground'}`}>
                   <User className="w-4 h-4" />
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-medium text-white">
+                  <p className="text-sm font-medium text-foreground">
                     {user?.full_name || user?.email || 'Usuario'}
                   </p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-muted-foreground">
                     {getRoleDisplayName(user?.role)}
                   </p>
                 </div>
@@ -126,8 +126,8 @@ const Header = ({ onShoppingListClick }) => {
                         variant="ghost"
                         size="icon"
                         className={cn(
-                          'text-gray-400 hover:text-white hover:bg-gray-700',
-                          location.pathname.startsWith(getCalendarLink()) && 'text-gray-400'
+                          'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                          location.pathname.startsWith(getCalendarLink()) && 'bg-secondary text-secondary-foreground'
                         )}
                       >
                         <Link to={getCalendarLink()}>
@@ -140,9 +140,9 @@ const Header = ({ onShoppingListClick }) => {
                     </TooltipContent>
                   </Tooltip>
                 ) : (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button asChild variant="ghost" size="icon" className={cn("text-gray-400 hover:text-white hover:bg-gray-700", location.pathname.includes('/plan') && 'bg-gray-700 text-white')}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                      <Button asChild variant="ghost" size="icon" className={cn("text-muted-foreground hover:bg-accent hover:text-accent-foreground", location.pathname.includes('/plan') && 'bg-secondary text-secondary-foreground')}>
                         <Link to="/plan">
                           <BookOpen className="w-5 h-5" />
                         </Link>
@@ -156,7 +156,7 @@ const Header = ({ onShoppingListClick }) => {
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white hover:bg-gray-700" onClick={onShoppingListClick}>
+                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:bg-accent hover:text-accent-foreground" onClick={onShoppingListClick}>
                       <ShoppingCart className="w-5 h-5" />
                     </Button>
                   </TooltipTrigger>
@@ -166,7 +166,7 @@ const Header = ({ onShoppingListClick }) => {
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button asChild variant="ghost" size="icon" className="text-gray-400 hover:text-white hover:bg-gray-700">
+                    <Button asChild variant="ghost" size="icon" className="text-muted-foreground hover:bg-accent hover:text-accent-foreground">
                       <Link to="/profile">
                         <User className="w-5 h-5" />
                       </Link>

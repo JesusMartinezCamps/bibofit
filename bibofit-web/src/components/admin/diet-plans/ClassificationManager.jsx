@@ -63,7 +63,7 @@ const ClassificationManager = ({ selectedValues = {}, onChange, readOnly = false
                   if (!AXIS_LABELS[axis]) return null; 
                   return (
                       <div key={axis} className="flex flex-wrap gap-1 items-center text-sm">
-                           <span className="text-gray-400 text-xs w-24">{AXIS_LABELS[axis]}:</span>
+                           <span className="text-muted-foreground text-xs w-24">{AXIS_LABELS[axis]}:</span>
                            <div className="flex flex-wrap gap-1">
                                {values.map(v => (
                                    <Badge key={v} variant="secondary" className="text-xs">{v}</Badge>
@@ -85,7 +85,7 @@ const ClassificationManager = ({ selectedValues = {}, onChange, readOnly = false
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {Object.entries(allOptions).map(([axis, options]) => (
         <div key={axis} className="space-y-1.5">
-            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1">
                 {AXIS_LABELS[axis]}
             </label>
             <div className="flex flex-wrap gap-2">
@@ -97,7 +97,7 @@ const ClassificationManager = ({ selectedValues = {}, onChange, readOnly = false
                             size="sm"
                             className={cn(
                                 "justify-between text-left font-normal h-auto min-h-[2rem] py-1 w-full md:w-[250px]",
-                                (selectedValues[axis] || []).length > 0 ? "text-white border-green-500/50 bg-green-500/10" : "text-gray-400"
+                                (selectedValues[axis] || []).length > 0 ? "text-white border-green-500/50 bg-green-500/10" : "text-muted-foreground"
                             )}
                         >
                             {(selectedValues[axis] || []).length > 0 
@@ -105,7 +105,7 @@ const ClassificationManager = ({ selectedValues = {}, onChange, readOnly = false
                                 : "Seleccionar..."}
                         </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[250px] p-0 bg-[#1a1e23] border-gray-700 text-white" align="start">
+                    <PopoverContent className="w-[250px] p-0 bg-background border-border text-white" align="start">
                         <Command className="bg-transparent">
                             <CommandInput placeholder={`Buscar ${AXIS_LABELS[axis]?.toLowerCase() || '...'}...`} className="h-9" />
                             <CommandEmpty>No encontrado.</CommandEmpty>
@@ -117,7 +117,7 @@ const ClassificationManager = ({ selectedValues = {}, onChange, readOnly = false
                                             key={option}
                                             value={option}
                                             onSelect={() => toggleValue(axis, option)}
-                                            className="cursor-pointer hover:bg-gray-800 aria-selected:bg-gray-800"
+                                            className="cursor-pointer hover:bg-muted aria-selected:bg-muted"
                                         >
                                             <div className={cn(
                                                 "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
@@ -136,10 +136,10 @@ const ClassificationManager = ({ selectedValues = {}, onChange, readOnly = false
                  {(selectedValues[axis] || []).length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mt-1">
                         {(selectedValues[axis] || []).map(val => (
-                            <Badge key={val} variant="secondary" className="bg-slate-800 text-gray-300 hover:bg-slate-700 flex items-center gap-1 text-xs font-normal">
+                            <Badge key={val} variant="secondary" className="bg-muted text-muted-foreground hover:bg-accent flex items-center gap-1 text-xs font-normal">
                                 {val}
                                 <X 
-                                    className="h-3 w-3 cursor-pointer hover:text-white" 
+                                    className="h-3 w-3 cursor-pointer hover:text-foreground" 
                                     onClick={() => toggleValue(axis, val)}
                                 />
                             </Badge>

@@ -29,7 +29,7 @@ const OnboardingModal = ({
         animate={{ opacity: 1, y: 0, x: 0, scale: 1 }}
         exit={{ opacity: 0, y: 40, x: 12, scale: 0.98 }}
         transition={{ duration: 0.28, ease: "easeOut" }}
-        className="w-full max-w-lg md:max-w-md bg-[#1a1e23] border border-green-800/30 rounded-2xl shadow-2xl overflow-hidden ring-1 ring-white/10 z-[10000] relative md:mb-2 md:mr-2"
+        className="w-full max-w-lg md:max-w-md bg-background border border-green-800/30 rounded-2xl shadow-2xl overflow-hidden ring-1 ring-white/10 z-[10000] relative md:mb-2 md:mr-2"
       >      
         <div className="relative p-6 sm:p-8">
           {/* Decorative background element */}
@@ -40,7 +40,7 @@ const OnboardingModal = ({
               <h3 className="text-2xl font-bold text-white tracking-tight">
                 {title}
               </h3>
-              <p className="text-gray-400 text-base leading-relaxed">
+              <p className="text-muted-foreground text-base leading-relaxed">
                 {description}
               </p>
             </div>
@@ -68,7 +68,7 @@ const OnboardingModal = ({
                 </h4>
                 <div className="grid gap-2">
                   {safeTips.map((tip, idx) => (
-                    <div key={idx} className="flex items-start gap-2 text-sm text-gray-300">
+                    <div key={idx} className="flex items-start gap-2 text-sm text-muted-foreground">
                       <div className="w-1.5 h-1.5 rounded-full bg-green-500/50 mt-1.5 shrink-0" />
                       <span>{tip}</span>
                     </div>

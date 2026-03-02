@@ -103,7 +103,7 @@ const UpdatePasswordPage = () => {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
-            className="glass-effect rounded-2xl p-8 shadow-2xl relative border border-gray-700/50"
+            className="glass-effect rounded-2xl p-8 shadow-2xl relative border border-border/50"
           >
             {success ? (
               <div className="text-center py-8 animate-in fade-in zoom-in duration-500">
@@ -111,7 +111,7 @@ const UpdatePasswordPage = () => {
                   <CheckCircle2 className="w-10 h-10 text-green-500" />
                 </div>
                 <h2 className="text-2xl font-bold text-white mb-4">¡Contraseña Actualizada!</h2>
-                <p className="text-gray-300 mb-8 text-sm leading-relaxed">
+                <p className="text-muted-foreground mb-8 text-sm leading-relaxed">
                   Tu contraseña ha sido restablecida correctamente. <br/>
                   Serás redirigido al inicio de sesión en unos segundos...
                 </p>
@@ -126,12 +126,12 @@ const UpdatePasswordPage = () => {
                     <KeyRound className="w-8 h-8 text-[#5ebe7d]" />
                   </div>
                   <h1 className="text-3xl font-bold text-white mb-2">Nueva Contraseña</h1>
-                  <p className="text-gray-400 text-sm">Ingresa tu nueva contraseña a continuación.</p>
+                  <p className="text-muted-foreground text-sm">Ingresa tu nueva contraseña a continuación.</p>
                 </div>
                 
                 <form onSubmit={handleUpdatePassword} className="space-y-5">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-300 ml-1">Nueva Contraseña</label>
+                    <label className="text-sm font-medium text-muted-foreground ml-1">Nueva Contraseña</label>
                     <div className="relative">
                         <input 
                             type="password" 
@@ -145,7 +145,7 @@ const UpdatePasswordPage = () => {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-300 ml-1">Confirmar Contraseña</label>
+                    <label className="text-sm font-medium text-muted-foreground ml-1">Confirmar Contraseña</label>
                     <div className="relative">
                         <input 
                             type="password" 
@@ -168,7 +168,7 @@ const UpdatePasswordPage = () => {
                   </Button>
                 </form>
 
-                <p className="mt-8 text-center text-sm text-gray-400">
+                <p className="mt-8 text-center text-sm text-muted-foreground">
                   <Link to="/login" className="font-medium text-[#5ebe7d] hover:text-[#4da869] hover:underline inline-flex items-center transition-colors">
                     <ArrowLeft className="w-4 h-4 mr-1" />
                     Volver a Iniciar Sesión

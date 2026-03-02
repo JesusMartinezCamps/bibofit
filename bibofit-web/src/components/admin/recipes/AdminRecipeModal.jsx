@@ -555,7 +555,7 @@ const AdminRecipeModal = ({
 
     return (
         <Dialog open={open} onOpenChange={handleClose}>
-            <DialogContent className="max-w-4xl h-[90vh] bg-slate-950 border-slate-800 text-white flex flex-col p-0 overflow-hidden">
+            <DialogContent className="max-w-4xl h-[90vh] bg-card border-border text-white flex flex-col p-0 overflow-hidden">
                 {loading ? (
                     <div className="flex-grow flex items-center justify-center">
                         <Loader2 className="w-12 h-12 animate-spin text-green-400" />
@@ -595,8 +595,8 @@ const AdminRecipeModal = ({
                                     )}
                                 </div>
                                 
-                                <div className="absolute bottom-0 left-0 right-0 bg-slate-900/95 border-t border-slate-800 p-4 backdrop-blur-sm flex justify-end gap-3 z-20">
-                                    <Button variant="ghost" onClick={handleClose} disabled={isSaving} className="text-white hover:bg-slate-900 hover:text-gray-200">
+                                <div className="absolute bottom-0 left-0 right-0 bg-card/95 border-t border-border p-4 backdrop-blur-sm flex justify-end gap-3 z-20">
+                                    <Button variant="ghost" onClick={handleClose} disabled={isSaving} className="text-white hover:bg-card hover:text-gray-200">
                                         {isReadOnly ? 'Cerrar' : 'Cancelar'}
                                     </Button>
                                     
@@ -619,7 +619,7 @@ const AdminRecipeModal = ({
                                                                 onClick={handleUpdateVariant} 
                                                                 disabled={isButtonDisabled} 
                                                                 className={cn(
-                                                                    "bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-400",
+                                                                    "bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-muted-foreground",
                                                                     ((hasChanges || isAdding) && !hasCriticalConflicts) && "bg-green-600 hover:bg-green-500",
                                                                     (isAssignedPlan && !isAdding && !hasCriticalConflicts) && "bg-orange-600 hover:bg-orange-500"
                                                                 )}
@@ -630,7 +630,7 @@ const AdminRecipeModal = ({
                                                         </span>
                                                     </TooltipTrigger>
                                                     {(isButtonDisabled) && (
-                                                        <TooltipContent className="bg-slate-900 border-slate-700 text-white">
+                                                        <TooltipContent className="bg-card border-border text-white">
                                                             {hasCriticalConflicts 
                                                                 ? <p className="text-red-400">Resuelve los conflictos de intolerancias antes de guardar.</p>
                                                                 : <p>Realiza cambios en la receta para poder guardar.</p>
@@ -649,7 +649,7 @@ const AdminRecipeModal = ({
                                 </div>
                              </div>
                         ) : (
-                            <div className="h-full p-6 bg-slate-950">
+                            <div className="h-full p-6 bg-card">
                                 <IngredientSearch
                                     selectedIngredients={ingredients}
                                     onIngredientAdded={handleAddIngredient}

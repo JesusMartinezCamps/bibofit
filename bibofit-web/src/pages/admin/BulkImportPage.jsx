@@ -78,17 +78,17 @@ const BulkImportPage = () => {
       </Helmet>
       <main className="container mx-auto px-4 py-8">
         <Breadcrumbs items={breadcrumbItems} />
-        <Card className="mt-4 bg-[#1a1e23] border-gray-700 text-white">
+        <Card className="mt-4 bg-background border-border text-white">
           <CardHeader>
             <CardTitle className="text-2xl font-bold text-green-400">Importación Masiva de Alimentos</CardTitle>
             <CardDescription>Sube un archivo JSON para añadir o actualizar alimentos en la base de datos.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="p-4 border-2 border-dashed border-gray-600 rounded-lg text-center">
+            <div className="p-4 border-2 border-dashed border-input rounded-lg text-center">
               <label htmlFor="file-upload" className="cursor-pointer">
                 <div className="flex flex-col items-center justify-center space-y-2">
-                  <Upload className="w-12 h-12 text-gray-400" />
-                  <p className="text-gray-400">
+                  <Upload className="w-12 h-12 text-muted-foreground" />
+                  <p className="text-muted-foreground">
                     {file ? `Archivo seleccionado: ${file.name}` : 'Arrastra y suelta un archivo JSON aquí, o haz clic para seleccionar.'}
                   </p>
                 </div>
@@ -115,9 +115,9 @@ const BulkImportPage = () => {
                     <TabsTrigger value="errors">Errores ({results.errors.length})</TabsTrigger>
                   </TabsList>
                   <TabsContent value="success">
-                    <div className="space-y-2 max-h-60 overflow-y-auto p-2 bg-slate-900/50 rounded-md">
+                    <div className="space-y-2 max-h-60 overflow-y-auto p-2 bg-card/75 rounded-md">
                       {results.success.map((item, index) => (
-                        <div key={index} className="flex items-center p-2 bg-slate-800 rounded">
+                        <div key={index} className="flex items-center p-2 bg-muted rounded">
                           <CheckCircle className="w-5 h-5 text-green-500 mr-3" />
                           <span className="font-medium">{item.name}</span>
                         </div>
@@ -125,13 +125,13 @@ const BulkImportPage = () => {
                     </div>
                   </TabsContent>
                   <TabsContent value="errors">
-                    <div className="space-y-2 max-h-60 overflow-y-auto p-2 bg-slate-900/50 rounded-md">
+                    <div className="space-y-2 max-h-60 overflow-y-auto p-2 bg-card/75 rounded-md">
                       {results.errors.map((item, index) => (
-                        <div key={index} className="flex items-start p-2 bg-slate-800 rounded">
+                        <div key={index} className="flex items-start p-2 bg-muted rounded">
                           <XCircle className="w-5 h-5 text-red-500 mr-3 mt-1 flex-shrink-0" />
                           <div>
                             <span className="font-medium">{item.item?.name || 'Elemento desconocido'}</span>
-                            <p className="text-sm text-gray-400">{item.error}</p>
+                            <p className="text-sm text-muted-foreground">{item.error}</p>
                           </div>
                         </div>
                       ))}

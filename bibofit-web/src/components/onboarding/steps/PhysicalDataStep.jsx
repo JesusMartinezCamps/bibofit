@@ -54,7 +54,7 @@ const PhysicalDataStep = ({ onNext, isLoading }) => {
       <div className="flex-1 space-y-6 overflow-y-auto pr-1">
         <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-                <Label htmlFor="sex" className="text-gray-300">Sexo</Label>
+                <Label htmlFor="sex" className="text-muted-foreground">Sexo</Label>
                 <Select 
                     value={formData.sex} 
                     onValueChange={(v) => setFormData(prev => ({...prev, sex: v}))}
@@ -62,7 +62,7 @@ const PhysicalDataStep = ({ onNext, isLoading }) => {
                     <SelectTrigger id="sex" type="button" className="bf-form-control w-full">
                         <SelectValue placeholder="Seleccionar" />
                     </SelectTrigger>
-                    <SelectContent position="popper" style={{ zIndex: 9999 }} className="bg-gray-800 border-gray-700 text-white">
+                    <SelectContent position="popper" style={{ zIndex: 9999 }} className="bg-muted border-border text-white">
                         <SelectItem value="Hombre">Hombre</SelectItem>
                         <SelectItem value="Mujer">Mujer</SelectItem>
                     </SelectContent>
@@ -71,7 +71,7 @@ const PhysicalDataStep = ({ onNext, isLoading }) => {
             </div>
 
             <div className="space-y-2">
-                <Label htmlFor="birth_date" className="text-gray-300">Nacimiento</Label>
+                <Label htmlFor="birth_date" className="text-muted-foreground">Nacimiento</Label>
                 <div className="relative">
                     <UnifiedDatePicker
                         id="birth_date"
@@ -92,7 +92,7 @@ const PhysicalDataStep = ({ onNext, isLoading }) => {
 
         <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-                <Label htmlFor="height" className="text-gray-300">Altura</Label>
+                <Label htmlFor="height" className="text-muted-foreground">Altura</Label>
                 <div className="relative">                    
                     <InputWithUnit
                         id="height"
@@ -108,7 +108,7 @@ const PhysicalDataStep = ({ onNext, isLoading }) => {
             </div>
 
             <div className="space-y-2">
-                <Label htmlFor="weight" className="text-gray-300">Peso</Label>
+                <Label htmlFor="weight" className="text-muted-foreground">Peso</Label>
                 <div className="relative">
                     <InputWithUnit
                         id="weight"
@@ -126,7 +126,7 @@ const PhysicalDataStep = ({ onNext, isLoading }) => {
         </div>
 
         <div className="space-y-2">
-            <Label htmlFor="activity" className="text-gray-300">Nivel de Actividad</Label>
+            <Label htmlFor="activity" className="text-muted-foreground">Nivel de Actividad</Label>
             <Select 
                 value={String(formData.activity_level_id)} 
                 onValueChange={(v) => setFormData(prev => ({...prev, activity_level_id: v}))}
@@ -134,11 +134,11 @@ const PhysicalDataStep = ({ onNext, isLoading }) => {
                 <SelectTrigger id="activity" type="button" className="bf-form-control h-auto py-3 w-full">
                     <SelectValue placeholder="Selecciona tu actividad" />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-gray-700 text-white z-[9999] max-h-[200px]">
+                <SelectContent className="bg-muted border-border text-white z-[9999] max-h-[200px]">
                     {activityLevels.map(level => (
                         <SelectItem key={level.id} value={String(level.id)} className="py-2">
                             <span className="font-medium block text-sm">{level.name}</span>
-                            <span className="text-xs text-gray-400 block truncate max-w-[280px] mt-0.5">{level.description}</span>
+                            <span className="text-xs text-muted-foreground block truncate max-w-[280px] mt-0.5">{level.description}</span>
                         </SelectItem>
                     ))}
                 </SelectContent>

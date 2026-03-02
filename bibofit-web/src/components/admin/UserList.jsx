@@ -92,7 +92,7 @@ const UserList = ({ selectedUser, onSelectUser }) => {
   };
 
   return (
-    <div className="w-full md:w-80 flex-shrink-0 bg-[#1a1e23] pt-4 px-4 pb-4 rounded-2xl flex flex-col h-full border border-gray-800">
+    <div className="w-full md:w-80 flex-shrink-0 bg-background pt-4 px-4 pb-4 rounded-2xl flex flex-col h-full border border-border">
       <h3 className="text-xl font-bold text-white mb-4">Listado de Usuarios</h3>
       
       {/* Filters */}
@@ -105,7 +105,7 @@ const UserList = ({ selectedUser, onSelectUser }) => {
                "flex-1 text-xs h-7 px-0", 
                roleFilter === 'all' 
                 ? "bg-gray-600 hover:bg-gray-500 text-white border-transparent" 
-                : "border-gray-600 text-gray-400 hover:text-white bg-transparent hover:bg-gray-800"
+                : "border-input text-muted-foreground hover:text-foreground bg-transparent hover:bg-muted"
            )}
         >
           Todos
@@ -118,7 +118,7 @@ const UserList = ({ selectedUser, onSelectUser }) => {
              "flex-1 text-xs h-7 px-0", 
              roleFilter === 'coach' 
                 ? "bg-[rgb(155,68,130)] hover:bg-[rgb(155,68,130)]/90 text-white border-transparent" 
-                : "border-gray-600 text-gray-400 hover:text-[rgb(155,68,130)] bg-transparent hover:bg-[rgb(155,68,130)]/10"
+                : "border-input text-muted-foreground hover:text-[rgb(155,68,130)] bg-transparent hover:bg-[rgb(155,68,130)]/10"
            )}
         >
           Coach
@@ -131,7 +131,7 @@ const UserList = ({ selectedUser, onSelectUser }) => {
              "flex-1 text-xs h-7 px-0", 
              roleFilter === 'client' 
                 ? "bg-[rgb(60,134,126)] hover:bg-[rgb(60,134,126)]/90 text-white border-transparent" 
-                : "border-gray-600 text-gray-400 hover:text-[rgb(60,134,126)] bg-transparent hover:bg-[rgb(60,134,126)]/10"
+                : "border-input text-muted-foreground hover:text-[rgb(60,134,126)] bg-transparent hover:bg-[rgb(60,134,126)]/10"
            )}
         >
           Cliente
@@ -143,12 +143,12 @@ const UserList = ({ selectedUser, onSelectUser }) => {
           placeholder="Buscar usuario..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="input-field w-full pl-9 bg-[#282d34] border-gray-700 focus:border-green-500/50 transition-colors"
+          className="input-field w-full pl-9 bg-[#282d34] border-border focus:border-green-500/50 transition-colors"
         />
       </div>
 
       {loading ? (
-        <div className="text-center text-gray-400 py-4">Cargando...</div>
+        <div className="text-center text-muted-foreground py-4">Cargando...</div>
       ) : (
         <div className="overflow-y-auto flex-grow pr-1 custom-scrollbar">
           <ul className="space-y-2">
@@ -171,7 +171,7 @@ const UserList = ({ selectedUser, onSelectUser }) => {
                       "w-full text-left flex flex-col p-3 rounded-lg transition-all duration-200 border relative overflow-hidden group",
                       isSelected 
                         ? "text-white border-transparent shadow-md" 
-                        : "hover:bg-gray-800/80 border-transparent hover:border-gray-700 text-gray-300 bg-[#22262c]"
+                        : "hover:bg-muted/80 border-transparent hover:border-border text-muted-foreground bg-[#22262c]"
                     )}
                     style={{
                       backgroundColor: isSelected ? roleColor : undefined
@@ -181,7 +181,7 @@ const UserList = ({ selectedUser, onSelectUser }) => {
                        <div className="flex items-center gap-3 overflow-hidden">
                           <div className={cn(
                             "w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-colors",
-                            isSelected ? "bg-white/20" : "bg-gray-700 group-hover:bg-gray-600"
+                            isSelected ? "bg-white/20" : "bg-muted group-hover:bg-gray-600"
                           )}>
                             {user.role === 'coach' ? (
                                <UserCog className="w-5 h-5" />
@@ -192,7 +192,7 @@ const UserList = ({ selectedUser, onSelectUser }) => {
                           <div className="flex flex-col min-w-0">
                              <span className="font-medium truncate text-sm leading-tight">{user.full_name}</span>
                              {user.role === 'client' && user.assignedCoach && (
-                                <span className={cn("text-[11px] truncate mt-0.5", isSelected ? "text-white/80" : "text-gray-500")}>
+                                <span className={cn("text-[11px] truncate mt-0.5", isSelected ? "text-white/80" : "text-muted-foreground")}>
                                   Coach: {user.assignedCoach}
                                 </span>
                              )}
@@ -221,7 +221,7 @@ const UserList = ({ selectedUser, onSelectUser }) => {
             })}
             </AnimatePresence>
             {filteredUsers.length === 0 && (
-                <div className="flex flex-col items-center justify-center h-32 text-gray-500 text-sm">
+                <div className="flex flex-col items-center justify-center h-32 text-muted-foreground text-sm">
                    <p>No se encontraron usuarios</p>
                 </div>
             )}

@@ -44,12 +44,12 @@ const FreeMealCard = ({
   
   return (
     <div 
-      className="relative group bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800/80 p-4 rounded-xl transition-all shadow-lg border border-slate-700/50 hover:shadow-cyan-500/10 hover:border-cyan-500/50 cursor-pointer"
+      className="relative group bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800/80 p-4 rounded-xl transition-all shadow-lg border border-border/50 hover:shadow-cyan-500/10 hover:border-cyan-500/50 cursor-pointer"
       onClick={() => onReview(freeMeal)}
     >
       <div className="flex justify-between items-center mb-2">
         {freeMeal.created_at && (
-            <p className="text-sm text-gray-500 flex items-center">
+            <p className="text-sm text-muted-foreground flex items-center">
             <Calendar className="w-4 h-4 mr-2" />
             {formatDate(freeMeal.created_at)}
             </p>
@@ -63,13 +63,13 @@ const FreeMealCard = ({
       <div className="flex justify-between items-start">
         <div className="flex-1">
           <p className="font-semibold text-white text-lg">{freeMeal.name}</p>
-          <p className="text-sm text-gray-400 mt-1">{freeMeal.day_meal?.name || 'Comida'}</p>
+          <p className="text-sm text-muted-foreground mt-1">{freeMeal.day_meal?.name || 'Comida'}</p>
         </div>
       </div>
       
-      <div className="mt-4 pt-3 border-t border-gray-700">
-        <p className="text-sm font-semibold text-gray-300 mb-2">Ingredientes:</p>
-        <p className="text-sm text-gray-400 italic leading-relaxed">
+      <div className="mt-4 pt-3 border-t border-border">
+        <p className="text-sm font-semibold text-muted-foreground mb-2">Ingredientes:</p>
+        <p className="text-sm text-muted-foreground italic leading-relaxed">
             {formatIngredients}
         </p>
       </div>

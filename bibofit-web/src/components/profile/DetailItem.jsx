@@ -6,7 +6,7 @@ const DetailItem = ({ label, value, isList = false }) => {
   if (isList && Array.isArray(value) && value.length > 0) {
     return (
       <div className="py-2">
-        <p className="text-sm text-gray-400">{label}</p>
+        <p className="text-sm text-muted-foreground">{label}</p>
         <ul className="list-disc list-inside font-semibold text-white">
           {value.map((item, index) => <li key={index}>{item}</li>)}
         </ul>
@@ -17,7 +17,7 @@ const DetailItem = ({ label, value, isList = false }) => {
   if (isList && (!Array.isArray(value) || value.length === 0)) {
      return (
       <div className="py-2">
-        <p className="text-sm text-gray-400">{label}</p>
+        <p className="text-sm text-muted-foreground">{label}</p>
         <p className="font-semibold text-white">No especificado</p>
       </div>
     );
@@ -25,7 +25,7 @@ const DetailItem = ({ label, value, isList = false }) => {
 
   return (
     <div className="py-2">
-      <p className="text-sm text-gray-400">{label}</p>
+      <p className="text-sm text-muted-foreground">{label}</p>
       <p className="font-semibold text-white break-words">{displayValue}</p>
     </div>
   );
