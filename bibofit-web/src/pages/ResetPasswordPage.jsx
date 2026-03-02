@@ -66,7 +66,7 @@ const ResetPasswordPage = () => {
                 <div className="inline-flex items-center justify-center w-16 h-16 bg-green-500/20 rounded-full mb-4">
                   <KeyRound className="w-8 h-8 text-black" />
                 </div>
-                <h1 className="text-3xl font-bold text-white mb-2">Restablecer Contraseña</h1>
+                <h1 className="text-3xl font-bold text-foreground mb-2">Restablecer Contraseña</h1>
                 <p className="text-muted-foreground">Introduce tu correo para recibir un enlace de recuperación.</p>
               </div>
               
@@ -82,9 +82,9 @@ const ResetPasswordPage = () => {
                     required 
                   />
                 </div>
-                <Button type="submit" disabled={isLoading} className="w-full btn-primary bg-green-500 hover:bg-green-600 text-black font-semibold">
+                <Button type="submit" disabled={isLoading} className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold">
                   {isLoading ? (
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-black"></div>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-foreground"></div>
                   ) : (
                     'Enviar Enlace'
                   )}
@@ -96,7 +96,7 @@ const ResetPasswordPage = () => {
               )}
 
               <p className="mt-8 text-center text-sm text-muted-foreground">
-                <Link to="/login" className="font-medium text-green-400 hover:underline inline-flex items-center">
+                <Link to="/login" className="font-medium text-primary hover:underline inline-flex items-center">
                   <ArrowLeft className="w-4 h-4 mr-1" />
                   Volver a Iniciar Sesión
                 </Link>

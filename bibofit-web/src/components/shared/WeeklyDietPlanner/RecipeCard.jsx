@@ -10,6 +10,7 @@ import { calculateMacros as calculateMacrosFromIngredients } from '@/lib/macroCa
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import HighlightedText from '@/components/shared/HighlightedText';
 import { analyzeRecipeConflicts } from '@/lib/recipeConflictAnalyzer';
+import { useTheme } from '@/contexts/ThemeContext';
 
 const RecipeCard = ({
   recipe,
@@ -26,6 +27,7 @@ const RecipeCard = ({
   hideQuantities = false,
   hideMacros = false
 }) => {
+  const { isDark } = useTheme();
   const recipeName = useMemo(() => {
     if (!recipe) return "Receta Desconocida";
     if (recipe.is_private_recipe || recipe.type === 'private_recipe') {
@@ -101,8 +103,8 @@ const RecipeCard = ({
         const isRecommended = recommendedFoodsSet.has(food.name);
         
         let className = "text-muted-foreground";
-        if (isUnsafe) className = "text-red-400 font-medium";
-        else if (isRecommended) className = "text-green-400 font-medium";
+        if (isUnsafe) className = "text-red-700 dark:text-red-400 font-medium";
+        else if (isRecommended) className = "text-green-700 dark:text-green-400 font-medium";
         
         return (
             <span key={ing.food_id || index} className={className}>
@@ -130,10 +132,10 @@ const RecipeCard = ({
         "flex items-center gap-x-3 gap-y-1 text-sm font-mono flex-wrap drop-shadow-md",
         isListView ? '' : 'justify-around mt-2 text-xs'
     )}>
-      <span className={cn("flex items-center", adjustment ? "text-cyan-300" : "text-orange-400")} title="Calorías"><CaloriesIcon className="w-4 h-4 mr-1"/>{Math.round(macros.calories || 0)}</span>
-      <span className={cn("flex items-center", adjustment ? "text-cyan-300" : "text-red-400")} title="Proteínas"><ProteinIcon className="w-4 h-4 mr-1"/>{Math.round(macros.proteins || 0)}g</span>
-      <span className={cn("flex items-center", adjustment ? "text-cyan-300" : "text-yellow-400")} title="Carbohidratos"><CarbsIcon className="w-4 h-4 mr-1"/>{Math.round(macros.carbs || 0)}g</span>
-      <span className={cn("flex items-center", adjustment ? "text-cyan-300" : "text-green-400")} title="Grasas"><FatsIcon className="w-4 h-4 mr-1"/>{Math.round(macros.fats || 0)}g</span>
+      <span className={cn("flex items-center", adjustment ? "text-cyan-700 dark:text-cyan-300" : "text-orange-500")} title="Calorías"><CaloriesIcon className="w-4 h-4 mr-1"/>{Math.round(macros.calories || 0)}</span>
+      <span className={cn("flex items-center", adjustment ? "text-cyan-700 dark:text-cyan-300" : "text-red-500")} title="Proteínas"><ProteinIcon className="w-4 h-4 mr-1"/>{Math.round(macros.proteins || 0)}g</span>
+      <span className={cn("flex items-center", adjustment ? "text-cyan-700 dark:text-cyan-300" : "text-yellow-500")} title="Carbohidratos"><CarbsIcon className="w-4 h-4 mr-1"/>{Math.round(macros.carbs || 0)}g</span>
+      <span className={cn("flex items-center", adjustment ? "text-cyan-700 dark:text-cyan-300" : "text-green-500")} title="Grasas"><FatsIcon className="w-4 h-4 mr-1"/>{Math.round(macros.fats || 0)}g</span>
     </div>
   );
 
@@ -155,8 +157,8 @@ const RecipeCard = ({
     );
   };
   
-  const fallbackBg = 'linear-gradient(135deg, #333a44ff 0%, #56125fff 100%)';
-  const bgStyle = { backgroundImage: imageUrl ? `url(${imageUrl})` : fallbackBg };
+  const fallbackBg = isDark ? 'hsl(220 16% 22%)' : 'hsl(0 0% 100%)';
+  const bgStyle = imageUrl ? { backgroundImage: `url(${imageUrl})` } : { backgroundColor: fallbackBg };
 
   if (isListView) {
     return (
@@ -172,13 +174,19 @@ const RecipeCard = ({
         {/* Dark Overlay */}
         <div className={cn(
           "absolute inset-0 pointer-events-none",
-          imageUrl ? "bg-black/45" : (isPrivate ? "bg-violet-900/20" : (!isSafe ? "bg-red-900/40" : "bg-black/10"))
+          imageUrl
+            ? (isDark ? "bg-black/45" : "bg-white/30")
+            : (
+              isPrivate
+                ? (isDark ? "bg-violet-900/20" : "bg-violet-200/35")
+                : (!isSafe ? (isDark ? "bg-red-900/40" : "bg-red-200/45") : (isDark ? "bg-black/10" : "bg-transparent"))
+            )
         )} />
         {/* Gradient Bottom Overlay */}
-        <div 
-          className="absolute inset-0 pointer-events-none"
-          style={{ background: 'linear-gradient(to top, rgba(0, 0, 0, 0.48) 0%, rgba(0, 0, 0, 0.38) 40%, rgba(0, 0, 0, 0) 100%)' }}
-        />
+        <div className={cn(
+          "absolute inset-0 pointer-events-none",
+          isDark && "bg-[linear-gradient(to_top,rgba(0,0,0,0.48)_0%,rgba(0,0,0,0.38)_40%,rgba(0,0,0,0)_100%)]"
+        )} />
 
         <button onClick={() => handleRecipeClick && handleRecipeClick({ ...recipe, is_private_recipe: isPrivate }, adjustment)} className="relative z-10 w-full h-full text-left p-5 flex flex-col justify-between">
           <div className="flex-1">
@@ -202,12 +210,12 @@ const RecipeCard = ({
                   <div className="flex flex-wrap items-center gap-2 mb-2">
                     <p className={cn(
                       "text-xl font-bold line-clamp-2 flex-1 drop-shadow-md",
-                      !isSafe && isAdminView ? "text-red-400" : (isPending ? "text-[rgb(159,102,163)]" : "text-white")
+                      !isSafe && isAdminView ? "text-red-400" : (isPending ? "text-[rgb(159,102,163)]" : "text-foreground dark:text-white")
                     )}>
                       <HighlightedText text={recipeName} highlight={searchQuery} />
                     </p>
                     {unsafeFoodsSet.size > 0 && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-900/40 text-red-400 border border-red-500/30 backdrop-blur-sm">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-500/15 dark:bg-red-900/40 text-red-700 dark:text-red-400 border border-red-500/35 backdrop-blur-sm">
                             <AlertTriangle className="w-3 h-3 mr-1" /> {unsafeFoodsSet.size}
                         </span>
                     )}
@@ -227,7 +235,7 @@ const RecipeCard = ({
                 </TooltipProvider>
               )}
             </div>
-            <p className="text-sm line-clamp-3 drop-shadow-md text-gray-200">
+            <p className="text-sm line-clamp-3 drop-shadow-md text-foreground/85 dark:text-gray-200">
               {ingredientList.length > 0 ? 
                   ingredientList.reduce((prev, curr) => [prev, ', ', curr]) 
                   : 'Sin ingredientes'}
@@ -270,13 +278,15 @@ const RecipeCard = ({
       {/* Dark Overlay */}
       <div className={cn(
         "absolute inset-0 pointer-events-none",
-        imageUrl ? "bg-black/35" : (isPrivate ? "bg-violet-900/30" : (!isSafe ? "bg-red-900/50" : "bg-black/25"))
+        imageUrl
+          ? (isDark ? "bg-black/35" : "bg-white/25")
+          : (isPrivate ? (isDark ? "bg-violet-900/30" : "bg-violet-200/40") : (!isSafe ? (isDark ? "bg-red-900/50" : "bg-red-200/45") : (isDark ? "bg-black/25" : "bg-transparent")))
       )} />
       {/* Gradient Bottom Overlay */}
-      <div 
-        className="absolute inset-0 pointer-events-none"
-        style={{ background: 'linear-gradient(to top, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.29) 40%, rgba(0,0,0,0) 100%)' }}
-      />
+      <div className={cn(
+        "absolute inset-0 pointer-events-none",
+        isDark && "bg-[linear-gradient(to_top,rgba(0,0,0,0)_0%,rgba(0,0,0,0.29)_40%,rgba(0,0,0,0)_100%)]"
+      )} />
 
       <button onClick={() => handleRecipeClick && handleRecipeClick({ ...recipe, is_private_recipe: isPrivate }, adjustment)} className="relative z-10 flex-1 text-left p-3 w-4/5">
         <div className="flex justify-between items-start flex-wrap gap-x-2 mb-1">
@@ -286,8 +296,8 @@ const RecipeCard = ({
             )}
             <TitleWithTooltip>
               <p className={cn(
-                "text-white font-medium text-sm whitespace-normal line-clamp-2 drop-shadow-md",
-                !isSafe && isAdminView ? "text-red-400" : "text-white"
+                "font-medium text-sm whitespace-normal line-clamp-2 drop-shadow-md",
+                !isSafe && isAdminView ? "text-red-400" : "text-foreground dark:text-white"
               )}>
                 {recipeName}
               </p>

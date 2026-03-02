@@ -46,10 +46,10 @@ const ProblemSolution = () => {
   }, [audience]);
 
   return (
-    <section id="problem" className="pb-20 bg-[#16191d]">
+    <section id="problem" className="pb-20 bg-card/60">
       <div className="container mx-auto px-4 md:px-6">
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
             {copy.title}
           </h2>
           <p className="text-muted-foreground text-lg mb-6">{copy.subtitle}</p>
@@ -126,10 +126,10 @@ const ProblemSolution = () => {
 function RoleToggle({ value, onChange }) {
   return (
     <div className="flex justify-center">
-      <div className="relative inline-flex items-center rounded-2xl border border-white/10 bg-white/5 p-1 backdrop-blur">
+      <div className="relative inline-flex items-center rounded-2xl border border-border bg-muted/60 p-1 backdrop-blur">
         <motion.div
           layout
-          className="absolute top-1 bottom-1 rounded-xl bg-white/10"
+          className="absolute top-1 bottom-1 rounded-xl bg-background"
           style={{
             left: value === 'user' ? 0 : '50%',
             width: 'calc(50% - 8px)',
@@ -142,8 +142,8 @@ function RoleToggle({ value, onChange }) {
           onClick={() => onChange('user')}
           className={`relative z-10 flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500/60 ${
             value === 'user'
-              ? 'text-white'
-              : 'text-muted-foreground hover:text-gray-200'
+              ? 'text-foreground'
+              : 'text-muted-foreground hover:text-foreground'
           }`}
           aria-pressed={value === 'user'}
         >
@@ -156,8 +156,8 @@ function RoleToggle({ value, onChange }) {
           onClick={() => onChange('coach')}
           className={`relative z-10 flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500/60 ${
             value === 'coach'
-              ? 'text-white'
-              : 'text-muted-foreground hover:text-gray-200'
+              ? 'text-foreground'
+              : 'text-muted-foreground hover:text-foreground'
           }`}
           aria-pressed={value === 'coach'}
         >

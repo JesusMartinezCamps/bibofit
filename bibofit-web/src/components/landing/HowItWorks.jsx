@@ -77,10 +77,10 @@ const HowItWorks = () => {
   }, [audience]);
 
   return (
-    <section id="how-it-works" className="py-24 bg-[#16191d]">
+    <section id="how-it-works" className="py-24 bg-card/60">
       <div className="container mx-auto px-4 md:px-6">
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
             {header.title}
           </h2>
           <p className="text-muted-foreground mb-6">{header.subtitle}</p>
@@ -102,10 +102,10 @@ const HowItWorks = () => {
                   transition={{ duration: 0.18, delay: index * 0.05 }}
                   className="bg-background p-6 rounded-2xl border border-border flex flex-col items-center text-center group hover:border-green-500/30 transition-colors"
                 >
-                  <div className="w-16 h-16 rounded-full bg-muted border-4 border-[#16191d] flex items-center justify-center text-2xl font-bold text-green-500 mb-6 group-hover:bg-green-500/10 group-hover:scale-110 transition-all duration-300 shadow-lg">
+                  <div className="w-16 h-16 rounded-full bg-muted border-4 border-background flex items-center justify-center text-2xl font-bold text-green-500 mb-6 group-hover:bg-green-500/10 group-hover:scale-110 transition-all duration-300 shadow-lg">
                     {step.number}
                   </div>
-                  <h3 className="text-xl font-bold text-white mb-3">{step.title}</h3>
+                  <h3 className="text-xl font-bold text-foreground mb-3">{step.title}</h3>
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     {step.description}
                   </p>
@@ -122,10 +122,10 @@ const HowItWorks = () => {
 function RoleToggle({ value, onChange }) {
   return (
     <div className="flex justify-center">
-      <div className="relative inline-flex items-center rounded-2xl border border-white/10 bg-white/5 p-1 backdrop-blur">
+      <div className="relative inline-flex items-center rounded-2xl border border-border bg-muted/60 p-1 backdrop-blur">
         <motion.div
           layout
-          className="absolute top-1 bottom-1 rounded-xl bg-white/10"
+          className="absolute top-1 bottom-1 rounded-xl bg-background"
           style={{
             left: value === 'user' ? -2 : '48%',
             width: value === 'user' ? 'calc(50%)' : 'calc(50%)',
@@ -137,7 +137,7 @@ function RoleToggle({ value, onChange }) {
           type="button"
           onClick={() => onChange('user')}
           className={`relative z-10 flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500/60 ${
-            value === 'user' ? 'text-white' : 'text-muted-foreground hover:text-gray-200'
+            value === 'user' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
           }`}
           aria-pressed={value === 'user'}
         >
@@ -149,7 +149,7 @@ function RoleToggle({ value, onChange }) {
           type="button"
           onClick={() => onChange('coach')}
           className={`relative z-10 flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500/60 ${
-            value === 'coach' ? 'text-white' : 'text-muted-foreground hover:text-gray-200'
+            value === 'coach' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
           }`}
           aria-pressed={value === 'coach'}
         >

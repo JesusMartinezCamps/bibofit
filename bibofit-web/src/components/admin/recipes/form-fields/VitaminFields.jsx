@@ -7,6 +7,15 @@ import { Badge } from '@/components/ui/badge';
 
 
 const VitaminFields = ({ allVitamins, selectedVitamins, onSelectedVitaminsChange }) => {
+  const getVitaminLabel = (vitamin) => {
+    if (!vitamin) return '';
+    const shortName = String(vitamin.name || '').trim();
+    const longName = String(vitamin.vitamin || '').trim();
+    const fallbackName = String(vitamin.name || '').trim();
+
+    const composed = [shortName, longName].filter(Boolean).join('. ').trim();
+    return composed || fallbackName;
+  };
 
   const handleAmountChange = (vitaminId, amount) => {
     const updatedVitamins = selectedVitamins.map(v => 
@@ -38,7 +47,7 @@ const VitaminFields = ({ allVitamins, selectedVitamins, onSelectedVitaminsChange
   return (
     <div className="space-y-4">
         <Combobox
-          options={allVitamins.map(v => ({ value: v.id, label: v.name }))}
+          options={allVitamins.map(v => ({ value: v.id, label: getVitaminLabel(v) }))}
           selectedValues={selectedVitamins.map(v => v.vitamin_id)}
           onSelectedValuesChange={handleSelectionChange}
           placeholder="Seleccionar vitaminas..."
@@ -54,7 +63,7 @@ const VitaminFields = ({ allVitamins, selectedVitamins, onSelectedVitaminsChange
           
           return (
             <div key={vitamin_id} className="flex items-center gap-3 p-2 bg-card/40 rounded-md border border-border/60">
-              <span className="flex-1 font-medium text-white">{vitaminInfo.name}</span>
+              <span className="flex-1 font-medium text-white">{getVitaminLabel(vitaminInfo)}</span>
               <InputWithUnit
                 type="number"
                 value={mg_per_100g || ''}

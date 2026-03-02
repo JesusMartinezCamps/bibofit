@@ -52,34 +52,85 @@ const rankFoodsByScore = (foods, scoreResolver) =>
     })
     .map((entry) => entry.food);
 
+const MAX_VISIBLE_RESULTS = 15;
+const toArray = (value) => (Array.isArray(value) ? value : []);
+
+const getFoodGroupNames = (food) =>
+  toArray(food?.food_groups)
+    .map((item) => item?.name)
+    .filter(Boolean);
+
+const getFoodSeasonNames = (food) =>
+  toArray(food?.seasons)
+    .map((item) => item?.name)
+    .filter(Boolean);
+
+const getFoodStoreNames = (food) => {
+  const normalizedStores = toArray(food?.stores)
+    .map((item) => (typeof item === 'string' ? item : item?.name))
+    .filter(Boolean);
+
+  if (normalizedStores.length > 0) return normalizedStores;
+
+  return toArray(food?.food_to_stores)
+    .map((item) => item?.store?.name || item?.stores?.name)
+    .filter(Boolean);
+};
+
+const getFoodMacroRoleNames = (food) => {
+  const normalizedRoles = toArray(food?.macro_roles)
+    .map((item) => (typeof item === 'string' ? item : item?.name))
+    .filter(Boolean);
+
+  if (normalizedRoles.length > 0) return normalizedRoles;
+
+  return toArray(food?.food_to_macro_roles)
+    .map((item) => item?.macro_role?.name || item?.macro_roles?.name)
+    .filter(Boolean);
+};
+
+const scoreAnyName = (names, tokens) =>
+  names.reduce((best, name) => {
+    const score = scoreTextWithTokens(name, tokens);
+    return score < best ? score : best;
+  }, Number.POSITIVE_INFINITY);
+
+const rankFoodsByNames = (foods, namesResolver, tokens) =>
+  rankFoodsByScore(foods, (food) => scoreAnyName(namesResolver(food), tokens));
+
+const extractPrefixedQuery = (normalizedQuery, prefixes) => {
+  for (const prefix of prefixes) {
+    if (normalizedQuery.startsWith(prefix)) {
+      return normalizedQuery.slice(prefix.length).trim();
+    }
+  }
+  return null;
+};
+
+const scoreFoodAgainstGeneralTokens = (food, tokens) => {
+  const nameScore = scoreTextWithTokens(food?.name, tokens);
+  const groupScore = scoreAnyName(getFoodGroupNames(food), tokens);
+  const macroRoleScore = scoreAnyName(getFoodMacroRoleNames(food), tokens);
+  const seasonScore = scoreAnyName(getFoodSeasonNames(food), tokens);
+  const storeScore = scoreAnyName(getFoodStoreNames(food), tokens);
+
+  return Math.min(
+    nameScore,
+    Number.isFinite(groupScore) ? groupScore + 1 : Number.POSITIVE_INFINITY,
+    Number.isFinite(macroRoleScore) ? macroRoleScore + 1 : Number.POSITIVE_INFINITY,
+    Number.isFinite(seasonScore) ? seasonScore + 1 : Number.POSITIVE_INFINITY,
+    Number.isFinite(storeScore) ? storeScore + 1 : Number.POSITIVE_INFINITY
+  );
+};
+
 const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSensitivities = [], userId, refreshTrigger }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [allFoods, setAllFoods] = useState([]);
   const [userCreatedFoods, setUserCreatedFoods] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [userSensitivities, setUserSensitivities] = useState([]);
   const { toast } = useToast();
   const { user } = useAuth();
   const isCoach = user?.role === 'coach';
-
-  const fetchUserSensitivities = useCallback(async () => {
-    if (!userId && !user?.id) return [];
-    
-    const targetUserId = userId || user.id;
-    
-    try {
-      const { data: userSensitivityData, error } = await supabase
-        .from('user_sensitivities')
-        .select('sensitivity_id')
-        .eq('user_id', targetUserId);
-
-      if (error) throw error;
-      return userSensitivityData?.map(ua => ua.sensitivity_id) || [];
-    } catch (error) {
-      console.error('Error fetching user sensitivities:', error);
-      return [];
-    }
-  }, [userId, user?.id]);
 
   const fetchAllFoods = useCallback(async () => {
     setLoading(true);
@@ -88,8 +139,7 @@ const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSen
 
       const [
         { data: foodsData, error: foodsError },
-        { data: userFoodsData, error: userFoodsError },
-        userSensitivityIds
+        { data: userFoodsData, error: userFoodsError }
       ] = await Promise.all([
         isCoach
           ? supabase
@@ -107,8 +157,7 @@ const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSen
           .select(FOOD_CARD_SELECT)
           .eq('user_id', targetUserId)
           .or('status.is.null,status.neq.rejected')
-          .order('name', { ascending: true }) : Promise.resolve({ data: [], error: null }),
-        fetchUserSensitivities()
+          .order('name', { ascending: true }) : Promise.resolve({ data: [], error: null })
       ]);
 
       if (foodsError) throw foodsError;
@@ -121,7 +170,6 @@ const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSen
 
       setAllFoods(transformedFoods);
       setUserCreatedFoods(transformedUserFoods);
-      setUserSensitivities(userSensitivityIds);
     } catch (error) {
       toast({
         title: 'Error de carga',
@@ -131,7 +179,7 @@ const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSen
     } finally {
       setLoading(false);
     }
-  }, [toast, fetchUserSensitivities, userId, user?.id, isCoach]);
+  }, [toast, userId, user?.id, isCoach]);
 
 
   useEffect(() => {
@@ -190,13 +238,6 @@ const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSen
   const filteredFoods = useMemo(() => {
     let foods = [...combinedFoods];
     
-    if (userSensitivities.length > 0) {
-      foods = foods.filter(food => {
-        const foodSensitivityIds = food.food_sensitivities?.map(fa => fa.sensitivities?.id).filter(Boolean) || [];
-        return !userSensitivities.some(userSensitivityId => foodSensitivityIds.includes(userSensitivityId));
-      });
-    }
-    
     if (excludeSensitivities.length > 0) {
       foods = foods.filter(food => {
         const foodSensitivityIds = food.food_sensitivities?.map(fa => fa.sensitivities?.id).filter(Boolean) || [];
@@ -209,75 +250,66 @@ const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSen
     let results = foods;
 
     if (normalizedFilter) {
+      const groupQuery = extractPrefixedQuery(normalizedFilter, ['grupo:', 'group:', 'categoria:']);
+      const macroRoleQuery = extractPrefixedQuery(normalizedFilter, ['macro:', 'macro_rol:', 'rol:', 'macrorol:']);
+      const seasonQuery = extractPrefixedQuery(normalizedFilter, ['temporada:', 'season:']);
+      const storeQuery = extractPrefixedQuery(normalizedFilter, ['tienda:', 'store:', 'lugar:', 'compra:']);
+
       if (normalizedFilter.startsWith('vitamina:')) {
         const vitaminName = normalizedFilter.substring(9).trim();
         const vitaminTokens = splitSearchTokens(vitaminName);
         results = vitaminTokens.length === 0
           ? foods
-          : rankFoodsByScore(foods, (food) => {
-              const names = food.food_vitamins
-                ?.map((item) => item?.vitamins?.name)
-                .filter(Boolean) || [];
-              const bestScore = names.reduce((best, name) => {
-                const score = scoreTextWithTokens(name, vitaminTokens);
-                return score < best ? score : best;
-              }, Number.POSITIVE_INFINITY);
-              return bestScore;
-            });
+          : rankFoodsByNames(
+              foods,
+              (food) => toArray(food?.food_vitamins).map((item) => item?.vitamins?.name).filter(Boolean),
+              vitaminTokens
+            );
       } else if (normalizedFilter.startsWith('mineral:')) {
         const mineralName = normalizedFilter.substring(8).trim();
         const mineralTokens = splitSearchTokens(mineralName);
         results = mineralTokens.length === 0
           ? foods
-          : rankFoodsByScore(foods, (food) => {
-              const names = food.food_minerals
-                ?.map((item) => item?.minerals?.name)
-                .filter(Boolean) || [];
-              const bestScore = names.reduce((best, name) => {
-                const score = scoreTextWithTokens(name, mineralTokens);
-                return score < best ? score : best;
-              }, Number.POSITIVE_INFINITY);
-              return bestScore;
-            });
-      } else if (normalizedFilter.startsWith('temporada:')) {
-        const seasonName = normalizedFilter.substring(10).trim();
-        const seasonTokens = splitSearchTokens(seasonName);
+          : rankFoodsByNames(
+              foods,
+              (food) => toArray(food?.food_minerals).map((item) => item?.minerals?.name).filter(Boolean),
+              mineralTokens
+            );
+      } else if (groupQuery !== null) {
+        const groupTokens = splitSearchTokens(groupQuery);
+        results = groupTokens.length === 0 ? foods : rankFoodsByNames(foods, getFoodGroupNames, groupTokens);
+      } else if (macroRoleQuery !== null) {
+        const macroRoleTokens = splitSearchTokens(macroRoleQuery);
+        results = macroRoleTokens.length === 0 ? foods : rankFoodsByNames(foods, getFoodMacroRoleNames, macroRoleTokens);
+      } else if (seasonQuery !== null) {
+        const seasonTokens = splitSearchTokens(seasonQuery);
         results = seasonTokens.length === 0
           ? foods
-          : rankFoodsByScore(foods, (food) => {
-              const names = food.seasons?.map((item) => item?.name).filter(Boolean) || [];
-              const bestScore = names.reduce((best, name) => {
-                const score = scoreTextWithTokens(name, seasonTokens);
-                return score < best ? score : best;
-              }, Number.POSITIVE_INFINITY);
-              return bestScore;
-            });
+          : rankFoodsByNames(foods, getFoodSeasonNames, seasonTokens);
+      } else if (storeQuery !== null) {
+        const storeTokens = splitSearchTokens(storeQuery);
+        results = storeTokens.length === 0 ? foods : rankFoodsByNames(foods, getFoodStoreNames, storeTokens);
       } else if (normalizedFilter.startsWith('sensibilidad:')) {
           const sensitivityName = normalizedFilter.substring(13).trim();
           const sensitivityTokens = splitSearchTokens(sensitivityName);
           results = sensitivityTokens.length === 0
             ? foods
-            : rankFoodsByScore(foods, (food) => {
-                const names = food.food_sensitivities
-                  ?.map((item) => item?.sensitivities?.name)
-                  .filter(Boolean) || [];
-                const bestScore = names.reduce((best, name) => {
-                  const score = scoreTextWithTokens(name, sensitivityTokens);
-                  return score < best ? score : best;
-                }, Number.POSITIVE_INFINITY);
-                return bestScore;
-              });
+            : rankFoodsByNames(
+                foods,
+                (food) => toArray(food?.food_sensitivities).map((item) => item?.sensitivities?.name).filter(Boolean),
+                sensitivityTokens
+              );
       } else {
         const nameTokens = splitSearchTokens(normalizedFilter);
-        results = rankFoodsByScore(foods, (food) => scoreTextWithTokens(food.name, nameTokens));
+        results = rankFoodsByScore(foods, (food) => scoreFoodAgainstGeneralTokens(food, nameTokens));
       }
     } else {
       results = [...foods].sort((a, b) => (a?.name || '').localeCompare(b?.name || '', 'es'));
     }
     
-    return results;
+    return results.slice(0, MAX_VISIBLE_RESULTS);
     
-  }, [searchTerm, combinedFoods, excludeSensitivities, userSensitivities]);
+  }, [searchTerm, combinedFoods, excludeSensitivities]);
 
   useEffect(() => {
     setActiveIndex(0);

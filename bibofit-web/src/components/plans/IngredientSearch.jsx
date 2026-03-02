@@ -15,11 +15,11 @@ const ConflictBadge = ({ conflict }) => {
   if (!conflict) return null;
 
   const config = {
-    'non-preferred': { icon: <ThumbsDown size={14} />, color: 'bg-orange-500/20 text-orange-300 border-orange-500/30' },
-    'preferred': { icon: <ThumbsUp size={14} />, color: 'bg-green-500/20 text-green-300 border-green-500/30' },
-    'condition_avoid': { icon: <AlertTriangle size={14} />, color: 'bg-red-500/20 text-red-300 border-red-500/30' },
-    'condition_recommend': { icon: <ThumbsUp size={14} />, color: 'bg-green-500/20 text-green-300 border-green-500/30' },
-    'sensitivity': { icon: <AlertTriangle size={14} />, color: 'bg-red-500/20 text-red-300 border-red-500/30' }, // Updated to red
+    'non-preferred': { icon: <ThumbsDown size={14} />, color: 'bg-orange-500/15 text-orange-700 dark:text-orange-300 border-orange-500/35' },
+    'preferred': { icon: <ThumbsUp size={14} />, color: 'bg-green-500/15 text-green-700 dark:text-green-300 border-green-500/35' },
+    'condition_avoid': { icon: <AlertTriangle size={14} />, color: 'bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/35' },
+    'condition_recommend': { icon: <ThumbsUp size={14} />, color: 'bg-green-500/15 text-green-700 dark:text-green-300 border-green-500/35' },
+    'sensitivity': { icon: <AlertTriangle size={14} />, color: 'bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/35' },
   };
 
   const { icon, color } = config[conflict.type] || {};
@@ -153,19 +153,19 @@ const IngredientSearch = ({
   };
 
   const getBorderColor = (conflict) => {
-    if (!conflict) return 'border-border hover:border-blue-500';
+    if (!conflict) return 'border-border hover:border-sky-500 bg-card/80';
     switch (conflict.type) {
       case 'preferred':
       case 'condition_recommend':
-        return 'border-green-500/50 hover:border-green-400 bg-green-900/10';
+        return 'border-green-500/50 hover:border-green-500 bg-green-500/12 dark:bg-green-900/10';
       case 'non-preferred':
-        return 'border-orange-500/50 hover:border-orange-400';
+        return 'border-orange-500/50 hover:border-orange-500 bg-orange-500/12 dark:bg-orange-900/10';
       case 'sensitivity':
-        return 'border-red-500/50 hover:border-red-400 bg-red-900/10';
+        return 'border-red-500/50 hover:border-red-500 bg-red-500/12 dark:bg-red-900/10';
       case 'condition_avoid':
-        return 'border-red-500/80 hover:border-red-600 bg-red-900/20';
+        return 'border-red-500/80 hover:border-red-600 bg-red-500/18 dark:bg-red-900/20';
       default:
-        return 'border-border hover:border-blue-500';
+        return 'border-border hover:border-sky-500 bg-card/80';
     }
   };
 
@@ -246,7 +246,7 @@ const IngredientSearch = ({
                   activeIndex === index && "ring-1 ring-sky-400 border-sky-500/70"
                 )}
               >
-                <span className="font-medium text-gray-200">{food.name}</span>
+                <span className="font-medium text-foreground">{food.name}</span>
                 <div className="flex items-center gap-2 mt-1 sm:mt-0">
                   <UserFoodStatusBadge food={food} />
                   {food.conflict && <ConflictBadge conflict={food.conflict} />}
@@ -262,7 +262,7 @@ const IngredientSearch = ({
                 type="button"
                 variant="outline"
                 onClick={handleOpenCreateFood}
-                className="border-dashed border-emerald-500 text-emerald-300 bg-emerald-900/20 hover:bg-emerald-500/20 hover:text-emerald-200"
+                className="border-dashed border-emerald-500/60 text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 dark:bg-emerald-900/20 hover:bg-emerald-500/20"
               >
                 Crear "{searchTerm.trim()}"
               </Button>

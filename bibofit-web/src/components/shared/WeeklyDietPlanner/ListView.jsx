@@ -54,13 +54,13 @@ const MealHeader = React.memo(({ mealName, mealId, name, items, isAnyRecipeSelec
                 <h3 className={cn(
                     "text-xl font-bold", 
                     isAnyRecipeSelectedInMeal 
-                        ? (isFreeRecipeSelected ? "text-[rgb(132,232,255)]" : "text-[rgb(158,255,211)]")
-                        : "text-white"
+                        ? (isFreeRecipeSelected ? "text-cyan-700 dark:text-cyan-300" : "text-emerald-700 dark:text-emerald-300")
+                        : "text-foreground"
                 )}>{pluralize(mealName)}</h3>
                 <ChevronDown className={cn(
                     "h-5 w-5 transition-transform duration-300 group-data-[state=open]:rotate-180", 
                     isAnyRecipeSelectedInMeal 
-                        ? (isFreeRecipeSelected ? "text-[rgb(132,232,255)]" : "text-[rgb(158,255,211)]")
+                        ? (isFreeRecipeSelected ? "text-cyan-700 dark:text-cyan-300" : "text-emerald-700 dark:text-emerald-300")
                         : "text-muted-foreground"
                 )} />
             </div>
@@ -296,7 +296,7 @@ const ListView = ({
                         placeholder="Buscar receta o ingrediente..."
                         value={searchQueries[mealId] || ''}
                         onChange={(e) => handleSearchChange(mealId, e.target.value)}
-                        className="pl-9 bg-card/75 border-border text-sm w-full focus:ring-green-500/20 focus:border-green-500/50 text-white placeholder:text-muted-foreground transition-all duration-200 h-10"
+                        className="pl-9 bg-card/85 border-border text-sm w-full focus:ring-green-500/20 focus:border-green-500/50 text-foreground placeholder:text-muted-foreground transition-all duration-200 h-10"
                 />
                 
                 {searchQueries[mealId] && (
@@ -372,11 +372,11 @@ const ListView = ({
                           handleToggleMealSelection(item, currentDate);
                         }}
                         className={cn(
-                          'flex items-center gap-1.5 px-2 py-1 rounded-full text-xs transition-all duration-200 border',
+                          'flex items-center  gap-1.5 p-6 rounded-full text-xs transition-all duration-200 border',
                           isSelected && isPending ? 'bg-[rgba(195,55,204,0.1)] text-[rgb(195,55,204)] border-[rgb(195,55,204)]' :
-                          isSelected && isFreeRecipe ? 'bg-[rgba(132,232,255,0.1)] text-[rgb(132,232,255)] border-[rgb(132,232,255)]' : 
-                          isSelected ? 'bg-[rgba(158,255,211,0.1)] text-[rgb(158,255,211)] border-[rgb(158,255,211)]' : 
-                          !isSafe ? 'bg-red-900/20 text-red-300 border-red-800/30 hover:border-red-700/50' :
+                          isSelected && isFreeRecipe ? 'bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border-cyan-500/60' : 
+                          isSelected ? 'bg-emerald-700/25 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 border-emerald-700/70 dark:border-emerald-400/60' : 
+                          !isSafe ? 'bg-red-500/12 dark:bg-red-900/20 text-red-700 dark:text-red-300 border-red-500/35 dark:border-red-800/30 hover:border-red-500/55' :
                           'bg-muted/50 text-muted-foreground border-input/50 hover:border-gray-500/50'
                         )}
                         title={isSelected ? "Desmarcar como comida" : "Marcar como comida"}
@@ -384,9 +384,9 @@ const ListView = ({
                         <Utensils className={cn(
                             'w-4 h-4',
                             isSelected && isPending ? 'text-[rgb(195,55,204)]' :
-                            isSelected && isFreeRecipe ? 'text-[rgb(132,232,255)]' : 
-                            isSelected ? 'text-[rgb(158,255,211)]' : 
-                            !isSafe ? 'text-red-500/70' :
+                            isSelected && isFreeRecipe ? 'text-cyan-700 dark:text-cyan-300' : 
+                            isSelected ? 'text-emerald-800 dark:text-emerald-200' : 
+                            !isSafe ? 'text-red-700 dark:text-red-400' :
                             'text-muted-foreground'
                         )} />
                         <span>{selectionCount}</span>

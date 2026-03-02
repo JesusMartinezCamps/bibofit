@@ -199,11 +199,11 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
 {/* TOOLTIP PROVIDER */}
 <TooltipProvider>
 
-<div className={cn("w-full h-full flex flex-col", isClientView && "sm:p-6 sm:bg-background sm:rounded-2xl")}>
+<div className={cn("w-full h-full flex flex-col", isClientView && "sm:p-6 sm:bg-card/75 sm:border sm:border-border sm:rounded-2xl")}>
 
   {/* HEADER */}
   <div className="flex items-center justify-between mb-4">
-    <h2 className="pl-4 text-3xl font-bold bg-gradient-to-r from-white to-green-400 bg-clip-text text-transparent">
+    <h2 className="pl-4 text-3xl font-bold bg-gradient-to-r from-emerald-700 to-emerald-500 dark:from-white dark:to-green-300 bg-clip-text text-transparent">
       {capitalize(currentDate.toLocaleString("es-ES", { month: "long" }))} {currentDate.getFullYear()}
     </h2>
     <div className="flex space-x-2">
@@ -235,17 +235,13 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
       const isToday = isSameDay(day, new Date());
       const isCurrentMonth = day.getMonth() === currentDate.getMonth();
 
-      const dayNumberClasses = cn(
-        "text-sm",
-        !isCurrentMonth && "text-gray-600",
-        isCurrentMonth && isToday && "text-green-400 font-bold"
-      );
-
       return (
       <div
         key={day.toString()}
-        className="border border-border relative cursor-pointer hover:bg-[#2a2f36] min-h-[114px] flex flex-col"
-        style={!isCurrentMonth ? { backgroundColor: 'rgb(38 43 51)' } : {}}
+        className={cn(
+          "border border-border/80 relative cursor-pointer min-h-[114px] flex flex-col transition-colors",
+          isCurrentMonth ? "bg-card/50 hover:bg-muted/55" : "bg-muted/35 hover:bg-muted/45"
+        )}
         onClick={() => handleDateClick(day)}
       >
           {/* ---------- DAY NUMBER + REMINDER ICONS (CODex STYLE) ---------- */}
@@ -255,9 +251,9 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
             <span
               className={cn(
                 "absolute left-1/2 -translate-x-1/2 text-sm w-6 h-6 flex items-center justify-center rounded-full",
-                !isCurrentMonth && "text-gray-600",
+                !isCurrentMonth && "text-muted-foreground/70",
                 isCurrentMonth && isToday && "bg-green-400/20 text-green-400 border border-green-400/20",
-                isCurrentMonth && !isToday && "text-white"
+                isCurrentMonth && !isToday && "text-foreground"
               )}
             >
               {format(day, "d")}
@@ -294,7 +290,7 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
                           className={cn(
                             "inline-flex items-center justify-center rounded-full border",
                             isPastReminder
-                              ? "border-slate-500/50 bg-slate-700/40 hover:bg-accent/60"
+                              ? "border-border/70 bg-muted/80 hover:bg-muted"
                               : "border-amber-500/40 bg-amber-500/15 hover:bg-amber-500/25",
                             "p-[2px] sm:p-[3px]"
                           )}
@@ -312,26 +308,26 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
                             setIsReminderFormOpen(true);
                           }}
                         >
-                       <Bell className={cn("w-3 h-3", isPastReminder ? "text-muted-foreground" : "text-amber-300")} />
+                       <Bell className={cn("w-3 h-3", isPastReminder ? "text-muted-foreground" : "text-amber-700 dark:text-amber-300")} />
                               </motion.button>
                       </TooltipTrigger>
 
                       {/* ---- Tooltip Content with DETAILS ---- */}
                           <TooltipContent
                               className={cn(
-                                  "bg-muted text-white max-w-sm p-3 space-y-2",
-                                  isPastReminder ? "border-slate-500" : "border-amber-400"
+                                  "bg-popover text-popover-foreground max-w-sm p-3 space-y-2",
+                                  isPastReminder ? "border-border" : "border-amber-500/45"
                               )}
                           >
-                              <p className={cn("font-bold", isPastReminder ? "text-slate-200" : "text-amber-300")}>{rem.title}</p>
+                              <p className={cn("font-bold", isPastReminder ? "text-foreground" : "text-amber-700 dark:text-amber-300")}>{rem.title}</p>
                               <p className={cn("text-sm leading-snug", isPastReminder && "text-muted-foreground")}>{rem.content}</p>
 
                               <div
                                   className={cn(
                                       "text-xs space-y-1 pt-2 border-t",
                                       isPastReminder
-                                          ? "text-muted-foreground border-slate-500/30"
-                                          : "text-amber-200/90 border-amber-500/20"
+                                          ? "text-muted-foreground border-border"
+                                          : "text-amber-800/85 dark:text-amber-200/90 border-amber-500/25"
                                   )}
                               >
                           <p className="uppercase tracking-wider opacity-80">Detalles:</p>
@@ -359,19 +355,24 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
 
               if (event.type === 'diet_log') {
                 const [done, total] = event.title.split('/').map(Number);
-                let fromColor = 'rgb(34 197 94 / 5%)';
-                if (done === total && total > 0) fromColor = 'rgb(9 147 60 / 82%)';
-                else if (done >= total / 2 && total > 0) fromColor = 'rgb(34 197 94 / 20%)';
-
-                if (event.hasSnack) {
-                  style.background = `linear-gradient(to right, ${fromColor}, rgb(255 202 0 / 29%))`;
-                  classes = 'border-green-600';
-                } else {
-                  style.backgroundColor = fromColor;
-                  classes = 'border-green-600';
+                let fromColor = 'hsl(var(--muted))';
+                let textColor = 'hsl(var(--foreground))';
+                if (done === total && total > 0) {
+                  fromColor = 'hsl(145 63% 30% / 0.9)';
+                  textColor = 'hsl(0 0% 98%)';
+                } else if (done >= total / 2 && total > 0) {
+                  fromColor = 'hsl(145 48% 40% / 0.45)';
                 }
 
-                style.color = 'white';
+                if (event.hasSnack) {
+                  style.background = `linear-gradient(to right, ${fromColor}, hsl(41 95% 52% / 0.32))`;
+                  classes = 'border-green-700/60 dark:border-green-500/60';
+                } else {
+                  style.backgroundColor = fromColor;
+                  classes = 'border-green-700/60 dark:border-green-500/60';
+                }
+
+                style.color = textColor;
               }
 
               return (
@@ -379,8 +380,8 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
                   key={chipKey}
                   className={cn(
                     "event-chip flex items-center justify-center text-[11px] sm:text-xs truncate pointer-events-none sm:pointer-events-auto",
-                    event.type === 'workout' && "bg-red-500/20 text-red-200 border border-red-500/40",
-                    event.type === 'weight' && "bg-purple-500/20 text-purple-200 border border-purple-500/40",
+                    event.type === 'workout' && "bg-red-500/15 text-red-700 dark:text-red-200 border border-red-500/35",
+                    event.type === 'weight' && "bg-purple-500/15 text-purple-700 dark:text-purple-200 border border-purple-500/35",
                     event.type === 'diet_log' && `border ${classes}`
                   )}
                   style={event.type === 'diet_log' ? style : {}}
@@ -416,9 +417,9 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
 
 {/* MODALS */}
 <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-  <DialogContent className="text-white border-border max-w-lg">
+  <DialogContent className="bg-card border-border max-w-lg">
     <DialogHeader>
-      <DialogTitle className="bg-gradient-to-r from-white to-green-400 bg-clip-text text-transparent">
+      <DialogTitle className="bg-gradient-to-r from-emerald-700 to-emerald-500 dark:from-white dark:to-green-300 bg-clip-text text-transparent">
         {!isClientView ? '¿Qué quieres gestionar?' : '¿Qué quieres ver?'}
       </DialogTitle>
       <DialogDescription className="text-muted-foreground">
@@ -435,7 +436,7 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
               : `/plan/dieta/${userId}/${format(selectedDate, 'yyyy-MM-dd')}`
           )}
           variant="outline-diet"
-          className="flex-grow bg-green-800/20 btn-standard "
+          className="flex-grow bg-green-900/15 dark:bg-green-800/20 btn-standard"
         >
           <Apple className="w-6 h-6 mr-2" />Plan de Dieta
         </Button>
@@ -443,7 +444,7 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
         <Button
           onClick={() => navigate(!isClientView ? `/admin/manage-training/${userId}` : '/plan/entreno')}
           variant="outline-training"
-          className="flex-grow bg-red-800/20"
+          className="flex-grow bg-red-900/15 dark:bg-red-800/20"
         >
           <Dumbbell className="w-6 h-6 mr-2" />Plan de Entreno
         </Button>
@@ -456,7 +457,7 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
           setIsWeightLogOpen(true);
         }}
         variant="outline-weight"
-        className="bg-purple-800/20"
+        className="bg-purple-900/15 dark:bg-purple-800/20"
       >
         {!isClientView ? 'Añadirle un Registro de Peso' : 'Añadir Registro de Peso'}
       </Button>
@@ -465,7 +466,7 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
         <Button
           onClick={handleOpenNewReminder}
           variant="outline-reminder"
-          className="bg-orange-800/20"
+          className="bg-orange-900/15 dark:bg-orange-800/20"
         >
           <PlusCircle className="w-6 h-6 mr-2" />Añadir Recordatorio
         </Button>

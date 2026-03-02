@@ -214,7 +214,7 @@ const CreateSnackPage = () => {
                                     </motion.div>
                                 )}
                             </AnimatePresence>
-                            <Button onClick={() => setView('search')} variant="outline" className="w-full border-dashed border-orange-500 text-orange-200 bg-orange-900/20 hover:bg-orange-500/20 hover:text-orange-100">
+                            <Button onClick={() => setView('search')} variant="outline" className="w-full border-dashed border-orange-500/60 text-orange-700 dark:text-orange-200 bg-orange-500/10 dark:bg-orange-900/20 hover:bg-orange-500/20">
                                 <Plus className="mr-2 h-4 w-4 text-orange-500" /> Añadir Ingrediente
                             </Button>
                         </div>
@@ -256,29 +256,31 @@ const CreateSnackPage = () => {
                 <meta name="description" content="Crea y añade un picoteo a tu plan de dieta." />
             </Helmet>
             <div className="container mx-auto max-w-4xl pt-0 pb-8 px-0 sm:pt-8 sm:px-4">
-                <div className="mb-0 sm:mb-6">
-                    <BackButton />
+                <div className="rounded-2xl border border-border bg-card/55 p-3 sm:p-6 shadow-sm">
+                    <div className="mb-0 sm:mb-6">
+                        <BackButton />
+                    </div>
+                    <Card className="bg-card/90 border-border text-foreground shadow-sm">
+                        <CardHeader>
+                            <CardTitle className="text-3xl font-bold text-orange-400">{getTitle()}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {renderContent()}
+                        </CardContent>
+                        {view === 'main' && (
+                            <CardFooter>
+                                <Button 
+                                    onClick={() => handleSubmit({ dietPlanId: activePlan?.id })}
+                                    disabled={isSubmitting || !name || ingredients.length === 0} 
+                                    className="w-full bg-orange-600 hover:bg-orange-700 text-orange-950 dark:text-white py-6 text-lg"
+                                >
+                                    {isSubmitting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
+                                    Guardar Picoteo
+                                </Button>
+                            </CardFooter>
+                        )}
+                    </Card>
                 </div>
-                <Card className="bg-card/75 border-border text-white">
-                    <CardHeader>
-                        <CardTitle className="text-3xl font-bold text-orange-400">{getTitle()}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {renderContent()}
-                    </CardContent>
-                    {view === 'main' && (
-                        <CardFooter>
-                            <Button 
-                                onClick={() => handleSubmit({ dietPlanId: activePlan?.id })}
-                                disabled={isSubmitting || !name || ingredients.length === 0} 
-                                className="w-full bg-orange-600 hover:bg-orange-700 py-6 text-lg"
-                            >
-                                {isSubmitting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
-                                Guardar Picoteo
-                            </Button>
-                        </CardFooter>
-                    )}
-                </Card>
             </div>
             {snackForEquivalence && (
                 <EquivalenceDialog

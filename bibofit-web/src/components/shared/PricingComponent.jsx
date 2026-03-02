@@ -48,7 +48,7 @@ const PricingComponent = ({ showTitle = true, className, surface = 'home' }) => 
       <div className="container mx-auto px-4 md:px-6">
         {showTitle && (
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Planes flexibles</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Planes flexibles</h2>
             <p className="text-muted-foreground">Comienza gratis y escala a medida que crece tu negocio.</p>
           </div>
         )}
@@ -63,7 +63,7 @@ const PricingComponent = ({ showTitle = true, className, surface = 'home' }) => 
               <Card
                 key={plan.id}
                 className={cn(
-                  'bg-[#15191e] border-border flex flex-col relative transition-all duration-300 hover:border-border',
+                  'bg-card border-border flex flex-col relative transition-all duration-300 hover:border-border',
                   plan.isPopular && 'border-green-500/50 shadow-2xl shadow-green-900/10 transform md:-translate-y-4 z-10'
                 )}
               >
@@ -74,8 +74,8 @@ const PricingComponent = ({ showTitle = true, className, surface = 'home' }) => 
                 )}
 
                 <CardHeader>
-                  <h3 className="text-xl font-bold text-white">{plan.name}</h3>
-                  <div className="text-3xl font-bold text-white mt-2">
+                  <h3 className="text-xl font-bold text-foreground">{plan.name}</h3>
+                  <div className="text-3xl font-bold text-foreground mt-2">
                     {plan.displayPrice || `${plan.priceAmount}€`}{' '}
                     <span className="text-sm font-normal text-muted-foreground">{PERIOD_LABEL[plan.billingType] || '/mes'}</span>
                   </div>
@@ -89,7 +89,7 @@ const PricingComponent = ({ showTitle = true, className, surface = 'home' }) => 
                         {feature.included ? (
                           <Check className="h-5 w-5 text-green-500 flex-shrink-0" />
                         ) : (
-                          <X className="h-5 w-5 text-gray-600 flex-shrink-0" />
+                          <X className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                         )}
                         <span className={feature.included ? 'text-muted-foreground' : 'text-muted-foreground'}>{feature.featureText}</span>
                       </li>

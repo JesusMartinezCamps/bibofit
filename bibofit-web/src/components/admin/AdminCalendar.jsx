@@ -166,7 +166,7 @@ const AdminCalendar = ({ selectedUser }) => {
 
   return (
     <>
-      <div className="w-full flex-grow flex flex-col bg-background p-6 rounded-2xl">
+      <div className="w-full flex-grow flex flex-col bg-card/75 border border-border p-6 rounded-2xl">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -174,7 +174,7 @@ const AdminCalendar = ({ selectedUser }) => {
           className="calendar-header"
         >
           <div className="flex items-center justify-between">
-            <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-green-400 bg-clip-text text-transparent">
+            <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-emerald-700 to-emerald-500 dark:from-white dark:to-green-300 bg-clip-text text-transparent">
               {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
             </h2>
             <div className="flex items-center space-x-3">
@@ -246,7 +246,7 @@ const AdminCalendar = ({ selectedUser }) => {
                       {otherEvents.map((event, eventIndex) => (
                         <motion.div 
                           key={eventIndex} 
-                          className={`event-chip ${event.type === 'routine_template' ? 'event-chip-workout' : 'bg-green-500/20 text-green-200 border-green-500/40'}`}
+                          className={`event-chip ${event.type === 'routine_template' ? 'event-chip-workout' : 'bg-green-500/20 text-green-700 dark:text-green-200 border-green-500/40'}`}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: eventIndex * 0.1 }}
@@ -265,9 +265,9 @@ const AdminCalendar = ({ selectedUser }) => {
       </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="calendar-dialog-content text-white border-border max-w-lg">
+        <DialogContent className="calendar-dialog-content border-border max-w-lg">
           <DialogHeader>
-            <DialogTitle className="calendar-dialog-title text-center bg-gradient-to-r from-white to-green-400 bg-clip-text text-transparent">
+            <DialogTitle className="calendar-dialog-title text-center bg-gradient-to-r from-emerald-700 to-emerald-500 dark:from-white dark:to-green-300 bg-clip-text text-transparent">
               ¿Qué quieres gestionar?
             </DialogTitle>
             <DialogDescription className="calendar-dialog-description text-center text-muted-foreground">

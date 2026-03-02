@@ -125,7 +125,7 @@ const LoginPage = () => {
                 >
                   <AppIcon className="w-10 h-10 text-black" />
                 </motion.div>
-                <h1 className="text-3xl font-bold text-white mb-2">Iniciar Sesión</h1>
+                <h1 className="text-3xl font-bold text-foreground mb-2">Iniciar Sesión</h1>
                 <p className="text-muted-foreground">Accede a tu cuenta para continuar.</p>
               </div>
 
@@ -155,10 +155,10 @@ const LoginPage = () => {
                 <Button 
                   type="submit" 
                   disabled={isLoading || authLoading} 
-                  className="w-full btn-primary text-white bg-green-500/50 border border-border hover:bg-green-800 hover:text-foreground"
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
                 >
                   {isLoading || authLoading ? (
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-foreground"></div>
                   ) : (
                     'Iniciar Sesión'
                   )}
@@ -170,7 +170,7 @@ const LoginPage = () => {
                   <span className="w-full border-t border-input"></span>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="bg-[#282d34] px-2 text-muted-foreground">O continúa con</span>
+                  <span className="bg-card px-2 text-muted-foreground">O continúa con</span>
                 </div>
               </div>
 
@@ -179,7 +179,7 @@ const LoginPage = () => {
                   variant="outline" 
                   onClick={handleOAuth} 
                   disabled={isLoading || authLoading} 
-                  className="text-white bg-blue-500/30 border border-border hover:bg-muted hover:text-foreground w-full"
+                  className="w-full border-input bg-background text-foreground hover:bg-muted"
                 >
                   <GoogleLogo className="mr-2" /> Google
                 </Button>
@@ -188,13 +188,13 @@ const LoginPage = () => {
               <div className="mt-8 text-center text-sm text-muted-foreground space-y-2">
                 <p>
                   ¿No tienes una cuenta?{' '}
-                  <Link to="/signup" className="font-medium text-green-400 hover:underline">
+                  <Link to="/signup" className="font-medium text-primary hover:underline">
                     Regístrate
                   </Link>
                 </p>
                 <p>
                   ¿Has olvidado tu contraseña?{' '}
-                  <Link to="/reset-password" className="font-medium text-green-400 hover:underline">
+                  <Link to="/reset-password" className="font-medium text-primary hover:underline">
                     Recupérala
                   </Link>
                 </p>

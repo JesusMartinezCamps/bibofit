@@ -56,7 +56,7 @@ const AuthConfirmedPage = () => {
                 )}
               </div>
 
-              <h1 className="text-3xl font-bold text-white mb-2">Cuenta confirmada</h1>
+              <h1 className="text-3xl font-bold text-foreground mb-2">Cuenta confirmada</h1>
 
               {loading && (
                 <p className="text-muted-foreground mb-6">Validando sesión y preparando tu acceso...</p>

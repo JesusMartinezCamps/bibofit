@@ -73,15 +73,15 @@ const CheckEmailPage = () => {
                 <div className="inline-flex items-center justify-center w-16 h-16 bg-green-500/20 rounded-full mb-4">
                   <MailCheck className="w-8 h-8 text-green-400" />
                 </div>
-                <h1 className="text-3xl font-bold text-white mb-2">Revisa tu correo</h1>
+                <h1 className="text-3xl font-bold text-foreground mb-2">Revisa tu correo</h1>
                 <p className="text-muted-foreground">
                   Hemos enviado un enlace de confirmación
                   {email ? ` a ${email}` : ''}.
                 </p>
               </div>
 
-              <div className="rounded-xl border border-border/60 bg-[#11161d]/80 p-4 space-y-2 mb-6">
-                <p className="text-sm text-gray-200">Siguientes pasos:</p>
+              <div className="rounded-xl border border-border/60 bg-card/70 p-4 space-y-2 mb-6">
+                <p className="text-sm text-foreground">Siguientes pasos:</p>
                 <p className="text-sm text-muted-foreground">1. Abre el email de Bibofit.</p>
                 <p className="text-sm text-muted-foreground">2. Pulsa en "Confirmar mi cuenta".</p>
                 <p className="text-sm text-muted-foreground">3. Te llevaremos a una pantalla de confirmación para empezar.</p>
@@ -100,7 +100,7 @@ const CheckEmailPage = () => {
                 <Button
                   variant="outline"
                   onClick={() => navigate('/login')}
-                  className="w-full border-input text-white bg-transparent hover:bg-muted"
+                  className="w-full border-input text-foreground bg-transparent hover:bg-muted"
                 >
                   Ir a iniciar sesión
                 </Button>
@@ -112,7 +112,7 @@ const CheckEmailPage = () => {
 
               <p className="text-center text-sm text-muted-foreground mt-4">
                 ¿Te has equivocado de correo?{' '}
-                <Link to="/signup" className="text-green-400 hover:underline">
+                <Link to="/signup" className="text-primary hover:underline">
                   Crear cuenta de nuevo
                 </Link>
               </p>

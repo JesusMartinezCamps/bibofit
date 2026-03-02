@@ -111,7 +111,7 @@ const SignUpPage = () => {
                 >
                   <UserPlus className="w-8 h-8 text-black" />
                 </motion.div>
-                <h1 className="text-3xl font-bold text-white mb-2">Crear Cuenta</h1>
+                <h1 className="text-3xl font-bold text-foreground mb-2">Crear Cuenta</h1>
                 <p className="text-muted-foreground">Únete a Bibofit y empieza tu transformación</p>
               </div>
 
@@ -154,10 +154,10 @@ const SignUpPage = () => {
                 <Button 
                   type="submit" 
                   disabled={isLoading} 
-                  className="w-full btn-primary text-white bg-green-500/70 hover:bg-green-600"
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
                 >
                   {isLoading ? (
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-foreground"></div>
                   ) : (
                     'Crear Cuenta'
                   )}
@@ -169,7 +169,7 @@ const SignUpPage = () => {
                   <span className="w-full border-t border-input"></span>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="bg-[#282d34] px-2 text-muted-foreground">O regístrate con</span>
+                  <span className="bg-card px-2 text-muted-foreground">O regístrate con</span>
                 </div>
               </div>
 
@@ -178,7 +178,7 @@ const SignUpPage = () => {
                   variant="outline" 
                   onClick={handleOAuth} 
                   disabled={isLoading} 
-                  className="text-white bg-blue-500/30 border border-border hover:bg-muted hover:text-foreground w-full"
+                  className="w-full border-input bg-background text-foreground hover:bg-muted"
                 >
                   <GoogleLogo className="mr-2" /> Google
                 </Button>
@@ -186,7 +186,7 @@ const SignUpPage = () => {
 
               <p className="mt-8 text-center text-sm text-muted-foreground">
                 ¿Ya tienes una cuenta?{' '}
-                <Link to="/login" className="font-medium text-green-400 hover:underline">
+                <Link to="/login" className="font-medium text-primary hover:underline">
                   Inicia Sesión
                 </Link>
               </p>

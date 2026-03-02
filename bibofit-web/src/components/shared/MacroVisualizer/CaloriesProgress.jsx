@@ -25,11 +25,11 @@ const CaloriesProgress = ({ name, actual, target, color }) => {
                     <span className={`font-semibold ${c.text}`}>{name}</span>
                 </div>
                 <div>
-                    <span className="text-lg font-bold text-white tabular-nums w-[5ch] inline-block text-right">{Math.round(safeActual)}</span>
+                    <span className="text-lg font-bold text-foreground dark:text-white tabular-nums w-[5ch] inline-block text-right">{Math.round(safeActual)}</span>
                     <span className="text-sm text-muted-foreground"> / {Math.round(safeTarget)} kcal</span>
                 </div>
             </div>
-            <div className="relative h-5 w-full bg-muted/50 rounded-full overflow-hidden flex items-center justify-center">
+            <div className="relative h-5 w-full bg-muted/70 border border-border/60 rounded-full overflow-hidden flex items-center justify-center">
                 <motion.div
                     className={`absolute top-0 left-0 h-full bg-gradient-to-r ${c.gradientFrom} ${c.gradientTo} rounded-full`}
                     initial={{ width: 0 }}

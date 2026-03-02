@@ -12,22 +12,22 @@ const MacroDisplay = ({ macros, title }) => {
         <div className="flex flex-col items-center">
           <CaloriesIcon className="text-orange-400 w-5 h-5" />
           <span className="text-xs text-muted-foreground mt-1">Calorías</span>
-          <span className="font-bold text-lg text-orange-300">{Math.round(macros.calories)}</span>
+          <span className="font-bold text-lg text-orange-700 dark:text-orange-300">{Math.round(macros.calories)}</span>
         </div>
         <div className="flex flex-col items-center">
           <ProteinIcon className="text-red-400 w-5 h-5" />
           <span className="text-xs text-muted-foreground mt-1">Proteínas</span>
-          <span className="font-bold text-lg text-red-300">{Math.round(macros.proteins)}g</span>
+          <span className="font-bold text-lg text-red-700 dark:text-red-300">{Math.round(macros.proteins)}g</span>
         </div>
         <div className="flex flex-col items-center">
           <CarbsIcon className="text-yellow-400 w-5 h-5" />
           <span className="text-xs text-muted-foreground mt-1">Carbs</span>
-          <span className="font-bold text-lg text-yellow-300">{Math.round(macros.carbs)}g</span>
+          <span className="font-bold text-lg text-yellow-700 dark:text-yellow-300">{Math.round(macros.carbs)}g</span>
         </div>
         <div className="flex flex-col items-center">
           <FatsIcon className="text-green-400 w-5 h-5" />
           <span className="text-xs text-muted-foreground mt-1">Grasas</span>
-          <span className="font-bold text-lg text-green-300">{Math.round(macros.fats)}g</span>
+          <span className="font-bold text-lg text-green-700 dark:text-green-300">{Math.round(macros.fats)}g</span>
         </div>
       </div>
     </div>

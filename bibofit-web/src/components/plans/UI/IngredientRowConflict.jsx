@@ -118,7 +118,7 @@ const IngredientRowConflict = ({
         borderColor
     )}>
       <div className="flex-1 space-y-1">
-        <span className="font-medium text-white">{foodDetails?.name || ingredient.food_name}</span>
+        <span className="font-medium text-foreground">{foodDetails?.name || ingredient.food_name}</span>
         <div className="flex items-center gap-2 flex-wrap">
             {conflict && <ConflictBadge conflict={conflict} />}
             {isUserCreated && (
@@ -145,12 +145,12 @@ const IngredientRowConflict = ({
             value={quantity}
             onChange={handleQuantityChange}
             onFocus={handleFocus}
-            className="w-24 bg-transparent border-input pr-8 text-right"
+            className="w-24 bg-card/70 border-input pr-8 text-right"
             min="0"
           />
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{unit}</span>
         </div>
-        <Button variant="ghost" size="icon" onClick={() => onRemove(index)} className="text-red-500 hover:bg-red-900/50">
+        <Button variant="ghost" size="icon" onClick={() => onRemove(index)} className="text-red-600 dark:text-red-500 hover:bg-red-100/60 dark:hover:bg-red-900/50">
           <X className="w-4 h-4" />
         </Button>
       </div>

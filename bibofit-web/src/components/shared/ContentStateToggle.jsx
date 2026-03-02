@@ -22,7 +22,9 @@ const ContentStateToggle = ({
           disabled={loading}
           className={cn(
             "flex items-center justify-center gap-2 p-2 rounded-md transition-colors text-sm font-semibold",
-            mode === optionOne.value ? 'bg-slate-700 text-white' : 'text-muted-foreground hover:bg-accent/50'
+            mode === optionOne.value
+              ? 'bg-primary/20 text-primary border border-primary/35'
+              : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
           )}
         >
           <IconOne className="h-4 w-4" />
@@ -33,7 +35,9 @@ const ContentStateToggle = ({
           disabled={loading}
           className={cn(
             "flex items-center justify-center gap-2 p-2 rounded-md transition-colors text-sm font-semibold",
-            mode === optionTwo.value ? 'bg-slate-700 text-white' : 'text-muted-foreground hover:bg-accent/50'
+            mode === optionTwo.value
+              ? 'bg-primary/20 text-primary border border-primary/35'
+              : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
           )}
         >
           <IconTwo className="h-4 w-4" />
@@ -59,7 +63,7 @@ const ContentStateToggle = ({
         disabled={loading}
         className={cn(
           "flex items-center gap-2 p-2 rounded-md transition-colors relative z-10",
-          mode === optionOne.value ? 'text-white' : 'text-muted-foreground'
+          mode === optionOne.value ? 'text-foreground' : 'text-muted-foreground'
         )}
       >
         <IconOne className="h-4 w-4" />
@@ -70,14 +74,14 @@ const ContentStateToggle = ({
         disabled={loading}
         className={cn(
           "flex items-center gap-2 p-2 rounded-md transition-colors relative z-10",
-          mode === optionTwo.value ? 'text-white' : 'text-muted-foreground'
+          mode === optionTwo.value ? 'text-foreground' : 'text-muted-foreground'
         )}
       >
         <IconTwo className="h-4 w-4" />
         <span className="font-semibold hidden sm:inline">{optionTwo.label}</span>
       </button>
       <motion.div
-        className="absolute top-1 bottom-1 bg-slate-700 rounded-md z-0"
+        className="absolute top-1 bottom-1 bg-primary/20 border border-primary/35 rounded-md z-0"
         initial={false}
         animate={{
           x: mode === optionOne.value ? '0%' : '100%',

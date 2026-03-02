@@ -4,10 +4,10 @@ import { Check } from 'lucide-react';
 
 const ForWhom = () => {
     return (
-        <section id="for-whom" className="py-24 bg-[#16191d]">
+        <section id="for-whom" className="py-24 bg-card/60">
             <div className="container mx-auto px-4 md:px-6">
                 <div className="text-center mb-12">
-                    <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Diseñado para ambos lados</h2>
+                    <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Diseñado para ambos lados</h2>
                     <p className="text-muted-foreground">Una experiencia unificada que conecta a profesionales y usuarios.</p>
                 </div>
 
@@ -21,7 +21,7 @@ const ForWhom = () => {
                         <TabsContent value="coach" className="bg-background border border-border rounded-2xl p-8 animate-in fade-in-0 slide-in-from-left-4 duration-500">
                             <div className="grid md:grid-cols-2 gap-8 items-center">
                                 <div className="space-y-4">
-                                    <h3 className="text-2xl font-bold text-white">Gestiona tu negocio como un Pro</h3>
+                                    <h3 className="text-2xl font-bold text-foreground">Gestiona tu negocio como un Pro</h3>
                                     <p className="text-muted-foreground">Deja de perder tiempo en tareas administrativas y enfócate en lo que importa: el trato y los resultados de tus clientes.</p>
                                     <ul className="space-y-3">
                                         {['Gestión ilimitada de clientes', 'Librería de plantillas de Dietas y Recetas', 'Automatización de kcal y Macros', 'Gestión de Notificacione y Recordatorios por Cliente'].map((item, i) => (
@@ -46,7 +46,7 @@ const ForWhom = () => {
                                     <img alt="App vista cliente" className="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity" src="https://images.unsplash.com/photo-1648134859182-98df6e93ef58" />
                                 </div>
                                 <div className="space-y-4 order-1 md:order-2">
-                                    <h3 className="text-2xl font-bold text-white">Tu plan en tu bolsillo</h3>
+                                    <h3 className="text-2xl font-bold text-foreground">Tu plan en tu bolsillo</h3>
                                     <p className="text-muted-foreground">Accede a tus dietas y rutinas en cualquier momento. Registra tu progreso y mantente motivado.</p>
                                     <ul className="space-y-3">
                                         {['Visualización clara de tu dieta', 'Añade Picoteos y Bibofit se encargará de cuadrarlos', 'Registro e hisotiral de peso', 'Lista de la Compra Inteligente'].map((item, i) => (

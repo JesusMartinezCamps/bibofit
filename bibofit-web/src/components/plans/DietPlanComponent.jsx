@@ -50,7 +50,7 @@ const DateTimeline = ({ currentDate, setCurrentDate, navigate, isAdminView, user
     const isTodayInPast = !isTodayVisible && isBefore(today, weekDates[0]);
 
     return (
-        <div className="flex items-center justify-center gap-2 bg-card/75 p-2 rounded-xl border border-border">
+        <div className="flex items-center justify-center gap-2 bg-card/85 p-2 rounded-xl border border-border shadow-sm">
             <Button variant="ghost" size="icon" onClick={() => changeWeek('prev')} className="text-muted-foreground hover:bg-muted hover:text-muted-foreground">
                 <ArrowLeft className={cn(isTodayInPast ? "text-cyan-400" : "text-muted-foreground")} />
             </Button>
@@ -60,15 +60,24 @@ const DateTimeline = ({ currentDate, setCurrentDate, navigate, isAdminView, user
                     const dayEvents = timelineEvents[dateString] || { reminders: 0, weight: 0, diet_logs: [], snacks: 0 };
                     const isCurrentDay = isToday(date);
                     return (
-                        <button key={dateString} onClick={() => handleDateClick(date)} className={cn("flex flex-col items-center p-2 rounded-lg transition-colors", isSameDay(date, currentDate) ? 'bg-slate-700' : 'hover:bg-muted')}>
-                            <span className={cn("text-xs uppercase font-bold", isCurrentDay ? "bg-gradient-to-t from-cyan-700 to-cyan-300 bg-clip-text text-transparent" : "text-muted-foreground")}>{format(date, 'eee', {locale: es})}</span>
-                            <span className={cn("text-lg font-bold", isSameDay(date, currentDate) ? 'text-white' : (isCurrentDay ? "bg-gradient-to-t from-cyan-700 to-cyan-300 bg-clip-text text-transparent" : "text-muted-foreground"))}>{format(date, 'd')}</span>
+                        <button
+                          key={dateString}
+                          onClick={() => handleDateClick(date)}
+                          className={cn(
+                            "flex flex-col items-center p-2 rounded-lg transition-colors",
+                            isSameDay(date, currentDate)
+                              ? 'bg-primary/20 border border-primary/40 shadow-sm'
+                              : 'hover:bg-muted/80'
+                          )}
+                        >
+                            <span className={cn("text-xs uppercase font-bold", isSameDay(date, currentDate) ? "text-primary" : (isCurrentDay ? "text-primary" : "text-muted-foreground"))}>{format(date, 'eee', {locale: es})}</span>
+                            <span className={cn("text-lg font-bold", isSameDay(date, currentDate) ? 'text-primary' : (isCurrentDay ? "text-primary" : "text-muted-foreground"))}>{format(date, 'd')}</span>
                             <div className="flex flex-wrap justify-center gap-1 mt-1 min-h-[12px] items-center">
                                 {isAdminView && dayEvents.reminders > 0 && <div className="w-2 h-2 rounded-full bg-amber-500" title="Recordatorio"></div>}
                                 {dayEvents.weight > 0 && <div className="w-2 h-2 rounded-full bg-purple-500" title="Peso registrado"></div>}
                                 {dayEvents.snacks > 0 && <div className="w-2 h-2 rounded-full bg-orange-500" title="Picoteo registrado"></div>}
                                 {dayEvents.diet_logs.slice(0, 3).map((log, i) => (
-                                    <div key={i} className={cn("w-2 h-2 rounded-full", log.isFree ? "bg-[rgb(155,255,247)]" : "bg-green-500")} title={log.isFree ? "Receta libre registrada" : "Comida registrada"}></div>
+                                    <div key={i} className={cn("w-2 h-2 rounded-full", log.isFree ? "bg-cyan-500" : "bg-green-600")} title={log.isFree ? "Receta libre registrada" : "Comida registrada"}></div>
                                 ))}
                             </div>
                         </button>
@@ -461,7 +470,7 @@ const combinedPlanRestrictions = useMemo(() => {
                 <DateTimeline currentDate={currentDate} setCurrentDate={handleDateChange} navigate={navigate} isAdminView={isAdminView} userId={userId} refreshTrigger={timelineRefreshTrigger} activePlanId={activePlan?.id} />
           </div>
 
-          <Card className="bg-card/75 border-border text-white overflow-hidden shadow-xl">
+          <Card className="bg-card/85 border-border text-foreground overflow-hidden shadow-xl">
             <CardHeader className="pb-3 pt-5 px-5">
               <div className="flex justify-between items-center">
                 <div className="hidden sm:block">
@@ -476,14 +485,14 @@ const combinedPlanRestrictions = useMemo(() => {
                       onClick={() => setIsWeightLogOpen(true)} 
                       className={cn(
                           "p-3 rounded-lg border shadow-lg text-center cursor-pointer h-auto flex flex-col justify-center w-full transition-transform hover:scale-[1.02]",
-                          weightForDay 
-                              ? "bg-gradient-to-br from-purple-800/50 via-purple-600/20 to-gray-900/10 border-purple-500/50"
-                              : "bg-gradient-to-br from-gray-800/50 via-gray-600/20 to-gray-900/10 border-border/50"
+                          weightForDay
+                              ? "bg-violet-100/70 dark:bg-violet-900/30 border-violet-400/60 dark:border-violet-500/50"
+                              : "bg-muted/65 border-border/80"
                       )}
                   >
                       <h4 className={cn(
                           "font-semibold text-sm flex items-center justify-center gap-2",
-                          weightForDay ? "text-purple-300" : "text-purple-400"
+                          weightForDay ? "text-violet-700 dark:text-violet-300" : "text-violet-700/85 dark:text-violet-300"
                       )}>
                           <Weight className="w-4 h-4"/>
                           {weightForDay 
@@ -494,30 +503,30 @@ const combinedPlanRestrictions = useMemo(() => {
                       </h4>
                       <p className={cn(
                           "text-2xl font-bold mt-1",
-                          weightForDay ? "text-white" : "text-purple-300"
+                          weightForDay ? "text-foreground dark:text-white" : "text-foreground"
                       )}>
                           {displayWeight?.weight_kg ? `${displayWeight.weight_kg} kg` : 'Introduce tu primer Registro'}
                       </p>
                       {isExactMatch && displayWeight?.satiety_levels && (
-                          <span className="text-xs text-purple-200/80 mt-1">
+                          <span className="text-xs text-violet-700/75 dark:text-violet-200/80 mt-1">
                               {displayWeight.satiety_levels.emoji} {displayWeight.satiety_levels.name}
                           </span>
                       )}
                       {!isExactMatch && hasInterpolationDetails ? (
-                        <div className="text-[11px] sm:text-xs text-purple-100/80 mt-2 space-y-1 leading-relaxed">
-                          <div className="text-purple-200/80">
+                        <div className="text-[11px] sm:text-xs text-violet-700/80 dark:text-violet-100/80 mt-2 space-y-1 leading-relaxed">
+                          <div className="text-violet-700/80 dark:text-violet-200/80">
                             {previousWeightLog?.weight_kg} kg · {format(parseISO(previousWeightLog.logged_on), 'dd-MM-yyyy')} y {nextWeightLog?.weight_kg} kg · {format(parseISO(nextWeightLog.logged_on), 'dd-MM-yyyy')}
                           </div>
                         </div>
                       ) : (
                         <>
                           {!isExactMatch && closestWeightDate && (
-                            <span className="text-xs text-purple-400/70 mt-1">
+                            <span className="text-xs text-violet-700/80 dark:text-violet-300/70 mt-1">
                               {format(closestWeightDate, 'dd-MM-yyyy')} ({relativeWeightLabel})
                             </span>
                           )}
                           {!isExactMatch && interpolatedWeight && (
-                            <div className="text-xs text-purple-200/80 mt-1">
+                            <div className="text-xs text-violet-700/80 dark:text-violet-200/80 mt-1">
                               Peso estimado (media aproximada): {interpolatedWeight.toFixed(1)} kg
                             </div>
                           )}
@@ -584,7 +593,7 @@ const combinedPlanRestrictions = useMemo(() => {
               </div>
           </div>
 
-          <Card className="bg-card/75 border-border text-white shadow-xl">
+          <Card className="bg-card/85 border-border text-foreground shadow-xl">
               <div className="p-4 border-b border-border">
                   <ContentStateToggle
                       mode={viewMode}

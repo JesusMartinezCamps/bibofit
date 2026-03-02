@@ -68,7 +68,7 @@ const PricingPage = () => {
   const comparisonRows = useMemo(() => buildFeatureMatrix(visiblePlans), [visiblePlans]);
 
   return (
-    <div className="min-h-screen bg-background text-white font-sans flex flex-col">
+    <div className="min-h-screen bg-background text-foreground font-sans flex flex-col">
       <Helmet>
         <title>Precios y Planes | Bibofit</title>
         <meta name="description" content="Elige el plan perfecto para tus objetivos de fitness y nutrición." />
@@ -79,7 +79,7 @@ const PricingPage = () => {
       <main className="pt-10 pb-20 flex-grow">
         <div className="container mx-auto px-4 md:px-6">
           <div className="text-center mb-12 max-w-3xl mx-auto">
-            <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400 mb-6">
+            <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-700 via-emerald-500 to-teal-400 dark:from-white dark:via-green-200 dark:to-emerald-400 mb-6">
               Invierte en tu salud
             </h1>
             <p className="text-xl text-muted-foreground">
@@ -91,7 +91,7 @@ const PricingPage = () => {
 
           <div className="max-w-6xl mx-auto mt-24 mb-24">
             <h2 className="text-3xl font-bold text-center mb-12">Comparativa Detallada</h2>
-            <div className="overflow-x-auto bg-[#15191e] rounded-xl border border-border p-6">
+            <div className="overflow-x-auto bg-card rounded-xl border border-border p-6">
               {loadingComparison ? (
                 <div className="flex justify-center items-center h-24">
                   <Loader2 className="h-7 w-7 animate-spin text-green-500" />
@@ -102,7 +102,7 @@ const PricingPage = () => {
                     <tr className="border-b border-border">
                       <th className="py-4 px-4 text-muted-foreground font-medium">Funcionalidad</th>
                       {visiblePlans.map((plan) => (
-                        <th key={plan.id} className="py-4 px-4 text-center text-white font-bold">
+                        <th key={plan.id} className="py-4 px-4 text-center text-foreground font-bold">
                           {plan.name}
                         </th>
                       ))}
@@ -119,7 +119,7 @@ const PricingPage = () => {
                               {included ? (
                                 <Check className="mx-auto h-5 w-5 text-green-500" />
                               ) : (
-                                <X className="mx-auto h-5 w-5 text-gray-700" />
+                                <X className="mx-auto h-5 w-5 text-muted-foreground" />
                               )}
                             </td>
                           );
@@ -136,7 +136,7 @@ const PricingPage = () => {
             <h2 className="text-3xl font-bold text-center mb-12">Preguntas Frecuentes</h2>
             <Accordion type="single" collapsible className="space-y-4">
               {faqs.map((faq, idx) => (
-                <AccordionItem key={idx} value={`item-${idx}`} className="bg-[#15191e] border border-border rounded-lg px-6">
+                <AccordionItem key={idx} value={`item-${idx}`} className="bg-card border border-border rounded-lg px-6">
                   <AccordionTrigger className="text-lg font-medium hover:text-green-400 hover:no-underline py-6">
                     {faq.question}
                   </AccordionTrigger>

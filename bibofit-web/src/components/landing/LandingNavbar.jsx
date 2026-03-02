@@ -53,11 +53,13 @@ const LandingNavbar = ({ showNavigationOptions = true }) => {
     <nav
       className={cn(
         'fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b border-transparent',
-        isScrolled ? 'bg-background/90 backdrop-blur-md border-border py-3' : 'bg-[hsl(213.33deg_14.75%_11.96%)] py-5'
+        isScrolled
+          ? 'bg-background/90 backdrop-blur-md border-border/80 py-3 shadow-sm'
+          : 'bg-background/70 backdrop-blur-sm border-border/50 py-5'
       )}
     >
       <div className="container mx-auto px-4 md:px-6 flex items-center justify-between">
-        <Link to="/home" className="flex items-center gap-2 font-bold text-2xl text-white">
+        <Link to="/home" className="flex items-center gap-2 font-bold text-2xl text-foreground">
           <div className="bg-gradient-to-br from-green-400/20 to-green-600/20 p-1.5 rounded-lg flex items-center justify-center">
             <AppIcon className="h-6 w-6 text-black" />
           </div>
@@ -92,7 +94,7 @@ const LandingNavbar = ({ showNavigationOptions = true }) => {
 
         <div className="hidden md:flex items-center gap-4">
           <Link to="/login">
-            <Button variant="ghost" className="text-white hover:text-green-400 hover:bg-white/5">
+            <Button variant="ghost" className="text-foreground hover:text-green-500 hover:bg-muted/70">
               Iniciar Sesión
             </Button>
           </Link>
@@ -104,7 +106,7 @@ const LandingNavbar = ({ showNavigationOptions = true }) => {
         </div>
 
         <button
-          className="md:hidden text-white p-2"
+          className="md:hidden text-foreground p-2"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         >
           {isMobileMenuOpen ? <X /> : <Menu />}
@@ -117,7 +119,7 @@ const LandingNavbar = ({ showNavigationOptions = true }) => {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden bg-background border border-white/20 shadow-lg shadow-black/40 overflow-hidden rounded-b-xl"
+            className="md:hidden bg-popover text-popover-foreground border border-border shadow-lg shadow-black/15 overflow-hidden rounded-b-xl"
           >
             <div className="flex flex-col p-4 space-y-4">
               {showNavigationOptions && navLinks.map((link) => (
@@ -144,7 +146,7 @@ const LandingNavbar = ({ showNavigationOptions = true }) => {
 
               <div className={cn("flex flex-col gap-3", showNavigationOptions && "pt-2 border-t border-border")}>
                 <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button variant="ghost" className="text-white bg-gray-500/10 hover:text-green-400 hover:bg-white/5 w-full">
+                  <Button variant="ghost" className="text-foreground bg-muted/60 hover:text-green-500 hover:bg-muted w-full">
                     Iniciar Sesión
                   </Button>
                 </Link>

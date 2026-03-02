@@ -45,7 +45,7 @@ const FeaturesGrid = () => {
             <div className="container mx-auto px-4 md:px-6 relative z-10">
                 <div className="text-center mb-16">
                     <span className="text-green-500 font-semibold tracking-wider uppercase text-sm">Características</span>
-                    <h2 className="text-3xl md:text-5xl font-bold text-white mt-2 mb-4">Todo lo que necesitas para escalar</h2>
+                    <h2 className="text-3xl md:text-5xl font-bold text-foreground mt-2 mb-4">Todo lo que necesitas para escalar</h2>
                     <p className="text-muted-foreground max-w-2xl mx-auto">
                         Herramientas profesionales diseñadas para optimizar tu flujo de trabajo y mejorar los resultados de tus clientes.
                     </p>
@@ -60,12 +60,12 @@ const FeaturesGrid = () => {
                             viewport={{ once: true }}
                             transition={{ delay: index * 0.1 }}
                         >
-                            <Card className="bg-[#15191e] border-border hover:border-border transition-colors h-full">
+                            <Card className="bg-card border-border hover:border-border transition-colors h-full">
                                 <CardHeader>
                                     <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center mb-4">
                                         {feature.icon}
                                     </div>
-                                    <CardTitle className="text-white text-xl">{feature.title}</CardTitle>
+                                    <CardTitle className="text-foreground text-xl">{feature.title}</CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <p className="text-muted-foreground leading-relaxed">

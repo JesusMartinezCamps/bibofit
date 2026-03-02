@@ -15,7 +15,7 @@ import WhatsAppButton from '@/components/landing/WhatsAppButton';
 
 const HomePage = () => {
     return (
-        <div className="min-h-screen bg-background font-sans selection:bg-green-500/30 text-white">
+        <div className="min-h-screen bg-background font-sans selection:bg-green-500/30 text-foreground">
             <Helmet>
                 <title>Bibofit | Software para Nutricionistas y Entrenadores</title>
                 <meta name="description" content="La plataforma todo en uno para gestionar planes de nutrición, rutinas de entrenamiento y seguimiento de clientes. Escala tu negocio fitness con Bibofit." />

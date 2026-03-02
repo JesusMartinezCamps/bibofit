@@ -243,7 +243,7 @@ const BibofitMock = () => {
   }, [totals, targets]);
 
   return (
-    <div className="relative rounded-2xl border border-border bg-[#15191e]/80 backdrop-blur-sm shadow-2xl overflow-hidden">
+    <div className="relative rounded-2xl border border-emerald-500/20 bg-[#0f1722]/90 backdrop-blur-sm shadow-2xl overflow-hidden">
       {/* Browser Header Mockup */}
       <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-background">
         <div className="flex gap-1.5">
@@ -259,10 +259,10 @@ const BibofitMock = () => {
       </div>
 
       {/* Content */}
-      <div className="p-5 sm:p-6 space-y-5 bg-[#0E141B]">
+      <div className="p-5 sm:p-6 space-y-5 bg-[#0d1620]">
         {/* Top header actions */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 rounded-2xl bg-[#111A22] border border-[#1E2832] p-2">
+          <div className="flex items-center gap-2 rounded-2xl bg-[#12212d] border border-[#233645] p-2">
             <Tap
               className="h-10 w-12 rounded-xl bg-green-500/20 border border-green-500/40 flex items-center justify-center hover:bg-green-500/25 hover:border-green-400/50"
               flashClassName="bg-green-500/30 border-green-300/60"
@@ -272,7 +272,7 @@ const BibofitMock = () => {
             </Tap>
 
             <Tap
-              className="h-10 w-12 rounded-xl bg-[#16212B] border border-[#23303C] flex items-center justify-center hover:bg-white/5 hover:border-white/20"
+              className="h-10 w-12 rounded-xl bg-[#1a2b38] border border-[#2f4658] flex items-center justify-center hover:bg-white/5 hover:border-white/20"
               flashClassName="bg-white/10 border-white/25"
               onTapAction={() => randomizeDayData()}
             >
@@ -280,7 +280,7 @@ const BibofitMock = () => {
             </Tap>
 
             <Tap
-              className="h-10 w-12 rounded-xl bg-[#16212B] border border-[#23303C] flex items-center justify-center hover:bg-white/5 hover:border-white/20"
+              className="h-10 w-12 rounded-xl bg-[#1a2b38] border border-[#2f4658] flex items-center justify-center hover:bg-white/5 hover:border-white/20"
               flashClassName="bg-white/10 border-white/25"
               onTapAction={() => randomizeDayData()}
             >
@@ -296,10 +296,10 @@ const BibofitMock = () => {
         </div>
 
         {/* Week selector */}
-        <div className="rounded-3xl bg-[#111A22] border border-[#1E2832] p-0 sm:p-4">
+        <div className="rounded-3xl bg-[#12212d] border border-[#233645] p-0 sm:p-4">
           <div className="flex items-center justify-between">
             <Tap
-              className="h-10 w-10 rounded-2xl bg-[#16212B] border border-[#23303C] flex items-center justify-center hover:bg-white/5 hover:border-white/20"
+              className="h-10 w-10 rounded-2xl bg-[#1a2b38] border border-[#2f4658] flex items-center justify-center hover:bg-white/5 hover:border-white/20"
               flashClassName="bg-white/10 border-white/25"
               onTapAction={() => onDayPress(addDays(selectedDate, -1))}
             >
@@ -324,7 +324,7 @@ const BibofitMock = () => {
               })}
 
               <Tap
-                className="w-12 sm:w-16 h-[84px] rounded-3xl bg-[#1A2530] border border-[#2A3846] flex flex-col items-center justify-center hover:bg-white/5 hover:border-white/20"
+                className="w-12 sm:w-16 h-[84px] rounded-3xl bg-[#1d2f3f] border border-[#34566c] flex flex-col items-center justify-center hover:bg-white/5 hover:border-white/20"
                 flashClassName="bg-white/10 border-white/25"
                 onTapAction={() => onDayPress(selectedDay.date)}
               >
@@ -351,7 +351,7 @@ const BibofitMock = () => {
             </div>
 
             <Tap
-              className="h-10 w-10 rounded-2xl bg-[#16212B] border border-[#23303C] flex items-center justify-center hover:bg-white/5 hover:border-white/20"
+              className="h-10 w-10 rounded-2xl bg-[#1a2b38] border border-[#2f4658] flex items-center justify-center hover:bg-white/5 hover:border-white/20"
               flashClassName="bg-white/10 border-white/25"
               onTapAction={() => onDayPress(addDays(selectedDate, 1))}
             >
@@ -361,18 +361,18 @@ const BibofitMock = () => {
         </div>
 
         {/* Weight card */}
-        <div className="rounded-3xl bg-[#111A22] border border-[#1E2832] p-5">
+        <div className="rounded-3xl bg-[#12212d] border border-[#233645] p-5">
           <Tap
-            className="w-full rounded-2xl bg-[#121E28] border border-[#1F2B37] p-5 text-center hover:bg-white/5 hover:border-white/20"
+            className="w-full rounded-2xl bg-[#163041] border border-[#2c4d61] p-5 text-center hover:bg-white/5 hover:border-white/20"
             flashClassName="bg-white/10 border-white/25"
             onTapAction={onWeightPress}
           >
-            <div className="flex items-center justify-center gap-2 text-purple-300 font-semibold">
+            <div className="flex items-center justify-center gap-2 text-emerald-300 font-semibold">
               <Scale className="h-5 w-5" />
               <span>Peso medio estimado</span>
             </div>
 
-            <div className="mt-2 text-3xl font-extrabold text-purple-200">
+            <div className="mt-2 text-3xl font-extrabold text-emerald-100">
               <AnimatedNumber value={`${weightKg}`} />{' '}
               <span className="text-2xl font-extrabold">kg</span>
             </div>
@@ -443,11 +443,11 @@ const BibofitMock = () => {
         </div>
 
         {/* Day / Week segmented */}
-        <div className="rounded-3xl bg-[#111A22] border border-[#1E2832] p-4">
-          <div className="grid grid-cols-2 gap-3 rounded-2xl bg-[#0F171F] border border-[#1E2832] p-2">
+        <div className="rounded-3xl bg-[#12212d] border border-[#233645] p-4">
+          <div className="grid grid-cols-2 gap-3 rounded-2xl bg-[#10202d] border border-[#233645] p-2">
             <button
               type="button"
-              className="h-12 rounded-2xl bg-[#263240] border border-[#334354] text-white font-semibold flex items-center justify-center gap-2"
+              className="h-12 rounded-2xl bg-[#1f3a4d] border border-[#35566e] text-white font-semibold flex items-center justify-center gap-2"
             >
               <ListOrdered className="h-5 w-5 text-white/70" />
               Día
@@ -467,7 +467,7 @@ const BibofitMock = () => {
           <h3 className="text-2xl font-extrabold text-white">Comidas del día</h3>
           <button
             type="button"
-            className="h-12 w-12 rounded-2xl bg-[#111A22] border border-[#1E2832] flex items-center justify-center"
+            className="h-12 w-12 rounded-2xl bg-[#12212d] border border-[#233645] flex items-center justify-center"
             onClick={randomizeDayData}
           >
             <ShoppingCart className="h-6 w-6 text-sky-300" />
@@ -475,7 +475,7 @@ const BibofitMock = () => {
         </div>
 
         {/* Breakfast accordion card */}
-        <div className="rounded-3xl bg-[#111A22] border border-[#1E2832] p-5">
+        <div className="rounded-3xl bg-[#12212d] border border-[#233645] p-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="text-2xl font-extrabold text-green-300">Desayunos</div>
@@ -485,14 +485,14 @@ const BibofitMock = () => {
             <div className="flex items-center gap-3">
               <button
                 type="button"
-                className="h-12 w-12 rounded-2xl bg-[#151E28] border border-[#24303C] flex items-center justify-center"
+                className="h-12 w-12 rounded-2xl bg-[#172a38] border border-[#2d4457] flex items-center justify-center"
                 onClick={randomizeDayData}
               >
                 <Apple className="h-5 w-5 text-orange-300" />
               </button>
               <button
                 type="button"
-                className="h-12 w-12 rounded-2xl bg-[#151E28] border border-[#24303C] flex items-center justify-center"
+                className="h-12 w-12 rounded-2xl bg-[#172a38] border border-[#2d4457] flex items-center justify-center"
                 onClick={randomizeDayData}
               >
                 <UtensilsCrossed className="h-5 w-5 text-sky-300" />
@@ -529,7 +529,7 @@ const BibofitMock = () => {
         </div>
 
         {/* Lunch card */}
-        <div className="rounded-3xl bg-[#111A22] border border-[#1E2832] p-5">
+        <div className="rounded-3xl bg-[#12212d] border border-[#233645] p-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="text-2xl font-extrabold text-white/85">Comidas</div>
@@ -539,7 +539,7 @@ const BibofitMock = () => {
             <div className="flex items-center gap-3">
               <button
                 type="button"
-                className="h-12 w-12 rounded-2xl bg-[#151E28] border border-[#24303C] flex items-center justify-center"
+                className="h-12 w-12 rounded-2xl bg-[#172a38] border border-[#2d4457] flex items-center justify-center"
                 onClick={randomizeDayData}
               >
                 <UtensilsCrossed className="h-6 w-6 text-sky-300" />
@@ -587,7 +587,7 @@ const HeroSection = () => {
     <section className="relative pt-32 pb-0 sm:pb-12 lg:pt-48 lg:pb-12 overflow-hidden">
       {/* Background Gradients */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-green-500/10 blur-[120px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-[300px] h-[300px] bg-blue-500/10 blur-[100px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-[300px] h-[300px] bg-teal-500/10 blur-[100px] rounded-full pointer-events-none" />
 
       <div className="container mx-auto px-4 md:px-6">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-start">
@@ -601,9 +601,9 @@ const HeroSection = () => {
               ¡Nueva Versión de Lanzamiento 1.0!
             </div>
 
-            <h1 className="text-2xl lg:text-6xl font-extrabold text-white leading-tight mb-6">
+            <h1 className="text-2xl lg:text-6xl font-extrabold text-foreground leading-tight mb-6">
               Una app que enfocada en que puedas seguir una dieta flexible, <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-500 to-emerald-600 dark:from-green-300 dark:to-emerald-400">
                 ¿Lo peor de seguir una dieta? Es perder la libertad en la cocina. Bibofit la he diseñado para que precisamente se adapte a todo lo que le quieras cambiar, para que te quedes sin excusas para no mejorar tu dieta.
               </span>
             </h1>
@@ -624,7 +624,7 @@ const HeroSection = () => {
                 <Button
                   variant="outline"
                   size="lg"
-                  className="w-full sm:w-auto border-input bg-emerald-200/10 text-green-300 hover:bg-green-100/10 hover:text-green-200 h-12 px-8"
+                  className="w-full sm:w-auto border-input bg-background/60 text-foreground hover:bg-muted h-12 px-8"
                 >
                   Iniciar Sesión
                 </Button>

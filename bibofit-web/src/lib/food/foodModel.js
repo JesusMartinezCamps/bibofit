@@ -12,7 +12,8 @@ export const FOOD_CARD_SELECT = `
   created_at,
   food_to_seasons(season_id, season(name)),
   food_to_food_groups(food_group_id, food_groups(id, name)),
-  food_to_stores(store_id),
+  food_to_stores(store_id, store:stores(id, name)),
+  food_to_macro_roles(macro_role_id, macro_role:macro_roles(id, name)),
   food_vitamins(vitamin_id, mg_per_100g, vitamins(id, name)),
   food_minerals(mineral_id, mg_per_100g, minerals(id, name)),
   food_sensitivities(sensitivity_id, sensitivities(id, name))
@@ -31,6 +32,16 @@ export const normalizeFoodRecord = (food = {}) => {
     .filter(Boolean);
   const directSeasons = toArray(food.seasons).filter(Boolean);
 
+  const relationStores = toArray(food.food_to_stores)
+    .map((entry) => entry?.store || entry?.stores)
+    .filter(Boolean);
+  const directStores = toArray(food.stores).filter(Boolean);
+
+  const relationMacroRoles = toArray(food.food_to_macro_roles)
+    .map((entry) => entry?.macro_role || entry?.macro_roles)
+    .filter(Boolean);
+  const directMacroRoles = toArray(food.macro_roles).filter(Boolean);
+
   const relationSensitivities = toArray(food.food_sensitivities).map((entry) => ({
     ...entry,
     sensitivity_id: entry?.sensitivity_id ?? entry?.sensitivities?.id,
@@ -45,6 +56,8 @@ export const normalizeFoodRecord = (food = {}) => {
     fats: food.fats ?? food.total_fats,
     food_groups: relationGroups.length > 0 ? relationGroups : directGroups,
     seasons: relationSeasons.length > 0 ? relationSeasons : directSeasons,
+    stores: relationStores.length > 0 ? relationStores : directStores,
+    macro_roles: relationMacroRoles.length > 0 ? relationMacroRoles : directMacroRoles,
     food_sensitivities: relationSensitivities,
     is_user_created: isUserCreated,
     isUserCreated: isUserCreated,
