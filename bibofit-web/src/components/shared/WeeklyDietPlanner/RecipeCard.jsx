@@ -155,7 +155,7 @@ const RecipeCard = ({
     );
   };
   
-  const fallbackBg = 'linear-gradient(135deg, #16191d71 0%, #1a1e2349 100%)';
+  const fallbackBg = 'linear-gradient(135deg, #333a44ff 0%, #56125fff 100%)';
   const bgStyle = { backgroundImage: imageUrl ? `url(${imageUrl})` : fallbackBg };
 
   if (isListView) {
@@ -172,12 +172,12 @@ const RecipeCard = ({
         {/* Dark Overlay */}
         <div className={cn(
           "absolute inset-0 pointer-events-none",
-          imageUrl ? "bg-black/60" : (isPrivate ? "bg-violet-900/20" : (!isSafe ? "bg-red-900/40" : "bg-black/20"))
+          imageUrl ? "bg-black/45" : (isPrivate ? "bg-violet-900/20" : (!isSafe ? "bg-red-900/40" : "bg-black/10"))
         )} />
         {/* Gradient Bottom Overlay */}
         <div 
           className="absolute inset-0 pointer-events-none"
-          style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0, 0, 0, 0.29) 40%, rgba(0,0,0,0) 100%)' }}
+          style={{ background: 'linear-gradient(to top, rgba(0, 0, 0, 0.48) 0%, rgba(0, 0, 0, 0.38) 40%, rgba(0, 0, 0, 0) 100%)' }}
         />
 
         <button onClick={() => handleRecipeClick && handleRecipeClick({ ...recipe, is_private_recipe: isPrivate }, adjustment)} className="relative z-10 w-full h-full text-left p-5 flex flex-col justify-between">
@@ -275,7 +275,7 @@ const RecipeCard = ({
       {/* Gradient Bottom Overlay */}
       <div 
         className="absolute inset-0 pointer-events-none"
-        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0, 0, 0, 0.29) 40%, rgba(0,0,0,0) 100%)' }}
+        style={{ background: 'linear-gradient(to top, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.29) 40%, rgba(0,0,0,0) 100%)' }}
       />
 
       <button onClick={() => handleRecipeClick && handleRecipeClick({ ...recipe, is_private_recipe: isPrivate }, adjustment)} className="relative z-10 flex-1 text-left p-3 w-4/5">

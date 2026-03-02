@@ -513,6 +513,7 @@ html:not(.dark) .app-main-shell {
 }
 
 .number-input {
+  appearance: none;
   -webkit-appearance: none;
   margin: 0;
   -moz-appearance: textfield;
@@ -520,6 +521,7 @@ html:not(.dark) .app-main-shell {
 
 .number-input::-webkit-outer-spin-button,
 .number-input::-webkit-inner-spin-button {
+  appearance: none;
   -webkit-appearance: none;
   margin: 0;
 }

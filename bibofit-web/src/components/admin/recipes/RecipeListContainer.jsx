@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { Input } from '@/components/ui/input';
-import { Loader2, Trash2, X } from 'lucide-react';
+import { Loader2, X } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Button } from '@/components/ui/button';
 import RecipeCard from '@/components/admin/recipes/RecipeCard';
 
 const RecipeListContainer = ({ onSelectRecipe, selectedRecipeId, onDeleteRecipe, refreshToken = 0 }) => {
@@ -127,29 +126,16 @@ const RecipeListContainer = ({ onSelectRecipe, selectedRecipeId, onDeleteRecipe,
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                   >
-                    <div className="relative">
-                      <RecipeCard
-                        recipe={recipe}
-                        onAdd={onSelectRecipe}
-                        onCardClick={onSelectRecipe}
-                        addButtonText={selectedRecipeId === recipe.id ? 'Deseleccionar' : 'Seleccionar'}
-                        themeColor="green"
-                        highlight={searchTerm}
-                        selected={selectedRecipeId === recipe.id}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-3 top-3 h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-900/30"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(recipe);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <RecipeCard
+                      recipe={recipe}
+                      onAdd={onSelectRecipe}
+                      onCardClick={onSelectRecipe}
+                      onDelete={handleDelete}
+                      addButtonText={selectedRecipeId === recipe.id ? 'Deseleccionar' : 'Seleccionar'}
+                      themeColor="green"
+                      highlight={searchTerm}
+                      selected={selectedRecipeId === recipe.id}
+                    />
                   </motion.div>
                 ))}
               </div>

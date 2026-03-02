@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Clock, ChefHat, AlertTriangle, ThumbsUp, Lock } from 'lucide-react';
+import { Clock, ChefHat, AlertTriangle, ThumbsUp, Lock, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import CaloriesIcon from '@/components/icons/CaloriesIcon';
 import ProteinIcon from '@/components/icons/ProteinIcon';
@@ -22,6 +22,7 @@ const RecipeCard = ({
   addButtonText = "Añadir",
   themeColor = "green",
   onCardClick,
+  onDelete,
   isPlanner = false,
   userRestrictions,
   highlight = '',
@@ -87,7 +88,7 @@ const RecipeCard = ({
         style={
           recipe.image_url
             ? {
-                backgroundImage: `linear-gradient(rgba(2, 6, 23, 0.9), rgba(2, 6, 23, 0.55)), url(${recipe.image_url})`,
+                backgroundImage: `linear-gradient(rgba(2, 6, 23, 0), rgba(16, 48, 44, 0.51)), url(${recipe.image_url})`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
               }
@@ -105,38 +106,54 @@ const RecipeCard = ({
               <Lock className="w-4 h-4 text-muted-foreground" />
           </div>
       )}
-      <CardHeader className="p-4 pb-2 space-y-2">
-        <div className="flex justify-between items-start">
-          <h3 className="font-bold text-lg text-gray-100 leading-tight line-clamp-2 group-hover:text-foreground transition-colors">
-            <HighlightedText text={recipe.name} highlight={highlight} />
-          </h3>
-        </div>
-        
-        <div className="flex flex-wrap gap-2">
-            {hasConflicts && (
-                <Badge variant="outline" className="bg-red-900/20 text-red-400 border-red-500/30 flex items-center gap-1 px-2 py-0.5 h-6">
-                    <AlertTriangle className="w-3 h-3" />
-                    Conflictos
-                </Badge>
+      <CardHeader className="p-4 pb-2">
+        <div className="bg-card/75 p-3 rounded-md border border-border space-y-2">
+          <div className="flex items-start gap-2">
+            <h3 className="font-bold text-lg text-foreground leading-tight line-clamp-2 transition-colors flex-1 min-w-0">
+              <HighlightedText text={recipe.name} highlight={highlight} />
+            </h3>
+            {onDelete && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 -mr-1 -mt-1 text-red-400 hover:text-red-300 hover:bg-red-900/30 shrink-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(recipe);
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
             )}
-            {hasRecommendations && (
-                <Badge variant="outline" className="bg-green-900/20 text-green-400 border-green-500/30 flex items-center gap-1 px-2 py-0.5 h-6">
-                    <ThumbsUp className="w-3 h-3" />
-                    Recomendado
-                </Badge>
-            )}
-            <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {recipe.prep_time_min || 0}m</span>
-                <span className="flex items-center gap-1">
-                    <ChefHat className="w-3 h-3" /> 
-                    <HighlightedText text={recipe.difficulty || 'Fácil'} highlight={highlight} />
-                </span>
-            </div>
+          </div>
+          
+          <div className="flex flex-wrap gap-2">
+              {hasConflicts && (
+                  <Badge variant="outline" className="bg-red-900/20 text-red-400 border-red-500/30 flex items-center gap-1 px-2 py-0.5 h-6">
+                      <AlertTriangle className="w-3 h-3" />
+                      Conflictos
+                  </Badge>
+              )}
+              {hasRecommendations && (
+                  <Badge variant="outline" className="bg-green-900/20 text-green-400 border-green-500/30 flex items-center gap-1 px-2 py-0.5 h-6">
+                      <ThumbsUp className="w-3 h-3" />
+                      Recomendado
+                  </Badge>
+              )}
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {recipe.prep_time_min || 0}m</span>
+                  <span className="flex items-center gap-1">
+                      <ChefHat className="w-3 h-3" /> 
+                      <HighlightedText text={recipe.difficulty || 'Fácil'} highlight={highlight} />
+                  </span>
+              </div>
+          </div>
         </div>
       </CardHeader>
 
       <CardContent className="p-4 pt-2 flex-grow">
-        <div className="space-y-1 mb-4">
+        <div className="bg-card/75 p-3 rounded-md border border-border space-y-1 mb-4">
              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-2">Ingredientes:</p>
              <ul className="space-y-1">
                 {(recipe.recipe_ingredients || []).slice(0, 6).map((ing, i) => {
