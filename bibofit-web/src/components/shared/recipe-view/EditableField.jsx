@@ -75,7 +75,7 @@ const EditableField = ({
         >
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
-        <SelectContent className="bg-[#282d34] border border-border text-white">
+        <SelectContent>
           {options.map((opt) => (
             <SelectItem key={opt.value} value={opt.value} className="focus:bg-muted focus:text-white">
               {opt.label}

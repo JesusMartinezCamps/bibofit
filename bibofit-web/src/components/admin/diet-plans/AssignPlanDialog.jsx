@@ -401,10 +401,10 @@ const AssignPlanDialog = ({
                                         onValueChange={setSelectedClientId}
                                         disabled={!!preselectedData} 
                                     >
-                                        <SelectTrigger className="bg-muted border-border disabled:opacity-50">
+                                        <SelectTrigger className="disabled:opacity-50">
                                             <SelectValue placeholder="Seleccionar cliente" />
                                         </SelectTrigger>
-                                        <SelectContent className="bg-background border-border text-white">
+                                        <SelectContent>
                                             {clients.map(client => (
                                                 <SelectItem key={client.user_id} value={client.user_id}>
                                                     {client.full_name}
@@ -420,7 +420,7 @@ const AssignPlanDialog = ({
                                 <Input 
                                     value={newPlanName} 
                                     onChange={(e) => setNewPlanName(e.target.value)}
-                                    className="bg-muted border-border disabled:opacity-50"
+                                    className="disabled:opacity-50"
                                     disabled={!!preselectedData} 
                                 />
                             </div>
@@ -434,9 +434,9 @@ const AssignPlanDialog = ({
                                         endDate={endDate}
                                         onChange={(update) => setDateRange(update)}
                                         placeholder="Seleccionar rango de fechas"
+                                        variant="compact"
                                         withPortal
                                         shouldCloseOnSelect={false}
-                                        triggerClassName="w-full bg-muted border border-border rounded-md text-white disabled:opacity-50"
                                         disabled={!!preselectedData} 
                                     />
                                 </div>

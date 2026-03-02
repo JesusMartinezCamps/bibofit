@@ -182,7 +182,7 @@ const FoodRestrictionsForm = ({ userId, onSaveStatusChange }) => {
             <div className="flex items-center gap-3 p-2 rounded bg-muted/65 border border-border">
                 <span className="text-sm text-muted-foreground whitespace-nowrap">Nivel de sensibilidad:</span>
                 <Select value={sensitivityLevel} onValueChange={setSensitivityLevel}>
-                    <SelectTrigger className="h-8 w-32 bg-muted border-input text-xs text-white">
+                    <SelectTrigger className="h-8 w-32 text-xs">
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>

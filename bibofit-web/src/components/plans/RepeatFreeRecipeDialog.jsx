@@ -471,10 +471,10 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
 
             <div className="flex justify-center">
                 <Select value={filterType} onValueChange={setFilterType}>
-                    <SelectTrigger className="w-full bg-muted border-border text-white h-9 text-sm">
+                    <SelectTrigger className="w-full h-9 text-sm">
                         <SelectValue placeholder="Filtrar recetas" />
                     </SelectTrigger>
-                    <SelectContent className="bg-muted border-border text-white">
+                    <SelectContent>
                         <SelectItem value="all">Todas las recetas</SelectItem>
                         <SelectItem value="free">Mis recetas libres</SelectItem>
                         <SelectItem value="template">Plantillas de recetas</SelectItem>

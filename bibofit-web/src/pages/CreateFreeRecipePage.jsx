@@ -208,17 +208,17 @@ const CreateFreeRecipePage = () => {
                         </div>
                         <div className="space-y-1">
                             <label htmlFor="recipeName" className="block text-sm font-medium text-muted-foreground">Nombre de la Receta</label>
-                            <Input id="recipeName" type="text" placeholder="Ej: Pollo al curry con arroz" value={recipeName} onChange={(e) => setRecipeName(e.target.value)} className="input-field" />
+                            <Input id="recipeName" type="text" placeholder="Ej: Pollo al curry con arroz" value={recipeName} onChange={(e) => setRecipeName(e.target.value)} />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label htmlFor="prepTime" className="block text-sm font-medium text-muted-foreground">Tiempo (min)</label>
-                                <Input id="prepTime" type="number" placeholder="Ej: 30" value={prepTime} onChange={(e) => setPrepTime(e.target.value)} className="input-field" />
+                                <Input id="prepTime" type="number" placeholder="Ej: 30" value={prepTime} onChange={(e) => setPrepTime(e.target.value)} />
                             </div>
                             <div>
                                 <label htmlFor="difficulty" className="block text-sm font-medium text-muted-foreground">Dificultad</label>
                                 <Select value={difficulty} onValueChange={setDifficulty}>
-                                    <SelectTrigger className="input-field"><SelectValue placeholder="Selecciona dificultad" /></SelectTrigger>
+                                    <SelectTrigger><SelectValue placeholder="Selecciona dificultad" /></SelectTrigger>
                                     <SelectContent><SelectItem value="Fácil">Fácil</SelectItem><SelectItem value="Media">Media</SelectItem><SelectItem value="Difícil">Difícil</SelectItem></SelectContent>
                                 </Select>
                             </div>

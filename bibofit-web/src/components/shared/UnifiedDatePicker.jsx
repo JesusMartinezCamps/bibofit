@@ -6,25 +6,49 @@ import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
 const DateTrigger = forwardRef(
-  ({ value, onClick, placeholder, disabled, className, id, compact = false }, ref) => (
-    <button
-      id={id}
-      ref={ref}
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={cn(
-        'bf-date-trigger',
-        compact ? 'bf-date-trigger--compact' : '',
-        className
-      )}
-    >
-      <span className={cn('truncate text-left', !value && 'text-muted-foreground')}>
-        {value || placeholder || 'Seleccionar fecha'}
-      </span>
-      <Calendar className="h-4 w-4 shrink-0 text-muted-foreground" />
-    </button>
-  )
+  (
+    {
+      value,
+      onClick,
+      placeholder,
+      disabled,
+      className,
+      id,
+      variant = 'default',
+      align = 'left',
+      weight = 'normal',
+    },
+    ref
+  ) => {
+    const variantClass = {
+      default: '',
+      compact: 'min-h-[40px] rounded-lg px-3 py-2 text-xs',
+      pill: 'min-h-[40px] rounded-full px-3 py-2 text-xs',
+    }[variant] || '';
+
+    return (
+      <button
+        id={id}
+        ref={ref}
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        className={cn('bf-date-trigger', variantClass, className)}
+      >
+        <span
+          className={cn(
+            'truncate',
+            align === 'center' ? 'flex-1 text-center' : 'text-left',
+            weight === 'semibold' ? 'font-semibold' : 'font-normal',
+            !value && 'text-muted-foreground'
+          )}
+        >
+          {value || placeholder || 'Seleccionar fecha'}
+        </span>
+        <Calendar className="h-4 w-4 shrink-0 text-muted-foreground" />
+      </button>
+    );
+  }
 );
 
 DateTrigger.displayName = 'DateTrigger';
@@ -60,6 +84,9 @@ const UnifiedDatePicker = ({
   calendarClassName,
   popperClassName,
   compact = false,
+  variant = 'default',
+  align = 'left',
+  weight = 'normal',
   minYear = 1920,
   maxYear = new Date().getFullYear() + 10,
   withPortal = false,
@@ -68,6 +95,7 @@ const UnifiedDatePicker = ({
 }) => {
   const monthNames = useMemo(() => getMonthNames(locale), [locale]);
   const yearOptions = useMemo(() => getYearOptions(minYear, maxYear), [minYear, maxYear]);
+  const effectiveVariant = compact && variant === 'default' ? 'compact' : variant;
 
   return (
     <DatePicker
@@ -89,13 +117,15 @@ const UnifiedDatePicker = ({
         <DateTrigger
           id={id}
           placeholder={placeholder}
-          compact={compact}
+          variant={effectiveVariant}
+          align={align}
+          weight={weight}
           className={triggerClassName}
         />
       }
       wrapperClassName={cn('w-full', className)}
-      calendarClassName={cn('bf-datepicker', calendarClassName)}
-      popperClassName={cn('bf-datepicker-popper', popperClassName)}
+      calendarClassName={cn(calendarClassName, 'bf-datepicker')}
+      popperClassName={cn(popperClassName, 'bf-datepicker-popper')}
       renderCustomHeader={({
         date,
         changeYear,

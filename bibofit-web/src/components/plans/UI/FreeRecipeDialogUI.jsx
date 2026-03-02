@@ -42,7 +42,7 @@ const FreeRecipeDialogUI = ({
             placeholder="Ej: Pollo al curry con arroz"
             value={recipeName}
             onChange={(e) => setRecipeName(e.target.value)}
-            className="input-field"
+           
           />
         </div>
       </div>
@@ -56,13 +56,13 @@ const FreeRecipeDialogUI = ({
             placeholder="Ej: 30"
             value={prepTime}
             onChange={(e) => setPrepTime(e.target.value)}
-            className="input-field"
+           
           />
         </div>
         <div>
           <label htmlFor="difficulty" className="block text-sm font-medium text-muted-foreground mb-1">Dificultad</label>
           <Select value={difficulty} onValueChange={setDifficulty}>
-              <SelectTrigger className="input-field">
+              <SelectTrigger>
                   <SelectValue placeholder="Selecciona dificultad" />
               </SelectTrigger>
               <SelectContent>

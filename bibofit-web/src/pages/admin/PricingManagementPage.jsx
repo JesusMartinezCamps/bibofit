@@ -391,7 +391,7 @@ const PricingManagementPage = () => {
 
       <main className="w-full px-4 py-8">
         <div className="max-w-7xl mx-auto text-white space-y-6">
-          <Card className="bg-background border-border text-white">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Planes y Ofertas</CardTitle>
@@ -458,7 +458,7 @@ const PricingManagementPage = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-background border-border text-white">
+          <Card>
             <CardHeader>
               <CardTitle>Asignación Manual (Premium regalado)</CardTitle>
               <CardDescription>
@@ -468,10 +468,10 @@ const PricingManagementPage = () => {
             <CardContent className="space-y-4">
               <div className="grid md:grid-cols-3 gap-3">
                 <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-                  <SelectTrigger className="bg-card border-border text-white">
+                  <SelectTrigger>
                     <SelectValue placeholder="Seleccionar usuario" />
                   </SelectTrigger>
-                  <SelectContent className="bg-card border-border text-white max-h-72">
+                  <SelectContent className="max-h-72">
                     {users.map((user) => (
                       <SelectItem key={user.user_id} value={user.user_id}>
                         {(user.full_name || user.email || user.user_id).slice(0, 80)}
@@ -481,10 +481,10 @@ const PricingManagementPage = () => {
                 </Select>
 
                 <Select value={selectedPlanId} onValueChange={setSelectedPlanId}>
-                  <SelectTrigger className="bg-card border-border text-white">
+                  <SelectTrigger>
                     <SelectValue placeholder="Seleccionar plan" />
                   </SelectTrigger>
-                  <SelectContent className="bg-card border-border text-white">
+                  <SelectContent>
                     {activePlans.map((plan) => (
                       <SelectItem key={plan.id} value={String(plan.id)}>
                         {plan.name}
@@ -559,10 +559,10 @@ const PricingManagementPage = () => {
               <Input value={planForm.priceCurrency} onChange={(e) => setPlanForm((prev) => ({ ...prev, priceCurrency: e.target.value.toUpperCase() }))} placeholder="Moneda" className="bg-card border-border" />
 
               <Select value={planForm.billingType} onValueChange={(value) => setPlanForm((prev) => ({ ...prev, billingType: value }))}>
-                <SelectTrigger className="bg-card border-border text-white">
+                <SelectTrigger>
                   <SelectValue placeholder="Tipo cobro" />
                 </SelectTrigger>
-                <SelectContent className="bg-card border-border text-white">
+                <SelectContent>
                   <SelectItem value="monthly">Mensual</SelectItem>
                   <SelectItem value="one_time">Pago unico</SelectItem>
                 </SelectContent>

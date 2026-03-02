@@ -357,9 +357,11 @@ const PlanHeader = ({ plan, onUpdate, onToggleActive, readOnly = false }) => {
                         endDate={endDate}
                         selectsRange
                         placeholder="Seleccionar rango"
+                        variant="compact"
+                        align="center"
+                        weight="semibold"
                         shouldCloseOnSelect={false}
                         withPortal
-                        triggerClassName="font-semibold text-white bg-muted/50 border border-input rounded-md px-3 py-1.5 hover:bg-muted transition-colors w-full text-center"
                       />
                     )}
                   </InfoItem>

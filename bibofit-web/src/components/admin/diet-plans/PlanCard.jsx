@@ -118,10 +118,9 @@ import React, { useState, useMemo } from 'react';
                                     endDate={endDate}
                                     selectsRange
                                     placeholder="Seleccionar rango"
+                                    variant="pill"
                                     shouldCloseOnSelect={false}
                                     withPortal
-                                    triggerClassName="min-h-[40px] rounded-full border-violet-500/50 bg-violet-900/30 px-3 py-2 text-xs text-violet-200 hover:bg-violet-800/40"
-                                    calendarClassName="!bg-[#121722] !border-violet-700/40"
                                 />
                             </div>
                         </div>

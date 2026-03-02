@@ -191,7 +191,7 @@ const ManageAntioxidants = () => {
       </main>
 
       <Dialog open={isDialogOpen} onOpenChange={handleCloseDialog}>
-        <DialogContent className="bg-background border-border text-white">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>{currentAntioxidant ? 'Editar' : 'Añadir'} Antioxidante</DialogTitle>
           </DialogHeader>

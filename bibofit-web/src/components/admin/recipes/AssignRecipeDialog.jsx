@@ -179,23 +179,23 @@ const AssignRecipeDialog = ({ recipe, open, onOpenChange, onAssigned, preselecte
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-background border-border text-white">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Asignar Receta: {recipe?.name}</DialogTitle>
           <DialogDescription>Asigna esta plantilla de receta a un plan de dieta de un cliente.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-            <SelectTrigger className="input-field"><SelectValue placeholder="Seleccionar cliente..." /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder="Seleccionar cliente..." /></SelectTrigger>
             <SelectContent>{clients.map(c => <SelectItem key={c.user_id} value={c.user_id}>{c.full_name}</SelectItem>)}</SelectContent>
           </Select>
           <Select value={selectedPlanId} onValueChange={setSelectedPlanId} disabled={!selectedClientId || dietPlans.length === 0}>
-            <SelectTrigger className="input-field"><SelectValue placeholder={dietPlans.length === 0 && selectedClientId ? "Este cliente no tiene planes" : "Seleccionar plan de dieta..."} /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder={dietPlans.length === 0 && selectedClientId ? "Este cliente no tiene planes" : "Seleccionar plan de dieta..."} /></SelectTrigger>
             <SelectContent>{dietPlans.map(p => <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>)}</SelectContent>
           </Select>
           <DayMealSelect userId={selectedClientId} onValueChange={setDayMealId} value={dayMealId} />
           <Select onValueChange={setDayOfWeek} value={dayOfWeek} defaultValue="null">
-            <SelectTrigger className="input-field"><SelectValue placeholder="Seleccionar día de la semana..." /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder="Seleccionar día de la semana..." /></SelectTrigger>
             <SelectContent>{dayOptions.map(d => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}</SelectContent>
           </Select>
           

@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Loader2, Plus, Search, Trash2 } from 'lucide-react';
 
@@ -556,7 +557,7 @@ const FoodSubstitutionRulesPage = () => {
     <main className="w-full px-4 py-8 space-y-6">
       <h1 className="text-3xl font-bold text-white">Normas de Sustitución</h1>
 
-      <Card className="bg-background border-border text-white">
+      <Card>
         <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>
@@ -627,16 +628,21 @@ const FoodSubstitutionRulesPage = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="confidence">Grado de confianza</Label>
-                <select
-                  id="confidence"
-                  value={formData.confidence_score}
-                  onChange={(event) => setFormData((prev) => ({ ...prev, confidence_score: Number(event.target.value) }))}
-                  className="w-full bg-card border border-border rounded-md px-3 py-2 text-sm"
+                <Select
+                  value={String(formData.confidence_score)}
+                  onValueChange={(value) => setFormData((prev) => ({ ...prev, confidence_score: Number(value) }))}
                 >
-                  {CONFIDENCE_OPTIONS.map((item) => (
-                    <option key={item.value} value={item.value}>{item.label}</option>
-                  ))}
-                </select>
+                  <SelectTrigger id="confidence">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CONFIDENCE_OPTIONS.map((item) => (
+                      <SelectItem key={item.value} value={String(item.value)}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="is_automatic">Aplicación automática</Label>
@@ -717,7 +723,7 @@ const FoodSubstitutionRulesPage = () => {
         </CardContent>
       </Card>
 
-      <Card className="bg-background border-border text-white">
+      <Card>
         <CardHeader>
           <CardTitle>Normas activas</CardTitle>
           <CardDescription className="text-muted-foreground">Listado actual de reglas de sustitución.</CardDescription>

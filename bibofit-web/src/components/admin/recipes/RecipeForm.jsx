@@ -8,20 +8,20 @@ const RecipeForm = ({ formData, onFormChange, onSelectChange }) => {
     <div className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="name">Nombre de la Receta</Label>
-        <Input id="name" name="name" value={formData.name} onChange={onFormChange} className="input-field" required />
+        <Input id="name" name="name" value={formData.name} onChange={onFormChange} required />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="prep_time_min">Tiempo (min)</Label>
-          <Input id="prep_time_min" name="prep_time_min" type="number" value={formData.prep_time_min} onChange={onFormChange} className="input-field" />
+          <Input id="prep_time_min" name="prep_time_min" type="number" value={formData.prep_time_min} onChange={onFormChange} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="difficulty">Dificultad</Label>
           <Select name="difficulty" value={formData.difficulty} onValueChange={(v) => onSelectChange('difficulty', v)}>
-            <SelectTrigger className="input-field">
+            <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-[#282d34] border border-border text-white z-50">
+            <SelectContent>
               <SelectItem value="Fácil" className="focus:bg-muted focus:text-white">Fácil</SelectItem>
               <SelectItem value="Media" className="focus:bg-muted focus:text-white">Media</SelectItem>
               <SelectItem value="Difícil" className="focus:bg-muted focus:text-white">Difícil</SelectItem>

@@ -537,10 +537,10 @@ const UsersManagerPage = () => {
                     onValueChange={(val) => handleRoleChange(user.user_id, val)}
                     disabled={updatingRoleByUserId[user.user_id] || user.user_id === currentUser?.id}
                 >
-                    <SelectTrigger className="h-8 w-[130px] bg-transparent border-border text-xs">
+                    <SelectTrigger className="h-8 w-[130px] text-xs">
                         <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-muted border-border text-white">
+                    <SelectContent>
                         {roles.map((role) => (
                             <SelectItem key={role.id} value={role.id.toString()}>
                                 {role.role.charAt(0).toUpperCase() + role.role.slice(1)}
@@ -693,10 +693,10 @@ const UsersManagerPage = () => {
                 <div className="flex flex-col lg:flex-row gap-3 lg:items-center justify-between rounded-xl border border-border bg-card/75 p-3">
                     <div className="flex flex-col md:flex-row gap-3">
                         <Select value={filterType} onValueChange={setFilterType}>
-                            <SelectTrigger className="w-full md:w-[220px] bg-muted border-border text-white">
+                            <SelectTrigger className="w-full md:w-[220px]">
                                 <SelectValue placeholder="Filtrar usuarios" />
                             </SelectTrigger>
-                            <SelectContent className="bg-muted border-border text-white">
+                            <SelectContent>
                                 <SelectItem value="all">Todos</SelectItem>
                                 <SelectItem value="clients">Clientes</SelectItem>
                                 <SelectItem value="coaches">Entrenadores</SelectItem>
@@ -844,17 +844,17 @@ const UsersManagerPage = () => {
             )}
 
             <Dialog open={isCenterDialogOpen} onOpenChange={setIsCenterDialogOpen}>
-                <DialogContent className="bg-background border-border text-white">
+                <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Asignar Centro</DialogTitle>
                         <DialogDescription>Selecciona el centro para {selectedUserForCenter?.full_name}</DialogDescription>
                     </DialogHeader>
                     <div className="py-4">
                         <Select onValueChange={(val) => handleCenterChange(selectedUserForCenter?.user_id, val)}>
-                            <SelectTrigger className="bg-card border-border text-white">
+                            <SelectTrigger>
                                 <SelectValue placeholder="Seleccionar Centro" />
                             </SelectTrigger>
-                            <SelectContent className="bg-muted border-border text-white">
+                            <SelectContent>
                                 <SelectItem value="none">-- Sin Centro --</SelectItem>
                                 {centers.map((c) => (
                                     <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
@@ -866,7 +866,7 @@ const UsersManagerPage = () => {
             </Dialog>
 
             <Dialog open={isCoachDialogOpen} onOpenChange={setIsCoachDialogOpen}>
-                <DialogContent className="bg-background border-border text-white">
+                <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Asignar Entrenador</DialogTitle>
                         <DialogDescription>
@@ -878,10 +878,10 @@ const UsersManagerPage = () => {
                     </DialogHeader>
                     <div className="py-4">
                         <Select onValueChange={(val) => handleAddCoach(selectedClientForCoach?.user_id, val)}>
-                            <SelectTrigger className="bg-card border-border text-white">
+                            <SelectTrigger>
                                 <SelectValue placeholder="Seleccionar Entrenador" />
                             </SelectTrigger>
-                            <SelectContent className="bg-muted border-border text-white">
+                            <SelectContent>
                                 {selectedClientForCoach && getAvailableCoaches(selectedClientForCoach).length > 0 ? (
                                     getAvailableCoaches(selectedClientForCoach).map((c) => (
                                         <SelectItem key={c.user_id} value={c.user_id}>

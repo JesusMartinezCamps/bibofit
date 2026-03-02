@@ -168,10 +168,10 @@ const PlanTemplateForm = ({ open, onOpenChange, template, onSuccess, centerId })
                                     <div className="space-y-1 animate-in fade-in slide-in-from-top-2 duration-200">
                                         <Label className="text-xs text-muted-foreground">Seleccionar Centro</Label>
                                         <Select value={selectedCenterId || ''} onValueChange={setSelectedCenterId}>
-                                            <SelectTrigger className="bg-card border-border">
+                                            <SelectTrigger>
                                                 <SelectValue placeholder="Selecciona un centro..." />
                                             </SelectTrigger>
-                                            <SelectContent className="bg-background border-border text-white">
+                                            <SelectContent>
                                                 {centersList.map(center => (
                                                     <SelectItem key={center.id} value={center.id.toString()}>
                                                         {center.name}

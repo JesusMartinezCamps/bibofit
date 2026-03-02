@@ -34,7 +34,7 @@ const FormRow = ({ id, label, type = 'text', value, onChange, placeholder, optio
       case 'select':
         return (
           <Select value={value || ''} onValueChange={handleSelectChange}>
-            <SelectTrigger id={id} className="w-full bf-form-control">
+            <SelectTrigger id={id} className="w-full">
               <SelectValue placeholder={placeholder || 'Seleccionar...'} />
             </SelectTrigger>
             <SelectContent>

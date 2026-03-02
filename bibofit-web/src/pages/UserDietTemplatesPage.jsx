@@ -208,10 +208,10 @@ const UserDietTemplatesPage = () => {
                         <div className="space-y-2">
                             <Label className="text-xs text-muted-foreground uppercase">Objetivo</Label>
                             <Select value={filters.objective} onValueChange={(v) => setFilters(prev => ({ ...prev, objective: v }))}>
-                                <SelectTrigger className="bg-card border-border text-sm">
+                                <SelectTrigger className="text-sm">
                                     <SelectValue placeholder="Cualquiera" />
                                 </SelectTrigger>
-                                <SelectContent className="bg-background border-border text-white">
+                                <SelectContent>
                                     <SelectItem value="all">Cualquiera</SelectItem>
                                     {AXIS_OPTIONS_STATIC.objective.map(opt => (
                                         <SelectItem key={opt} value={opt}>{opt}</SelectItem>
@@ -223,10 +223,10 @@ const UserDietTemplatesPage = () => {
                         <div className="space-y-2">
                             <Label className="text-xs text-muted-foreground uppercase">Estilo de Vida</Label>
                             <Select value={filters.lifestyle} onValueChange={(v) => setFilters(prev => ({ ...prev, lifestyle: v }))}>
-                                <SelectTrigger className="bg-card border-border text-sm">
+                                <SelectTrigger className="text-sm">
                                     <SelectValue placeholder="Cualquiera" />
                                 </SelectTrigger>
-                                <SelectContent className="bg-background border-border text-white">
+                                <SelectContent>
                                     <SelectItem value="all">Cualquiera</SelectItem>
                                     {AXIS_OPTIONS_STATIC.lifestyle.map(opt => (
                                         <SelectItem key={opt} value={opt}>{opt}</SelectItem>
@@ -238,10 +238,10 @@ const UserDietTemplatesPage = () => {
                         <div className="space-y-2">
                             <Label className="text-xs text-muted-foreground uppercase">Estilo Nutricional</Label>
                             <Select value={filters.nutrition_style} onValueChange={(v) => setFilters(prev => ({ ...prev, nutrition_style: v }))}>
-                                <SelectTrigger className="bg-card border-border text-sm">
+                                <SelectTrigger className="text-sm">
                                     <SelectValue placeholder="Cualquiera" />
                                 </SelectTrigger>
-                                <SelectContent className="bg-background border-border text-white">
+                                <SelectContent>
                                     <SelectItem value="all">Cualquiera</SelectItem>
                                     {dietTypeOptions.map(opt => (
                                         <SelectItem key={opt.id} value={opt.name}>{opt.name}</SelectItem>
@@ -254,10 +254,10 @@ const UserDietTemplatesPage = () => {
                             <div className="space-y-2">
                                 <Label className="text-xs text-muted-foreground uppercase">Sensibilidades a Evitar</Label>
                                 <Select value={filters.sensitivities} onValueChange={(v) => setFilters(prev => ({ ...prev, sensitivities: v }))}>
-                                    <SelectTrigger className="bg-card border-border text-sm">
+                                    <SelectTrigger className="text-sm">
                                         <SelectValue placeholder="Ninguna específica" />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-background border-border text-white">
+                                    <SelectContent>
                                         <SelectItem value="all">Todas</SelectItem>
                                         {sensitivitiesOptions.map(opt => (
                                             <SelectItem key={opt.id} value={opt.id.toString()}>{opt.name}</SelectItem>
@@ -269,10 +269,10 @@ const UserDietTemplatesPage = () => {
                             <div className="space-y-2">
                                 <Label className="text-xs text-muted-foreground uppercase">Patología (Apta para)</Label>
                                 <Select value={filters.pathology} onValueChange={(v) => setFilters(prev => ({ ...prev, pathology: v }))}>
-                                    <SelectTrigger className="bg-card border-border text-sm">
+                                    <SelectTrigger className="text-sm">
                                         <SelectValue placeholder="Ninguna específica" />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-background border-border text-white">
+                                    <SelectContent>
                                         <SelectItem value="all">Todas</SelectItem>
                                         {pathologyOptions.map(opt => (
                                             <SelectItem key={opt.id} value={opt.id.toString()}>{opt.name}</SelectItem>

@@ -378,7 +378,7 @@ const CentersManagementPage = () => {
                                 value={formData.name} 
                                 onChange={(e) => setFormData({...formData, name: e.target.value})} 
                                 placeholder="Ej: Gimnasio Central"
-                                className="bg-card border-border text-white"
+                               
                                 required
                             />
                         </div>
@@ -390,7 +390,7 @@ const CentersManagementPage = () => {
                                 value={formData.location} 
                                 onChange={(e) => setFormData({...formData, location: e.target.value})} 
                                 placeholder="Ej: Calle Principal 123, Madrid"
-                                className="bg-card border-border text-white"
+                               
                             />
                         </div>
 
@@ -432,10 +432,10 @@ const CentersManagementPage = () => {
                                     value={formData.center_type} 
                                     onValueChange={(val) => setFormData({...formData, center_type: val})}
                                 >
-                                    <SelectTrigger className="bg-card border-border text-white">
+                                    <SelectTrigger>
                                         <SelectValue placeholder="Selecciona un tipo" />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-muted border-border text-white">
+                                    <SelectContent>
                                         {centerTypes.map(type => (
                                             <SelectItem key={type} value={type}>{getTypeLabel(type)}</SelectItem>
                                         ))}
@@ -467,10 +467,10 @@ const CentersManagementPage = () => {
                     <div className="space-y-4 py-4">
                         <div className="flex gap-2">
                              <Select onValueChange={setSelectedUserToAdd} value={selectedUserToAdd}>
-                                <SelectTrigger className="bg-card border-border text-white flex-1">
+                                <SelectTrigger className="flex-1">
                                     <SelectValue placeholder="Seleccionar usuario para añadir..." />
                                 </SelectTrigger>
-                                <SelectContent className="bg-muted border-border text-white max-h-60">
+                                <SelectContent className="max-h-60">
                                     {availableUsers.map(u => (
                                         <SelectItem key={u.user_id} value={u.user_id}>
                                             {u.full_name} ({u.role === 'coach' ? 'Entrenador' : 'Cliente'})

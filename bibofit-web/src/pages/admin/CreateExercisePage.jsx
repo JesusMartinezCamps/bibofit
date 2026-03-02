@@ -240,7 +240,7 @@ const CreateExercisePage = () => {
                     </Card>
                 </div>
                 <div className="lg:col-span-3">
-                    <Card className="bg-background border-border text-white">
+                    <Card>
                         <CardHeader>
                             <div className="flex justify-between items-center">
                                 <div>
@@ -257,7 +257,7 @@ const CreateExercisePage = () => {
                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="name">Nombre del Ejercicio</Label>
-                                    <Input id="name" name="name" value={formData.name} onChange={handleChange} className="input-field" required />
+                                    <Input id="name" name="name" value={formData.name} onChange={handleChange} required />
                                 </div>
                                 <div className="flex items-end pb-2 space-x-2">
                                     <Checkbox id="unilateral" name="unilateral" checked={formData.unilateral} onCheckedChange={(checked) => setFormData(f => ({...f, unilateral: checked}))} className="data-[state=checked]:bg-train-red data-[state=checked]:border-train-red" />
@@ -271,7 +271,7 @@ const CreateExercisePage = () => {
                            <div className="space-y-2">
                                 <Label htmlFor="movement_pattern">Patrón de Movimiento</Label>
                                 <Select value={selectedPattern} onValueChange={(value) => setSelectedPattern(value)}>
-                                    <SelectTrigger id="movement_pattern" className="input-field"><SelectValue placeholder="Filtrar músculos por patrón..." /></SelectTrigger>
+                                    <SelectTrigger id="movement_pattern"><SelectValue placeholder="Filtrar músculos por patrón..." /></SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="">Todos los patrones</SelectItem>
                                         {movementPatterns.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}

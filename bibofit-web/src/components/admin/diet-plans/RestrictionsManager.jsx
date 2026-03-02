@@ -166,7 +166,6 @@ const RestrictionsManager = ({ entityId, entityType, onUpdate, className, hideHe
                             searchPlaceholder="Buscar..."
                             noResultsText="No encontradas."
                             disabled={isSaving}
-                            triggerClassName="bg-card border-border"
                         />
                         <div className="flex flex-wrap gap-2 min-h-[2rem]">
                             {selectedSensitivities.map(s => {
@@ -194,7 +193,6 @@ const RestrictionsManager = ({ entityId, entityType, onUpdate, className, hideHe
                             searchPlaceholder="Buscar..."
                             noResultsText="No encontradas."
                             disabled={isSaving}
-                            triggerClassName="bg-card border-border"
                         />
                         <div className="flex flex-wrap gap-2 min-h-[2rem]">
                             {selectedMedicalConditions.map(cId => {

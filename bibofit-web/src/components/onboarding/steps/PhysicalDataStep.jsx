@@ -59,10 +59,10 @@ const PhysicalDataStep = ({ onNext, isLoading }) => {
                     value={formData.sex} 
                     onValueChange={(v) => setFormData(prev => ({...prev, sex: v}))}
                 >
-                    <SelectTrigger id="sex" type="button" className="bf-form-control w-full">
+                    <SelectTrigger id="sex" type="button" className="w-full">
                         <SelectValue placeholder="Seleccionar" />
                     </SelectTrigger>
-                    <SelectContent position="popper" style={{ zIndex: 9999 }} className="bg-muted border-border text-white">
+                    <SelectContent>
                         <SelectItem value="Hombre">Hombre</SelectItem>
                         <SelectItem value="Mujer">Mujer</SelectItem>
                     </SelectContent>
@@ -131,10 +131,10 @@ const PhysicalDataStep = ({ onNext, isLoading }) => {
                 value={String(formData.activity_level_id)} 
                 onValueChange={(v) => setFormData(prev => ({...prev, activity_level_id: v}))}
             >
-                <SelectTrigger id="activity" type="button" className="bf-form-control h-auto py-3 w-full">
+                <SelectTrigger id="activity" type="button" className="h-auto py-3 w-full">
                     <SelectValue placeholder="Selecciona tu actividad" />
                 </SelectTrigger>
-                <SelectContent className="bg-muted border-border text-white z-[9999] max-h-[200px]">
+                <SelectContent className="max-h-[200px]">
                     {activityLevels.map(level => (
                         <SelectItem key={level.id} value={String(level.id)} className="py-2">
                             <span className="font-medium block text-sm">{level.name}</span>

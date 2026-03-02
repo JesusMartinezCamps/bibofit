@@ -25,7 +25,7 @@ const RecipeForm = ({
             name="name" 
             value={formData.name} 
             onChange={onFormChange} 
-            className="input-field" 
+            
             required 
           />
         </div>
@@ -37,7 +37,7 @@ const RecipeForm = ({
               value={mealId ? String(mealId) : ''}
               onValueChange={(value) => onMealIdChange(Number(value))}
               placeholder="Seleccionar momento del día..."
-              className="input-field"
+             
             />
           </div>
         )}
@@ -53,7 +53,7 @@ const RecipeForm = ({
             min="0"
             value={formData.prep_time_min} 
             onChange={onFormChange} 
-            className="input-field" 
+            
           />
         </div>
         <div className="space-y-2">
@@ -63,10 +63,10 @@ const RecipeForm = ({
             value={formData.difficulty || 'Fácil'} 
             onValueChange={(v) => onSelectChange('difficulty', v)}
           >
-            <SelectTrigger className="input-field">
+            <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-[#282d34] border border-border text-white z-50">
+            <SelectContent>
               <SelectItem value="Fácil" className="focus:bg-muted focus:text-white">Fácil</SelectItem>
               <SelectItem value="Media" className="focus:bg-muted focus:text-white">Media</SelectItem>
               <SelectItem value="Difícil" className="focus:bg-muted focus:text-white">Difícil</SelectItem>

@@ -100,10 +100,10 @@ const DietObjectiveStep = ({ onNext, isLoading }) => {
               setErrors(prev => ({ ...prev, diet_goal_id: undefined }));
             }}
           >
-            <SelectTrigger id="diet_goal_id" className="bf-form-control h-12 w-full">
+            <SelectTrigger id="diet_goal_id" className="h-12 w-full">
               <SelectValue placeholder="Selecciona un objetivo..." />
             </SelectTrigger>
-            <SelectContent className="bg-muted border-border text-white z-[9999]">
+            <SelectContent>
               {dietGoals.map((g) => (
                 <SelectItem key={g.id} value={String(g.id)}>
                   {g.name}
@@ -128,10 +128,10 @@ const DietObjectiveStep = ({ onNext, isLoading }) => {
             value={formData.diet_type_id}
             onValueChange={(v) => setFormData(prev => ({ ...prev, diet_type_id: v }))}
           >
-            <SelectTrigger id="diet_type" className="bf-form-control h-12 w-full">
+            <SelectTrigger id="diet_type" className="h-12 w-full">
               <SelectValue placeholder="Selecciona (Opcional)" />
             </SelectTrigger>
-            <SelectContent className="bg-muted border-border text-white z-[9999]">
+            <SelectContent>
               {dietTypes.map((type) => (
                 <SelectItem key={type.id} value={String(type.id)}>
                   {type.name}

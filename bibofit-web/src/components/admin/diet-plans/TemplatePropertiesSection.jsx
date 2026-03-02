@@ -242,10 +242,10 @@ const TemplatePropertiesSection = ({ plan, creator, onUpdate }) => {
                                 </div>
                                 {scope === 'center' && user.role === 'admin' && (
                                     <Select value={selectedCenterId || ''} onValueChange={handleCenterSelect}>
-                                        <SelectTrigger className="bg-card border-border h-9 text-xs">
+                                        <SelectTrigger className="h-9 text-xs">
                                             <SelectValue placeholder="Seleccionar centro..." />
                                         </SelectTrigger>
-                                        <SelectContent className="bg-background border-border text-white">
+                                        <SelectContent>
                                             {centersList.map(center => (
                                                 <SelectItem key={center.id} value={center.id.toString()}>
                                                     {center.name}
@@ -281,7 +281,6 @@ const TemplatePropertiesSection = ({ plan, creator, onUpdate }) => {
                                 onSelectedValuesChange={(vals) => handleClassificationChange(axis.key, vals)}
                                 placeholder="Seleccionar..."
                                 searchPlaceholder={`Buscar ${axis.label.toLowerCase()}...`}
-                                triggerClassName="bg-card border-border w-full"
                                 showSelectedBadges={true}
                                 disabled={!canEdit}
                             />

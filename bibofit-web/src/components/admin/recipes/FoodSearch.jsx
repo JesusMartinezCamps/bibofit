@@ -5,11 +5,52 @@ import { useToast } from '@/components/ui/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import FoodCard from '@/components/admin/recipes/FoodCard';
 import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
 import FoodLookupPanel from '@/components/shared/FoodLookupPanel';
-import CreateFoodInlineDialog from '@/components/shared/CreateFoodInlineDialog';
-import { normalizeSearchText } from '@/lib/foodSearchUtils';
+import { normalizeSearchText, splitSearchTokens } from '@/lib/foodSearchUtils';
 import { FOOD_CARD_SELECT, mergeFoodsById, normalizeFoodRecord } from '@/lib/food/foodModel';
+
+const isSubsequence = (needle, haystack) => {
+  if (!needle) return true;
+  let needleIdx = 0;
+  for (let i = 0; i < haystack.length && needleIdx < needle.length; i += 1) {
+    if (haystack[i] === needle[needleIdx]) {
+      needleIdx += 1;
+    }
+  }
+  return needleIdx === needle.length;
+};
+
+const scoreToken = (token, normalizedText) => {
+  if (!token) return 0;
+  if (normalizedText.startsWith(token)) return 0;
+  if (normalizedText.includes(token)) return 1;
+  if (isSubsequence(token, normalizedText)) return 2;
+  return Number.POSITIVE_INFINITY;
+};
+
+const scoreTextWithTokens = (text, tokens) => {
+  if (!tokens || tokens.length === 0) return 0;
+  const normalizedText = normalizeSearchText(text || '');
+  if (!normalizedText) return Number.POSITIVE_INFINITY;
+
+  let score = 0;
+  for (const token of tokens) {
+    const tokenScore = scoreToken(token, normalizedText);
+    if (!Number.isFinite(tokenScore)) return Number.POSITIVE_INFINITY;
+    score += tokenScore;
+  }
+  return score;
+};
+
+const rankFoodsByScore = (foods, scoreResolver) =>
+  foods
+    .map((food) => ({ food, score: scoreResolver(food) }))
+    .filter((entry) => Number.isFinite(entry.score))
+    .sort((a, b) => {
+      if (a.score !== b.score) return a.score - b.score;
+      return (a.food?.name || '').localeCompare(b.food?.name || '', 'es');
+    })
+    .map((entry) => entry.food);
 
 const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSensitivities = [], userId, refreshTrigger }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -17,8 +58,6 @@ const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSen
   const [userCreatedFoods, setUserCreatedFoods] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userSensitivities, setUserSensitivities] = useState([]);
-  const [isCreateFoodOpen, setIsCreateFoodOpen] = useState(false);
-  const [foodToCreate, setFoodToCreate] = useState(null);
   const { toast } = useToast();
   const { user } = useAuth();
   const isCoach = user?.role === 'coach';
@@ -52,12 +91,18 @@ const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSen
         { data: userFoodsData, error: userFoodsError },
         userSensitivityIds
       ] = await Promise.all([
-        supabase
-          .from('food')
-          .select(FOOD_CARD_SELECT)
-          .or('user_id.is.null,status.eq.approved_general')
-          .order('name', { ascending: true }),
-        targetUserId ? supabase
+        isCoach
+          ? supabase
+              .from('food')
+              .select(FOOD_CARD_SELECT)
+              .or('user_id.is.null,status.eq.approved_general')
+              .order('name', { ascending: true })
+          : supabase
+              .from('food')
+              .select(FOOD_CARD_SELECT)
+              .or('status.is.null,status.neq.rejected')
+              .order('name', { ascending: true }),
+        targetUserId && isCoach ? supabase
           .from('food')
           .select(FOOD_CARD_SELECT)
           .eq('user_id', targetUserId)
@@ -86,7 +131,7 @@ const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSen
     } finally {
       setLoading(false);
     }
-  }, [toast, fetchUserSensitivities, userId, user?.id]);
+  }, [toast, fetchUserSensitivities, userId, user?.id, isCoach]);
 
 
   useEffect(() => {
@@ -138,22 +183,6 @@ const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSen
     onSelectFood(food);
   };
 
-  const handleCreateFoodClick = () => {
-    const normalized = searchTerm.trim();
-    if (!normalized) return;
-    setFoodToCreate({ name: normalized });
-    setIsCreateFoodOpen(true);
-  };
-
-  const handleFoodCreated = async (newFood) => {
-    setIsCreateFoodOpen(false);
-    setFoodToCreate(null);
-    setSearchTerm('');
-    await fetchAllFoods();
-    if (newFood) onSelectFood(normalizeFoodRecord(newFood));
-    if (onActionComplete) onActionComplete();
-  };
-
   const combinedFoods = useMemo(() => {
     return mergeFoodsById([...allFoods, ...userCreatedFoods]);
   }, [allFoods, userCreatedFoods]);
@@ -182,26 +211,87 @@ const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSen
     if (normalizedFilter) {
       if (normalizedFilter.startsWith('vitamina:')) {
         const vitaminName = normalizedFilter.substring(9).trim();
-        results = vitaminName ? foods.filter(f => f.food_vitamins?.some(v => v.vitamins?.name && normalizeSearchText(v.vitamins.name).includes(vitaminName))) : foods;
+        const vitaminTokens = splitSearchTokens(vitaminName);
+        results = vitaminTokens.length === 0
+          ? foods
+          : rankFoodsByScore(foods, (food) => {
+              const names = food.food_vitamins
+                ?.map((item) => item?.vitamins?.name)
+                .filter(Boolean) || [];
+              const bestScore = names.reduce((best, name) => {
+                const score = scoreTextWithTokens(name, vitaminTokens);
+                return score < best ? score : best;
+              }, Number.POSITIVE_INFINITY);
+              return bestScore;
+            });
       } else if (normalizedFilter.startsWith('mineral:')) {
         const mineralName = normalizedFilter.substring(8).trim();
-        results = mineralName ? foods.filter(f => f.food_minerals?.some(m => m.minerals?.name && normalizeSearchText(m.minerals.name).includes(mineralName))) : foods;
+        const mineralTokens = splitSearchTokens(mineralName);
+        results = mineralTokens.length === 0
+          ? foods
+          : rankFoodsByScore(foods, (food) => {
+              const names = food.food_minerals
+                ?.map((item) => item?.minerals?.name)
+                .filter(Boolean) || [];
+              const bestScore = names.reduce((best, name) => {
+                const score = scoreTextWithTokens(name, mineralTokens);
+                return score < best ? score : best;
+              }, Number.POSITIVE_INFINITY);
+              return bestScore;
+            });
       } else if (normalizedFilter.startsWith('temporada:')) {
         const seasonName = normalizedFilter.substring(10).trim();
-        results = seasonName ? foods.filter(f => f.seasons?.some(s => s && s.name && normalizeSearchText(s.name).includes(seasonName))) : foods;
+        const seasonTokens = splitSearchTokens(seasonName);
+        results = seasonTokens.length === 0
+          ? foods
+          : rankFoodsByScore(foods, (food) => {
+              const names = food.seasons?.map((item) => item?.name).filter(Boolean) || [];
+              const bestScore = names.reduce((best, name) => {
+                const score = scoreTextWithTokens(name, seasonTokens);
+                return score < best ? score : best;
+              }, Number.POSITIVE_INFINITY);
+              return bestScore;
+            });
       } else if (normalizedFilter.startsWith('sensibilidad:')) {
           const sensitivityName = normalizedFilter.substring(13).trim();
-          results = sensitivityName ? foods.filter(f => f.food_sensitivities?.some(a => a.sensitivities?.name && normalizeSearchText(a.sensitivities.name).includes(sensitivityName))) : foods;
+          const sensitivityTokens = splitSearchTokens(sensitivityName);
+          results = sensitivityTokens.length === 0
+            ? foods
+            : rankFoodsByScore(foods, (food) => {
+                const names = food.food_sensitivities
+                  ?.map((item) => item?.sensitivities?.name)
+                  .filter(Boolean) || [];
+                const bestScore = names.reduce((best, name) => {
+                  const score = scoreTextWithTokens(name, sensitivityTokens);
+                  return score < best ? score : best;
+                }, Number.POSITIVE_INFINITY);
+                return bestScore;
+              });
       } else {
-        results = foods.filter(food =>
-          food.name && normalizeSearchText(food.name).includes(normalizedFilter)
-        );
+        const nameTokens = splitSearchTokens(normalizedFilter);
+        results = rankFoodsByScore(foods, (food) => scoreTextWithTokens(food.name, nameTokens));
       }
+    } else {
+      results = [...foods].sort((a, b) => (a?.name || '').localeCompare(b?.name || '', 'es'));
     }
     
-    return results.slice(0, 10);
+    return results;
     
   }, [searchTerm, combinedFoods, excludeSensitivities, userSensitivities]);
+
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    if (filteredFoods.length === 0) {
+      setActiveIndex(0);
+      return;
+    }
+    if (activeIndex >= filteredFoods.length) {
+      setActiveIndex(0);
+    }
+  }, [activeIndex, filteredFoods.length]);
 
   const placeholderText = useMemo(() => {
     if (loading) return "Cargando alimentos...";
@@ -255,29 +345,11 @@ const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSen
             ) : (
               <div className="text-center text-muted-foreground py-4 space-y-3">
                 <p>{searchTerm ? 'No se encontraron resultados.' : 'No hay alimentos en la base de datos.'}</p>
-                {searchTerm.trim() && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleCreateFoodClick}
-                    className="border-dashed border-emerald-500 text-emerald-300 bg-emerald-900/20 hover:bg-emerald-500/20 hover:text-emerald-200"
-                  >
-                    Crear "{searchTerm.trim()}"
-                  </Button>
-                )}
               </div>
             )}
           </AnimatePresence>
         )}
       </FoodLookupPanel>
-      <CreateFoodInlineDialog
-        open={isCreateFoodOpen}
-        onOpenChange={setIsCreateFoodOpen}
-        userId={userId || user?.id}
-        foodToCreate={foodToCreate}
-        onFoodCreated={handleFoodCreated}
-        description="Completa el formulario simplificado para añadir este alimento."
-      />
     </div>
   );
 };

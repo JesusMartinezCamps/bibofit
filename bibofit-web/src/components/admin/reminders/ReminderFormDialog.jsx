@@ -281,9 +281,9 @@ const ReminderFormDialog = ({ isOpen, onOpenChange, onSave, reminder, userId, ne
                               setEndDate(end);
                               }}
                               placeholder="Selecciona inicio y fin"
+                              align="center"
                               withPortal
                               shouldCloseOnSelect={false}
-                              triggerClassName="w-full text-center"
                           />
                       ) : (
                           <UnifiedDatePicker
@@ -303,10 +303,10 @@ const ReminderFormDialog = ({ isOpen, onOpenChange, onSave, reminder, userId, ne
                          <Label>Frecuencia de Repetición</Label>
                     </div>
                     <Select value={recurrenceType} onValueChange={setRecurrenceType}>
-                        <SelectTrigger className="bg-card border-border">
+                        <SelectTrigger>
                             <SelectValue placeholder="Sin repetición" />
                         </SelectTrigger>
-                        <SelectContent className="bg-muted border-border text-white">
+                        <SelectContent>
                             <SelectItem value="none">No se repite</SelectItem>
                             <SelectItem value="daily">Diariamente</SelectItem>
                             <SelectItem value="weekly">Semanalmente</SelectItem>
@@ -401,10 +401,10 @@ const ReminderFormDialog = ({ isOpen, onOpenChange, onSave, reminder, userId, ne
                                         <div className="flex items-center gap-2 flex-wrap">
                                             <Label className="text-xs text-muted-foreground">El</Label>
                                             <Select value={recurrenceWeekNo.toString()} onValueChange={(v) => setRecurrenceWeekNo(parseInt(v))}>
-                                                <SelectTrigger className="w-[110px] h-8 bg-card border-border text-xs">
+                                                <SelectTrigger className="w-[110px] h-8 text-xs">
                                                     <SelectValue />
                                                 </SelectTrigger>
-                                                <SelectContent className="bg-muted border-border">
+                                                <SelectContent>
                                                     <SelectItem value="1">Primer</SelectItem>
                                                     <SelectItem value="2">Segundo</SelectItem>
                                                     <SelectItem value="3">Tercer</SelectItem>
@@ -413,10 +413,10 @@ const ReminderFormDialog = ({ isOpen, onOpenChange, onSave, reminder, userId, ne
                                                 </SelectContent>
                                             </Select>
                                             <Select value={recurrenceDayOfWeek.toString()} onValueChange={(v) => setRecurrenceDayOfWeek(parseInt(v))}>
-                                                <SelectTrigger className="w-[110px] h-8 bg-card border-border text-xs">
+                                                <SelectTrigger className="w-[110px] h-8 text-xs">
                                                     <SelectValue />
                                                 </SelectTrigger>
-                                                <SelectContent className="bg-muted border-border">
+                                                <SelectContent>
                                                     <SelectItem value="1">Lunes</SelectItem>
                                                     <SelectItem value="2">Martes</SelectItem>
                                                     <SelectItem value="3">Miércoles</SelectItem>
@@ -447,8 +447,8 @@ const ReminderFormDialog = ({ isOpen, onOpenChange, onSave, reminder, userId, ne
                                     onChange={setRecurrenceEndDate}
                                     isClearable
                                     placeholder="Nunca"
+                                    variant="compact"
                                     withPortal
-                                    triggerClassName="min-h-[40px] bg-card text-sm"
                                 />
                             </div>
                         </div>

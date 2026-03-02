@@ -292,7 +292,7 @@ const DayMealsPreferencesForm = ({ userId }) => {
                   value={String(meal.day_meal_id)}
                   onValueChange={(newId) => handleMealTypeChange(meal.day_meal_id, parseInt(newId))}
                 >
-                  <SelectTrigger className="w-52 bf-form-control">
+                  <SelectTrigger className="w-52">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

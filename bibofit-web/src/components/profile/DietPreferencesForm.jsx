@@ -262,10 +262,10 @@ const DietPreferencesForm = ({ userId: propUserId, onUpdate }) => {
                         value={formData.diet_goal_id || ''} 
                         onValueChange={(v) => handleChange('diet_goal_id', v)}
                     >
-                        <SelectTrigger id="diet_goal_id" className="w-full bf-form-control">
+                        <SelectTrigger id="diet_goal_id" className="w-full">
                             <SelectValue placeholder="Selecciona un objetivo..." />
                         </SelectTrigger>
-                        <SelectContent className="z-[200]">
+                        <SelectContent>
                             {dietGoals.map((g) => (
                                 <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
                             ))}
@@ -278,8 +278,8 @@ const DietPreferencesForm = ({ userId: propUserId, onUpdate }) => {
                 <div className="flex flex-col space-y-2">
                     <Label htmlFor="diet_type_id" className="text-muted-foreground">Tipo de Dieta</Label>
                     <Select value={formData.diet_type_id ? String(formData.diet_type_id) : ''} onValueChange={(v) => handleChange('diet_type_id', v ? parseInt(v, 10) : null)}>
-                        <SelectTrigger id="diet_type_id" className="w-full bf-form-control"><SelectValue placeholder="Selecciona un tipo..." /></SelectTrigger>
-                        <SelectContent className="z-[200]">{(dietTypes || []).map((t) => <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>)}</SelectContent>
+                        <SelectTrigger id="diet_type_id" className="w-full"><SelectValue placeholder="Selecciona un tipo..." /></SelectTrigger>
+                        <SelectContent>{(dietTypes || []).map((t) => <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>)}</SelectContent>
                     </Select>
                 </div>
             </div>
@@ -370,10 +370,10 @@ const DietPreferencesForm = ({ userId: propUserId, onUpdate }) => {
             <div className="flex items-center gap-3 p-2 rounded-xl bg-muted/75 border border-input/80">
                 <span className="text-sm text-muted-foreground whitespace-nowrap">Nivel de sensibilidad:</span>
                 <Select value={sensitivityLevel} onValueChange={setSensitivityLevel}>
-                    <SelectTrigger className="h-10 w-36 bf-form-control text-xs text-white">
+                    <SelectTrigger className="h-10 w-36 text-xs">
                         <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="z-[200]">
+                    <SelectContent>
                         <SelectItem value="Leve">Leve</SelectItem>
                         <SelectItem value="Moderado">Moderado</SelectItem>
                         <SelectItem value="Grave">Grave</SelectItem>
