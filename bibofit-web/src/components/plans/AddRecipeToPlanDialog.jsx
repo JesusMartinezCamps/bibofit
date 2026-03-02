@@ -471,7 +471,7 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
         
         return (
             <span>
-                Planifica una receta para el <span className="text-sky-300">{mealName}</span> del <i className="text-sky-300">{dateString}</i>
+                Planifica una receta para el <span className="text-sky-600 dark:text-sky-300">{mealName}</span> del <i className="text-sky-600 dark:text-sky-300">{dateString}</i>
             </span>
         );
     }, [preselectedMeal, mealDate, isConstructor]);
@@ -480,7 +480,7 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
                 <DialogContent 
-                    className="bg-background border-border text-white max-w-4xl lg:max-w-6xl flex flex-col h-[90vh]"
+                    className="bg-background border-border text-foreground max-w-4xl lg:max-w-6xl flex flex-col h-[90vh]"
                     onOpenAutoFocus={(e) => e.preventDefault()}
                 >
                     <DialogHeader>

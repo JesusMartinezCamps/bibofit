@@ -369,7 +369,7 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
             onClick={() => onOpenChange(false)}
             className="w-full sm:w-auto text-muted-foreground hover:text-foreground hover:bg-muted"
           >
-            Cancelar
+            Cerrar sin aplicar equivalencia
           </Button>
           <Button 
             onClick={handleConfirm} 

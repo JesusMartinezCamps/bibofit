@@ -1,6 +1,6 @@
 
 import React, { useMemo } from 'react';
-import { X, Scale, Hourglass, AlertTriangle } from 'lucide-react';
+import { X, Scale, Hourglass, AlertTriangle, Clock, ChefHat } from 'lucide-react';
 import CaloriesIcon from '@/components/icons/CaloriesIcon';
 import ProteinIcon from '@/components/icons/ProteinIcon';
 import CarbsIcon from '@/components/icons/CarbsIcon';
@@ -11,6 +11,7 @@ import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/comp
 import HighlightedText from '@/components/shared/HighlightedText';
 import { analyzeRecipeConflicts } from '@/lib/recipeConflictAnalyzer';
 import { useTheme } from '@/contexts/ThemeContext';
+import { RecipeCardBackground, RecipeCardPanel } from '@/components/shared/recipe-card/RecipeCardBase';
 
 const RecipeCard = ({
   recipe,
@@ -45,6 +46,22 @@ const RecipeCard = ({
         return recipe.custom_ingredients;
     }
     return recipe.recipe?.recipe_ingredients || recipe.recipe_ingredients || [];
+  }, [recipe]);
+
+  const recipeDifficulty = useMemo(() => {
+    if (!recipe) return 'Fácil';
+    if (recipe.is_private_recipe || recipe.type === 'private_recipe') {
+      return recipe.difficulty || 'Fácil';
+    }
+    return recipe.custom_difficulty || recipe.difficulty || recipe.recipe?.difficulty || 'Fácil';
+  }, [recipe]);
+
+  const recipePrepTime = useMemo(() => {
+    if (!recipe) return 0;
+    if (recipe.is_private_recipe || recipe.type === 'private_recipe') {
+      return recipe.prep_time_min ?? 0;
+    }
+    return recipe.custom_prep_time_min ?? recipe.prep_time_min ?? recipe.recipe?.prep_time_min ?? 0;
   }, [recipe]);
 
   const imageUrl = useMemo(() => {
@@ -157,41 +174,43 @@ const RecipeCard = ({
     );
   };
   
-  const fallbackBg = isDark ? 'hsl(220 16% 22%)' : 'hsl(0 0% 100%)';
-  const bgStyle = imageUrl ? { backgroundImage: `url(${imageUrl})` } : { backgroundColor: fallbackBg };
+  const bgStyle = imageUrl
+    ? { backgroundImage: `url(${imageUrl})` }
+    : {
+        background: isDark
+          ? 'linear-gradient(135deg, hsl(220 16% 22%) 0%, hsl(222 20% 16%) 100%)'
+          : 'linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(210 33% 96%) 100%)',
+      };
 
   if (isListView) {
     return (
-      <div className={cn(
-          "relative group h-full rounded-xl overflow-hidden shadow-lg border transition-all",
-          isSafe ? (isPrivate ? "border-border hover:border-violet-400/50 hover:shadow-violet-500/10" : (isPending ? "border-purple-700/50" : "border-border hover:border-green-500/50 hover:shadow-green-500/10")) : "border-red-500/60 hover:border-red-500 hover:shadow-red-500/10"
-      )}>
-        {/* Background Image with Zoom on Hover */}
-        <div 
-          className="absolute inset-0 bg-cover bg-center transition-transform duration-300 ease-in-out group-hover:scale-105"
-          style={bgStyle}
-        />
-        {/* Dark Overlay */}
-        <div className={cn(
-          "absolute inset-0 pointer-events-none",
+      <RecipeCardBackground
+        className={cn(
+          'relative group h-full rounded-xl overflow-hidden shadow-lg border transition-all',
+          isSafe
+            ? (isPrivate
+              ? 'border-border hover:border-violet-400/50 hover:shadow-violet-500/10'
+              : (isPending ? 'border-purple-700/50' : 'border-border hover:border-green-500/50 hover:shadow-green-500/10'))
+            : 'border-red-500/60 hover:border-red-500 hover:shadow-red-500/10'
+        )}
+        backgroundStyle={bgStyle}
+        overlayClassName={cn(
           imageUrl
-            ? (isDark ? "bg-black/45" : "bg-white/30")
+            ? (isDark ? 'bg-black/45' : 'bg-white/30')
             : (
               isPrivate
-                ? (isDark ? "bg-violet-900/20" : "bg-violet-200/35")
-                : (!isSafe ? (isDark ? "bg-red-900/40" : "bg-red-200/45") : (isDark ? "bg-black/10" : "bg-transparent"))
+                ? (isDark ? 'bg-violet-900/20' : 'bg-violet-200/35')
+                : (!isSafe ? (isDark ? 'bg-red-900/40' : 'bg-red-200/45') : (isDark ? 'bg-black/10' : 'bg-transparent'))
             )
-        )} />
-        {/* Gradient Bottom Overlay */}
-        <div className={cn(
-          "absolute inset-0 pointer-events-none",
-          isDark && "bg-[linear-gradient(to_top,rgba(0,0,0,0.48)_0%,rgba(0,0,0,0.38)_40%,rgba(0,0,0,0)_100%)]"
-        )} />
-
-        <button onClick={() => handleRecipeClick && handleRecipeClick({ ...recipe, is_private_recipe: isPrivate }, adjustment)} className="relative z-10 w-full h-full text-left p-5 flex flex-col justify-between">
-          <div className="flex-1">
+        )}
+        gradientClassName={cn(
+          isDark && 'bg-[linear-gradient(to_top,rgba(0,0,0,0.48)_0%,rgba(0,0,0,0.38)_40%,rgba(0,0,0,0)_100%)]'
+        )}
+      >
+        <button onClick={() => handleRecipeClick && handleRecipeClick({ ...recipe, is_private_recipe: isPrivate }, adjustment)} className="w-full h-full text-left p-4 flex flex-col justify-between">
+          <RecipeCardPanel className="p-3 space-y-2">
             <div className="flex items-start justify-between gap-3">
-              <div className="flex items-start gap-3 flex-1">
+              <div className="flex items-start gap-3 flex-1 min-w-0">
                 {isPending && (
                   <TooltipProvider>
                     <Tooltip>
@@ -206,46 +225,57 @@ const RecipeCard = ({
                     </Tooltip>
                   </TooltipProvider>
                 )}
-                 <TitleWithTooltip>
-                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                <TitleWithTooltip>
+                  <div className="flex flex-wrap items-center gap-2">
                     <p className={cn(
-                      "text-xl font-bold line-clamp-2 flex-1 drop-shadow-md",
-                      !isSafe && isAdminView ? "text-red-400" : (isPending ? "text-[rgb(159,102,163)]" : "text-foreground dark:text-white")
+                      'text-xl font-bold line-clamp-2 flex-1 min-w-0',
+                      !isSafe && isAdminView ? 'text-red-400' : (isPending ? 'text-[rgb(159,102,163)]' : 'text-foreground dark:text-white')
                     )}>
                       <HighlightedText text={recipeName} highlight={searchQuery} />
                     </p>
                     {unsafeFoodsSet.size > 0 && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-500/15 dark:bg-red-900/40 text-red-700 dark:text-red-400 border border-red-500/35 backdrop-blur-sm">
-                            <AlertTriangle className="w-3 h-3 mr-1" /> {unsafeFoodsSet.size}
-                        </span>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-500/15 dark:bg-red-900/40 text-red-700 dark:text-red-400 border border-red-500/35 backdrop-blur-sm">
+                        <AlertTriangle className="w-3 h-3 mr-1" /> {unsafeFoodsSet.size}
+                      </span>
                     )}
                   </div>
                 </TitleWithTooltip>
               </div>
               {adjustment && (
                 <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Scale className="w-4 h-4 text-blue-400 flex-shrink-0 drop-shadow-md" />
-                        </TooltipTrigger>
-                        <TooltipContent className="bg-blue-800 border-blue-600 text-white z-50">
-                            <p>Receta equilibrada</p>
-                        </TooltipContent>
-                    </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Scale className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                    </TooltipTrigger>
+                    <TooltipContent className="bg-blue-800 border-blue-600 text-white z-50">
+                      <p>Receta equilibrada</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </TooltipProvider>
               )}
             </div>
-            <p className="text-sm line-clamp-3 drop-shadow-md text-foreground/85 dark:text-gray-200">
-              {ingredientList.length > 0 ? 
-                  ingredientList.reduce((prev, curr) => [prev, ', ', curr]) 
-                  : 'Sin ingredientes'}
-            </p>
-          </div>
-          {!hideMacros && (
-            <div className="mt-4 flex justify-between items-center relative z-20">
-                {macroDisplay}
-                {selectionIndicator}
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                {Math.round(recipePrepTime)}m
+              </span>
+              <span className="flex items-center gap-1">
+                <ChefHat className="w-3 h-3" />
+                {recipeDifficulty}
+              </span>
             </div>
+            <p className="text-sm line-clamp-3 text-foreground/85 dark:text-gray-200">
+              {ingredientList.length > 0
+                ? ingredientList.reduce((prev, curr) => [prev, ', ', curr])
+                : 'Sin ingredientes'}
+            </p>
+          </RecipeCardPanel>
+
+          {!hideMacros && (
+            <RecipeCardPanel className="p-2 mt-3 flex justify-between items-center relative z-20">
+              {macroDisplay}
+              {selectionIndicator}
+            </RecipeCardPanel>
           )}
         </button>
 
@@ -253,72 +283,67 @@ const RecipeCard = ({
           <button 
             onClick={(e) => { e.stopPropagation(); handleRemoveRecipe(recipe.id, isPrivate); }} 
             className={cn(
-              "absolute z-20 top-2 right-2 bg-red-600/70 text-white rounded-full p-1 transition-opacity hover:bg-red-500 backdrop-blur-sm",
-              "md:opacity-0 md:group-hover:opacity-100 opacity-100"
+              'absolute z-20 top-2 right-2 bg-red-600/70 text-white rounded-full p-1 transition-opacity hover:bg-red-500 backdrop-blur-sm',
+              'md:opacity-0 md:group-hover:opacity-100 opacity-100'
             )}
           >
             <X className="w-4 h-4" />
           </button>
         )}
-      </div>
+      </RecipeCardBackground>
     );
   }
 
   // Week view (compact)
   return (
-    <div className={cn(
-        "relative group flex h-24 overflow-hidden rounded-lg shadow-lg border",
-        isSafe ? "border-border" : "border-red-500/60"
-    )}>
-      {/* Background Image with Zoom on Hover */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center transition-transform duration-300 ease-in-out group-hover:scale-105"
-        style={bgStyle}
-      />
-      {/* Dark Overlay */}
-      <div className={cn(
-        "absolute inset-0 pointer-events-none",
+    <RecipeCardBackground
+      className={cn(
+        'relative group flex h-24 overflow-hidden rounded-lg shadow-lg border',
+        isSafe ? 'border-border' : 'border-red-500/60'
+      )}
+      backgroundStyle={bgStyle}
+      overlayClassName={cn(
         imageUrl
-          ? (isDark ? "bg-black/35" : "bg-white/25")
-          : (isPrivate ? (isDark ? "bg-violet-900/30" : "bg-violet-200/40") : (!isSafe ? (isDark ? "bg-red-900/50" : "bg-red-200/45") : (isDark ? "bg-black/25" : "bg-transparent")))
-      )} />
-      {/* Gradient Bottom Overlay */}
-      <div className={cn(
-        "absolute inset-0 pointer-events-none",
-        isDark && "bg-[linear-gradient(to_top,rgba(0,0,0,0)_0%,rgba(0,0,0,0.29)_40%,rgba(0,0,0,0)_100%)]"
-      )} />
-
-      <button onClick={() => handleRecipeClick && handleRecipeClick({ ...recipe, is_private_recipe: isPrivate }, adjustment)} className="relative z-10 flex-1 text-left p-3 w-4/5">
-        <div className="flex justify-between items-start flex-wrap gap-x-2 mb-1">
-          <div className="flex items-center gap-2">
-            {changeRequest?.status === 'pending' && (
-              <Hourglass className="w-3 h-3 text-purple-400 animate-pulse drop-shadow-md" />
-            )}
-            <TitleWithTooltip>
-              <p className={cn(
-                "font-medium text-sm whitespace-normal line-clamp-2 drop-shadow-md",
-                !isSafe && isAdminView ? "text-red-400" : "text-foreground dark:text-white"
-              )}>
-                {recipeName}
-              </p>
-            </TitleWithTooltip>
+          ? (isDark ? 'bg-black/35' : 'bg-white/25')
+          : (isPrivate ? (isDark ? 'bg-violet-900/30' : 'bg-violet-200/40') : (!isSafe ? (isDark ? 'bg-red-900/50' : 'bg-red-200/45') : (isDark ? 'bg-black/25' : 'bg-transparent')))
+      )}
+      gradientClassName={cn(
+        isDark && 'bg-[linear-gradient(to_top,rgba(0,0,0,0)_0%,rgba(0,0,0,0.29)_40%,rgba(0,0,0,0)_100%)]'
+      )}
+    >
+      <button onClick={() => handleRecipeClick && handleRecipeClick({ ...recipe, is_private_recipe: isPrivate }, adjustment)} className="block w-full h-full text-left p-2.5 pr-12">
+        <RecipeCardPanel className="p-2.5 h-full">
+          <div className="flex justify-between items-start flex-wrap gap-x-2">
+            <div className="flex items-center gap-2 min-w-0">
+              {changeRequest?.status === 'pending' && (
+                <Hourglass className="w-3 h-3 text-purple-400 animate-pulse" />
+              )}
+              <TitleWithTooltip>
+                <p className={cn(
+                  'font-medium text-sm whitespace-normal line-clamp-2',
+                  !isSafe && isAdminView ? 'text-red-400' : 'text-foreground dark:text-white'
+                )}>
+                  {recipeName}
+                </p>
+              </TitleWithTooltip>
+            </div>
+            <div className="flex items-center gap-1">
+              {adjustment && (
+                <Scale className="w-3 h-3 text-blue-400" title="Receta equilibrada" />
+              )}
+            </div>
           </div>
-          <div className="flex items-center gap-1 drop-shadow-md">
-            {adjustment && (
-              <Scale className="w-3 h-3 text-blue-400" title="Receta equilibrada" />
-            )}
-          </div>
-        </div>
+        </RecipeCardPanel>
       </button>
       {handleRemoveRecipe && (
-        <button 
-          onClick={(e) => { e.stopPropagation(); handleRemoveRecipe(); }} 
-          className="relative z-20 w-1/5 flex items-center justify-center bg-red-500/40 hover:bg-red-500/60 transition-colors backdrop-blur-sm"
+        <button
+          onClick={(e) => { e.stopPropagation(); handleRemoveRecipe(); }}
+          className="absolute bottom-0 right-0 z-20 h-10 w-10 flex items-center justify-center bg-red-500/45 hover:bg-red-500/65 transition-colors backdrop-blur-sm rounded-tl-lg rounded-br-lg"
         >
           <X className="w-4 h-4 text-white" />
         </button>
       )}
-    </div>
+    </RecipeCardBackground>
   );
 };
 

@@ -372,7 +372,7 @@ const ListView = ({
                           handleToggleMealSelection(item, currentDate);
                         }}
                         className={cn(
-                          'flex items-center  gap-1.5 p-6 rounded-full text-xs transition-all duration-200 border',
+                          'flex items-center  gap-1.5 p-4 rounded-full text-xs transition-all duration-200 border',
                           isSelected && isPending ? 'bg-[rgba(195,55,204,0.1)] text-[rgb(195,55,204)] border-[rgb(195,55,204)]' :
                           isSelected && isFreeRecipe ? 'bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border-cyan-500/60' : 
                           isSelected ? 'bg-emerald-700/25 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 border-emerald-700/70 dark:border-emerald-400/60' : 
