@@ -52,7 +52,7 @@ const ActiveAdvices = () => {
 
     if (loading) {
         return (
-            <Card className="bg-muted/65 border-border text-white shadow-lg">
+            <Card className="bg-muted/65 border-border text-foreground dark:text-white shadow-lg">
                 <CardContent className="p-6">
                     <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="w-4 h-4 animate-spin" /> Cargando asesorías...</div>
                 </CardContent>
@@ -61,9 +61,9 @@ const ActiveAdvices = () => {
     }
 
     return (
-        <Card className="bg-muted/65 border-border text-white shadow-lg">
+        <Card className="bg-muted/65 border-border text-foreground dark:text-white shadow-lg">
             <CardContent className="p-6">
-                <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-3">
+                <h2 className="text-xl font-bold text-foreground dark:text-white mb-4 flex items-center gap-3">
                     <UserCheck className="text-green-400" />
                     Asesorías Activas
                 </h2>
@@ -79,7 +79,7 @@ const ActiveAdvices = () => {
                                             </Badge>
                                         </Link>
                                     </TooltipTrigger>
-                                    <TooltipContent className="bg-muted border-border text-white">
+                                    <TooltipContent className="bg-muted border-border text-foreground dark:text-white">
                                         <p>Plan: <span className="font-semibold">{client.name}</span></p>
                                     </TooltipContent>
                                 </Tooltip>

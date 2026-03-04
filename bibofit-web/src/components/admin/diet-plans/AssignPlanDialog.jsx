@@ -381,7 +381,7 @@ const AssignPlanDialog = ({
                 onAccept={handleTourStepInfoComplete}
             />
 
-            <DialogContent className="w-[95vw] sm:w-[80vw] sm:max-w-[80vw] max-w-none h-[80vh] sm:h-[85vh] bg-background border-border text-white flex flex-col overflow-hidden p-0 gap-0">
+            <DialogContent className="w-[95vw] sm:w-[80vw] sm:max-w-[80vw] max-w-none h-[80vh] sm:h-[85vh] bg-background border-border text-foreground dark:text-white flex flex-col overflow-hidden p-0 gap-0">
                 <div className="p-6 pb-4 border-b border-border shrink-0 bg-background">
                     <DialogHeader>
                         <DialogTitle>{getDialogTitle()}</DialogTitle>

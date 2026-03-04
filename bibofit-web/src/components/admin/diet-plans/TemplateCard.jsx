@@ -60,7 +60,7 @@ const ClassificationDialog = ({ template, open, onOpenChange, onUpdate }) => {
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-             <DialogContent className="bg-background border-border text-white max-w-2xl">
+             <DialogContent className="bg-background border-border text-foreground dark:text-white max-w-2xl">
                 <DialogHeader>
                     <DialogTitle>Editar Clasificación de Plantilla</DialogTitle>
                     <DialogDescription>Define los ejes de clasificación para facilitar la búsqueda.</DialogDescription>
@@ -257,7 +257,7 @@ const TemplateCard = ({
                                         </Badge>
                                     )}
                                 </div>
-                                <h3 className="text-lg font-bold text-white leading-tight line-clamp-2 group-hover:text-blue-200 transition-colors">{template.name}</h3>
+                                <h3 className="text-lg font-bold text-foreground dark:text-white leading-tight line-clamp-2 group-hover:text-blue-200 transition-colors">{template.name}</h3>
                                 {creatorRole === 'coach' && (isCreator || creatorName) && (
                                     <p className="text-xs text-muted-foreground mt-1">
                                         {isCreator ? 'Creado por ti' : `Creado por: ${creatorName}`}
@@ -315,7 +315,7 @@ const TemplateCard = ({
                                         )}
                                     </div>
                                 </DialogTrigger>
-                                <DialogContent className="bg-card border-border text-white max-w-3xl" onClick={(e) => e.stopPropagation()}>
+                                <DialogContent className="bg-card border-border text-foreground dark:text-white max-w-3xl" onClick={(e) => e.stopPropagation()}>
                                     <RestrictionsManager 
                                         entityId={template.id}
                                         entityType="diet_plans"
@@ -389,7 +389,7 @@ const TemplateCard = ({
                                                                 </Badge>
                                                             </Link>
                                                         </TooltipTrigger>
-                                                        <TooltipContent className="bg-muted border-border text-white">
+                                                        <TooltipContent className="bg-muted border-border text-foreground dark:text-white">
                                                             <p>Ver plan de {plan.profile.full_name}</p>
                                                         </TooltipContent>
                                                     </Tooltip>
@@ -416,7 +416,7 @@ const TemplateCard = ({
                                         <Share2 className="w-4 h-4" />
                                     </Button>
                                 </TooltipTrigger>
-                                <TooltipContent className="bg-muted border-border text-white">
+                                <TooltipContent className="bg-muted border-border text-foreground dark:text-white">
                                     <p>Asignar a Organización</p>
                                 </TooltipContent>
                             </Tooltip>
@@ -429,7 +429,7 @@ const TemplateCard = ({
                                         <ArrowUpCircle className="w-4 h-4" />
                                     </Button>
                                 </TooltipTrigger>
-                                <TooltipContent className="bg-muted border-border text-white">
+                                <TooltipContent className="bg-muted border-border text-foreground dark:text-white">
                                     <p>Promover a Global</p>
                                 </TooltipContent>
                              </Tooltip>
@@ -442,7 +442,7 @@ const TemplateCard = ({
                                         <Trash2 className="w-4 h-4" />
                                     </Button>
                                 </AlertDialogTrigger>
-                                <AlertDialogContent onClick={stopPropagation} className="bg-card border-border text-white">
+                                <AlertDialogContent onClick={stopPropagation} className="bg-card border-border text-foreground dark:text-white">
                                     <AlertDialogHeader>
                                         <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                                         <AlertDialogDescription>

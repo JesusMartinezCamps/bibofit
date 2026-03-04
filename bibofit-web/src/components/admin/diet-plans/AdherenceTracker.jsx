@@ -51,7 +51,7 @@ const AdherenceTracker = ({ userId }) => {
     const maxPlanned = Math.max(...adherenceData.map(d => d.planned_meals_count), 0);
 
     return (
-        <Card className="bg-card/75 border-border text-white">
+        <Card className="bg-card/75 border-border text-foreground dark:text-white">
             <CardHeader>
                 <CardTitle>Seguimiento de Adherencia (Últimos 7 días)</CardTitle>
                 <div className="flex items-center gap-4 mt-2">

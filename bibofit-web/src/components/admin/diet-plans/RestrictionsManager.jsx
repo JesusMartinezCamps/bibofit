@@ -150,7 +150,7 @@ const RestrictionsManager = ({ entityId, entityType, onUpdate, className, hideHe
         <div className={cn("space-y-4", className)}>
             {!hideHeader && (
                 <div className="border-b border-border/50 pb-4 mb-4">
-                    <Label className="text-xl font-bold text-white mb-1 block">Gestor de Restricciones</Label>
+                    <Label className="text-xl font-bold text-foreground dark:text-white mb-1 block">Gestor de Restricciones</Label>
                     <p className="text-sm text-muted-foreground">Añade o elimina sensibilidades y condiciones médicas.</p>
                 </div>
             )}

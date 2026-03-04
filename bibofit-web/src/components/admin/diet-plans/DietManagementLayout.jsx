@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 
 const DietManagementLayout = ({ title, headerContent, gridContent }) => {
     return (
-        <div className="text-white">
+        <div className="diet-management-shell text-foreground dark:text-white">
             <motion.h1 
                 className="text-3xl font-bold mb-6 text-green-400"
                 initial={{ opacity: 0, y: -20 }}

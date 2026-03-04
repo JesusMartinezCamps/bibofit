@@ -122,7 +122,7 @@ const AdvisoryVisualizer = () => {
               <CollapsibleTrigger className="w-full p-6 flex items-center justify-between hover:bg-amber-500/5 transition-colors cursor-pointer text-left group">
                 <div className="flex items-center gap-2">
                   <StickyNote className="w-5 h-5 text-amber-400" />
-                  <h3 className="text-xl font-bold text-white group-hover:text-amber-200 transition-colors">
+                  <h3 className="text-xl font-bold text-foreground dark:text-white group-hover:text-amber-200 transition-colors">
                     Recordatorios del cliente
                   </h3>
                 </div>
@@ -180,7 +180,7 @@ const AdvisoryVisualizer = () => {
               <CollapsibleTrigger className="w-full p-6 flex items-center justify-between hover:bg-blue-500/5 transition-colors cursor-pointer text-left group">
                 <div className="flex items-center gap-2">
                   <CalendarIcon className="w-5 h-5 text-blue-400" />
-                  <h3 className="text-xl font-bold text-white group-hover:text-blue-200 transition-colors">
+                  <h3 className="text-xl font-bold text-foreground dark:text-white group-hover:text-blue-200 transition-colors">
                     Próximos Eventos
                   </h3>
                 </div>
@@ -210,7 +210,7 @@ const AdvisoryVisualizer = () => {
                           </span>
                         </div>
                         <div className="min-w-0 flex-1">
-                          <h4 className="font-medium text-white truncate">{event.title}</h4>
+                          <h4 className="font-medium text-foreground dark:text-white truncate">{event.title}</h4>
                           {event.content && (
                             <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{event.content}</p>
                           )}
@@ -242,7 +242,7 @@ const AdvisoryVisualizer = () => {
               <div className="p-4 md:p-6 pb-4">
                 <div className="flex items-center justify-between flex-wrap gap-4">
                   <div>
-                    <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                    <h2 className="text-2xl font-bold text-foreground dark:text-white flex items-center gap-2">
                       Calendario de <Link to={`/client-profile/${selectedUser.user_id}`} className="text-green-400 hover:underline cursor-pointer">{selectedUser.full_name}</Link>
                     </h2>
                     {/* Button for Diet Plan Manager */}
@@ -250,7 +250,7 @@ const AdvisoryVisualizer = () => {
                       size="sm"
                       variant="outline-profile"
                       onClick={() => navigate(`/admin/manage-diet/${selectedUser.user_id}`)}
-                      className="mt-2 text-xs sm:text-sm bg-gradient-to-br from-[rgb(66_52_143_/50%)] to-emerald-300/0"
+                      className="mt-2 text-xs sm:text-sm bg-indigo-100/90 text-slate-900 border-indigo-300 hover:bg-indigo-200 dark:bg-gradient-to-br dark:from-[rgb(66_52_143_/50%)] dark:to-emerald-300/0 dark:text-indigo-300 dark:border-indigo-500/70"
                     >
                       Gestor de Planes de Dieta
                     </Button>
@@ -270,7 +270,7 @@ const AdvisoryVisualizer = () => {
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center text-center p-8">
               <Users className="w-16 h-16 text-gray-600 mb-4" />
-              <h3 className="text-2xl font-bold text-white">Selecciona un cliente</h3>
+              <h3 className="text-2xl font-bold text-foreground dark:text-white">Selecciona un cliente</h3>
               <p className="text-muted-foreground">Elige un cliente de la lista para ver sus asesorías en el calendario.</p>
             </div>
           )}

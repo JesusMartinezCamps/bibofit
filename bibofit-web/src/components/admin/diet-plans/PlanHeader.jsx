@@ -75,7 +75,7 @@ const ClassificationDialog = ({ template, open, onOpenChange, onUpdate }) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-background border-border text-white max-w-2xl">
+      <DialogContent className="bg-background border-border text-foreground dark:text-white max-w-2xl">
         <DialogHeader>
           <DialogTitle>Editar Clasificación de Plantilla</DialogTitle>
           <DialogDescription>Define los ejes de clasificación para facilitar la búsqueda.</DialogDescription>
@@ -274,7 +274,7 @@ const PlanHeader = ({ plan, onUpdate, onToggleActive, readOnly = false }) => {
 
   return (
     <>
-      <Card className="bg-card/75 border-border text-white overflow-hidden shadow-xl mb-8">
+      <Card className="bg-card/75 border-border text-foreground dark:text-white overflow-hidden shadow-xl mb-8">
         <CardHeader className="relative">
           {/* TÍTULO Y CONTENIDO PRINCIPAL */}
           <div className="flex-grow">
@@ -285,7 +285,7 @@ const PlanHeader = ({ plan, onUpdate, onToggleActive, readOnly = false }) => {
                 onChange={handleNameChange}
                 onBlur={handleBlur}
                 rows={1}
-                className="block w-full resize-none overflow-hidden text-2xl font-bold text-white bg-transparent border-0 focus:outline-none focus:bg-muted/65 px-2 py-2"
+                className="block w-full resize-none overflow-hidden text-2xl font-bold text-foreground dark:text-white bg-transparent border-0 focus:outline-none focus:bg-muted/65 px-2 py-2"
                 placeholder="Nombre del Plan"
                 disabled={isSavingName || readOnly}
               />
@@ -332,7 +332,7 @@ const PlanHeader = ({ plan, onUpdate, onToggleActive, readOnly = false }) => {
                     asLink
                     to={`/client-profile/${plan.user_id}`}
                   >
-                    <p className="font-semibold text-white">{plan.profile?.full_name}</p>
+                    <p className="font-semibold text-foreground dark:text-white">{plan.profile?.full_name}</p>
                   </InfoItem>
 
                   <InfoItem
@@ -341,12 +341,12 @@ const PlanHeader = ({ plan, onUpdate, onToggleActive, readOnly = false }) => {
                     asLink
                     to={`/plan/dieta/${plan.user_id}/${todayDateString}`}
                   >
-                    <p className="font-semibold text-white">Ir al Plan de Dieta</p>
+                    <p className="font-semibold text-foreground dark:text-white">Ir al Plan de Dieta</p>
                   </InfoItem>
 
                   <InfoItem icon={<CalendarIcon className="w-5 h-5 text-indigo-400" />} label="Rango de la Dieta">
                     {readOnly ? (
-                      <p className="font-semibold text-white">
+                      <p className="font-semibold text-foreground dark:text-white">
                         {startDate && endDate ? `${format(startDate, 'dd/MM/yy')} - ${format(endDate, 'dd/MM/yy')}` : 'Sin rango definido'}
                       </p>
                     ) : (
@@ -378,7 +378,7 @@ const PlanHeader = ({ plan, onUpdate, onToggleActive, readOnly = false }) => {
                       ))}
                     </div>
                   ) : (
-                    <p className="font-semibold text-white">Ninguna</p>
+                    <p className="font-semibold text-foreground dark:text-white">Ninguna</p>
                   )}
                 </InfoItem>
 
@@ -390,7 +390,7 @@ const PlanHeader = ({ plan, onUpdate, onToggleActive, readOnly = false }) => {
                       ))}
                     </div>
                   ) : (
-                    <p className="font-semibold text-white">Ninguna</p>
+                    <p className="font-semibold text-foreground dark:text-white">Ninguna</p>
                   )}
                 </InfoItem>
               </div>
@@ -410,7 +410,9 @@ const PlanHeader = ({ plan, onUpdate, onToggleActive, readOnly = false }) => {
               ) : readOnly ? (
                 <Badge
                   className={`px-3 py-1 ${
-                    plan.is_active ? 'bg-green-900/40 text-green-200' : 'bg-muted text-gray-200'
+                    plan.is_active
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200'
+                      : 'bg-muted text-foreground dark:text-gray-200'
                   }`}
                 >
                   {plan.is_active ? 'Plan Activo' : 'Plan Inactivo'}
@@ -443,7 +445,7 @@ const PlanHeader = ({ plan, onUpdate, onToggleActive, readOnly = false }) => {
                       onCheckedChange={onToggleActive}
                       className="data-[state=checked]:bg-green-500"
                     />
-                    <Label htmlFor="active-plan-switch" className="text-white cursor-pointer whitespace-nowrap">
+                    <Label htmlFor="active-plan-switch" className="text-foreground dark:text-white cursor-pointer whitespace-nowrap">
                       {plan.is_active ? 'Plan Activo' : 'Plan Inactivo'}
                     </Label>
                   </div>
@@ -457,7 +459,7 @@ const PlanHeader = ({ plan, onUpdate, onToggleActive, readOnly = false }) => {
           <CardContent>
             <div className="p-4 bg-muted/65 rounded-lg border border-border space-y-6">
               <div>
-                <h3 className="text-xl font-bold text-white mb-3 flex items-center gap-2">
+                <h3 className="text-xl font-bold text-foreground dark:text-white mb-3 flex items-center gap-2">
                   <Users className="text-green-400" />
                   Usada por {generatedPlans.length} Cliente{generatedPlans.length !== 1 ? 's' : ''}
                 </h3>

@@ -13,7 +13,7 @@ import React, { useState, useMemo } from 'react';
             <Button variant="ghost" size="icon" onClick={() => onNavigate('PREV')}>
                 <ChevronLeft className="h-5 w-5" />
             </Button>
-            <h3 className="text-xl font-bold text-white capitalize">{label}</h3>
+            <h3 className="text-xl font-bold text-foreground dark:text-white capitalize">{label}</h3>
             <Button variant="ghost" size="icon" onClick={() => onNavigate('NEXT')}>
                 <ChevronRight className="h-5 w-5" />
             </Button>
@@ -84,7 +84,7 @@ import React, { useState, useMemo } from 'react';
                         event: 'Evento',
                         showMore: total => `+${total} más`,
                     }}
-                    className="text-white"
+                    className="text-foreground dark:text-white"
                 />
             </div>
         );

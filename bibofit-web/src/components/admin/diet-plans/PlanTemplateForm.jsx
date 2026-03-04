@@ -121,7 +121,7 @@ const PlanTemplateForm = ({ open, onOpenChange, template, onSuccess, centerId })
 
     return (
         <Dialog open={open} onOpenChange={handleClose}>
-            <DialogContent className="bg-background border-border text-white max-w-md">
+            <DialogContent className="bg-background border-border text-foreground dark:text-white max-w-md">
                 <DialogHeader>
                     <DialogTitle>{template ? 'Renombrar Plantilla' : 'Nueva Plantilla de Dieta'}</DialogTitle>
                     <DialogDescription>
@@ -189,7 +189,7 @@ const PlanTemplateForm = ({ open, onOpenChange, template, onSuccess, centerId })
                                     <Building2 className="w-5 h-5" />
                                 </div>
                                 <div>
-                                    <p className="text-sm font-medium text-white">Plantilla de Centro</p>
+                                    <p className="text-sm font-medium text-foreground dark:text-white">Plantilla de Centro</p>
                                     <p className="text-xs text-muted-foreground">
                                         Esta plantilla será visible solo para los miembros de <span className="text-amber-300 font-semibold">{coachCenterName || 'tu centro'}</span>.
                                     </p>

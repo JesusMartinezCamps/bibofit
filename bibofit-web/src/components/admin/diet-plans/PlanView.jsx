@@ -16,7 +16,7 @@ const MealSection = ({ meal, recipes, onAdd, onEdit, onDelete, allFoods, userRes
     <div key={meal.id} className="bg-card/75 p-4 rounded-lg border border-border">
         <div className="flex items-center gap-3 mb-4 flex-wrap justify-between">
             <div className="flex items-center gap-2">
-                <h3 className="text-xl font-bold text-white">{meal.name}</h3>
+                <h3 className="text-xl font-bold text-foreground dark:text-white">{meal.name}</h3>
                 {!readOnly && (
                     <Button onClick={() => onAdd(meal)} size="icon" variant="ghost" className="h-8 w-8 text-green-500 hover:bg-green-500/10 hover:text-green-400">
                         <Plus className="h-6 w-6" />
@@ -434,7 +434,7 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOn
     
     return (
         <>
-            <Card className="bg-card/75 border-border text-white overflow-hidden shadow-xl">
+            <Card className="bg-card/75 border-border text-foreground dark:text-white overflow-hidden shadow-xl">
                 <CardHeader>
                     <CardTitle>Momentos del Día</CardTitle>
                     <CardDescription>Gestiona las recetas para cada momento del día en este plan.</CardDescription>

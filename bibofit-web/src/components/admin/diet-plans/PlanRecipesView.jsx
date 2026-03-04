@@ -12,7 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 const MealSection = ({ meal, recipes, onAdd, onEdit, onDelete, allFoods, planRestrictions, user, readOnly }) => (
     <div key={meal.id} className="bg-card/75 rounded-lg border border-border overflow-hidden">
         <div className="flex items-center justify-between gap-3 p-3 border-b border-border bg-card/90">
-            <h3 className="text-lg font-bold text-white">{meal.name}</h3>
+            <h3 className="text-lg font-bold text-foreground dark:text-white">{meal.name}</h3>
             {!readOnly && (
                 <Button onClick={() => onAdd(meal)} size="icon" variant="ghost" className="h-7 w-7 text-green-500 hover:bg-green-500/10 hover:text-green-400">
                     <Plus className="h-5 w-5" />
@@ -236,7 +236,7 @@ const PlanRecipesView = ({ plan, onUpdate, readOnly = false, clientRestrictions 
 
     return (
         <>
-            <Card className="bg-card/75 border-border text-white overflow-hidden shadow-xl">
+            <Card className="bg-card/75 border-border text-foreground dark:text-white overflow-hidden shadow-xl">
                 {!readOnly && (
                     <CardHeader>
                         <CardTitle>Recetas en la Plantilla</CardTitle>

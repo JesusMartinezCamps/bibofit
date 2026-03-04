@@ -19,7 +19,7 @@ const InfoItem = ({ icon, label, value, valueClassName, children, asLink, to }) 
             <div className="bg-muted/50 p-2 rounded-lg">{icon}</div>
             <div>
                 <p className="text-sm text-muted-foreground">{label}</p>
-                {children ? children : <p className={`font-semibold text-white ${valueClassName}`}>{value || 'N/A'}</p>}
+                {children ? children : <p className={`font-semibold text-foreground dark:text-white ${valueClassName}`}>{value || 'N/A'}</p>}
             </div>
         </div>
     );
@@ -77,7 +77,7 @@ const ClientDietSummary = ({ client, dietPlans, onPlanUpdate, loading }) => {
 
     if (!client) {
         return (
-            <Card className="bg-muted/65 border-border text-white">
+            <Card className="bg-muted/65 border-border text-foreground dark:text-white">
                 <CardContent className="p-6">
                     <p>No se encontraron datos del cliente.</p>
                 </CardContent>
@@ -92,13 +92,13 @@ const ClientDietSummary = ({ client, dietPlans, onPlanUpdate, loading }) => {
     const sensitivities = client.user_sensitivities?.map(s => s.sensitivities).filter(Boolean) || [];
 
     return (
-        <Card className="bg-muted/65 border-border text-white shadow-lg">
+        <Card className="bg-muted/65 border-border text-foreground dark:text-white shadow-lg">
             <CardContent className="p-6">
                 <div className="grid grid-cols-1 gap-6">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
                         <InfoItem icon={<User className="w-5 h-5 text-green-400" />} label="Cliente" value={client.full_name} asLink to={`/client-profile/${client.user_id}`} />
                         <InfoItem icon={<Apple className="w-5 h-5 text-green-400" />} label="Plan de Dieta" asLink to={`/plan/dieta/${client.user_id}/${todayDateString}`}>
-                            <p className="font-semibold text-white">Ir al Plan de Dieta</p>
+                            <p className="font-semibold text-foreground dark:text-white">Ir al Plan de Dieta</p>
                         </InfoItem>
                         <InfoItem icon={<Weight className="w-5 h-5 text-sky-400" />} label="Peso Actual" value={`${client.current_weight_kg || 'N/A'} kg`} />
                         {client.goal_weight_kg && <InfoItem icon={<Target className="w-5 h-5 text-yellow-400" />} label="Peso Objetivo" value={`${client.goal_weight_kg} kg`} />}
@@ -114,18 +114,18 @@ const ClientDietSummary = ({ client, dietPlans, onPlanUpdate, loading }) => {
                                                 <div className="flex flex-wrap gap-1.5 mt-1">
                                                     {sensitivities.map(s => <InfoBadge key={s.id} item={s} type="sensitivity" />)}
                                                 </div>
-                                            ) : <p className="font-semibold text-white">Ninguna</p>}
+                                            ) : <p className="font-semibold text-foreground dark:text-white">Ninguna</p>}
                                         </InfoItem>
                                         <InfoItem icon={<HeartPulse className="w-5 h-5 text-red-400" />} label="Patologías">
                                             {pathologies.length > 0 ? (
                                                 <div className="flex flex-wrap gap-1.5 mt-1">
                                                     {pathologies.map(p => <InfoBadge key={p.id} item={p} type="medical_condition" />)}
                                                 </div>
-                                            ) : <p className="font-semibold text-white">Ninguna</p>}
+                                            ) : <p className="font-semibold text-foreground dark:text-white">Ninguna</p>}
                                         </InfoItem>
                                     </div>
                                 </DialogTrigger>
-                                <DialogContent className="bg-card border-border text-white max-w-3xl">
+                                <DialogContent className="bg-card border-border text-foreground dark:text-white max-w-3xl">
                                     <RestrictionsManager 
                                         entityId={client.user_id}
                                         entityType="profiles"
@@ -151,7 +151,7 @@ const ClientDietSummary = ({ client, dietPlans, onPlanUpdate, loading }) => {
                                         shouldCloseOnSelect={false}
                                         withPortal
                                     />
-                                ) : <p className="font-semibold text-white">No hay plan activo</p>}
+                                ) : <p className="font-semibold text-foreground dark:text-white">No hay plan activo</p>}
                             </InfoItem>
                         </div>
                     </div>

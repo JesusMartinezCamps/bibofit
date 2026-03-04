@@ -16,7 +16,7 @@ const PlanDay = ({ day, dayIndex, meal, recipes, onAddRecipe, onEditRecipe, onDe
             onMouseLeave={() => setIsHovered(false)}
         >
             <div className="p-3 border-b border-border/50">
-                <h3 className="font-bold text-center text-white">{meal.name}</h3>
+                <h3 className="font-bold text-center text-foreground dark:text-white">{meal.name}</h3>
                 {dayMealData && (
                     <div className="mt-2 flex justify-center">
                         <MealTargetMacros mealTargetMacros={dayMealData} />

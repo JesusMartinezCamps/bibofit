@@ -15,7 +15,7 @@ import PlanRecipesView from '@/components/admin/diet-plans/PlanRecipesView';
 const TemplatePreviewDialog = ({ open, onOpenChange, template, onAssign, clientRestrictions }) => {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="w-full sm:w-[90vw] sm:max-w-[90vw] max-w-none h-[90vh] bg-background border-border text-white flex flex-col p-0 overflow-hidden">
+            <DialogContent className="w-full sm:w-[90vw] sm:max-w-[90vw] max-w-none h-[90vh] bg-background border-border text-foreground dark:text-white flex flex-col p-0 overflow-hidden">
                 <DialogHeader className="px-6 py-4 bg-card border-b border-border">
                     <DialogTitle className="text-xl">Vista Previa: {template?.name}</DialogTitle>
                     <DialogDescription>Revisa el contenido de la plantilla antes de asignarla. Verás alertas si hay conflictos con las restricciones del cliente.</DialogDescription>
@@ -43,7 +43,7 @@ const TemplatePreviewDialog = ({ open, onOpenChange, template, onAssign, clientR
 const SelectTemplateDialog = ({ open, onOpenChange, templates, onSelect, loading, onPreview }) => {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="w-full sm:w-[90vw] sm:max-w-[90vw] max-w-none h-[80vh] bg-background border-border text-white flex flex-col">
+            <DialogContent className="w-full sm:w-[90vw] sm:max-w-[90vw] max-w-none h-[80vh] bg-background border-border text-foreground dark:text-white flex flex-col">
                 <DialogHeader>
                     <DialogTitle>Seleccionar Plantilla de Dieta</DialogTitle>
                     <DialogDescription>Elige una plantilla para asignar al cliente. Haz clic en una tarjeta para ver el detalle.</DialogDescription>
@@ -262,7 +262,7 @@ const DietManagementPage = () => {
                         ))}
                     </div>
                 ) : (
-                    <div className="text-center text-white py-16 bg-muted/65 rounded-xl">
+                    <div className="text-center text-foreground dark:text-white py-16 bg-muted/65 rounded-xl">
                         <p className="text-muted-foreground">Este cliente aún no tiene planes de dieta asignados.</p>
                         <Button onClick={handleOpenAssignDialog} className="mt-4 bg-green-600 hover:bg-green-500 text-white">
                             Asignar su primer plan

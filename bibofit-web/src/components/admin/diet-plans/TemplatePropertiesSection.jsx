@@ -182,7 +182,7 @@ const TemplatePropertiesSection = ({ plan, creator, onUpdate }) => {
     ];
 
     return (
-        <Card className="bg-card/75 border-border text-white">
+        <Card className="bg-card/75 border-border text-foreground dark:text-white">
             <CardHeader>
                 <CardTitle className="text-xl font-bold text-green-400 flex items-center gap-2">
                     Propiedades de la Dieta

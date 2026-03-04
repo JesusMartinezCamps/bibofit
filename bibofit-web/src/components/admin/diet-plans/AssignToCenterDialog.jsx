@@ -115,7 +115,7 @@ const AssignToCenterDialog = ({ open, onOpenChange, template, onSuccess }) => {
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="bg-background border-border text-white max-w-md">
+            <DialogContent className="bg-background border-border text-foreground dark:text-white max-w-md">
                 <DialogHeader>
                     <DialogTitle>Asignar a Organizaciones</DialogTitle>
                     <DialogDescription>

@@ -14,7 +14,7 @@ const PlanRecipeCard = ({ recipe, onEdit, onDelete, allFoods, userRestrictions, 
     const ingredients = useMemo(() => {
         if (!recipe) return [];
         if (recipe.is_private) {
-            return recipe.private_recipe_ingredients || [];
+            return recipe.recipe_ingredients || recipe.private_recipe_ingredients || [];
         }
         // If the recipe is customized in the plan and has custom ingredients, use them.
         // Otherwise, fallback to the base recipe ingredients.
@@ -144,7 +144,7 @@ const PlanRecipeCard = ({ recipe, onEdit, onDelete, allFoods, userRestrictions, 
             >
                 <div className="flex-1">
                     <div className="flex items-start justify-between">
-                        <h4 className={cn("text-xl font-bold mb-2 line-clamp-2 pr-10", isSafe ? "text-white" : "text-red-200")}>{name}</h4>
+                        <h4 className={cn("text-xl font-bold mb-2 line-clamp-2 pr-10", isSafe ? "text-foreground dark:text-white" : "text-red-200")}>{name}</h4>
                         {!isSafe && (
                             <TooltipProvider>
                                 <Tooltip>
@@ -155,7 +155,7 @@ const PlanRecipeCard = ({ recipe, onEdit, onDelete, allFoods, userRestrictions, 
                                     </TooltipTrigger>
                                     <TooltipContent className="bg-red-950 border-red-800 text-red-100 max-w-xs z-50">
                                         <p className="font-bold mb-1">Conflicto detectado</p>
-                                        <p className="text-sm">Contiene alimentos no permitidos: <span className="font-semibold text-white">{Array.from(unsafeFoodsSet).join(', ')}</span></p>
+                                        <p className="text-sm">Contiene alimentos no permitidos: <span className="font-semibold text-foreground dark:text-white">{Array.from(unsafeFoodsSet).join(', ')}</span></p>
                                     </TooltipContent>
                                 </Tooltip>
                             </TooltipProvider>

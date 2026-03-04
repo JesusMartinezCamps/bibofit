@@ -84,7 +84,7 @@ const TemplatePreviewModal = ({
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-6xl h-[90vh] flex flex-col bg-card border-border text-white p-0 overflow-hidden">
+            <DialogContent className="max-w-6xl h-[90vh] flex flex-col bg-card border-border text-foreground dark:text-white p-0 overflow-hidden">
                 <DialogHeader className="p-6 border-b border-border bg-card/75">
                     <div className="flex justify-between items-center pr-8">
                         <div>

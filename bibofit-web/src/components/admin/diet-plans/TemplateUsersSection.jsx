@@ -92,7 +92,7 @@ const TemplateUsersSection = ({ plan, onUpdate }) => {
     const isAssignedToMe = assignedUsers.some(u => u.user_id === user?.id);
 
     return (
-        <Card className="bg-card/75 border-border text-white h-full">
+        <Card className="bg-card/75 border-border text-foreground dark:text-white h-full">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-xl font-bold text-green-400 flex items-center gap-2">
                     <Users className="w-5 h-5" />
@@ -117,7 +117,7 @@ const TemplateUsersSection = ({ plan, onUpdate }) => {
                                 }`}>
                                     <Link to={`/admin/manage-diet/${p.user_id}`} className="flex-grow flex flex-col cursor-pointer">
                                         <span className={`text-sm font-medium transition-colors ${
-                                            isCurrentUser ? 'text-green-300 font-bold' : 'text-gray-200 group-hover:text-foreground'
+                                            isCurrentUser ? 'text-green-300 font-bold' : 'text-foreground dark:text-gray-200 group-hover:text-foreground'
                                         }`}>
                                             {p.profile.full_name} {isCurrentUser && "(Tú)"}
                                         </span>
@@ -184,11 +184,11 @@ const TemplateUsersSection = ({ plan, onUpdate }) => {
             />
 
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <AlertDialogContent className="bg-card border-border text-white">
+                <AlertDialogContent className="bg-card border-border text-foreground dark:text-white">
                     <AlertDialogHeader>
                         <AlertDialogTitle>¿Desasignar plantilla?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Estás a punto de eliminar el plan asignado a <span className="font-bold text-white">{userToDelete?.name}</span>. 
+                            Estás a punto de eliminar el plan asignado a <span className="font-bold text-foreground dark:text-white">{userToDelete?.name}</span>. 
                             Esta acción eliminará permanentemente su plan actual basado en esta plantilla.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
