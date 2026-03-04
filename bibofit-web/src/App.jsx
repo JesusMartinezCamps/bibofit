@@ -197,7 +197,7 @@ const AppRoutes = () => (
 );
 
 const AppContent = () => (
-  <div className="w-full h-full flex flex-col relative overflow-hidden bg-background text-foreground">
+  <div className="w-full h-full flex flex-col relative overflow-x-hidden bg-background text-foreground">
     <AppRoutes />
     <PWAInstallPrompt />
     <Toaster />
