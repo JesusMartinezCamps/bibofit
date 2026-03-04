@@ -121,7 +121,7 @@ const getImpactedDietMeals = async ({ meals, foodId }) => {
   if (dprError) throw dprError;
 
   const { data: customIngredients, error: dpriError } = await supabase
-    .from('diet_plan_recipe_ingredients')
+    .from('recipe_ingredients')
     .select('diet_plan_recipe_id, food_id')
     .in('diet_plan_recipe_id', dietPlanRecipeIds);
   if (dpriError) throw dpriError;
@@ -171,7 +171,7 @@ const getImpactedPrivateMeals = async ({ meals, foodId }) => {
   if (privateIds.length === 0) return [];
 
   const { data, error } = await supabase
-    .from('private_recipe_ingredients')
+    .from('recipe_ingredients')
     .select('private_recipe_id')
     .in('private_recipe_id', privateIds)
     .eq('food_id', foodId);
@@ -183,7 +183,7 @@ const getImpactedPrivateMeals = async ({ meals, foodId }) => {
 
 const getSourceIngredientsByDpr = async ({ dietPlanRecipeIds, dprRows }) => {
   const { data: customRows, error: customError } = await supabase
-    .from('diet_plan_recipe_ingredients')
+    .from('recipe_ingredients')
     .select('diet_plan_recipe_id, food_id, grams')
     .in('diet_plan_recipe_id', dietPlanRecipeIds);
   if (customError) throw customError;
@@ -259,7 +259,7 @@ const cloneDietPlanRecipeWithoutFood = async ({ originalRow, ingredients, foodId
   }));
 
   const { error: ingError } = await supabase
-    .from('diet_plan_recipe_ingredients')
+    .from('recipe_ingredients')
     .insert(ingredientsPayload);
   if (ingError) throw ingError;
 
@@ -299,7 +299,7 @@ const clonePrivateRecipeWithoutFood = async ({ originalRow, ingredients, foodId 
     food_id: ing.food_id,
     grams: ing.grams || 0,
   }));
-  const { error: ingError } = await supabase.from('private_recipe_ingredients').insert(ingredientsPayload);
+  const { error: ingError } = await supabase.from('recipe_ingredients').insert(ingredientsPayload);
   if (ingError) throw ingError;
 
   return inserted.id;
@@ -463,7 +463,7 @@ export const removeFoodFromFutureMealsAndRebalance = async ({
           )
           .in('id', privateRecipeIds),
         supabase
-          .from('private_recipe_ingredients')
+          .from('recipe_ingredients')
           .select('private_recipe_id, food_id, grams')
           .in('private_recipe_id', privateRecipeIds),
       ]);

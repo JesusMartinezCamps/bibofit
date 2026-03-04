@@ -95,15 +95,15 @@ const DietChangeRequestsPage = () => {
                     diet_plan_recipe:diet_plan_recipe_id(
                         *,
                         recipe:recipe_id(*, recipe_ingredients(*, food(*))),
-                        custom_ingredients:diet_plan_recipe_ingredients(*, food(*))
+                        custom_ingredients:recipe_ingredients(*, food(*))
                     ),
                     private_recipe:private_recipe_id(
                         *,
-                        private_recipe_ingredients(*, food(*))
+                        private_recipe_ingredients:recipe_ingredients(*, food(*))
                     ),
                     requested_changes_recipe:requested_changes_private_recipe_id(
                         *,
-                        private_recipe_ingredients(*, food(*))
+                        private_recipe_ingredients:recipe_ingredients(*, food(*))
                     )
                 `)
                 .eq('user_id', user.user_id);

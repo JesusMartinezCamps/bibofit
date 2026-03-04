@@ -13,7 +13,7 @@ import React, { useMemo } from 'react';
     
         const ingredients = useMemo(() => {
             if (recipe.is_private) {
-                 return recipe.private_recipe_ingredients || [];
+                 return recipe.recipe_ingredients || recipe.private_recipe_ingredients || [];
             }
             return recipe.custom_ingredients?.length > 0 
                 ? recipe.custom_ingredients 

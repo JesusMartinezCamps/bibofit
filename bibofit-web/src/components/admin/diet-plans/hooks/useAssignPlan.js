@@ -55,7 +55,7 @@ export const useAssignPlan = ({ open, onOpenChange, onSuccess, preselectedClient
         if (!template?.id) return;
         const { data, error } = await supabase
             .from('diet_plan_recipes')
-            .select('*, recipe:recipe_id(*, recipe_ingredients(*, food(*, food_sensitivities(sensitivity_id), food_medical_conditions(*)))), custom_ingredients:diet_plan_recipe_ingredients(*, food(*, food_sensitivities(sensitivity_id), food_medical_conditions(*))))')
+            .select('*, recipe:recipe_id(*, recipe_ingredients(*, food(*, food_sensitivities(sensitivity_id), food_medical_conditions(*)))), custom_ingredients:recipe_ingredients(*, food(*, food_sensitivities(sensitivity_id), food_medical_conditions(*))))')
             .eq('diet_plan_id', template.id);
         if (error) {
             toast({ title: 'Error', description: 'No se pudieron cargar las recetas de la plantilla.', variant: 'destructive' });

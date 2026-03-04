@@ -185,7 +185,7 @@ const RecipeEditor = ({
       // 2. Update Ingredients (Delete Old -> Insert New)
       // This is crucial for the "variant" logic to work effectively in the data layer
       const { error: deleteError } = await supabase
-        .from('diet_plan_recipe_ingredients')
+        .from('recipe_ingredients')
         .delete()
         .eq('diet_plan_recipe_id', dietPlanRecipeId);
 
@@ -199,7 +199,7 @@ const RecipeEditor = ({
           }));
           
           const { error: insertError } = await supabase
-            .from('diet_plan_recipe_ingredients')
+            .from('recipe_ingredients')
             .insert(planIngredients);
             
           if (insertError) {

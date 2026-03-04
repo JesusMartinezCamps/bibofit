@@ -136,14 +136,14 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
       if (shouldFetchStatic) {
         const [dietPlanRecipesRes, privateRecipesRes, userDayMealsRes, foodsRes, userFoodsRes, changeRequestsRes] = await Promise.all([
           supabase.from('diet_plan_recipes').select(`
-            *, 
-            recipe:recipe_id(*, recipe_ingredients(*)), 
-            custom_ingredients:diet_plan_recipe_ingredients(*), 
+            *,
+            recipe:recipe_id(*, template_ingredients:recipe_ingredients(*)),
+            custom_ingredients:recipe_ingredients(*),
             day_meal:day_meal_id!inner(id,name,display_order)
           `).eq('diet_plan_id', activePlan.id),
           supabase.from('private_recipes').select(`
-            *, 
-            private_recipe_ingredients(*), 
+            *,
+            recipe_ingredients(*),
             day_meal:day_meal_id!inner(id,name,display_order)
           `).eq('diet_plan_id', activePlan.id),
           supabase.from('user_day_meals')
@@ -176,7 +176,7 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
         const changeRequests = changeRequestsRes.data || [];
 
         const processedDietPlanRecipes = (dietPlanRecipesRes.data || []).map((r) => {
-          const recipeIngredients = enrichIngredients(r.recipe?.recipe_ingredients || []);
+          const recipeIngredients = enrichIngredients(r.recipe?.template_ingredients || []);
           const customIngredients = enrichIngredients(r.custom_ingredients || []);
           const request = changeRequests.find((cr) => cr.diet_plan_recipe_id === r.id && !cr.requested_changes_private_recipe_id);
 
@@ -192,12 +192,12 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
         });
 
         const processedPrivateRecipes = (privateRecipesRes.data || []).map((r) => {
-          const privateIngredients = enrichIngredients(r.private_recipe_ingredients || []);
+          const recipeIngredients = enrichIngredients(r.recipe_ingredients || []);
           const request = changeRequests.find((cr) => cr.requested_changes_private_recipe_id === r.id);
 
           return {
             ...r,
-            private_recipe_ingredients: privateIngredients,
+            recipe_ingredients: recipeIngredients,
             dnd_id: `private-${r.id}`,
             type: RECIPE_ENTITY_TYPES.PRIVATE,
             is_private: true,
@@ -222,13 +222,13 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
       const [plannedMealsRes, freeMealsRes, mealLogsRes, equivalenceAdjustmentsRes, ingredientAdjustmentsRes, snackOccurrencesRes, snackLogsRes] = await Promise.all([
         supabase.from('planned_meals').select(`
           *,
-          diet_plan_recipe:diet_plan_recipes(*, recipe:recipes(*, recipe_ingredients(*, food(*))), custom_ingredients:diet_plan_recipe_ingredients(*, food(*)), day_meal:day_meals(*)),
-          private_recipe:private_recipes(*, private_recipe_ingredients(*, food(*)), day_meal:day_meals(*)),
-          free_recipe:free_recipes(*, free_recipe_ingredients(*, food(*)), day_meal:day_meals(*))
+          diet_plan_recipe:diet_plan_recipes(*, recipe:recipes(*, template_ingredients:recipe_ingredients(*, food(*))), custom_ingredients:recipe_ingredients(*, food(*)), day_meal:day_meals(*)),
+          private_recipe:private_recipes(*, recipe_ingredients(*, food(*)), day_meal:day_meals(*)),
+          free_recipe:free_recipes(*, recipe_ingredients(*, food(*)), day_meal:day_meals(*))
         `).eq('user_id', userId).eq('diet_plan_id', activePlan.id).gte('plan_date', startDate).lte('plan_date', endDate),
         supabase.from('free_recipe_occurrences').select(`
           *,
-          free_recipe:free_recipes!inner(*, free_recipe_ingredients!inner(id, grams, food:food_id(*))),
+          free_recipe:free_recipes!inner(*, recipe_ingredients!inner(id, grams, food:food_id(*))),
           day_meal:day_meals(*)
         `).eq('user_id', userId).gte('meal_date', startDate).lte('meal_date', endDate),
         supabase.from('daily_meal_logs')
@@ -253,13 +253,13 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
         const nextPm = { ...pm };
 
         if (nextPm.diet_plan_recipe) {
-          const recipeIngredients = enrichIngredients(nextPm.diet_plan_recipe.recipe?.recipe_ingredients || []);
+          const templateIngredients = enrichIngredients(nextPm.diet_plan_recipe.recipe?.template_ingredients || []);
           const customIngredients = enrichIngredients(nextPm.diet_plan_recipe.custom_ingredients || []);
 
           nextPm.diet_plan_recipe = {
             ...nextPm.diet_plan_recipe,
             recipe: nextPm.diet_plan_recipe.recipe
-              ? { ...nextPm.diet_plan_recipe.recipe, recipe_ingredients: recipeIngredients }
+              ? { ...nextPm.diet_plan_recipe.recipe, recipe_ingredients: templateIngredients }
               : nextPm.diet_plan_recipe.recipe,
             custom_ingredients: customIngredients,
           };
@@ -268,14 +268,14 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
         if (nextPm.private_recipe) {
           nextPm.private_recipe = {
             ...nextPm.private_recipe,
-            private_recipe_ingredients: enrichIngredients(nextPm.private_recipe.private_recipe_ingredients || []),
+            recipe_ingredients: enrichIngredients(nextPm.private_recipe.recipe_ingredients || []),
           };
         }
 
         if (nextPm.free_recipe) {
           nextPm.free_recipe = {
             ...nextPm.free_recipe,
-            free_recipe_ingredients: enrichIngredients(nextPm.free_recipe.free_recipe_ingredients || []),
+            recipe_ingredients: enrichIngredients(nextPm.free_recipe.recipe_ingredients || []),
           };
         }
 
@@ -283,7 +283,7 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
       });
 
       const processedFreeMeals = (freeMealsRes.data || []).map((fm) => {
-        const unifiedIngredients = (fm.free_recipe?.free_recipe_ingredients || []).map((ing) => {
+        const unifiedIngredients = (fm.free_recipe?.recipe_ingredients || []).map((ing) => {
           const foodDetails = ing.food;
           return {
             ...ing,
@@ -295,7 +295,7 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
 
         return {
           ...fm.free_recipe,
-          free_recipe_ingredients: enrichIngredients(unifiedIngredients),
+          recipe_ingredients: enrichIngredients(unifiedIngredients),
           occurrence_id: fm.id,
           meal_date: fm.meal_date,
           day_meal_id: fm.day_meal_id,

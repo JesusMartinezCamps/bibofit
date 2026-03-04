@@ -172,7 +172,7 @@ export const useFreeRecipeDialog = ({ targetUserId, dayMealId, dietPlanId, date,
 
       const newFreeMealWithOccurrence = {
         ...freeRecipe,
-        free_recipe_ingredients: mergedIngredients,
+        recipe_ingredients: mergedIngredients,
         occurrence_id: occurrence.id,
         meal_date: date,
         day_meal_id: dayMealId,

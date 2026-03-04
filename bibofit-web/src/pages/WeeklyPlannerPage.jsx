@@ -56,7 +56,7 @@ const WeeklyPlannerPage = () => {
             if (plan) {
                 const { data: recipes, error: recipesError } = await supabase
                     .from('diet_plan_recipes')
-                    .select('*, recipe:recipe_id(*, recipe_ingredients(*, food(*))), day_meal:day_meal_id!inner(id, name, display_order), custom_ingredients:diet_plan_recipe_ingredients(*, food(*))')
+                    .select('*, recipe:recipe_id(*, recipe_ingredients(*, food(*))), day_meal:day_meal_id!inner(id, name, display_order), custom_ingredients:recipe_ingredients(*, food(*))')
                     .eq('diet_plan_id', plan.id);
                 if (recipesError) throw recipesError;
 
@@ -64,7 +64,7 @@ const WeeklyPlannerPage = () => {
                     .from('private_recipes')
                     .select(`
                         *,
-                        private_recipe_ingredients(*, food(*)),
+                        private_recipe_ingredients:recipe_ingredients(*, food(*)),
                         day_meal:day_meal_id!inner(id, name, display_order),
                         change_requests:diet_change_requests!requested_changes_private_recipe_id(status)
                     `)

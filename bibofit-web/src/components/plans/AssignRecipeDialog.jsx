@@ -169,7 +169,7 @@ import React, { useState, useEffect, useCallback } from 'react';
                         [otherRecipeIdColumn]: null,
                     }));
 
-                    const { data: insertedData, error: insertError } = await supabase.from('planned_meals').insert(mealsToInsert).select(`*, diet_plan_recipe:diet_plan_recipes(*, recipe:recipes(*, recipe_ingredients(*, food(*))), custom_ingredients:diet_plan_recipe_ingredients(*, food(*))), private_recipe:private_recipes(*, private_recipe_ingredients(*, food(*, food_sensitivities(*), food_medical_conditions(*)))), free_recipe:free_recipes(*)`);
+                    const { data: insertedData, error: insertError } = await supabase.from('planned_meals').insert(mealsToInsert).select(`*, diet_plan_recipe:diet_plan_recipes(*, recipe:recipes(*, recipe_ingredients(*, food(*))), custom_ingredients:recipe_ingredients(*, food(*))), private_recipe:private_recipes(*, private_recipe_ingredients:recipe_ingredients(*, food(*, food_sensitivities(*), food_medical_conditions(*)))), free_recipe:free_recipes(*)`);
                     if (insertError) throw insertError;
                     
                     onAssign(insertedData, [...assignmentsToRemove, ...replacedItems]);

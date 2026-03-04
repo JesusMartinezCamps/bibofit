@@ -47,10 +47,8 @@ export const inferRecipeEntityType = (item) => {
   }
 
   if (item.snack_ingredients || item.snack_id) return RECIPE_ENTITY_TYPES.SNACK;
-  if (item.free_recipe_ingredients || item.occurrence_id) return RECIPE_ENTITY_TYPES.FREE;
-  if (item.private_recipe_ingredients || item.is_private || item.is_private_recipe) {
-    return RECIPE_ENTITY_TYPES.PRIVATE;
-  }
+  if (item.occurrence_id) return RECIPE_ENTITY_TYPES.FREE;
+  if (item.is_private || item.is_private_recipe) return RECIPE_ENTITY_TYPES.PRIVATE;
 
   return RECIPE_ENTITY_TYPES.PLAN;
 };
@@ -88,8 +86,7 @@ export const getRecipeIngredients = (item) => {
 
   if (isNonEmptyArray(item.custom_ingredients)) return item.custom_ingredients;
   if (isNonEmptyArray(item.recipe?.recipe_ingredients)) return item.recipe.recipe_ingredients;
-  if (isNonEmptyArray(item.private_recipe_ingredients)) return item.private_recipe_ingredients;
-  if (isNonEmptyArray(item.free_recipe_ingredients)) return item.free_recipe_ingredients;
+  if (isNonEmptyArray(item.recipe_ingredients)) return item.recipe_ingredients;
   if (isNonEmptyArray(item.snack_ingredients)) return item.snack_ingredients;
   if (isNonEmptyArray(item.ingredients)) return item.ingredients;
 

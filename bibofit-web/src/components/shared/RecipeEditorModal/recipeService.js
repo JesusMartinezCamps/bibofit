@@ -36,7 +36,7 @@ export const applyTemporaryChanges = async ({ formData, ingredients, recipeToEdi
                 difficulty: formData.difficulty,
                 recipe_ingredients: normalizedIngredients
             },
-            private_recipe_ingredients: normalizedIngredients
+            recipe_ingredients: normalizedIngredients
         };
 
         console.log('Applied temporary changes with ingredients:', normalizedIngredients);
@@ -78,7 +78,7 @@ export const submitChangeRequest = async ({ actionType, recipeToEdit, formData, 
         }));
 
         const { error: ingredientsError } = await supabase
-            .from('private_recipe_ingredients')
+            .from('recipe_ingredients')
             .insert(newIngredientsData);
 
         if (ingredientsError) {
@@ -106,7 +106,7 @@ export const submitChangeRequest = async ({ actionType, recipeToEdit, formData, 
 
         if (requestError) {
             console.error("Error submitting change request:", requestError);
-            await supabase.from('private_recipe_ingredients').delete().eq('private_recipe_id', newPrivateRecipe.id);
+            await supabase.from('recipe_ingredients').delete().eq('private_recipe_id', newPrivateRecipe.id);
             await supabase.from('private_recipes').delete().eq('id', newPrivateRecipe.id);
             throw new Error(`No se pudo enviar la solicitud de cambio: ${requestError.message}`);
         }
@@ -124,7 +124,7 @@ export const submitChangeRequest = async ({ actionType, recipeToEdit, formData, 
                 instructions: formData.instructions,
                 prep_time_min: formData.prep_time_min,
                 difficulty: formData.difficulty,
-                private_recipe_ingredients: ingredients
+                recipe_ingredients: ingredients
             }
         };
 
@@ -218,10 +218,10 @@ export const updateDietPlanRecipeCustomization = async ({ dietPlanRecipeId, form
 
         // 2. Delete existing custom ingredients
         const { error: deleteError } = await supabase
-            .from('diet_plan_recipe_ingredients')
+            .from('recipe_ingredients')
             .delete()
             .eq('diet_plan_recipe_id', dietPlanRecipeId);
-        
+
         if (deleteError) throw deleteError;
 
         // 3. Insert new custom ingredients
@@ -233,7 +233,7 @@ export const updateDietPlanRecipeCustomization = async ({ dietPlanRecipeId, form
 
         if (ingredientsToInsert.length > 0) {
             const { error: insertError } = await supabase
-                .from('diet_plan_recipe_ingredients')
+                .from('recipe_ingredients')
                 .insert(ingredientsToInsert);
             
             if (insertError) throw insertError;
@@ -276,7 +276,7 @@ export const savePrivateRecipe = async ({ recipeId, userId, formData, ingredient
         }));
 
         const { error: insertError } = await supabase
-            .from('private_recipe_ingredients')
+            .from('recipe_ingredients')
             .insert(newIngredientsData);
 
         if (insertError) {
@@ -327,7 +327,7 @@ export const saveDietPlanRecipe = async ({ recipeId, userId, formData, ingredien
 
         if (newIngredientsData.length > 0) {
             const { error: insertError } = await supabase
-                .from('diet_plan_recipe_ingredients')
+                .from('recipe_ingredients')
                 .insert(newIngredientsData);
 
             if (insertError) {

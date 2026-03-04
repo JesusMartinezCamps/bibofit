@@ -33,7 +33,7 @@ const MyFreeRecipesPage = () => {
         .select(`
           *,
           day_meal:day_meal_id(name),
-          ingredients:free_recipe_ingredients(
+          ingredients:recipe_ingredients(
             *, 
             food:food_id(
               *, 

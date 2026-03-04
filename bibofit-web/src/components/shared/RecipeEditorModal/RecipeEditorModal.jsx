@@ -87,10 +87,10 @@ const RecipeEditorModal = ({
 
             if (recipeToEdit.type === 'free_recipe') {
                 recipeSource = recipeToEdit;
-                ingredientsSource = recipeToEdit.free_recipe_ingredients || [];
+                ingredientsSource = recipeToEdit.recipe_ingredients || [];
             } else if (isPrivate) {
                 recipeSource = recipeToEdit;
-                ingredientsSource = recipeToEdit.private_recipe_ingredients || [];
+                ingredientsSource = recipeToEdit.recipe_ingredients || [];
             } else { // diet_plan_recipe
                 recipeSource = recipeToEdit.is_customized ? recipeToEdit : (recipeToEdit.recipe || {});
                 

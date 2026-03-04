@@ -271,7 +271,7 @@ const DietChangeRequestList = ({
 
         if (status === 'rejected') {
             if (requestedRecipe) {
-                await supabase.from('private_recipe_ingredients').delete().eq('private_recipe_id', requestedRecipe.id);
+                await supabase.from('recipe_ingredients').delete().eq('private_recipe_id', requestedRecipe.id);
                 await supabase.from('private_recipes').delete().eq('id', requestedRecipe.id);
             }
         } else if (status === 'approved') {

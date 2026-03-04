@@ -131,7 +131,7 @@ const upsertFreeRecipeHeader = async ({
 
 const replaceIngredients = async ({ freeRecipeId, ingredients }) => {
   const { error: deleteError } = await supabase
-    .from('free_recipe_ingredients')
+    .from('recipe_ingredients')
     .delete()
     .eq('free_recipe_id', freeRecipeId);
 
@@ -141,7 +141,7 @@ const replaceIngredients = async ({ freeRecipeId, ingredients }) => {
   if (rows.length === 0) return [];
 
   const { data, error } = await supabase
-    .from('free_recipe_ingredients')
+    .from('recipe_ingredients')
     .insert(rows)
     .select('*, food(*)');
 
@@ -241,7 +241,7 @@ export const fetchFreeRecipeDetails = async (freeRecipeId) => {
     .select(`
       *,
       day_meal:day_meal_id(id, name, display_order),
-      ingredients:free_recipe_ingredients(
+      ingredients:recipe_ingredients(
         *,
         food:food_id(
           *,

@@ -67,7 +67,7 @@ const PlanRecipesView = ({ plan, onUpdate, readOnly = false, clientRestrictions 
         try {
             const [recipesRes, mealsRes, foodsRes, planSensitivitiesRes, planConditionsRes, allConditionsRes] = await Promise.all([
                 supabase.from('diet_plan_recipes')
-                    .select('*, recipe:recipe_id(*, recipe_ingredients(*, food(*, food_sensitivities(*), food_medical_conditions(*)))), custom_ingredients:diet_plan_recipe_ingredients(*, food(*, food_sensitivities(*), food_medical_conditions(*)))')
+                    .select('*, recipe:recipe_id(*, recipe_ingredients(*, food(*, food_sensitivities(*), food_medical_conditions(*)))), custom_ingredients:recipe_ingredients(*, food(*, food_sensitivities(*), food_medical_conditions(*)))')
                     .eq('diet_plan_id', plan.id)
                     .not('day_meal_id', 'is', null),
                 supabase.from('day_meals').select('*').order('display_order'),
@@ -160,7 +160,7 @@ const PlanRecipesView = ({ plan, onUpdate, readOnly = false, clientRestrictions 
 
             const { data: fullRecord, error: fetchError } = await supabase
                  .from('diet_plan_recipes')
-                 .select('*, recipe:recipe_id(*, recipe_ingredients(*, food(*, food_sensitivities(*), food_medical_conditions(*)))), custom_ingredients:diet_plan_recipe_ingredients(*, food(*, food_sensitivities(*), food_medical_conditions(*)))')
+                 .select('*, recipe:recipe_id(*, recipe_ingredients(*, food(*, food_sensitivities(*), food_medical_conditions(*)))), custom_ingredients:recipe_ingredients(*, food(*, food_sensitivities(*), food_medical_conditions(*)))')
                  .eq('id', newPlanRecipe.id)
                  .single();
 
@@ -204,7 +204,7 @@ const PlanRecipesView = ({ plan, onUpdate, readOnly = false, clientRestrictions 
             try {
                  const { data: fullRecord, error: fetchError } = await supabase
                      .from('diet_plan_recipes')
-                     .select('*, recipe:recipe_id(*, recipe_ingredients(*, food(*, food_sensitivities(*), food_medical_conditions(*)))), custom_ingredients:diet_plan_recipe_ingredients(*, food(*, food_sensitivities(*), food_medical_conditions(*)))')
+                     .select('*, recipe:recipe_id(*, recipe_ingredients(*, food(*, food_sensitivities(*), food_medical_conditions(*)))), custom_ingredients:recipe_ingredients(*, food(*, food_sensitivities(*), food_medical_conditions(*)))')
                      .eq('id', resultData.id)
                      .single();
                  

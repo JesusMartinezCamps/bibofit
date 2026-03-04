@@ -65,12 +65,12 @@ export const useAdminRecipeEditor = ({ recipeToEdit, onSaveSuccess, userId, plan
 
         if (recipeToEdit.is_private) {
             ({ data: ingredientsData, error } = await supabase
-                .from('private_recipe_ingredients')
+                .from('recipe_ingredients')
                 .select('*, food(*, food_sensitivities(*, sensitivities(name)), food_medical_conditions(*), food_vitamins(*), food_minerals(*))')
                 .eq('private_recipe_id', recipeToEdit.id));
         } else if (recipeToEdit.is_customized) {
             ({ data: ingredientsData, error } = await supabase
-                .from('diet_plan_recipe_ingredients')
+                .from('recipe_ingredients')
                 .select('*, food(*, food_sensitivities(*, sensitivities(name)), food_medical_conditions(*), food_vitamins(*), food_minerals(*))')
                 .eq('diet_plan_recipe_id', recipeToEdit.id));
         } else if (recipeToEdit.recipe?.id) { // Template recipe
@@ -172,7 +172,7 @@ export const useAdminRecipeEditor = ({ recipeToEdit, onSaveSuccess, userId, plan
                     grams: ing.grams
                 }));
 
-                const { error: ingredientsError } = await supabase.from('diet_plan_recipe_ingredients').insert(newIngredients);
+                const { error: ingredientsError } = await supabase.from('recipe_ingredients').insert(newIngredients);
                 if(ingredientsError) throw ingredientsError;
                 
                 toast({ title: 'Éxito', description: 'Receta añadida y personalizada en el plan.' });
@@ -189,15 +189,13 @@ export const useAdminRecipeEditor = ({ recipeToEdit, onSaveSuccess, userId, plan
     };
 
     const updateExistingRecipe = async () => {
-        let ingredientsTable, recipeTable, idColumn, recipeId;
+        let recipeTable, idColumn, recipeId;
 
         if (recipeToEdit.is_private) {
-            ingredientsTable = 'private_recipe_ingredients';
             recipeTable = 'private_recipes';
             idColumn = 'private_recipe_id';
             recipeId = recipeToEdit.id;
-        } else { 
-            ingredientsTable = 'diet_plan_recipe_ingredients';
+        } else {
             recipeTable = 'diet_plan_recipes';
             idColumn = 'diet_plan_recipe_id';
             recipeId = recipeToEdit.id;
@@ -229,7 +227,7 @@ export const useAdminRecipeEditor = ({ recipeToEdit, onSaveSuccess, userId, plan
 
         if (recipeUpdateError) throw recipeUpdateError;
 
-        const { error: deleteError } = await supabase.from(ingredientsTable).delete().eq(idColumn, recipeId);
+        const { error: deleteError } = await supabase.from('recipe_ingredients').delete().eq(idColumn, recipeId);
         if (deleteError) throw deleteError;
 
         if (ingredients.length > 0) {
@@ -238,7 +236,7 @@ export const useAdminRecipeEditor = ({ recipeToEdit, onSaveSuccess, userId, plan
                 food_id: ing.food_id,
                 grams: ing.grams,
             }));
-            const { error: insertError } = await supabase.from(ingredientsTable).insert(newIngredients);
+            const { error: insertError } = await supabase.from('recipe_ingredients').insert(newIngredients);
             if (insertError) throw insertError;
         }
         

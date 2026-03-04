@@ -201,7 +201,7 @@ export const useFreeMealDialog = ({ open, onOpenChange, userId, onSaveSuccess, i
       const dayMeal = userDayMeals.find((udm) => String(udm.day_meal_id) === String(freeRecipe.day_meal_id))?.day_meal || null;
       const newFreeRecipeWithDetails = {
         ...freeRecipe,
-        free_recipe_ingredients: enrichedIngredients,
+        recipe_ingredients: enrichedIngredients,
         ingredients: enrichedIngredients,
         day_meal: dayMeal,
         occurrence_id: occurrence.id,

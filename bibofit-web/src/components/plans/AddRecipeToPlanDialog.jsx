@@ -189,14 +189,14 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
                     .select(`
                         *, 
                         recipe:recipe_id(*, recipe_ingredients(*, food(*, food_sensitivities(*, sensitivities(id,name)), food_medical_conditions(*, medical_conditions(id, name)))), recipe_sensitivities(*, sensitivities(id, name)), recipe_medical_conditions(*, medical_conditions(id, name)), recipe_macros(*)),
-                        custom_ingredients:diet_plan_recipe_ingredients(*, food(*, food_sensitivities(*, sensitivities(id,name)), food_medical_conditions(*, medical_conditions(id, name))))
+                        custom_ingredients:recipe_ingredients(*, food(*, food_sensitivities(*, sensitivities(id,name)), food_medical_conditions(*, medical_conditions(id, name))))
                     `)
                     .eq('diet_plan_id', dietPlanId)
                     .eq('day_meal_id', currentMealId);
                 
                 privateRecipesQuery = supabase
                     .from('private_recipes')
-                    .select('*, private_recipe_ingredients(*, food(*, food_sensitivities(*, sensitivities(id,name)), food_medical_conditions(*, medical_conditions(id, name))))')
+                    .select('*, private_recipe_ingredients:recipe_ingredients(*, food(*, food_sensitivities(*, sensitivities(id,name)), food_medical_conditions(*, medical_conditions(id, name))))')
                     .eq('diet_plan_id', dietPlanId)
                     .eq('day_meal_id', currentMealId);
 
@@ -206,7 +206,7 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
 
                  privateRecipesQuery = (!isTemplate && userId)
                     ? supabase.from('private_recipes')
-                        .select('*, private_recipe_ingredients(*, food(*, food_sensitivities(*, sensitivities(id,name)), food_medical_conditions(*, medical_conditions(id, name))))')
+                        .select('*, private_recipe_ingredients:recipe_ingredients(*, food(*, food_sensitivities(*, sensitivities(id,name)), food_medical_conditions(*, medical_conditions(id, name))))')
                         .eq('user_id', userId)
                     : Promise.resolve({ data: [], error: null });
             }

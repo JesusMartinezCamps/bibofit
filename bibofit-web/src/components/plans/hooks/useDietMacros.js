@@ -70,13 +70,13 @@ export const useDietMacros = ({ data, activePlan, userId, logDate, viewMode, toa
         ] = await Promise.all([
           dietPlanRecipeIds.length > 0
             ? supabase
-                .from('diet_plan_recipe_ingredients')
+                .from('recipe_ingredients')
                 .select('diet_plan_recipe_id, food_id, grams, food(id, proteins, total_carbs, total_fats, food_unit)')
                 .in('diet_plan_recipe_id', dietPlanRecipeIds)
             : Promise.resolve({ data: [], error: null }),
           privateRecipeIds.length > 0
             ? supabase
-                .from('private_recipe_ingredients')
+                .from('recipe_ingredients')
                 .select('private_recipe_id, food_id, grams, food(id, proteins, total_carbs, total_fats, food_unit)')
                 .in('private_recipe_id', privateRecipeIds)
             : Promise.resolve({ data: [], error: null }),
@@ -84,7 +84,7 @@ export const useDietMacros = ({ data, activePlan, userId, logDate, viewMode, toa
             ? supabase
                 .from('free_recipe_occurrences')
                 .select(
-                  'id, free_recipe:free_recipes(id, free_recipe_ingredients(id, grams, food(id, proteins, total_carbs, total_fats, food_unit)))'
+                  'id, free_recipe:free_recipes(id, free_recipe_ingredients:recipe_ingredients(id, grams, food(id, proteins, total_carbs, total_fats, food_unit)))'
                 )
                 .in('id', freeRecipeOccurrenceIds)
             : Promise.resolve({ data: [], error: null }),

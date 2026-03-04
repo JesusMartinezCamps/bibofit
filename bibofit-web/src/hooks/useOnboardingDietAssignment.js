@@ -87,7 +87,7 @@ const fetchTemplateRecipesWithFoods = async (templateId) => {
           )
         )
       ),
-      custom_ingredients:diet_plan_recipe_ingredients(
+      custom_ingredients:recipe_ingredients(
         *,
         food(
           *,

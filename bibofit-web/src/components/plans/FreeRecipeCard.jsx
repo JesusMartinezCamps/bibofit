@@ -17,7 +17,7 @@ const FreeRecipeCard = ({
   selectionIndicator,
   searchQuery = '',
 }) => {
-  const { name, free_recipe_ingredients: ingredients, status, prep_time_min, difficulty } = freeMeal;
+  const { name, recipe_ingredients: ingredients, status, prep_time_min, difficulty } = freeMeal;
   const normalizedStatus = normalizeFreeRecipeStatus(status);
 
   const macros = useMemo(() => {

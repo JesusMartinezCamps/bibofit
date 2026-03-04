@@ -118,14 +118,14 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
         .from('free_recipes')
         .select(`
           *, 
-          ingredients:free_recipe_ingredients(
-            *, 
+          ingredients:recipe_ingredients(
+            *,
             food(
-                *, 
+                *,
                 food_sensitivities(sensitivity:sensitivities(*)),
                 food_medical_conditions(relation_type, condition:medical_conditions(*))
             )
-          ), 
+          ),
           occurrences:free_recipe_occurrences(meal_date)
         `)
         .eq('user_id', userId);
@@ -357,7 +357,7 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
             }));
 
             const { error: ingError } = await supabase
-                .from('free_recipe_ingredients')
+                .from('recipe_ingredients')
                 .insert(ingredientsToInsert);
 
             if (ingError) throw ingError;

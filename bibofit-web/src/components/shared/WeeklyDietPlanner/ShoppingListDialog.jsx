@@ -107,8 +107,8 @@ const ShoppingListDialog = ({ open, onOpenChange, userId, currentDate, activePla
                     const privateRecipeIds = logs.map(l => l.private_recipe_id).filter(Boolean);
 
                     const [recipesRes, privateRecipesRes] = await Promise.all([
-                        dietPlanRecipeIds.length > 0 ? supabase.from('diet_plan_recipes').select('*, recipe:recipe_id(name, recipe_ingredients(*)), custom_name, custom_ingredients:diet_plan_recipe_ingredients(*)').in('id', dietPlanRecipeIds) : Promise.resolve({ data: [] }),
-                        privateRecipeIds.length > 0 ? supabase.from('private_recipes').select('*, name, private_recipe_ingredients(*)').in('id', privateRecipeIds) : Promise.resolve({ data: [] })
+                        dietPlanRecipeIds.length > 0 ? supabase.from('diet_plan_recipes').select('*, recipe:recipe_id(name, recipe_ingredients(*)), custom_name, custom_ingredients:recipe_ingredients(*)').in('id', dietPlanRecipeIds) : Promise.resolve({ data: [] }),
+                        privateRecipeIds.length > 0 ? supabase.from('private_recipes').select('*, name, private_recipe_ingredients:recipe_ingredients(*)').in('id', privateRecipeIds) : Promise.resolve({ data: [] })
                     ]);
 
                     if (recipesRes.error) throw recipesRes.error;
@@ -121,7 +121,7 @@ const ShoppingListDialog = ({ open, onOpenChange, userId, currentDate, activePla
 
                     const { data: planRecipes, error: planRecipesError } = await supabase
                         .from('diet_plan_recipes')
-                        .select('custom_ingredients:diet_plan_recipe_ingredients(food_id), recipe:recipe_id(recipe_ingredients(food_id)), private_recipe:private_recipe_id(*, private_recipe_ingredients(food_id))')
+                        .select('custom_ingredients:recipe_ingredients(food_id), recipe:recipe_id(recipe_ingredients(food_id)), private_recipe:private_recipe_id(*, private_recipe_ingredients:recipe_ingredients(food_id))')
                         .eq('diet_plan_id', activePlan.id);
 
                     if (planRecipesError) throw planRecipesError;

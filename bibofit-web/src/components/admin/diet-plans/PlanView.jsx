@@ -120,7 +120,7 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOn
                         )
                     ), 
                     day_meal:day_meal_id!inner(id,name,display_order), 
-                    custom_ingredients:diet_plan_recipe_ingredients(
+                    custom_ingredients:recipe_ingredients(
                         *, 
                         food(*)
                     ),
@@ -138,10 +138,10 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOn
             const { data: privateRecipesData, error: privateRecipesError } = await supabase.from('private_recipes')
                 .select(`
                     *, 
-                    private_recipe_ingredients(
-                        *, 
+                    private_recipe_ingredients:recipe_ingredients(
+                        *,
                         food(*)
-                    ), 
+                    ),
                     day_meal:day_meal_id!inner(id,name,display_order)
                 `)
                 .eq('diet_plan_id', plan.id);
@@ -322,7 +322,7 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOn
                 }));
     
                 const { error: ingredientsError } = await supabase
-                    .from('diet_plan_recipe_ingredients')
+                    .from('recipe_ingredients')
                     .insert(newIngredients);
     
                 if (ingredientsError) throw ingredientsError;
@@ -341,7 +341,7 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOn
                         )
                     ), 
                     day_meal:day_meal_id!inner(id,name,display_order), 
-                    custom_ingredients:diet_plan_recipe_ingredients(
+                    custom_ingredients:recipe_ingredients(
                         *, 
                         food(*)
                     ),
@@ -395,7 +395,7 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOn
                             )
                         ), 
                         day_meal:day_meal_id!inner(id,name,display_order), 
-                        custom_ingredients:diet_plan_recipe_ingredients(
+                        custom_ingredients:recipe_ingredients(
                             *, 
                             food(*)
                         ),

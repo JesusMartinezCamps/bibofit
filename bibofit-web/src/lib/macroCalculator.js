@@ -185,10 +185,10 @@ export const saveDietPlanRecipeIngredients = async (dietPlanRecipeId, ingredient
   try {
     // Eliminar ingredientes existentes
     const { error: deleteError } = await supabase
-      .from('diet_plan_recipe_ingredients')
+      .from('recipe_ingredients')
       .delete()
       .eq('diet_plan_recipe_id', dietPlanRecipeId);
-    
+
     if (deleteError) throw deleteError;
 
     // Insertar nuevos ingredientes si existen
@@ -207,7 +207,7 @@ export const saveDietPlanRecipeIngredients = async (dietPlanRecipeId, ingredient
 
       if (ingredientData.length > 0) {
         const { error: insertError } = await supabase
-          .from('diet_plan_recipe_ingredients')
+          .from('recipe_ingredients')
           .insert(ingredientData);
         
         if (insertError) throw insertError;
@@ -229,7 +229,7 @@ export const saveDietPlanRecipeIngredients = async (dietPlanRecipeId, ingredient
 export const getDietPlanRecipeIngredients = async (dietPlanRecipeId) => {
   try {
     const { data, error } = await supabase
-      .from('diet_plan_recipe_ingredients')
+      .from('recipe_ingredients')
       .select('*, food(*, total_carbs, total_fats)')
       .eq('diet_plan_recipe_id', dietPlanRecipeId);
     

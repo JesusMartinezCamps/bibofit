@@ -39,7 +39,7 @@ const CreateFreeRecipePage = () => {
 
     const handleSaveSuccess = (newLog, newFreeMealWithOccurrence) => {
         setRecipeNameForToast(newFreeMealWithOccurrence.name);
-        const recipeMacros = calculateMacros(newFreeMealWithOccurrence.free_recipe_ingredients, availableFoods);
+        const recipeMacros = calculateMacros(newFreeMealWithOccurrence.recipe_ingredients, availableFoods);
 
         const recipeForDialog = {
             id: newFreeMealWithOccurrence.id,
@@ -48,7 +48,7 @@ const CreateFreeRecipePage = () => {
             day_meal_id: newFreeMealWithOccurrence.day_meal_id,
             name: newFreeMealWithOccurrence.name,
             instructions: newFreeMealWithOccurrence.instructions,
-            ingredients: newFreeMealWithOccurrence.free_recipe_ingredients,
+            ingredients: newFreeMealWithOccurrence.recipe_ingredients,
             occurrence_id: newFreeMealWithOccurrence.occurrence_id, 
             free_recipe: { id: newFreeMealWithOccurrence.id } 
         };

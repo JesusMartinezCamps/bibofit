@@ -118,7 +118,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
 
         freeMeals.forEach(freeMeal => {
             const mealDateKey = normalizeDateKey(freeMeal.meal_date);
-            map.set(`free-${freeMeal.occurrence_id}|${mealDateKey}`, freeMeal.free_recipe_ingredients || []);
+            map.set(`free-${freeMeal.occurrence_id}|${mealDateKey}`, freeMeal.recipe_ingredients || []);
         });
 
         snacks.forEach(snack => {
@@ -136,7 +136,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
 
         if (recipeType === 'free_recipe') {
             return ingredientCache.get(`free-${freeRecipeOccurrenceId}|${logDate}`)
-                || freeMeals.find(fm => fm.occurrence_id === freeRecipeOccurrenceId)?.free_recipe_ingredients
+                || freeMeals.find(fm => fm.occurrence_id === freeRecipeOccurrenceId)?.recipe_ingredients
                 || null;
         }
 
@@ -461,7 +461,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
                      try {
                         await supabase.from('diet_change_requests').delete().eq('diet_plan_recipe_id', recipeId);
                         await supabase.from('daily_meal_logs').delete().eq('diet_plan_recipe_id', recipeId);
-                        await supabase.from('diet_plan_recipe_ingredients').delete().eq('diet_plan_recipe_id', recipeId);
+                        await supabase.from('recipe_ingredients').delete().eq('diet_plan_recipe_id', recipeId);
                         await supabase.from('recipe_macros').delete().eq('diet_plan_recipe_id', recipeId);
                         await supabase.from('diet_plan_recipes').delete().eq('id', recipeId);
                     } catch (manualError) {
@@ -821,7 +821,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
                 day_meal_id: mealId,
                 dnd_id: `free-${occurrence.id}`,
                 type: 'free_recipe',
-                free_recipe_ingredients: unifiedIngredients,
+                recipe_ingredients: unifiedIngredients,
                 ingredients: unifiedIngredients
             };
 

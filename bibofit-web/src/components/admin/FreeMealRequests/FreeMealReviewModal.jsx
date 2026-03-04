@@ -118,7 +118,7 @@ const FreeMealReviewModal = ({ isOpen, onOpenChange, freeMeal, onSuccess }) => {
         food_id: ing.food_id,
         grams: ing.grams,
       }));
-      const { error: ingredientsError } = await supabase.from('private_recipe_ingredients').insert(ingredientsToCopy);
+      const { error: ingredientsError } = await supabase.from('recipe_ingredients').insert(ingredientsToCopy);
       if (ingredientsError) throw ingredientsError;
 
       const { data: activePlan, error: planError } = await supabase

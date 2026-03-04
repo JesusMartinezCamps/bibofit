@@ -538,10 +538,10 @@ const ShoppingListPage = () => {
                 if (activePlan) {
                     const [planRecipes, privateRecipes] = await Promise.all([
                         supabase.from('diet_plan_recipes')
-                            .select('id, custom_name, is_customized, custom_ingredients:diet_plan_recipe_ingredients(food_id, grams), recipe:recipes(name, recipe_ingredients(food_id, grams))')
+                            .select('id, custom_name, is_customized, custom_ingredients:recipe_ingredients(food_id, grams), recipe:recipes(name, recipe_ingredients(food_id, grams))')
                             .eq('diet_plan_id', activePlan.id),
                         supabase.from('private_recipes')
-                            .select('id, name, private_recipe_ingredients(food_id, grams)')
+                            .select('id, name, private_recipe_ingredients:recipe_ingredients(food_id, grams)')
                             .eq('diet_plan_id', activePlan.id)
                     ]);
 
@@ -569,9 +569,9 @@ const ShoppingListPage = () => {
                     const freeIds = [...new Set(plannedLogs.map(p => p.free_recipe_id).filter(Boolean))];
 
                     const [dietRecipes, privateRecipes, freeRecipes] = await Promise.all([
-                        dietIds.length ? supabase.from('diet_plan_recipes').select('id, custom_name, is_customized, custom_ingredients:diet_plan_recipe_ingredients(food_id, grams), recipe:recipes(name, recipe_ingredients(food_id, grams))').in('id', dietIds) : { data: [] },
-                        privateIds.length ? supabase.from('private_recipes').select('id, name, private_recipe_ingredients(food_id, grams)').in('id', privateIds) : { data: [] },
-                        freeIds.length ? supabase.from('free_recipes').select('id, name, free_recipe_ingredients(food_id, grams)').in('id', freeIds) : { data: [] }
+                        dietIds.length ? supabase.from('diet_plan_recipes').select('id, custom_name, is_customized, custom_ingredients:recipe_ingredients(food_id, grams), recipe:recipes(name, recipe_ingredients(food_id, grams))').in('id', dietIds) : { data: [] },
+                        privateIds.length ? supabase.from('private_recipes').select('id, name, private_recipe_ingredients:recipe_ingredients(food_id, grams)').in('id', privateIds) : { data: [] },
+                        freeIds.length ? supabase.from('free_recipes').select('id, name, free_recipe_ingredients:recipe_ingredients(food_id, grams)').in('id', freeIds) : { data: [] }
                     ]);
 
                     const dietMap = new Map((dietRecipes.data || []).map(r => [r.id, r]));
