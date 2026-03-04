@@ -4,9 +4,9 @@ import CaloriesIcon from '@/components/icons/CaloriesIcon';
 import ProteinIcon from '@/components/icons/ProteinIcon';
 import CarbsIcon from '@/components/icons/CarbsIcon';
 import FatsIcon from '@/components/icons/FatsIcon';
-import { cn } from '@/lib/utils';
 import { calculateMacros } from '@/lib/macroCalculator';
 import HighlightedText from '@/components/shared/HighlightedText';
+import { FREE_RECIPE_STATUS, normalizeFreeRecipeStatus } from '@/lib/recipeEntity';
 
 const FreeRecipeCard = ({
   freeMeal,
@@ -18,6 +18,7 @@ const FreeRecipeCard = ({
   searchQuery = '',
 }) => {
   const { name, free_recipe_ingredients: ingredients, status, prep_time_min, difficulty } = freeMeal;
+  const normalizedStatus = normalizeFreeRecipeStatus(status);
 
   const macros = useMemo(() => {
     if (!ingredients || !allFoods) {
@@ -33,7 +34,7 @@ const FreeRecipeCard = ({
   const ingredientList = useMemo(() => {
     if (!ingredients) return [];
     return ingredients.map((ing, index) => {
-      const foodDetails = ing.food || ing.user_created_food;
+      const foodDetails = ing.food;
       if (!foodDetails) return null;
       const unit = foodDetails.food_unit === 'unidades' ? 'ud' : 'g';
       const text = `${foodDetails.name} (${Math.round(ing.grams || 0)}${unit})`;
@@ -56,7 +57,7 @@ const FreeRecipeCard = ({
           <div className="flex-1">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-2">
-                {status === 'pending' ? (
+                {normalizedStatus === FREE_RECIPE_STATUS.PENDING ? (
                   <Hourglass className="w-5 h-5 text-sky-400" />
                 ) : (
                   <UtensilsCrossed className="w-5 h-5 text-sky-400" />
@@ -100,7 +101,7 @@ const FreeRecipeCard = ({
     <div className="relative group flex overflow-hidden rounded-lg shadow-lg border border-sky-700/50 bg-gradient-to-br from-blue-900/40 via-slate-800/40 to-slate-800/60">
       <button onClick={() => handleCardClick(freeMeal)} className="flex-1 text-left p-3 w-4/5">
         <div className="flex items-center gap-2 mb-1">
-          {status === 'pending' ? (
+          {normalizedStatus === FREE_RECIPE_STATUS.PENDING ? (
             <Hourglass className="w-4 h-4 text-sky-400" />
           ) : (
             <UtensilsCrossed className="w-4 h-4 text-sky-400" />

@@ -13,6 +13,12 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { cn } from '@/lib/utils';
 import { normalizeText, getRecipeSearchScore } from '@/lib/textSearch';
 import { analyzeRecipeConflicts } from '@/lib/recipeConflictAnalyzer';
+import {
+    getRecipeIngredients,
+    getRecipeParentId,
+    inferRecipeEntityType,
+    RECIPE_ENTITY_TYPES,
+} from '@/lib/recipeEntity';
 
 const RecipeGroup = ({ group, searchTerm, ...props }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -224,15 +230,8 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
                 const baseRecipe = isFromPlan && !isPrivate ? recipe.recipe : recipe;
                 if (!baseRecipe) return null;
 
-                let ingredients = [];
-                // Determine ingredients source
-                if (isFromPlan && !isPrivate && recipe.custom_ingredients && recipe.custom_ingredients.length > 0) {
-                    ingredients = recipe.custom_ingredients;
-                } else if (isPrivate) {
-                    ingredients = baseRecipe.private_recipe_ingredients || [];
-                } else if (baseRecipe.recipe_ingredients) {
-                    ingredients = baseRecipe.recipe_ingredients || [];
-                }
+                const ingredientSource = isFromPlan && !isPrivate ? recipe : baseRecipe;
+                const ingredients = getRecipeIngredients(ingredientSource);
 
                 const analysisRestrictions = {
                     sensitivities: allSensitivities.filter(s => planRestrictions.sensitivities.has(s.id)),
@@ -319,7 +318,9 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
             ...recipe,
             diet_plan_id: dietPlanId,
             day_meal_id: currentMealId,
-            type: recipe.is_private ? 'private_recipe' : (recipe.diet_plan_id ? 'diet_plan_recipe' : 'recipe')
+            type: recipe.is_private
+                ? RECIPE_ENTITY_TYPES.PRIVATE
+                : inferRecipeEntityType(recipe)
         });
         setIsRecipeViewOpen(true);
     };
@@ -385,7 +386,7 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
              const isInMeal = r.is_private ? false : recipesInCurrentMeal.has(r.id);
              if (isInMeal) return;
 
-             const parentId = r.parent_recipe_id || r.parent_private_recipe_id;
+             const parentId = getRecipeParentId(r);
              if (!parentId) {
                  if (!groups.has(r.id)) {
                      const group = { root: r, variants: [] };
@@ -403,7 +404,7 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
              const isInMeal = r.is_private ? false : recipesInCurrentMeal.has(r.id);
              if (isInMeal) return;
 
-             const parentId = r.parent_recipe_id || r.parent_private_recipe_id;
+             const parentId = getRecipeParentId(r);
              if (parentId) {
                  if (groups.has(parentId)) {
                      groups.get(parentId).variants.push(r);

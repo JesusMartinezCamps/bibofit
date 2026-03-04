@@ -17,15 +17,16 @@ import React, { useState, useEffect } from 'react';
                 try {
                     const { data, error } = await supabase
                         .from('daily_meal_logs')
-                        .select('diet_plan_recipe_id, free_recipe_id')
+                        .select('diet_plan_recipe_id')
                         .eq('user_id', userId);
 
                     if (error) throw error;
 
                     const counts = {};
                     data.forEach(log => {
-                        const key = log.diet_plan_recipe_id ? `pr-${log.diet_plan_recipe_id}` : `fr-${log.free_recipe_id}`;
-                        if(key) counts[key] = (counts[key] || 0) + 1;
+                        if (!log.diet_plan_recipe_id) return;
+                        const key = `pr-${log.diet_plan_recipe_id}`;
+                        counts[key] = (counts[key] || 0) + 1;
                     });
                     setMealCounts(counts);
                 } catch (error) {

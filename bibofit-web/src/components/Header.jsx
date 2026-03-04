@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { User, Shield, Calendar, BookOpen, StickyNote, ShoppingCart } from 'lucide-react'; 
+import { User, Shield, Calendar, BookOpen, StickyNote, ShoppingCart } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Tooltip,
@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 import { useNotifications } from '@/contexts/NotificationsContext';
 import AppIcon from '@/components/icons/AppIcon';
 
-const Header = ({ onShoppingListClick }) => {
+const Header = () => {
   const { user } = useAuth();
   const location = useLocation();
   const { hasPendingRequests } = useNotifications();
@@ -156,8 +156,10 @@ const Header = ({ onShoppingListClick }) => {
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:bg-accent hover:text-accent-foreground" onClick={onShoppingListClick}>
-                      <ShoppingCart className="w-5 h-5" />
+                    <Button asChild variant="ghost" size="icon" className="text-muted-foreground hover:bg-accent hover:text-accent-foreground">
+                      <Link to="/shopping-list">
+                        <ShoppingCart className="w-5 h-5" />
+                      </Link>
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>

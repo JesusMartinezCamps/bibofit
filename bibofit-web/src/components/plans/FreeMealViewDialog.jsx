@@ -13,6 +13,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import EquivalenceDialog from './EquivalenceDialog';
 import { calculateMacros } from '@/lib/macroCalculator';
 import IngredientSearch from '@/components/plans/IngredientSearch';
+import {
+  fetchFreeRecipeDetails,
+  persistFreeRecipeDefinition,
+} from '@/lib/freeRecipePersistence';
 
 const normalizeIngredient = (ingredient, foods = []) => {
   const food = foods.find((f) => String(f.id) === String(ingredient.food_id)) || ingredient.food;
@@ -132,37 +136,26 @@ const FreeMealViewDialog = ({ open, onOpenChange, freeMeal, onUpdate }) => {
 
     setIsSubmitting(true);
     try {
-      await supabase.from('free_recipe_ingredients').delete().eq('free_recipe_id', currentFreeMeal.id);
-
-      const newIngredients = ingredients.map((ing) => ({
-        free_recipe_id: currentFreeMeal.id,
-        food_id: parseInt(ing.food_id, 10),
-        grams: parseFloat(ing.grams || ing.quantity || 0),
-      }));
-
-      const { error: insertError } = await supabase.from('free_recipe_ingredients').insert(newIngredients);
-      if (insertError) throw insertError;
-
-      const { error: updateError } = await supabase
-        .from('free_recipes')
-        .update({
-          day_meal_id: dayMealId,
+      await persistFreeRecipeDefinition({
+        userId: currentFreeMeal.user_id || user.id,
+        recipeId: currentFreeMeal.id,
+        dayMealId: dayMealId || currentFreeMeal.day_meal_id,
+        dietPlanId: currentFreeMeal.diet_plan_id,
+        recipe: {
           name,
           instructions,
-        })
-        .eq('id', currentFreeMeal.id);
+          prep_time_min: currentFreeMeal.prep_time_min,
+          difficulty: currentFreeMeal.difficulty,
+          status: currentFreeMeal.status,
+        },
+        ingredients: ingredients.map((ing) => ({
+          food_id: Number.parseInt(ing.food_id, 10),
+          grams: Number.parseFloat(ing.grams || ing.quantity || 0),
+          is_free: false,
+        })),
+      });
 
-      if (updateError) throw updateError;
-
-      const { data: updatedFreeMeal, error: refetchError } = await supabase
-        .from('free_recipes')
-        .select(
-          '*, ingredients:free_recipe_ingredients(*, food(*, food_to_food_groups(food_group_id))), day_meal:day_meal_id!inner(id, name, display_order)'
-        )
-        .eq('id', currentFreeMeal.id)
-        .single();
-
-      if (refetchError) throw refetchError;
+      const updatedFreeMeal = await fetchFreeRecipeDetails(currentFreeMeal.id);
 
       setCurrentFreeMeal(updatedFreeMeal);
       if (onUpdate) onUpdate(updatedFreeMeal);

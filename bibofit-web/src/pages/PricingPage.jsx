@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet';
-import LandingNavbar from '@/components/landing/LandingNavbar';
 import LandingFooter from '@/components/landing/LandingFooter';
 import PricingComponent from '@/components/shared/PricingComponent';
 import {
@@ -10,11 +9,9 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { Check, X, Loader2 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
 import { buildFeatureMatrix, getFallbackPricingPlans, getPricingPlans } from '@/lib/pricingService';
 
 const PricingPage = () => {
-  const { user } = useAuth();
   const [plans, setPlans] = useState(getFallbackPricingPlans());
   const [loadingComparison, setLoadingComparison] = useState(true);
 
@@ -73,8 +70,6 @@ const PricingPage = () => {
         <title>Precios y Planes | Bibofit</title>
         <meta name="description" content="Elige el plan perfecto para tus objetivos de fitness y nutrición." />
       </Helmet>
-
-      {!user && <LandingNavbar showNavigationOptions={false} />}
 
       <main className="pt-10 pb-20 flex-grow">
         <div className="container mx-auto px-4 md:px-6">

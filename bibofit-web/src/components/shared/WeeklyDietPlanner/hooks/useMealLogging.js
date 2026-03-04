@@ -2,6 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useToast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
+import {
+    buildMealLogPayload,
+    getMealLogDndId,
+    inferRecipeEntityType,
+    RECIPE_ENTITY_TYPES,
+} from '@/lib/recipeEntity';
 
 export const useMealLogging = (userId, initialMealLogs, userDayMeals, onMealLogUpdate) => {
     const { toast } = useToast();
@@ -18,14 +24,7 @@ export const useMealLogging = (userId, initialMealLogs, userDayMeals, onMealLogU
                 const userDayMeal = userDayMeals.find(udm => udm.id === log.user_day_meal_id);
                 if (userDayMeal) {
                     const logKey = `${log.log_date}-${userDayMeal.id}`;
-                    let dnd_id;
-                    if (log.private_recipe_id) {
-                        dnd_id = `private-${log.private_recipe_id}`;
-                    } else if (log.diet_plan_recipe_id) {
-                        dnd_id = `recipe-${log.diet_plan_recipe_id}`;
-                    } else if (log.free_recipe_occurrence_id) {
-                        dnd_id = `free-${log.free_recipe_occurrence_id}`;
-                    }
+                    const dnd_id = getMealLogDndId(log);
                     
                     if (dnd_id) {
                         newSelected.set(logKey, { ...log, dnd_id });
@@ -58,10 +57,11 @@ export const useMealLogging = (userId, initialMealLogs, userDayMeals, onMealLogU
             log => log.log_date === logDate && log.user_day_meal_id === userDayMeal.id
         );
 
+        const itemType = inferRecipeEntityType(item);
         const isCurrentlySelected = existingLog && (
-            (item.type === 'recipe' && existingLog.diet_plan_recipe_id === item.id && !existingLog.private_recipe_id) ||
-            (item.type === 'private_recipe' && existingLog.private_recipe_id === item.id) ||
-            (item.type === 'free_recipe' && existingLog.free_recipe_occurrence_id === item.occurrence_id)
+            (itemType === RECIPE_ENTITY_TYPES.PLAN && existingLog.diet_plan_recipe_id === item.id && !existingLog.private_recipe_id) ||
+            (itemType === RECIPE_ENTITY_TYPES.PRIVATE && existingLog.private_recipe_id === item.id) ||
+            (itemType === RECIPE_ENTITY_TYPES.FREE && existingLog.free_recipe_occurrence_id === item.occurrence_id)
         );
 
         try {
@@ -82,19 +82,12 @@ export const useMealLogging = (userId, initialMealLogs, userDayMeals, onMealLogU
                     if (deleteError) throw deleteError;
                 }
 
-                const newLogData = {
-                    user_id: userId,
-                    log_date: logDate,
-                    user_day_meal_id: userDayMeal.id,
-                };
-
-                if (item.type === 'recipe') {
-                    newLogData.diet_plan_recipe_id = item.id;
-                } else if (item.type === 'private_recipe') {
-                    newLogData.private_recipe_id = item.id;
-                } else if (item.type === 'free_recipe') {
-                    newLogData.free_recipe_occurrence_id = item.occurrence_id;
-                }
+                const newLogData = buildMealLogPayload({
+                    userId,
+                    logDate,
+                    userDayMealId: userDayMeal.id,
+                    entity: item,
+                });
 
                 const { data: newLog, error: insertError } = await supabase.from('daily_meal_logs')
                     .insert(newLogData)
@@ -132,8 +125,8 @@ export const useMealLogging = (userId, initialMealLogs, userDayMeals, onMealLogU
                     logDate,
                     userDayMealId: userDayMeal.id,
                     recipeId: item.id,
-                    recipeType: item.type,
-                    freeRecipeOccurrenceId: item.type === 'free_recipe' ? item.occurrence_id : null,
+                    recipeType: itemType,
+                    freeRecipeOccurrenceId: itemType === RECIPE_ENTITY_TYPES.FREE ? item.occurrence_id : null,
                 };
 
                 if (isCurrentlySelected) {

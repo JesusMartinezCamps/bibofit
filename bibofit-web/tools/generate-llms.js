@@ -27,6 +27,8 @@ const EXTRACTION_REGEX = {
   description: /<meta\s+name=["']description["']\s+content=["'](.*?)["']/i
 };
 
+const REACT_PAGE_EXTENSIONS = new Set(['.js', '.jsx', '.ts', '.tsx']);
+
 function cleanContent(content) {
   return content
     .replace(CLEAN_CONTENT_REGEX.comments, '')
@@ -82,7 +84,33 @@ function extractRoutes(appJsxPath) {
 }
 
 function findReactFiles(dir) {
-  return fs.readdirSync(dir).map(item => path.join(dir, item));
+  const files = [];
+  const stack = [dir];
+
+  while (stack.length > 0) {
+    const currentDir = stack.pop();
+    const entries = fs.readdirSync(currentDir, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const entryPath = path.join(currentDir, entry.name);
+
+      if (entry.isDirectory()) {
+        stack.push(entryPath);
+        continue;
+      }
+
+      if (!entry.isFile()) {
+        continue;
+      }
+
+      const ext = path.extname(entry.name).toLowerCase();
+      if (REACT_PAGE_EXTENSIONS.has(ext)) {
+        files.push(entryPath);
+      }
+    }
+  }
+
+  return files;
 }
 
 function extractHelmetData(content, filePath, routes) {
@@ -103,7 +131,7 @@ function extractHelmetData(content, filePath, routes) {
   const description = cleanText(descMatch?.[1]);
   
   const fileName = path.basename(filePath, path.extname(filePath));
-  const url = routes.length && routes.has(fileName) 
+  const url = routes.has(fileName)
     ? routes.get(fileName) 
     : generateFallbackUrl(fileName);
   

@@ -84,6 +84,8 @@ const PhysicalDataStep = ({ onNext, isLoading }) => {
                         maxDate={new Date()}
                         minYear={1920}
                         maxYear={new Date().getFullYear()}
+                        triggerClassName="!bg-black !text-white hover:!bg-black/95"
+                        calendarClassName="bf-datepicker--onboarding-dark"
                     />
                 </div>
                 {errors.birth_date && <p className="text-red-400 text-xs">{errors.birth_date}</p>}

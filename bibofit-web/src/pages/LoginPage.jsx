@@ -5,7 +5,6 @@ import { Helmet } from 'react-helmet';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-import LandingNavbar from '@/components/landing/LandingNavbar';
 import AppIcon from '@/components/icons/AppIcon';
 
 // GoogleLogo.jsx
@@ -105,10 +104,7 @@ const LoginPage = () => {
         <meta name="description" content="Accede a tu plataforma de entrenamiento personal con Bibofit" />
       </Helmet>
 
-      <div className="min-h-screen bg-background">
-        <LandingNavbar showNavigationOptions={false} />
-        
-        <div className="min-h-screen hero-gradient flex items-center justify-center p-4 pt-24">
+      <div className="min-h-screen hero-gradient flex items-center justify-center p-4 pt-24">
           <div className="w-full max-w-md">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -202,7 +198,6 @@ const LoginPage = () => {
             </motion.div>
           </div>
         </div>
-      </div>
     </>
   );
 };

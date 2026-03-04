@@ -17,6 +17,7 @@ import ProteinIcon from '@/components/icons/ProteinIcon';
 import CarbsIcon from '@/components/icons/CarbsIcon';
 import FatsIcon from '@/components/icons/FatsIcon';
 import { format, startOfDay, addDays } from 'date-fns';
+import { getRecipeIngredients } from '@/lib/recipeEntity';
 
 const STORAGE_KEY = 'shoppingListModalMode';
 const SHOPPING_CACHE_TTL_MS = 3 * 60 * 1000;
@@ -286,6 +287,7 @@ const ShoppingListPage = () => {
 
     // Refs to track state for search functionality
     const previousOpenSectionsRef = useRef(openSections);
+    const openSectionsRef = useRef(openSections);
     const isSearchingRef = useRef(false);
 
     const toggleSection = (section) => {
@@ -303,6 +305,7 @@ const ShoppingListPage = () => {
     useEffect(() => { checkedItemsRef.current = checkedItems; }, [checkedItems]);
     useEffect(() => { listModeRef.current = listMode; }, [listMode]);
     useEffect(() => { initialDateRef.current = initialDate; }, [initialDate]);
+    useEffect(() => { openSectionsRef.current = openSections; }, [openSections]);
 
     const getListDate = useCallback((mode, date) => {
         const dateToUse = date || new Date();
@@ -453,20 +456,7 @@ const ShoppingListPage = () => {
     };
 
     const getIngredients = (item) => {
-        if (!item) return [];
-        if (item.custom_ingredients && Array.isArray(item.custom_ingredients) && item.custom_ingredients.length > 0) {
-            return item.custom_ingredients;
-        }
-        if (item.recipe && Array.isArray(item.recipe.recipe_ingredients) && item.recipe.recipe_ingredients.length > 0) {
-            return item.recipe.recipe_ingredients;
-        }
-        if (Array.isArray(item.private_recipe_ingredients) && item.private_recipe_ingredients.length > 0) {
-            return item.private_recipe_ingredients;
-        }
-        if (Array.isArray(item.free_recipe_ingredients) && item.free_recipe_ingredients.length > 0) {
-            return item.free_recipe_ingredients;
-        }
-        return [];
+        return getRecipeIngredients(item);
     };
 
     const getMacroCategory = (food) => {
@@ -777,7 +767,7 @@ const ShoppingListPage = () => {
         if (hasSearch) {
             // If starting a new search, save current collapsed state
             if (!isSearchingRef.current) {
-                previousOpenSectionsRef.current = { ...openSections };
+                previousOpenSectionsRef.current = { ...openSectionsRef.current };
                 isSearchingRef.current = true;
             }
 

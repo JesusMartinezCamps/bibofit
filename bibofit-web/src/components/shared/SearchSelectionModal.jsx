@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Search, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 const SearchSelectionModal = ({ 
@@ -37,15 +37,12 @@ const SearchSelectionModal = ({
                         <DialogTitle className="text-left">{title}</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-3">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input 
-                                placeholder={searchPlaceholder} 
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="pl-9 bg-muted border-input text-white focus:border-cyan-500"
-                            />
-                        </div>
+                        <Input 
+                            placeholder={searchPlaceholder} 
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="bg-muted border-input text-white focus:border-cyan-500"
+                        />
                         {headerContent}
                     </div>
                 </div>

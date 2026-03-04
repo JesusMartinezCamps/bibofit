@@ -1,4 +1,8 @@
 import { supabase } from '@/lib/supabaseClient';
+import {
+    fetchFreeRecipeDetails,
+    persistFreeRecipeDefinition,
+} from '@/lib/freeRecipePersistence';
 
 export const applyTemporaryChanges = async ({ formData, ingredients, recipeToEdit }) => {
     try {
@@ -345,43 +349,34 @@ export const saveDietPlanRecipe = async ({ recipeId, userId, formData, ingredien
     }
 };
 
-export const saveFreeRecipe = async ({ recipeId, userId, formData, ingredients }) => {
+export const saveFreeRecipe = async ({ recipeId, userId, formData, ingredients, originalRecipe }) => {
     try {
-        const { error: recipeUpdateError } = await supabase
-            .from('free_recipes')
-            .update({
+        const dayMealId = originalRecipe?.day_meal_id || originalRecipe?.day_meal?.id || null;
+        const dietPlanId = originalRecipe?.diet_plan_id || null;
+        const currentStatus = originalRecipe?.status || null;
+
+        const { freeRecipe } = await persistFreeRecipeDefinition({
+            userId,
+            recipeId,
+            dayMealId,
+            dietPlanId,
+            recipe: {
                 name: formData.name,
                 instructions: formData.instructions,
                 prep_time_min: formData.prep_time_min,
                 difficulty: formData.difficulty,
-            })
-            .eq('id', recipeId)
-            .eq('user_id', userId);
+                status: currentStatus,
+            },
+            ingredients,
+        });
 
-        if (recipeUpdateError) throw new Error(recipeUpdateError.message);
+        const fullRecipe = await fetchFreeRecipeDetails(freeRecipe.id);
 
-        // Delete existing ingredients
-        const { error: deleteError } = await supabase
-            .from('free_recipe_ingredients')
-            .delete()
-            .eq('free_recipe_id', recipeId);
-        
-        if (deleteError) throw new Error(deleteError.message);
-
-        // Insert new ingredients
-        const newIngredientsData = ingredients.map(ing => ({
-            free_recipe_id: recipeId,
-            food_id: ing.food_id,
-            grams: ing.grams || ing.quantity || 0,
-        }));
-
-        const { error: insertError } = await supabase
-            .from('free_recipe_ingredients')
-            .insert(newIngredientsData);
-
-        if (insertError) throw new Error(insertError.message);
-
-        return { success: true, message: 'Receta libre actualizada con éxito.' };
+        return {
+            success: true,
+            message: 'Receta libre actualizada con éxito.',
+            data: fullRecipe,
+        };
 
     } catch (error) {
         console.error("Error saving free recipe:", error);

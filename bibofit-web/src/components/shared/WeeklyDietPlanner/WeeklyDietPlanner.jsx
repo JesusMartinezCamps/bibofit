@@ -18,6 +18,7 @@ import EquivalenceDialog from '@/components/plans/EquivalenceDialog';
 import { calculateMacros } from '@/lib/macroCalculator';
 import { usePlanItems } from './hooks/usePlanItems';
 import { useMealLogging } from './hooks/useMealLogging';
+import { getRecipeIngredients } from '@/lib/recipeEntity';
 
 const getAdjustmentsForRecipe = (dailyIngredientAdjustments, equivalenceAdjustments, recipeId, userDayMealId, logDate, isPrivate) => {
     if (!dailyIngredientAdjustments || !equivalenceAdjustments) return null;
@@ -111,11 +112,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
         const map = new Map();
 
         planRecipes.forEach(recipe => {
-            const baseIngredients = recipe.type === 'recipe'
-                ? ((recipe.custom_ingredients && recipe.custom_ingredients.length > 0)
-                    ? recipe.custom_ingredients
-                    : (recipe.recipe?.recipe_ingredients || []))
-                : (recipe.private_recipe_ingredients || []);
+            const baseIngredients = getRecipeIngredients(recipe);
             map.set(recipe.dnd_id, baseIngredients);
         });
 
@@ -800,7 +797,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
             const { data: newLog, error: insertError } = await supabase.from('daily_meal_logs').insert(newLogData).select().single();
             if (insertError) throw insertError;
     
-            const rawIngredients = recipeToRepeat.ingredients || recipeToRepeat.free_recipe_ingredients || [];
+            const rawIngredients = getRecipeIngredients(recipeToRepeat);
             
             const unifiedIngredients = rawIngredients.map(ing => {
                  let foodDetails = ing.food;

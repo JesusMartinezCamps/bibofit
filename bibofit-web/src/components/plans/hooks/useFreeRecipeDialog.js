@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabaseClient';
 import { useToast } from '@/components/ui/use-toast';
 import { calculateMacros } from '@/lib/macroCalculator';
+import { persistFreeRecipeOccurrence } from '@/lib/freeRecipePersistence';
+import { FREE_RECIPE_STATUS } from '@/lib/recipeEntity';
 
 export const useFreeRecipeDialog = ({ targetUserId, dayMealId, dietPlanId, date, onSuccess, availableFoods }) => {
   const { toast } = useToast();
@@ -144,105 +145,46 @@ export const useFreeRecipeDialog = ({ targetUserId, dayMealId, dietPlanId, date,
 
     setIsSaving(true);
     try {
-      const { data: freeRecipe, error: recipeError } = await supabase
-        .from('free_recipes')
-        .insert({
-          user_id: targetUserId,
+      const { freeRecipe, ingredients: savedIngredients, occurrence, mealLog } = await persistFreeRecipeOccurrence({
+        userId: targetUserId,
+        dayMealId,
+        mealDate: date,
+        dietPlanId,
+        recipe: {
           name: recipeName,
           instructions,
           prep_time_min: prepTime || null,
           difficulty,
-          status: 'pending',
-          diet_plan_id: dietPlanId,
-          day_meal_id: dayMealId,
-        })
-        .select()
-        .single();
+          status: FREE_RECIPE_STATUS.PENDING,
+        },
+        ingredients,
+      });
 
-      if (recipeError) throw recipeError;
+      const mergedIngredients = (savedIngredients || []).map((ing) => {
+        const food = ing.food || availableFoods.find((f) => String(f.id) === String(ing.food_id));
+        return {
+          ...ing,
+          quantity: ing.grams,
+          food,
+          is_user_created: !!food?.is_user_created || !!food?.user_id,
+        };
+      });
 
-      const ingredientsToInsert = ingredients.map(ing => ({
-        free_recipe_id: freeRecipe.id,
-        food_id: ing.food_id,
-        grams: ing.quantity,
-        status: 'approved',
-      }));
-
-      const { error: ingredientsError } = await supabase.from('free_recipe_ingredients').insert(ingredientsToInsert);
-      if (ingredientsError) throw ingredientsError;
-
-      const { data: occurrence, error: occurrenceError } = await supabase
-        .from('free_recipe_occurrences')
-        .insert({
-          free_recipe_id: freeRecipe.id,
-          user_id: targetUserId,
-          meal_date: date,
-          day_meal_id: dayMealId,
-        })
-        .select()
-        .single();
-      
-      if (occurrenceError) throw occurrenceError;
-      
       const newFreeMealWithOccurrence = {
         ...freeRecipe,
-        free_recipe_ingredients: ingredients.map(ing => ({
-            ...ing,
-            grams: ing.quantity,
-            food: availableFoods.find(
-              (f) =>
-                String(f.id) === String(ing.food_id) &&
-                !!f.is_user_created === !!ing.is_user_created
-            )
-        })),
+        free_recipe_ingredients: mergedIngredients,
         occurrence_id: occurrence.id,
         meal_date: date,
         day_meal_id: dayMealId,
         dnd_id: `free-${occurrence.id}`,
         type: 'free_recipe',
       };
-
-      // Correctly query user_day_meals with diet_plan_id to avoid PGRST116 (multiple rows)
-      const { data: userDayMeal, error: userDayMealError } = await supabase
-        .from('user_day_meals')
-        .select('id')
-        .eq('user_id', targetUserId)
-        .eq('day_meal_id', dayMealId)
-        .eq('diet_plan_id', dietPlanId)
-        .single();
-      
-      if (userDayMealError) {
-          console.error("Error fetching user_day_meal:", userDayMealError);
-          // If 406 or similar, we should handle it, but throwing error stops flow.
-          // We provide a better error message if possible
-          throw userDayMealError;
-      }
-
-      if (!userDayMeal) throw new Error("Configuración de comida de usuario no encontrada para este plan.");
-      
-      // Upsert logic for daily_meal_logs
-      const { data: newLog, error: logError } = await supabase
-        .from('daily_meal_logs')
-        .upsert({
-          user_id: targetUserId,
-          log_date: date,
-          user_day_meal_id: userDayMeal.id,
-          free_recipe_occurrence_id: occurrence.id,
-          diet_plan_recipe_id: null, 
-          private_recipe_id: null,
-        }, {
-          onConflict: 'user_id, log_date, user_day_meal_id'
-        })
-        .select()
-        .single();
-
-      if (logError) throw logError;
       
       // Clear draft on success
       clearDraft();
 
       toast({ title: 'Éxito', description: 'Receta libre creada y registrada.' });
-      if (onSuccess) onSuccess(newLog, newFreeMealWithOccurrence);
+      if (onSuccess) onSuccess(mealLog, newFreeMealWithOccurrence);
 
     } catch (error) {
       console.error('Error saving free recipe:', error);

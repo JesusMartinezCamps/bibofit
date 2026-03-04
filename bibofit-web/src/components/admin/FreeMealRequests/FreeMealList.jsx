@@ -7,6 +7,7 @@ import FreeMealCard from './FreeMealCard';
 import FreeMealApprovalModal from './FreeMealApprovalModal';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useNavigate } from 'react-router-dom';
+import { FREE_RECIPE_STATUS } from '@/lib/recipeEntity';
 
 const FreeMealList = ({ 
   freeRecipes, 
@@ -100,12 +101,20 @@ const FreeMealList = ({
             // 3) Call onActionComplete after "Guardar Como Plantilla" button is clicked
 
         } else if (actionType === 'keep_as_free_recipe') {
-            await supabase.from('free_recipes').update({ status: 'kept_as_free_recipe' }).eq('id', recipe.id);
+            const { error } = await supabase
+              .from('free_recipes')
+              .update({ status: FREE_RECIPE_STATUS.KEPT_AS_FREE_RECIPE })
+              .eq('id', recipe.id);
+            if (error) throw error;
             toast({ title: 'Guardado', description: 'La solicitud se archivó y se mantiene como receta libre para el cliente.' });
             // 4) Call onActionComplete after "Dejar como Receta Libre" button is clicked
 
         } else if (actionType === 'reject') {
-            await supabase.from('free_recipes').update({ status: 'rejected' }).eq('id', recipe.id);
+            const { error } = await supabase
+              .from('free_recipes')
+              .update({ status: FREE_RECIPE_STATUS.REJECTED })
+              .eq('id', recipe.id);
+            if (error) throw error;
             toast({ title: 'Rechazado', description: 'La receta libre ha sido rechazada y no estará disponible para el cliente.' });
         }
         
@@ -122,11 +131,11 @@ const FreeMealList = ({
 
   const getTitle = () => {
     switch (activeTab) {
-      case 'pending': return 'Recetas Libres Pendientes';
-      case 'approved_private': return 'Aprobadas (Privada)';
-      case 'approved_general': return 'Aprobadas (Plantilla)';
-      case 'kept_as_free_recipe': return 'Recetas Libres Guardadas';
-      case 'rejected': return 'Recetas Libres Rechazadas';
+      case FREE_RECIPE_STATUS.PENDING: return 'Recetas Libres Pendientes';
+      case FREE_RECIPE_STATUS.APPROVED_PRIVATE: return 'Aprobadas (Privada)';
+      case FREE_RECIPE_STATUS.APPROVED_GENERAL: return 'Aprobadas (Plantilla)';
+      case FREE_RECIPE_STATUS.KEPT_AS_FREE_RECIPE: return 'Recetas Libres Guardadas';
+      case FREE_RECIPE_STATUS.REJECTED: return 'Recetas Libres Rechazadas';
       default: return 'Recetas Libres';
     }
   };
@@ -144,22 +153,22 @@ const FreeMealList = ({
     );
     
     switch (activeTab) {
-      case 'pending': return <>Mostrando recetas pendientes de {clientName}</>;
-      case 'approved_private': return <>Mostrando recetas aprobadas (privadas) de {clientName}</>;
-      case 'approved_general': return <>Mostrando recetas aprobadas (plantillas) de {clientName}</>;
-      case 'kept_as_free_recipe': return <>Mostrando recetas guardadas como libres de {clientName}</>;
-      case 'rejected': return <>Mostrando recetas rechazadas de {clientName}</>;
+      case FREE_RECIPE_STATUS.PENDING: return <>Mostrando recetas pendientes de {clientName}</>;
+      case FREE_RECIPE_STATUS.APPROVED_PRIVATE: return <>Mostrando recetas aprobadas (privadas) de {clientName}</>;
+      case FREE_RECIPE_STATUS.APPROVED_GENERAL: return <>Mostrando recetas aprobadas (plantillas) de {clientName}</>;
+      case FREE_RECIPE_STATUS.KEPT_AS_FREE_RECIPE: return <>Mostrando recetas guardadas como libres de {clientName}</>;
+      case FREE_RECIPE_STATUS.REJECTED: return <>Mostrando recetas rechazadas de {clientName}</>;
       default: return '';
     }
   };
 
   const getEmptyMessage = () => {
     switch (activeTab) {
-      case 'pending': return 'Este usuario no tiene recetas pendientes.';
-      case 'approved_private': return 'Este usuario no tiene recetas aprobadas como privadas.';
-      case 'approved_general': return 'Este usuario no tiene recetas aprobadas como plantillas.';
-      case 'kept_as_free_recipe': return 'Este usuario no tiene recetas guardadas como libres.';
-      case 'rejected': return 'Este usuario no tiene recetas rechazadas.';
+      case FREE_RECIPE_STATUS.PENDING: return 'Este usuario no tiene recetas pendientes.';
+      case FREE_RECIPE_STATUS.APPROVED_PRIVATE: return 'Este usuario no tiene recetas aprobadas como privadas.';
+      case FREE_RECIPE_STATUS.APPROVED_GENERAL: return 'Este usuario no tiene recetas aprobadas como plantillas.';
+      case FREE_RECIPE_STATUS.KEPT_AS_FREE_RECIPE: return 'Este usuario no tiene recetas guardadas como libres.';
+      case FREE_RECIPE_STATUS.REJECTED: return 'Este usuario no tiene recetas rechazadas.';
       default: return 'No hay recetas para este usuario.';
     }
   };
@@ -195,7 +204,7 @@ const FreeMealList = ({
                   key={recipe.id} 
                   freeMeal={recipe} 
                   onReview={handleReview}
-                  onDelete={activeTab === 'rejected' ? openDeleteConfirmation : null}
+                  onDelete={activeTab === FREE_RECIPE_STATUS.REJECTED ? openDeleteConfirmation : null}
                 />
               ))}
             </div>

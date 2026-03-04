@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Calendar, CheckCircle, Info, XCircle, UtensilsCrossed, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import { motion } from 'framer-motion';
+import { FREE_RECIPE_STATUS } from '@/lib/recipeEntity';
 
 const FreeMealCard = ({ 
   freeMeal, 
@@ -20,13 +20,13 @@ const FreeMealCard = ({
 
   const getStatusInfo = () => {
     switch (freeMeal.status) {
-      case 'approved_general':
+      case FREE_RECIPE_STATUS.APPROVED_GENERAL:
         return { text: 'Plantilla General', icon: <CheckCircle className="w-3 h-3"/>, classes: 'bg-green-500/20 text-green-300 border-green-500/30' };
-      case 'approved_private':
+      case FREE_RECIPE_STATUS.APPROVED_PRIVATE:
         return { text: 'Receta Privada', icon: <CheckCircle className="w-3 h-3"/>, classes: 'bg-purple-500/20 text-purple-300 border-purple-500/30' };
-      case 'rejected':
+      case FREE_RECIPE_STATUS.REJECTED:
         return { text: 'Rechazado', icon: <XCircle className="w-3 h-3"/>, classes: 'bg-red-500/20 text-red-300 border-red-500/30' };
-      case 'kept_as_free_recipe':
+      case FREE_RECIPE_STATUS.KEPT_AS_FREE_RECIPE:
         return { text: 'Receta Libre', icon: <UtensilsCrossed className="w-3 h-3"/>, classes: 'bg-blue-500/20 text-blue-300 border-blue-500/30' };
       default: // pending
         return { text: 'Pendiente', icon: <Info className="w-3 h-3"/>, classes: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30' };
@@ -74,7 +74,7 @@ const FreeMealCard = ({
         </p>
       </div>
 
-      {freeMeal.status === 'rejected' && onDelete && (
+      {freeMeal.status === FREE_RECIPE_STATUS.REJECTED && onDelete && (
         <button 
           onClick={(e) => { e.stopPropagation(); onDelete(freeMeal.id); }} 
           className="absolute -top-2 -right-2 bg-red-600/90 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"

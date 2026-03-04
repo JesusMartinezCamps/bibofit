@@ -3,7 +3,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { User, Phone } from 'lucide-react';
 
 const PersonalDataStep = ({ onNext, isLoading }) => {
   const { user } = useAuth();
@@ -32,32 +31,26 @@ const PersonalDataStep = ({ onNext, isLoading }) => {
       <div className="flex-1 space-y-6 overflow-y-auto pr-1">
         <div className="space-y-2">
             <Label htmlFor="full_name" className="text-muted-foreground">Nombre Completo</Label>
-            <div className="relative">
-                <User className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                    id="full_name"
-                    value={formData.full_name}
-                    onChange={(e) => setFormData({...formData, full_name: e.target.value})}
-                    className="pl-12 bf-form-control"
-                    placeholder="Tu nombre"
-                />
-            </div>
+            <Input
+                id="full_name"
+                value={formData.full_name}
+                onChange={(e) => setFormData({...formData, full_name: e.target.value})}
+                className="bf-form-control"
+                placeholder="Tu nombre"
+            />
             {errors.full_name && <p className="text-red-400 text-sm mt-1">{errors.full_name}</p>}
         </div>
 
         <div className="space-y-2">
             <Label htmlFor="phone" className="text-muted-foreground">Teléfono (Opcional)</Label>
-            <div className="relative">
-                <Phone className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                    id="phone"
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                    className="pl-12 bf-form-control"
-                    placeholder="+34 600 000 000"
-                />
-            </div>
+            <Input
+                id="phone"
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                className="bf-form-control"
+                placeholder="+34 600 000 000"
+            />
         </div>
       </div>
 

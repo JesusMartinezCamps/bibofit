@@ -6,13 +6,14 @@ import UserList from '@/components/admin/UserCreatedFoods/UserList';
 import FreeMealList from '@/components/admin/FreeMealRequests/FreeMealList';
 import TabNavigation from '@/components/admin/UserCreatedFoods/TabNavigation';
 import { useNotifications } from '@/contexts/NotificationsContext';
+import { FREE_RECIPE_STATUS } from '@/lib/recipeEntity';
 
 const TABS = [
-  { id: 'pending', name: 'Pendientes' },
-  { id: 'approved_private', name: 'Aprobadas (Privada)' },
-  { id: 'approved_general', name: 'Aprobadas (Plantilla)' },
-  { id: 'kept_as_free_recipe', name: 'Guardadas (Libre)' },
-  { id: 'rejected', name: 'Rechazadas' },
+  { id: FREE_RECIPE_STATUS.PENDING, name: 'Pendientes' },
+  { id: FREE_RECIPE_STATUS.APPROVED_PRIVATE, name: 'Aprobadas (Privada)' },
+  { id: FREE_RECIPE_STATUS.APPROVED_GENERAL, name: 'Aprobadas (Plantilla)' },
+  { id: FREE_RECIPE_STATUS.KEPT_AS_FREE_RECIPE, name: 'Guardadas (Libre)' },
+  { id: FREE_RECIPE_STATUS.REJECTED, name: 'Rechazadas' },
 ];
 
 const FreeMealRequestsPage = () => {
@@ -21,7 +22,7 @@ const FreeMealRequestsPage = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [freeRecipes, setFreeRecipes] = useState([]);
   const [loadingRecipes, setLoadingRecipes] = useState(false);
-  const [activeTab, setActiveTab] = useState('pending');
+  const [activeTab, setActiveTab] = useState(FREE_RECIPE_STATUS.PENDING);
   const { toast } = useToast();
   
   // Destructure notifications context safely

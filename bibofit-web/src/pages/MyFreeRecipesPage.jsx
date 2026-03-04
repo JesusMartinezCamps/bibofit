@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { Helmet } from 'react-helmet';
@@ -10,6 +10,11 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import TabNavigation from '@/components/admin/UserCreatedFoods/TabNavigation';
 import FreeRecipeViewDialog from '@/components/plans/FreeRecipeViewDialog';
+import {
+  FREE_RECIPE_STATUS,
+  isFreeRecipeApproved,
+  normalizeFreeRecipeStatus,
+} from '@/lib/recipeEntity';
 
 const MyFreeRecipesPage = () => {
   const { user } = useAuth();
@@ -19,7 +24,7 @@ const MyFreeRecipesPage = () => {
   const [selectedRecipe, setSelectedRecipe] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const fetchRecipes = async () => {
+  const fetchRecipes = useCallback(async () => {
     if (!user) return;
     setLoadingStatus(true);
     try {
@@ -46,11 +51,11 @@ const MyFreeRecipesPage = () => {
     } finally {
       setLoadingStatus(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     fetchRecipes();
-  }, [user]);
+  }, [fetchRecipes]);
 
   const handleRecipeUpdate = (updatedRecipe) => {
     setLoading(prevRecipes => {
@@ -66,27 +71,28 @@ const MyFreeRecipesPage = () => {
 
   const filteredRecipes = useMemo(() => {
     if (activeTab === 'approved') {
-      return allRecipes.filter(recipe => recipe.status === 'approved_private' || recipe.status === 'approved_general');
+      return allRecipes.filter(recipe => isFreeRecipeApproved(recipe.status));
     }
-    return allRecipes.filter(recipe => recipe.status === activeTab);
+    return allRecipes.filter(recipe => normalizeFreeRecipeStatus(recipe.status) === activeTab);
   }, [allRecipes, activeTab]);
 
   const pendingCount = useMemo(() => {
-    return allRecipes.filter(recipe => recipe.status === 'pending').length;
+    return allRecipes.filter(recipe => normalizeFreeRecipeStatus(recipe.status) === FREE_RECIPE_STATUS.PENDING).length;
   }, [allRecipes]);
 
   const getStatusBadge = (status) => {
-    switch (status) {
-      case 'pending':
+    const normalized = normalizeFreeRecipeStatus(status);
+    switch (normalized) {
+      case FREE_RECIPE_STATUS.PENDING:
         return <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30">Pendiente</Badge>;
-      case 'approved_private':
+      case FREE_RECIPE_STATUS.APPROVED_PRIVATE:
         return <Badge variant="secondary" className="bg-purple-500/20 text-purple-300 border-purple-500/30">Guardada como Privada</Badge>;
-      case 'approved_general':
+      case FREE_RECIPE_STATUS.APPROVED_GENERAL:
          return <Badge variant="secondary" className="bg-green-500/20 text-green-300 border-green-500/30">Guardada como General</Badge>;
-      case 'rejected':
+      case FREE_RECIPE_STATUS.REJECTED:
         return <Badge variant="destructive" className="bg-red-500/20 text-red-300 border-red-500/30">Rechazada</Badge>;
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return <Badge variant="outline">{normalized}</Badge>;
     }
   };
 
@@ -98,7 +104,7 @@ const MyFreeRecipesPage = () => {
   const formatIngredients = (ingredients) => {
     if (!ingredients || ingredients.length === 0) return "Sin ingredientes";
     return ingredients.map(ing => {
-      const food = ing.food || ing.user_created_food;
+      const food = ing.food;
       const name = food?.name || 'Alimento desconocido';
       const qty = Math.round(ing.grams || 0);
       const isUnits = food?.food_unit === 'unidades';

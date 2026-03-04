@@ -6,8 +6,6 @@ import { MailCheck, RefreshCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import LandingNavbar from '@/components/landing/LandingNavbar';
-
 const CheckEmailPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -58,10 +56,7 @@ const CheckEmailPage = () => {
         />
       </Helmet>
 
-      <div className="min-h-screen bg-background">
-        <LandingNavbar showNavigationOptions={false} />
-
-        <div className="min-h-screen hero-gradient flex items-center justify-center p-4 pt-24">
+      <div className="min-h-screen hero-gradient flex items-center justify-center p-4 pt-24">
           <div className="w-full max-w-lg">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -119,7 +114,6 @@ const CheckEmailPage = () => {
             </motion.div>
           </div>
         </div>
-      </div>
     </>
   );
 };

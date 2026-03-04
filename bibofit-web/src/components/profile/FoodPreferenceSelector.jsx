@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useToast } from '@/components/ui/use-toast';
 import { Label } from "@/components/ui/label";
-import { X, PlusCircle, Search, Check, CircleAlert, CircleCheck } from 'lucide-react';
+import { X, PlusCircle, Check, CircleAlert, CircleCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -227,15 +227,12 @@ const FoodPreferenceSelector = ({
                 {isPreferred ? 'Seleccionar Alimentos Preferidos' : 'Seleccionar Alimentos No Deseados'}
               </DialogTitle>
             </DialogHeader>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar alimento o grupo (ej: verduras)..."
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-                className="pl-9 bg-muted border-input text-white focus:border-cyan-500"
-              />
-            </div>
+            <Input
+              placeholder="Buscar alimento o grupo (ej: verduras)..."
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              className="bg-muted border-input text-white focus:border-cyan-500"
+            />
           </div>
 
           <ScrollArea className="flex-1 p-2">

@@ -3,6 +3,7 @@ import { supabase } from '@/lib/customSupabaseClient';
 import { format } from 'date-fns';
 import { useRealtime } from '@/contexts/RealtimeProvider';
 import { findFoodByIdentity, inferIngredientUserCreated, isUserCreatedFood } from '@/lib/foodIdentity';
+import { RECIPE_ENTITY_TYPES } from '@/lib/recipeEntity';
 
 const hashValue = (value) => {
   try {
@@ -184,7 +185,7 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
             recipe: r.recipe ? { ...r.recipe, recipe_ingredients: recipeIngredients } : r.recipe,
             custom_ingredients: customIngredients,
             dnd_id: `recipe-${r.id}`,
-            type: 'recipe',
+            type: RECIPE_ENTITY_TYPES.PLAN,
             is_private: false,
             changeRequest: request,
           };
@@ -198,7 +199,7 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
             ...r,
             private_recipe_ingredients: privateIngredients,
             dnd_id: `private-${r.id}`,
-            type: 'private_recipe',
+            type: RECIPE_ENTITY_TYPES.PRIVATE,
             is_private: true,
             changeRequest: request,
           };
@@ -222,7 +223,8 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
         supabase.from('planned_meals').select(`
           *,
           diet_plan_recipe:diet_plan_recipes(*, recipe:recipes(*, recipe_ingredients(*, food(*))), custom_ingredients:diet_plan_recipe_ingredients(*, food(*)), day_meal:day_meals(*)),
-          private_recipe:private_recipes(*, private_recipe_ingredients(*, food(*)), day_meal:day_meals(*))
+          private_recipe:private_recipes(*, private_recipe_ingredients(*, food(*)), day_meal:day_meals(*)),
+          free_recipe:free_recipes(*, free_recipe_ingredients(*, food(*)), day_meal:day_meals(*))
         `).eq('user_id', userId).eq('diet_plan_id', activePlan.id).gte('plan_date', startDate).lte('plan_date', endDate),
         supabase.from('free_recipe_occurrences').select(`
           *,
@@ -270,6 +272,13 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
           };
         }
 
+        if (nextPm.free_recipe) {
+          nextPm.free_recipe = {
+            ...nextPm.free_recipe,
+            free_recipe_ingredients: enrichIngredients(nextPm.free_recipe.free_recipe_ingredients || []),
+          };
+        }
+
         return nextPm;
       });
 
@@ -292,7 +301,7 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
           day_meal_id: fm.day_meal_id,
           day_meal: fm.day_meal,
           dnd_id: `free-${fm.id}`,
-          type: 'free_recipe',
+          type: RECIPE_ENTITY_TYPES.FREE,
         };
       });
 
@@ -303,7 +312,7 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
         meal_date: s.meal_date,
         day_meal_id: s.day_meal_id,
         dnd_id: `snack-${s.id}`,
-        type: 'snack',
+        type: RECIPE_ENTITY_TYPES.SNACK,
       }));
 
       const currentPlanRecipeIds = new Set(

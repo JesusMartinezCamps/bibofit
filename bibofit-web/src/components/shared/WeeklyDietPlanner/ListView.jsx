@@ -11,6 +11,7 @@ import { calculateMacros } from '@/lib/macroCalculator';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Input } from '@/components/ui/input';
 import { normalizeText } from '@/lib/textSearch';
+import { getRecipeIngredients } from '@/lib/recipeEntity';
 
 const getAdjustmentsForRecipe = (dailyIngredientAdjustments, equivalenceAdjustments, recipeId, userDayMealId, logDate, isPrivate) => {
     if (!dailyIngredientAdjustments || !equivalenceAdjustments) return null;
@@ -274,16 +275,7 @@ const ListView = ({
     const difficulty = item.difficulty || item.recipe?.difficulty || '';
     registerMatch('difficulty', getSearchMatchMeta(difficulty, normalizedQuery, queryTokens));
 
-    let ingredients = [];
-    if (item.type === 'recipe') {
-      ingredients = item.custom_ingredients?.length > 0 ? item.custom_ingredients : item.recipe?.recipe_ingredients;
-    } else if (item.type === 'private_recipe' || item.is_private_recipe) {
-      ingredients = item.private_recipe_ingredients;
-    } else if (item.type === 'free_recipe') {
-      ingredients = item.free_recipe_ingredients;
-    } else if (item.type === 'snack') {
-      ingredients = item.snack_ingredients;
-    }
+    const ingredients = getRecipeIngredients(item);
 
     if (ingredients && ingredients.length > 0) {
       ingredients.forEach((ing) => {
@@ -471,14 +463,7 @@ const ListView = ({
                             return true;
                         }
                         
-                        let ingredients = [];
-                        if (isPrivateRecipe) {
-                            ingredients = item.private_recipe_ingredients || [];
-                        } else {
-                            ingredients = item.custom_ingredients?.length > 0 
-                                ? item.custom_ingredients 
-                                    : item.recipe?.recipe_ingredients || [];
-                        }
+                        const ingredients = getRecipeIngredients(item);
                         
                         const unsafeFoodsSet = new Set();
 

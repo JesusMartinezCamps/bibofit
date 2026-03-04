@@ -14,6 +14,7 @@ import ModalStateToggle from '@/components/shared/ModalStateToggle';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { getRecipeIngredients } from '@/lib/recipeEntity';
 
 const STORAGE_KEY = 'shoppingListModalMode';
 
@@ -230,7 +231,7 @@ const GlobalShoppingListDialog = ({ open, onOpenChange, initialMode = 'planned',
     const [loading, setLoading] = useState(true);
     
     // Read from localStorage on initial mount
-    const getSavedMode = () => {
+    const getSavedMode = useCallback(() => {
         try {
             const saved = localStorage.getItem(STORAGE_KEY);
             if (saved === 'complete' || saved === 'planned') {
@@ -241,9 +242,9 @@ const GlobalShoppingListDialog = ({ open, onOpenChange, initialMode = 'planned',
         }
         // Fallback to initialMode logic
         return initialMode === 'week' ? 'planned' : (initialMode === 'day' ? 'complete' : (initialMode || 'planned'));
-    };
+    }, [initialMode]);
 
-    const [listMode, setListMode] = useState(getSavedMode());
+    const [listMode, setListMode] = useState(() => getSavedMode());
     
     const [listData, setListData] = useState({ proteins: [], carbs: [], fats: [], others: [] });
     const [checkedItems, setCheckedItems] = useState(new Set());
@@ -338,7 +339,7 @@ const GlobalShoppingListDialog = ({ open, onOpenChange, initialMode = 'planned',
             const mode = getSavedMode();
             setListMode(mode);
         }
-    }, [open]);
+    }, [open, getSavedMode]);
 
     const handleCheckedChange = (itemId, isChecked) => {
         setCheckedItems(prev => {
@@ -387,20 +388,7 @@ const GlobalShoppingListDialog = ({ open, onOpenChange, initialMode = 'planned',
     };
 
     const getIngredients = (item) => {
-        if (!item) return [];
-        if (item.custom_ingredients && Array.isArray(item.custom_ingredients) && item.custom_ingredients.length > 0) {
-            return item.custom_ingredients;
-        }
-        if (item.recipe && Array.isArray(item.recipe.recipe_ingredients) && item.recipe.recipe_ingredients.length > 0) {
-            return item.recipe.recipe_ingredients;
-        }
-        if (Array.isArray(item.private_recipe_ingredients) && item.private_recipe_ingredients.length > 0) {
-            return item.private_recipe_ingredients;
-        }
-        if (Array.isArray(item.free_recipe_ingredients) && item.free_recipe_ingredients.length > 0) {
-            return item.free_recipe_ingredients;
-        }
-        return [];
+        return getRecipeIngredients(item);
     };
 
     const getMacroCategory = (food) => {

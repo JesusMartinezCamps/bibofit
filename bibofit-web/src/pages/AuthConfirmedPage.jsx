@@ -5,7 +5,6 @@ import { Helmet } from 'react-helmet';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import LandingNavbar from '@/components/landing/LandingNavbar';
 
 const AuthConfirmedPage = () => {
   const navigate = useNavigate();
@@ -37,10 +36,7 @@ const AuthConfirmedPage = () => {
         />
       </Helmet>
 
-      <div className="min-h-screen bg-background">
-        <LandingNavbar showNavigationOptions={false} />
-
-        <div className="min-h-screen hero-gradient flex items-center justify-center p-4 pt-24">
+      <div className="min-h-screen hero-gradient flex items-center justify-center p-4 pt-24">
           <div className="w-full max-w-lg">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -83,7 +79,6 @@ const AuthConfirmedPage = () => {
             </motion.div>
           </div>
         </div>
-      </div>
     </>
   );
 };

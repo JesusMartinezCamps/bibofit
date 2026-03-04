@@ -451,6 +451,7 @@ export const useRecipeEditor = ({ recipeToEdit, onSaveSuccess, isAdminView, user
                 userId: recipeToEdit.user_id,
                 formData: finalFormData,
                 ingredients: sanitizedIngredients,
+                originalRecipe: recipeToEdit,
             });
         } else { // diet_plan_recipe OR global recipe being added/customized
             if (isAdminView) {
@@ -521,7 +522,7 @@ export const useRecipeEditor = ({ recipeToEdit, onSaveSuccess, isAdminView, user
     } finally {
         setIsSubmitting(false);
     }
-}, [hasChanges, formData, ingredients, originalIngredients, recipeToEdit, userId, onSaveSuccess, toast, isTemporaryEdit, isAdminView, initialFormData, hasIngredientChanges, isTemplate, allFoods]);
+}, [hasChanges, formData, ingredients, originalIngredients, recipeToEdit, userId, onSaveSuccess, toast, isAdminView, initialFormData, hasIngredientChanges, isTemplate, allFoods]);
   
   const isEditable = isAdminView || user?.role === 'admin' || user?.role === 'coach' || (recipeToEdit && (
       recipeToEdit.is_private || 

@@ -399,6 +399,32 @@ html:not(.dark) .app-main-shell {
   @apply cursor-not-allowed opacity-40;
 }
 
+.bf-datepicker.bf-datepicker--onboarding-dark {
+  background-color: #000 !important;
+  color: #fff !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+.bf-datepicker.bf-datepicker--onboarding-dark .bf-datepicker__select,
+.bf-datepicker.bf-datepicker--onboarding-dark .bf-datepicker__nav-btn,
+.bf-datepicker.bf-datepicker--onboarding-dark .react-datepicker__month-container {
+  background-color: #000 !important;
+  color: #fff !important;
+}
+
+.bf-datepicker.bf-datepicker--onboarding-dark .bf-datepicker__select option {
+  background-color: #000 !important;
+  color: #fff !important;
+}
+
+html:not(.dark) .bf-datepicker.bf-datepicker--onboarding-dark,
+html:not(.dark) .bf-datepicker.bf-datepicker--onboarding-dark .bf-datepicker__select,
+html:not(.dark) .bf-datepicker.bf-datepicker--onboarding-dark .bf-datepicker__nav-btn,
+html:not(.dark) .bf-datepicker.bf-datepicker--onboarding-dark .react-datepicker__month-container {
+  background-color: #000 !important;
+  color: #fff !important;
+}
+
 @keyframes bfDateMonthIn {
   from {
     opacity: 0;

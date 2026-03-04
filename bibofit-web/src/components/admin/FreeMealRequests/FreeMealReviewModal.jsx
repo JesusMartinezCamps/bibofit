@@ -13,6 +13,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Loader2, Globe, Shield } from 'lucide-react';
 import RecipeView from '@/components/shared/RecipeView';
 import { calculateMacros } from '@/lib/macroCalculator';
+import { FREE_RECIPE_STATUS } from '@/lib/recipeEntity';
 
 const FreeMealReviewModal = ({ isOpen, onOpenChange, freeMeal, onSuccess }) => {
   const { toast } = useToast();
@@ -73,7 +74,10 @@ const FreeMealReviewModal = ({ isOpen, onOpenChange, freeMeal, onSuccess }) => {
         if (rpcError) throw rpcError;
         if (!result.success) throw new Error(result.error || 'Ocurrió un error en el servidor.');
 
-        const { error: statusError } = await supabase.from('free_recipes').update({ status: 'approved' }).eq('id', freeMeal.id);
+        const { error: statusError } = await supabase
+          .from('free_recipes')
+          .update({ status: FREE_RECIPE_STATUS.APPROVED_GENERAL })
+          .eq('id', freeMeal.id);
         if (statusError) throw statusError;
 
         let successMessage = 'Receta libre convertida a receta global.';
@@ -103,6 +107,7 @@ const FreeMealReviewModal = ({ isOpen, onOpenChange, freeMeal, onSuccess }) => {
           source_free_recipe_id: freeMeal.id,
           name: freeMeal.name,
           instructions: freeMeal.instructions,
+          day_meal_id: freeMeal.day_meal_id,
         })
         .select('id')
         .single();
@@ -126,15 +131,17 @@ const FreeMealReviewModal = ({ isOpen, onOpenChange, freeMeal, onSuccess }) => {
       if (planError) throw planError;
 
       if (activePlan) {
-        const { error: planRecipeError } = await supabase.from('diet_plan_recipes').insert({
-          diet_plan_id: activePlan.id,
-          private_recipe_id: newPrivateRecipe.id,
-          day_meal_id: freeMeal.day_meal_id,
-        });
-        if (planRecipeError) throw planRecipeError;
+        const { error: privateUpdateError } = await supabase
+          .from('private_recipes')
+          .update({ diet_plan_id: activePlan.id, day_meal_id: freeMeal.day_meal_id })
+          .eq('id', newPrivateRecipe.id);
+        if (privateUpdateError) throw privateUpdateError;
       }
 
-      const { error: statusError } = await supabase.from('free_recipes').update({ status: 'approved' }).eq('id', freeMeal.id);
+      const { error: statusError } = await supabase
+        .from('free_recipes')
+        .update({ status: FREE_RECIPE_STATUS.APPROVED_PRIVATE })
+        .eq('id', freeMeal.id);
       if (statusError) throw statusError;
 
       toast({ title: 'Éxito', description: 'Receta libre convertida a receta privada y añadida al plan.' });

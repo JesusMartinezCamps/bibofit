@@ -6,7 +6,6 @@ import { supabase } from '@/lib/supabaseClient';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { KeyRound, ArrowLeft } from 'lucide-react';
-import LandingNavbar from '@/components/landing/LandingNavbar';
 
 const ResetPasswordPage = () => {
   const [email, setEmail] = useState('');
@@ -51,10 +50,7 @@ const ResetPasswordPage = () => {
         <meta name="description" content="Recupera el acceso a tu cuenta de Bibofit." />
       </Helmet>
       
-      <div className="min-h-screen bg-background">
-        <LandingNavbar showNavigationOptions={false} />
-        
-        <div className="min-h-screen hero-gradient flex items-center justify-center p-4 pt-24">
+      <div className="min-h-screen hero-gradient flex items-center justify-center p-4 pt-24">
           <div className="w-full max-w-md">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
@@ -104,7 +100,6 @@ const ResetPasswordPage = () => {
             </motion.div>
           </div>
         </div>
-      </div>
     </>
   );
 };

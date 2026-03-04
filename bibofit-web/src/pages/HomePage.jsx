@@ -1,6 +1,5 @@
 import React from 'react';
 import { Helmet } from 'react-helmet';
-import LandingNavbar from '@/components/landing/LandingNavbar';
 import HeroSection from '@/components/landing/HeroSection';
 import ProblemSolution from '@/components/landing/ProblemSolution';
 import FeaturesGrid from '@/components/landing/FeaturesGrid';
@@ -21,8 +20,6 @@ const HomePage = () => {
                 <meta name="description" content="La plataforma todo en uno para gestionar planes de nutrición, rutinas de entrenamiento y seguimiento de clientes. Escala tu negocio fitness con Bibofit." />
             </Helmet>
 
-            <LandingNavbar />
-            
             <main>
                 <HeroSection />
                 <ProblemSolution />

@@ -14,6 +14,11 @@ import EquivalenceDialog from './EquivalenceDialog';
 import { calculateMacros } from '@/lib/macroCalculator';
 import IngredientSearch from '@/components/plans/IngredientSearch';
 import { getConflictInfo } from '@/lib/restrictionChecker.js';
+import { FREE_RECIPE_STATUS, isFreeRecipeApproved } from '@/lib/recipeEntity';
+import {
+  fetchFreeRecipeDetails,
+  persistFreeRecipeDefinition,
+} from '@/lib/freeRecipePersistence';
 
 const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquivalenceSuccess, onSelect, isActionLoading }) => {
   const { user } = useAuth();
@@ -202,7 +207,7 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
     }, [recipeForEdit, allFoods]);
 
     const isApproved = useMemo(() => {
-        return currentFreeMeal?.status === 'approved_private' || currentFreeMeal?.status === 'approved_general';
+        return isFreeRecipeApproved(currentFreeMeal?.status);
     }, [currentFreeMeal]);
 
     // Calculate conflicts and recommendations for the current recipe view
@@ -242,6 +247,11 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
 
     const handleUpdate = async () => {
       if (!currentFreeMeal) return;
+      const ingredientPayload = ingredients.map((ing) => ({
+        food_id: Number.parseInt(ing.food_id, 10),
+        grams: Number.parseFloat(ing.quantity ?? ing.grams ?? 0),
+        is_free: false,
+      }));
       
       if (isTemplate) {
         // Just update local state for adding to plan as a customized template
@@ -283,52 +293,22 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
                 finalName = `* ${name}`;
             }
 
-            const { data: newRecipe, error: createError } = await supabase
-                .from('free_recipes')
-                .insert({
-                    user_id: user.id,
-                    day_meal_id: dayMealId ? parseInt(dayMealId) : null,
-                    name: finalName,
-                    instructions: instructions,
-                    prep_time_min: prepTime,
-                    difficulty: difficulty,
-                    status: 'pending',
-                    diet_plan_id: currentFreeMeal.diet_plan_id,
-                    parent_free_recipe_id: currentFreeMeal.id
-                })
-                .select()
-                .single();
+            const { freeRecipe: newRecipe } = await persistFreeRecipeDefinition({
+              userId: user.id,
+              dayMealId: dayMealId || currentFreeMeal.day_meal_id,
+              dietPlanId: currentFreeMeal.diet_plan_id,
+              recipe: {
+                name: finalName,
+                instructions,
+                prep_time_min: prepTime,
+                difficulty,
+                status: FREE_RECIPE_STATUS.PENDING,
+                parent_free_recipe_id: currentFreeMeal.id,
+              },
+              ingredients: ingredientPayload,
+            });
 
-            if (createError) throw createError;
-
-            const newIngredients = ingredients.map(ing => ({
-                free_recipe_id: newRecipe.id,
-                food_id: parseInt(ing.food_id),
-                grams: parseFloat(ing.quantity),
-                status: 'approved'
-            }));
-
-            const { error: insertError } = await supabase.from('free_recipe_ingredients').insert(newIngredients);
-            if (insertError) throw insertError;
-
-             // Fetch full details for the new recipe to update state
-            const { data: fullNewRecipe, error: refetchError } = await supabase
-                .from('free_recipes')
-                .select(`
-                    *,
-                    day_meal:day_meal_id(name),
-                    ingredients:free_recipe_ingredients(
-                    *, 
-                    food:food_id(
-                        *, 
-                        food_to_food_groups(food_group_id)
-                    )
-                    )
-                `)
-                .eq('id', newRecipe.id)
-                .single();
-            
-            if (refetchError) throw refetchError;
+            const fullNewRecipe = await fetchFreeRecipeDetails(newRecipe.id);
 
             toast({ title: 'Nueva versión creada', description: 'Se ha creado una solicitud de nueva versión pendiente de aprobación.' });
             
@@ -340,44 +320,22 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
 
         } else {
             // Update existing (Pending or Rejected)
-            await supabase.from('free_recipe_ingredients').delete().eq('free_recipe_id', currentFreeMeal.id);
-            
-            const newIngredients = ingredients.map(ing => ({
-              free_recipe_id: currentFreeMeal.id,
-              food_id: parseInt(ing.food_id),
-              grams: parseFloat(ing.quantity),
-              status: 'approved'
-            }));
-            
-            const { error: insertError } = await supabase.from('free_recipe_ingredients').insert(newIngredients);
-            if (insertError) throw insertError;
-    
-            const { error: updateError } = await supabase.from('free_recipes').update({ 
-              day_meal_id: dayMealId,
-              name: name,
-              instructions: instructions,
-              prep_time_min: prepTime,
-              difficulty: difficulty
-            }).eq('id', currentFreeMeal.id);
-            if (updateError) throw updateError;
-            
-            const { data: updatedFreeMeal, error: refetchError } = await supabase
-              .from('free_recipes')
-              .select(`
-                *,
-                day_meal:day_meal_id(name),
-                ingredients:free_recipe_ingredients(
-                  *, 
-                  food:food_id(
-                    *, 
-                    food_to_food_groups(food_group_id)
-                  )
-                )
-              `)
-              .eq('id', currentFreeMeal.id)
-              .single();
-            
-            if(refetchError) throw refetchError;
+            await persistFreeRecipeDefinition({
+              userId: currentFreeMeal.user_id || user.id,
+              recipeId: currentFreeMeal.id,
+              dayMealId: dayMealId || currentFreeMeal.day_meal_id,
+              dietPlanId: currentFreeMeal.diet_plan_id,
+              recipe: {
+                name,
+                instructions,
+                prep_time_min: prepTime,
+                difficulty,
+                status: currentFreeMeal.status,
+              },
+              ingredients: ingredientPayload,
+            });
+
+            const updatedFreeMeal = await fetchFreeRecipeDetails(currentFreeMeal.id);
     
             setCurrentFreeMeal(updatedFreeMeal);
             if (onUpdate) onUpdate(updatedFreeMeal);
@@ -417,7 +375,7 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
     };
 
     const canShowEquivalence = useMemo(() => {
-      return !isTemplate && currentFreeMeal?.meal_date && (currentFreeMeal?.status === 'approved_private' || currentFreeMeal?.status === 'approved_general');
+      return !isTemplate && currentFreeMeal?.meal_date && isFreeRecipeApproved(currentFreeMeal?.status);
     }, [currentFreeMeal, isTemplate]);
 
     const handleFormChange = (e) => {

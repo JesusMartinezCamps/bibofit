@@ -4,8 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
 import FreeRecipeCard from '@/components/plans/FreeRecipeCard';
+import {
+  getRecipeDifficulty,
+  getRecipeDisplayName,
+  getRecipeIngredients,
+  getRecipePrepTime,
+  RECIPE_ENTITY_TYPES,
+} from '@/lib/recipeEntity';
 
 const WeekView = ({
   weekDates = [],
@@ -73,32 +79,35 @@ const WeekView = ({
 
                 if (plannedMealForSlot) {
                     if (plannedMealForSlot.diet_plan_recipe) {
-                        itemForSlot = { ...plannedMealForSlot.diet_plan_recipe, type: 'recipe' };
+                        itemForSlot = { ...plannedMealForSlot.diet_plan_recipe, type: RECIPE_ENTITY_TYPES.PLAN };
                         recipeObjectForModal = {
                             ...itemForSlot,
-                            ingredients: itemForSlot.custom_ingredients?.length > 0 
-                                ? itemForSlot.custom_ingredients 
-                                : itemForSlot.recipe?.recipe_ingredients || [],
-                            name: itemForSlot.is_customized ? itemForSlot.custom_name : itemForSlot.recipe?.name,
+                            ingredients: getRecipeIngredients(itemForSlot),
+                            name: getRecipeDisplayName(itemForSlot),
                             instructions: itemForSlot.is_customized ? itemForSlot.custom_instructions : itemForSlot.recipe?.instructions,
-                            prep_time_min: itemForSlot.is_customized ? itemForSlot.custom_prep_time_min : itemForSlot.recipe?.prep_time_min,
-                            difficulty: itemForSlot.is_customized ? itemForSlot.custom_difficulty : itemForSlot.recipe?.difficulty,
+                            prep_time_min: getRecipePrepTime(itemForSlot),
+                            difficulty: getRecipeDifficulty(itemForSlot),
                         };
                     } else if (plannedMealForSlot.private_recipe) {
-                        itemForSlot = { ...plannedMealForSlot.private_recipe, type: 'private_recipe', is_private: true, id: plannedMealForSlot.private_recipe.id };
+                        itemForSlot = {
+                          ...plannedMealForSlot.private_recipe,
+                          type: RECIPE_ENTITY_TYPES.PRIVATE,
+                          is_private: true,
+                          id: plannedMealForSlot.private_recipe.id,
+                        };
                         recipeObjectForModal = {
                             ...itemForSlot,
-                            ingredients: itemForSlot.private_recipe_ingredients || [],
+                            ingredients: getRecipeIngredients(itemForSlot),
                         };
                     } else if (plannedMealForSlot.free_recipe) {
-                        itemForSlot = { ...plannedMealForSlot.free_recipe, type: 'free_recipe' };
+                        itemForSlot = { ...plannedMealForSlot.free_recipe, type: RECIPE_ENTITY_TYPES.FREE };
                         recipeObjectForModal = {
                             ...itemForSlot,
-                            ingredients: itemForSlot.free_recipe_ingredients || [],
+                            ingredients: getRecipeIngredients(itemForSlot),
                             name: itemForSlot.name,
                             instructions: itemForSlot.instructions,
-                            prep_time_min: itemForSlot.prep_time_min,
-                            difficulty: itemForSlot.difficulty,
+                            prep_time_min: getRecipePrepTime(itemForSlot),
+                            difficulty: getRecipeDifficulty(itemForSlot),
                         };
                     }
                 }
@@ -114,7 +123,7 @@ const WeekView = ({
                     <div className="space-y-2 min-h-[50px]">
                       {itemForSlot ? (
                         <div key={plannedMealForSlot.id}>
-                            {itemForSlot.type === 'free_recipe' ? (
+                            {itemForSlot.type === RECIPE_ENTITY_TYPES.FREE ? (
                                 <FreeRecipeCard
                                     freeMeal={recipeObjectForModal}
                                     allFoods={allFoods}

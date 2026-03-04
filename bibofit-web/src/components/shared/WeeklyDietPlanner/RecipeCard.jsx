@@ -12,6 +12,14 @@ import HighlightedText from '@/components/shared/HighlightedText';
 import { analyzeRecipeConflicts } from '@/lib/recipeConflictAnalyzer';
 import { useTheme } from '@/contexts/ThemeContext';
 import { RecipeCardBackground, RecipeCardPanel } from '@/components/shared/recipe-card/RecipeCardBase';
+import {
+  getRecipeDifficulty,
+  getRecipeDisplayName,
+  getRecipeIngredients,
+  getRecipePrepTime,
+  inferRecipeEntityType,
+  RECIPE_ENTITY_TYPES,
+} from '@/lib/recipeEntity';
 
 const RecipeCard = ({
   recipe,
@@ -29,39 +37,24 @@ const RecipeCard = ({
   hideMacros = false
 }) => {
   const { isDark } = useTheme();
+  const recipeType = useMemo(() => inferRecipeEntityType(recipe), [recipe]);
+  const isPrivate = recipeType === RECIPE_ENTITY_TYPES.PRIVATE;
+
   const recipeName = useMemo(() => {
-    if (!recipe) return "Receta Desconocida";
-    if (recipe.is_private_recipe || recipe.type === 'private_recipe') {
-      return recipe.name || "Receta Privada";
-    }
-    return recipe.custom_name || recipe.recipe?.name || recipe.name || "Receta";
-  }, [recipe]);
+    if (!recipe) return 'Receta Desconocida';
+    return getRecipeDisplayName(recipe) || (isPrivate ? 'Receta Privada' : 'Receta');
+  }, [recipe, isPrivate]);
 
   const recipeIngredients = useMemo(() => {
-    if (!recipe) return [];
-    if (recipe.is_private_recipe || recipe.type === 'private_recipe') {
-      return recipe.private_recipe_ingredients || [];
-    }
-    if (recipe.custom_ingredients && recipe.custom_ingredients.length > 0) {
-        return recipe.custom_ingredients;
-    }
-    return recipe.recipe?.recipe_ingredients || recipe.recipe_ingredients || [];
+    return getRecipeIngredients(recipe);
   }, [recipe]);
 
   const recipeDifficulty = useMemo(() => {
-    if (!recipe) return 'Fácil';
-    if (recipe.is_private_recipe || recipe.type === 'private_recipe') {
-      return recipe.difficulty || 'Fácil';
-    }
-    return recipe.custom_difficulty || recipe.difficulty || recipe.recipe?.difficulty || 'Fácil';
+    return getRecipeDifficulty(recipe);
   }, [recipe]);
 
   const recipePrepTime = useMemo(() => {
-    if (!recipe) return 0;
-    if (recipe.is_private_recipe || recipe.type === 'private_recipe') {
-      return recipe.prep_time_min ?? 0;
-    }
-    return recipe.custom_prep_time_min ?? recipe.prep_time_min ?? recipe.recipe?.prep_time_min ?? 0;
+    return getRecipePrepTime(recipe);
   }, [recipe]);
 
   const imageUrl = useMemo(() => {
@@ -142,7 +135,6 @@ const RecipeCard = ({
 
   const changeRequest = recipe.changeRequest;
   const isPending = changeRequest?.status === 'pending';
-  const isPrivate = recipe.is_private_recipe || recipe.type === 'private_recipe';
 
   const macroDisplay = (
     <div className={cn(

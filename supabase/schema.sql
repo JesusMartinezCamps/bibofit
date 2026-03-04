@@ -894,61 +894,80 @@ CREATE OR REPLACE FUNCTION "public"."delete_diet_plan_recipe_with_dependencies"(
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
     AS $$
-DECLARE
-    child_id bigint;
-BEGIN
-    -- Ensure the caller is an admin or the owner (though owner checks usually happen in RLS/policies, 
-    -- explicit function permission checks are good practice if this function is SECURITY DEFINER)
-    IF NOT is_admin() THEN
-        -- You might want to allow users to delete their own, but for now let's assume Admin context or
-        -- rely on RLS if we weren't using SECURITY DEFINER. Since it's SECURITY DEFINER, we must be careful.
-        -- However, based on context, this is primarily used in Admin/Planner views.
-        -- Let's proceed assuming the frontend handles auth checks or we trust the admin role check.
-        NULL; 
-    END IF;
+declare
+  child_id bigint;
+  v_owner_user_id uuid;
+  v_is_admin boolean;
+  v_is_coach boolean;
+begin
+  select dp.user_id
+  into v_owner_user_id
+  from public.diet_plan_recipes dpr
+  join public.diet_plans dp on dp.id = dpr.diet_plan_id
+  where dpr.id = p_recipe_id;
 
-    -- 1. Recursively find and delete children first (to respect FK parent_diet_plan_recipe_id)
-    -- This handles the "Key is still referenced from table diet_plan_recipes" error
-    FOR child_id IN SELECT id FROM diet_plan_recipes WHERE parent_diet_plan_recipe_id = p_recipe_id LOOP
-        PERFORM delete_diet_plan_recipe_with_dependencies(child_id);
-    END LOOP;
+  if not found then
+    raise exception 'Diet plan recipe not found';
+  end if;
 
-    -- 2. Delete direct dependencies for this specific recipe ID
-    
-    -- diet_change_requests (linked either via diet_plan_recipe_id or potentially private_recipe_id if converted, 
-    -- but here we focus on diet_plan_recipe_id)
-    DELETE FROM diet_change_requests 
-    WHERE diet_plan_recipe_id = p_recipe_id;
+  v_is_admin := public.is_admin();
+  v_is_coach := exists (
+    select 1
+    from public.user_roles ur
+    join public.roles r on r.id = ur.role_id
+    where ur.user_id = auth.uid()
+      and r.role = 'coach'
+  );
 
-    -- daily_meal_logs
-    DELETE FROM daily_meal_logs 
-    WHERE diet_plan_recipe_id = p_recipe_id;
-    
-    -- planned_meals
-    DELETE FROM planned_meals 
-    WHERE diet_plan_recipe_id = p_recipe_id;
+  if not v_is_admin then
+    if v_owner_user_id is null then
+      raise exception 'Only admins can delete template plan recipes.';
+    end if;
 
-    -- daily_ingredient_adjustments (linked via diet_plan_recipe_id)
-    DELETE FROM daily_ingredient_adjustments 
-    WHERE diet_plan_recipe_id = p_recipe_id;
+    if auth.uid() is distinct from v_owner_user_id then
+      if not v_is_coach or not exists (
+        select 1
+        from public.coach_clients cc
+        where cc.coach_id = auth.uid()
+          and cc.client_id = v_owner_user_id
+      ) then
+        raise exception 'Permission denied to delete this diet plan recipe.';
+      end if;
+    end if;
+  end if;
 
-    -- recipe_macros (linked via diet_plan_recipe_id)
-    DELETE FROM recipe_macros
-    WHERE diet_plan_recipe_id = p_recipe_id;
-    
-    -- diet_plan_recipe_ingredients (ingredients specific to this plan recipe instance)
-    DELETE FROM diet_plan_recipe_ingredients
-    WHERE diet_plan_recipe_id = p_recipe_id;
+  for child_id in
+    select id
+    from public.diet_plan_recipes
+    where parent_diet_plan_recipe_id = p_recipe_id
+  loop
+    perform public.delete_diet_plan_recipe_with_dependencies(child_id);
+  end loop;
 
-    -- equivalence_adjustments (via dependent daily_ingredient_adjustments - though we deleted those above,
-    -- sometimes equivalence_adjustments point to source_diet_plan_recipe_id if that column exists and is used.
-    -- Based on schema: source_diet_plan_recipe_id exists in equivalence_adjustments)
-    DELETE FROM equivalence_adjustments
-    WHERE source_diet_plan_recipe_id = p_recipe_id;
+  delete from public.diet_change_requests
+  where diet_plan_recipe_id = p_recipe_id;
 
-    -- 3. Finally, delete the diet_plan_recipe itself
-    DELETE FROM diet_plan_recipes WHERE id = p_recipe_id;
-END;
+  delete from public.daily_meal_logs
+  where diet_plan_recipe_id = p_recipe_id;
+
+  delete from public.planned_meals
+  where diet_plan_recipe_id = p_recipe_id;
+
+  delete from public.daily_ingredient_adjustments
+  where diet_plan_recipe_id = p_recipe_id;
+
+  delete from public.recipe_macros
+  where diet_plan_recipe_id = p_recipe_id;
+
+  delete from public.diet_plan_recipe_ingredients
+  where diet_plan_recipe_id = p_recipe_id;
+
+  delete from public.equivalence_adjustments
+  where source_diet_plan_recipe_id = p_recipe_id;
+
+  delete from public.diet_plan_recipes
+  where id = p_recipe_id;
+end;
 $$;
 
 
@@ -1159,51 +1178,78 @@ CREATE OR REPLACE FUNCTION "public"."delete_private_recipe_cascade"("p_recipe_id
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
     AS $$
-DECLARE
-    child_id bigint;
-BEGIN
-    -- 1. Recursively find and delete children first (to respect FK parent_private_recipe_id)
-    FOR child_id IN SELECT id FROM private_recipes WHERE parent_private_recipe_id = p_recipe_id LOOP
-        PERFORM delete_private_recipe_cascade(child_id);
-    END LOOP;
+declare
+  child_id bigint;
+  v_owner_user_id uuid;
+  v_is_admin boolean;
+  v_is_coach boolean;
+begin
+  select pr.user_id
+  into v_owner_user_id
+  from public.private_recipes pr
+  where pr.id = p_recipe_id;
 
-    -- 2. Delete direct dependencies
-    
-    -- diet_change_requests
-    DELETE FROM diet_change_requests 
-    WHERE private_recipe_id = p_recipe_id 
-       OR requested_changes_private_recipe_id = p_recipe_id;
+  if not found then
+    raise exception 'Private recipe not found';
+  end if;
 
-    -- private_recipe_ingredients
-    DELETE FROM private_recipe_ingredients 
-    WHERE private_recipe_id = p_recipe_id;
+  v_is_admin := public.is_admin();
+  v_is_coach := exists (
+    select 1
+    from public.user_roles ur
+    join public.roles r on r.id = ur.role_id
+    where ur.user_id = auth.uid()
+      and r.role = 'coach'
+  );
 
-    -- daily_meal_logs
-    DELETE FROM daily_meal_logs 
-    WHERE private_recipe_id = p_recipe_id;
-    
-    -- planned_meals
-    DELETE FROM planned_meals 
-    WHERE private_recipe_id = p_recipe_id;
+  if auth.uid() is distinct from v_owner_user_id and not v_is_admin then
+    if not v_is_coach or not exists (
+      select 1
+      from public.coach_clients cc
+      where cc.coach_id = auth.uid()
+        and cc.client_id = v_owner_user_id
+    ) then
+      raise exception 'Permission denied to delete this private recipe.';
+    end if;
+  end if;
 
-    -- daily_ingredient_adjustments (referencing this recipe directly)
-    DELETE FROM daily_ingredient_adjustments 
-    WHERE private_recipe_id = p_recipe_id;
+  for child_id in
+    select id
+    from public.private_recipes
+    where parent_private_recipe_id = p_recipe_id
+  loop
+    perform public.delete_private_recipe_cascade(child_id);
+  end loop;
 
-    -- equivalence_adjustments (and their dependent daily_ingredient_adjustments)
-    -- First delete dependent daily_ingredient_adjustments
-    DELETE FROM daily_ingredient_adjustments 
-    WHERE equivalence_adjustment_id IN (
-        SELECT id FROM equivalence_adjustments WHERE source_private_recipe_id = p_recipe_id
-    );
-    
-    -- Then delete the equivalence_adjustments themselves
-    DELETE FROM equivalence_adjustments 
-    WHERE source_private_recipe_id = p_recipe_id;
+  delete from public.diet_change_requests
+  where private_recipe_id = p_recipe_id
+     or requested_changes_private_recipe_id = p_recipe_id;
 
-    -- 3. Delete the recipe itself
-    DELETE FROM private_recipes WHERE id = p_recipe_id;
-END;
+  delete from public.private_recipe_ingredients
+  where private_recipe_id = p_recipe_id;
+
+  delete from public.daily_meal_logs
+  where private_recipe_id = p_recipe_id;
+
+  delete from public.planned_meals
+  where private_recipe_id = p_recipe_id;
+
+  delete from public.daily_ingredient_adjustments
+  where private_recipe_id = p_recipe_id;
+
+  delete from public.daily_ingredient_adjustments
+  where equivalence_adjustment_id in (
+    select id
+    from public.equivalence_adjustments
+    where source_private_recipe_id = p_recipe_id
+  );
+
+  delete from public.equivalence_adjustments
+  where source_private_recipe_id = p_recipe_id;
+
+  delete from public.private_recipes
+  where id = p_recipe_id;
+end;
 $$;
 
 
@@ -1527,27 +1573,6 @@ $$;
 ALTER FUNCTION "public"."get_user_restrictions"("p_user_id" "uuid") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."get_users_with_free_recipes_by_status"("_rows" "jsonb") RETURNS integer
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
-    AS $$
-declare
-  v_updated integer;
-begin
-  update public.private_recipe_ingredients t
-  set grams = x.grams
-  from jsonb_to_recordset(_rows) as x(id bigint, grams numeric)
-  where t.id = x.id;
-
-  get diagnostics v_updated = row_count;
-  return v_updated;
-end;
-$$;
-
-
-ALTER FUNCTION "public"."get_users_with_free_recipes_by_status"("_rows" "jsonb") OWNER TO "postgres";
-
-
 CREATE OR REPLACE FUNCTION "public"."get_users_with_free_recipes_by_status"("p_status" "text") RETURNS TABLE("user_id" "uuid", "full_name" "text", "pending_count" integer)
     LANGUAGE "plpgsql"
     SET "search_path" TO 'public'
@@ -1559,7 +1584,7 @@ begin
     p.full_name,
     count(fr.id)::integer as pending_count
   from public.free_recipes fr
-  join public.profiles p on fr.user_id = p.user_id
+  join public.profiles p on p.user_id = fr.user_id
   where fr.status = p_status
   group by p.user_id, p.full_name
   having count(fr.id) > 0
@@ -1926,8 +1951,40 @@ CREATE OR REPLACE FUNCTION "public"."update_free_recipe"("p_recipe_id" bigint, "
     AS $$
 declare
   ingredient_record jsonb;
+  v_owner_user_id uuid;
+  v_is_admin boolean;
+  v_is_coach boolean;
 begin
-  update free_recipes
+  select fr.user_id
+  into v_owner_user_id
+  from public.free_recipes fr
+  where fr.id = p_recipe_id;
+
+  if not found then
+    raise exception 'Free recipe not found';
+  end if;
+
+  v_is_admin := public.is_admin();
+  v_is_coach := exists (
+    select 1
+    from public.user_roles ur
+    join public.roles r on r.id = ur.role_id
+    where ur.user_id = auth.uid()
+      and r.role = 'coach'
+  );
+
+  if auth.uid() is distinct from v_owner_user_id and not v_is_admin then
+    if not v_is_coach or not exists (
+      select 1
+      from public.coach_clients cc
+      where cc.coach_id = auth.uid()
+        and cc.client_id = v_owner_user_id
+    ) then
+      raise exception 'Permission denied to update this free recipe.';
+    end if;
+  end if;
+
+  update public.free_recipes
   set
     name = p_name,
     instructions = p_instructions,
@@ -1935,17 +1992,23 @@ begin
     difficulty = p_difficulty
   where id = p_recipe_id;
 
-  delete from free_recipe_ingredients
+  delete from public.free_recipe_ingredients
   where free_recipe_id = p_recipe_id;
 
-  for ingredient_record in select * from jsonb_array_elements(p_ingredients)
+  for ingredient_record in
+    select *
+    from jsonb_array_elements(coalesce(p_ingredients, '[]'::jsonb))
   loop
-    insert into free_recipe_ingredients (free_recipe_id, food_id, grams, status)
+    insert into public.free_recipe_ingredients (free_recipe_id, food_id, grams, status)
     values (
       p_recipe_id,
       (ingredient_record->>'food_id')::bigint,
       (ingredient_record->>'grams')::numeric,
-      'approved'
+      case
+        when lower(coalesce(ingredient_record->>'status', '')) = 'pending' then 'pending'
+        when lower(coalesce(ingredient_record->>'status', '')) = 'rejected' then 'rejected'
+        else 'linked'
+      end
     );
   end loop;
 end;
@@ -1959,33 +2022,64 @@ CREATE OR REPLACE FUNCTION "public"."update_private_recipe"("p_recipe_id" bigint
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
     AS $$
-    DECLARE
-        ingredient_record jsonb;
-    BEGIN
-        -- 1. Update the private_recipes table
-        UPDATE private_recipes
-        SET
-            name = p_name,
-            instructions = p_instructions,
-            prep_time_min = p_prep_time_min,
-            difficulty = p_difficulty
-        WHERE id = p_recipe_id;
+declare
+  ingredient_record jsonb;
+  v_owner_user_id uuid;
+  v_is_admin boolean;
+  v_is_coach boolean;
+begin
+  select pr.user_id
+  into v_owner_user_id
+  from public.private_recipes pr
+  where pr.id = p_recipe_id;
 
-        -- 2. Delete existing ingredients for this private recipe
-        DELETE FROM private_recipe_ingredients
-        WHERE private_recipe_id = p_recipe_id;
+  if not found then
+    raise exception 'Private recipe not found';
+  end if;
 
-        -- 3. Insert the new ingredients
-        FOR ingredient_record IN SELECT * FROM jsonb_array_elements(p_ingredients)
-        LOOP
-            INSERT INTO private_recipe_ingredients (private_recipe_id, food_id, grams)
-            VALUES (
-                p_recipe_id,
-                (ingredient_record->>'food_id')::bigint,
-                (ingredient_record->>'grams')::numeric
-            );
-        END LOOP;
-    END;
+  v_is_admin := public.is_admin();
+  v_is_coach := exists (
+    select 1
+    from public.user_roles ur
+    join public.roles r on r.id = ur.role_id
+    where ur.user_id = auth.uid()
+      and r.role = 'coach'
+  );
+
+  if auth.uid() is distinct from v_owner_user_id and not v_is_admin then
+    if not v_is_coach or not exists (
+      select 1
+      from public.coach_clients cc
+      where cc.coach_id = auth.uid()
+        and cc.client_id = v_owner_user_id
+    ) then
+      raise exception 'Permission denied to update this private recipe.';
+    end if;
+  end if;
+
+  update public.private_recipes
+  set
+    name = p_name,
+    instructions = p_instructions,
+    prep_time_min = p_prep_time_min,
+    difficulty = p_difficulty
+  where id = p_recipe_id;
+
+  delete from public.private_recipe_ingredients
+  where private_recipe_id = p_recipe_id;
+
+  for ingredient_record in
+    select *
+    from jsonb_array_elements(coalesce(p_ingredients, '[]'::jsonb))
+  loop
+    insert into public.private_recipe_ingredients (private_recipe_id, food_id, grams)
+    values (
+      p_recipe_id,
+      (ingredient_record->>'food_id')::bigint,
+      (ingredient_record->>'grams')::numeric
+    );
+  end loop;
+end;
 $$;
 
 
@@ -3251,7 +3345,8 @@ CREATE TABLE IF NOT EXISTS "public"."free_recipe_ingredients" (
     "food_id" bigint,
     "grams" numeric NOT NULL,
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "status" "text" DEFAULT 'linked'::"text" NOT NULL
+    "status" "text" DEFAULT 'linked'::"text" NOT NULL,
+    CONSTRAINT "free_recipe_ingredients_status_check" CHECK (("status" = ANY (ARRAY['linked'::"text", 'pending'::"text", 'rejected'::"text"])))
 );
 
 
@@ -3281,7 +3376,8 @@ CREATE TABLE IF NOT EXISTS "public"."free_recipes" (
     "prep_time_min" integer,
     "difficulty" "text",
     "parent_free_recipe_id" bigint,
-    "parent_recipe_id" bigint
+    "parent_recipe_id" bigint,
+    CONSTRAINT "free_recipes_status_check" CHECK (("status" = ANY (ARRAY['pending'::"text", 'approved_private'::"text", 'approved_general'::"text", 'kept_as_free_recipe'::"text", 'rejected'::"text"])))
 );
 
 
@@ -8286,9 +8382,9 @@ GRANT ALL ON FUNCTION "public"."create_private_recipe_notification"() TO "servic
 
 
 
-GRANT ALL ON FUNCTION "public"."delete_diet_plan_recipe_with_dependencies"("p_recipe_id" bigint) TO "anon";
-GRANT ALL ON FUNCTION "public"."delete_diet_plan_recipe_with_dependencies"("p_recipe_id" bigint) TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."delete_diet_plan_recipe_with_dependencies"("p_recipe_id" bigint) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."delete_diet_plan_recipe_with_dependencies"("p_recipe_id" bigint) TO "service_role";
+GRANT ALL ON FUNCTION "public"."delete_diet_plan_recipe_with_dependencies"("p_recipe_id" bigint) TO "authenticated";
 
 
 
@@ -8310,9 +8406,9 @@ GRANT ALL ON FUNCTION "public"."delete_free_recipe_and_occurrences"("p_free_reci
 
 
 
-GRANT ALL ON FUNCTION "public"."delete_private_recipe_cascade"("p_recipe_id" bigint) TO "anon";
-GRANT ALL ON FUNCTION "public"."delete_private_recipe_cascade"("p_recipe_id" bigint) TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."delete_private_recipe_cascade"("p_recipe_id" bigint) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."delete_private_recipe_cascade"("p_recipe_id" bigint) TO "service_role";
+GRANT ALL ON FUNCTION "public"."delete_private_recipe_cascade"("p_recipe_id" bigint) TO "authenticated";
 
 
 
@@ -8352,15 +8448,9 @@ GRANT ALL ON FUNCTION "public"."get_user_restrictions"("p_user_id" "uuid") TO "s
 
 
 
-GRANT ALL ON FUNCTION "public"."get_users_with_free_recipes_by_status"("_rows" "jsonb") TO "anon";
-GRANT ALL ON FUNCTION "public"."get_users_with_free_recipes_by_status"("_rows" "jsonb") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."get_users_with_free_recipes_by_status"("_rows" "jsonb") TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."get_users_with_free_recipes_by_status"("p_status" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."get_users_with_free_recipes_by_status"("p_status" "text") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."get_users_with_free_recipes_by_status"("p_status" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."get_users_with_free_recipes_by_status"("p_status" "text") TO "service_role";
+GRANT ALL ON FUNCTION "public"."get_users_with_free_recipes_by_status"("p_status" "text") TO "authenticated";
 
 
 
@@ -8442,15 +8532,15 @@ GRANT ALL ON FUNCTION "public"."update_food_total_carbs"() TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."update_free_recipe"("p_recipe_id" bigint, "p_name" "text", "p_instructions" "text", "p_prep_time_min" integer, "p_difficulty" "text", "p_ingredients" "jsonb") TO "anon";
-GRANT ALL ON FUNCTION "public"."update_free_recipe"("p_recipe_id" bigint, "p_name" "text", "p_instructions" "text", "p_prep_time_min" integer, "p_difficulty" "text", "p_ingredients" "jsonb") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."update_free_recipe"("p_recipe_id" bigint, "p_name" "text", "p_instructions" "text", "p_prep_time_min" integer, "p_difficulty" "text", "p_ingredients" "jsonb") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."update_free_recipe"("p_recipe_id" bigint, "p_name" "text", "p_instructions" "text", "p_prep_time_min" integer, "p_difficulty" "text", "p_ingredients" "jsonb") TO "service_role";
+GRANT ALL ON FUNCTION "public"."update_free_recipe"("p_recipe_id" bigint, "p_name" "text", "p_instructions" "text", "p_prep_time_min" integer, "p_difficulty" "text", "p_ingredients" "jsonb") TO "authenticated";
 
 
 
-GRANT ALL ON FUNCTION "public"."update_private_recipe"("p_recipe_id" bigint, "p_name" "text", "p_instructions" "text", "p_prep_time_min" integer, "p_difficulty" "text", "p_ingredients" "jsonb") TO "anon";
-GRANT ALL ON FUNCTION "public"."update_private_recipe"("p_recipe_id" bigint, "p_name" "text", "p_instructions" "text", "p_prep_time_min" integer, "p_difficulty" "text", "p_ingredients" "jsonb") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."update_private_recipe"("p_recipe_id" bigint, "p_name" "text", "p_instructions" "text", "p_prep_time_min" integer, "p_difficulty" "text", "p_ingredients" "jsonb") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."update_private_recipe"("p_recipe_id" bigint, "p_name" "text", "p_instructions" "text", "p_prep_time_min" integer, "p_difficulty" "text", "p_ingredients" "jsonb") TO "service_role";
+GRANT ALL ON FUNCTION "public"."update_private_recipe"("p_recipe_id" bigint, "p_name" "text", "p_instructions" "text", "p_prep_time_min" integer, "p_difficulty" "text", "p_ingredients" "jsonb") TO "authenticated";
 
 
 

@@ -1,6 +1,7 @@
 ## Pages
 - [- Bibofit](/profile): Gestiona tu información y consulta tus creaciones.
 - [- Gsus Martz`}](/diet): No description available
+- [` : 'Crear Alimento'} - Gsus Martz](/createfood): No description available
 - [` : 'Plan de Entreno'} - Gsus Martz](/workout): No description available
 - [Actualizar Contraseña - Gsus Martz](/updatepassword): Establece tu nueva contraseña.
 - [Añadir Picoteo - Gsus Martz](/createsnack): Crea y añade un picoteo a tu plan de dieta.
@@ -9,7 +10,20 @@
 - [Cuenta Confirmada - Bibofit](/authconfirmed): Tu cuenta está confirmada. Continúa para empezar con Bibofit.
 - [Dashboard - Bibofit](/dashboard): Tu calendario de entrenamientos y dietas.
 - [Dashboard Entrenador - Gsus Martz](/coachdashboard): No description available
+- [Gestión de Centros - Admin Panel](/centersmanagement): No description available
+- [Gestión de Contenidos - Coach](/coachcontent): No description available
+- [Gestión de Ejercicios - Gsus Martz](/createexercise): Crear y editar ejercicios.
+- [Gestión de Entrenamiento - Gsus Martz](/trainingmanagement): Gestión del plan de entrenamiento del cliente.
+- [Gestión de Pricing - Bibofit](/pricingmanagement): No description available
+- [Gestión de Restricciones - Gsus Martz](/foodrestrictions): Gestiona sensibilidades y condiciones médicas.
+- [Gestión de Rutinas](/createroutine): Crear y editar rutinas de entrenamiento.
+- [Gestión Global de Dietas - Gsus Martz](/alldietplans): Gestiona todas las plantillas de planes de dieta.
+- [Gestionar Aminogramas - Gsus Martz](/manageaminograms): No description available
+- [Gestionar Antioxidantes - Gsus Martz](/manageantioxidants): No description available
+- [Gestionar Tiendas - Gsus Martz](/managestores): No description available
+- [Gestionar Tipos de Grasa - Gsus Martz](/managefattypes): No description available
 - [Historial de Peso - Gsus Martz](/weighthistory): Consulta tu progreso y evolución de peso.
+- [Importación Masiva de Alimentos - Gsus Martz](/bulkimport): No description available
 - [Mi Plan Actual - Gsus Martz](/clientplandetail): No description available
 - [Mis Alimentos Creados - Gsus Martz](/myfoods): Consulta el historial de tus alimentos creados y su estado.
 - [Mis Datos - Gsus Martz](/profiledata): Edita tus datos personales, preferencias de dieta y de entrenamiento.
@@ -17,8 +31,12 @@
 - [Plan de Dieta - Gsus Martz](/dietplan): Visualiza y gestiona tu plan de dieta diario y semanal.
 - [Plan de Entreno - Gsus Martz](/trainingplan): Tu plan de entrenamiento completo.
 - [Precios y Planes | Bibofit](/pricing): Elige el plan perfecto para tus objetivos de fitness y nutrición.
+- [Recordatorios - Entrenador](/coachreminders): No description available
 - [Registrarse - Bibofit](/signup): Crea tu cuenta en Bibofit y empieza tu transformación fitness
 - [Restablecer Contraseña - Bibofit](/resetpassword): Recupera el acceso a tu cuenta de Bibofit.
 - [Revisa Tu Correo - Bibofit](/checkemail): Confirma tu email para activar tu cuenta y empezar en Bibofit.
+- [Solicitudes de Alimentos - Gestión](/usercreatedfoods): Gestiona los alimentos creados por los usuarios.
+- [Solicitudes de Cambio de Recetas](/dietchangerequests): Gestiona las solicitudes de cambio de recetas de tus clientes.
+- [Solicitudes de Recetas Libres - Admin](/freemealrequests): Gestiona las recetas libres creadas por los usuarios.
 - [Tu Plan - Gsus Martz](/plan): Accede a tu plan de dieta y entrenamiento personalizado.
 - [Untitled Page](/weeklyplanner): Planifica tus comidas para los próximos 7 días.

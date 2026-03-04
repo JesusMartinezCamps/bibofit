@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
 import LoginPage from '@/pages/LoginPage';
@@ -9,7 +9,6 @@ import AuthConfirmedPage from '@/pages/AuthConfirmedPage';
 import Dashboard from '@/pages/Dashboard';
 import AdminPanel from '@/pages/AdminPanel';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import Header from '@/components/Header';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import UpdatePasswordPage from '@/pages/UpdatePasswordPage';
 import ProfilePage from '@/pages/ProfilePage';
@@ -40,10 +39,8 @@ import RemindersManagerPage from '@/pages/admin/RemindersManagerPage';
 import UsersManagerPage from '@/pages/admin/UsersManagerPage';
 import CentersManagementPage from '@/pages/admin/CentersManagementPage';
 import PricingManagementPage from '@/pages/admin/PricingManagementPage';
-import Breadcrumbs from '@/components/Breadcrumbs';
 import PlanPage from '@/pages/PlanPage';
 import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
 import { NotificationsProvider } from '@/contexts/NotificationsContext';
 import { RealtimeProvider } from '@/contexts/RealtimeProvider';
 import ProfileDataPage from '@/pages/ProfileDataPage';
@@ -56,7 +53,7 @@ import PricingPage from '@/pages/PricingPage';
 import AssignDietPlanPage from '@/pages/AssignDietPlanPage';
 import PWAInstallPrompt from '@/components/PWAInstallPrompt';
 
-// New Refactored Pages
+// Refactored Pages
 import ClientPlanDetailPage from '@/pages/ClientPlanDetailPage';
 import HomePage from '@/pages/HomePage';
 import ShoppingListPage from '@/pages/ShoppingListPage';
@@ -66,17 +63,20 @@ import CoachDashboard from '@/pages/CoachDashboard';
 import CoachRemindersPage from '@/pages/coach/CoachRemindersPage';
 import CoachContentPage from '@/pages/coach/CoachContentPage';
 
-// Onboarding & Providers
-import OnboardingWizard from '@/components/onboarding/OnboardingWizard';
+// Layouts
+import PublicLayout from '@/layouts/PublicLayout';
+import MinimalPublicLayout from '@/layouts/MinimalPublicLayout';
+import AppLayout from '@/layouts/AppLayout';
+
+// Providers
 import { OnboardingProvider } from '@/contexts/OnboardingContext';
 import { SwipeGestureProvider } from '@/contexts/SwipeGestureContext';
 import { QuickStartGuideProvider } from '@/contexts/QuickStartGuideContext';
-import QuickStartGuideModal from '@/components/QuickStartGuideModal';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 
 const HomeRedirect = () => {
   const { user, loading } = useAuth();
-  
+
   if (loading) {
     return (
       <div className="flex h-full w-full bg-background items-center justify-center">
@@ -84,47 +84,50 @@ const HomeRedirect = () => {
       </div>
     );
   }
-  
-  if (!user) return <Navigate to="/home" replace />;
 
+  if (!user) return <Navigate to="/home" replace />;
   if (user.role === 'admin') return <Navigate to="/admin-panel/advisories" replace />;
   if (user.role === 'coach') return <Navigate to="/coach-dashboard" replace />;
-
-  return <Navigate to="/home" replace />;
+  return <Navigate to="/dashboard" replace />;
 };
 
 const RoleProtected = ({ allowedRoles, children }) => {
-    const { user, loading } = useAuth();
-    
-    if (loading) return null;
-    
-    if (!user) {
-        return <Navigate to="/login" replace />;
-    }
-    
-    if (!allowedRoles.includes(user.role)) {
-         return <Navigate to="/" replace />;
-    }
-    return children;
+  const { user, loading } = useAuth();
+
+  if (loading) return null;
+  if (!user) return <Navigate to="/login" replace />;
+  if (!allowedRoles.includes(user.role)) return <Navigate to="/" replace />;
+
+  return children;
 };
 
-const AppRoutes = () => {
-  return (
-    <Routes>
+const AppRoutes = () => (
+  <Routes>
+    {/* Landing / marketing pages — full navbar */}
+    <Route element={<PublicLayout />}>
       <Route path="/home" element={<HomePage />} />
       <Route path="/pricing" element={<PricingPage />} />
+    </Route>
+
+    {/* Auth flow pages — minimal navbar (logo + login/signup buttons only) */}
+    <Route element={<MinimalPublicLayout />}>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignUpPage />} />
       <Route path="/auth/check-email" element={<CheckEmailPage />} />
       <Route path="/auth/confirmed" element={<AuthConfirmedPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
-      <Route path="/update-password" element={<UpdatePasswordPage />} />
+    </Route>
 
+    {/* Password update — no navbar (arrives via email recovery link) */}
+    <Route path="/update-password" element={<UpdatePasswordPage />} />
+
+    {/* Authenticated app — app header */}
+    <Route element={<AppLayout />}>
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/assign-diet-plan" element={<ProtectedRoute><AssignDietPlanPage /></ProtectedRoute>} />
       <Route path="/shopping-list" element={<ProtectedRoute><ShoppingListPage /></ProtectedRoute>} />
-      
-      {/* Coach Routes */}
+
+      {/* Coach */}
       <Route path="/coach-dashboard" element={<ProtectedRoute><CoachDashboard /></ProtectedRoute>} />
       <Route path="/coach/content" element={<ProtectedRoute><CoachContentPage /></ProtectedRoute>} />
       <Route path="/coach/reminders" element={<ProtectedRoute><CoachRemindersPage /></ProtectedRoute>} />
@@ -139,6 +142,7 @@ const AppRoutes = () => {
       <Route path="/coach/create-routine" element={<ProtectedRoute><CreateRoutinePage /></ProtectedRoute>} />
       <Route path="/coach/dashboard" element={<Navigate to="/coach-dashboard" replace />} />
 
+      {/* Plan */}
       <Route path="/planner" element={<ProtectedRoute><WeeklyPlannerPage /></ProtectedRoute>} />
       <Route path="/planner/:userId" element={<ProtectedRoute><WeeklyPlannerPage /></ProtectedRoute>} />
       <Route path="/plan" element={<ProtectedRoute><PlanPage /></ProtectedRoute>} />
@@ -148,19 +152,22 @@ const AppRoutes = () => {
       <Route path="/plan/entreno" element={<ProtectedRoute><TrainingPlanPage /></ProtectedRoute>} />
       <Route path="/create-free-recipe/:date/:mealId" element={<ProtectedRoute><CreateFreeRecipePage /></ProtectedRoute>} />
       <Route path="/create-snack/:date/:mealId" element={<ProtectedRoute><CreateSnackPage /></ProtectedRoute>} />
-      
+
+      {/* Admin panel */}
       <Route path="/admin-panel/:mainView?/:subView?" element={<ProtectedRoute><RoleProtected allowedRoles={['admin', 'coach']}><AdminPanel /></RoleProtected></ProtectedRoute>} />
       <Route path="/admin-panel/plan-detail/:planId" element={<ProtectedRoute><RoleProtected allowedRoles={['admin', 'coach']}><AdminDietPlanDetailPage /></RoleProtected></ProtectedRoute>} />
-      
+
+      {/* Profile */}
       <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
       <Route path="/profile/data" element={<ProtectedRoute><ProfileDataPage /></ProtectedRoute>} />
       <Route path="/profile/my-free-recipes" element={<ProtectedRoute><MyFreeRecipesPage /></ProtectedRoute>} />
       <Route path="/profile/my-foods" element={<ProtectedRoute><MyFoodsPage /></ProtectedRoute>} />
       <Route path="/profile/weight-history" element={<ProtectedRoute><WeightHistoryPage /></ProtectedRoute>} />
       <Route path="/my-plan" element={<ProtectedRoute><ClientPlanDetailPage /></ProtectedRoute>} />
+
+      {/* Staff-only */}
       <Route path="/client-profile/:userId" element={<ProtectedRoute><RoleProtected allowedRoles={['admin', 'coach']}><ClientProfilePage /></RoleProtected></ProtectedRoute>} />
       <Route path="/admin/manage-diet/:userId" element={<ProtectedRoute><RoleProtected allowedRoles={['admin', 'coach']}><DietManagementPage /></RoleProtected></ProtectedRoute>} />
-      
       <Route path="/admin/manage-training/:userId" element={<ProtectedRoute adminOnly><TrainingManagementPage /></ProtectedRoute>} />
       <Route path="/admin/create-food" element={<ProtectedRoute adminOnly><CreateFoodPage /></ProtectedRoute>} />
       <Route path="/request-food" element={<ProtectedRoute><CreateFoodPage /></ProtectedRoute>} />
@@ -183,72 +190,19 @@ const AppRoutes = () => {
       <Route path="/admin-panel/content/pricing" element={<ProtectedRoute adminOnly><PricingManagementPage /></ProtectedRoute>} />
       <Route path="/admin-panel/reminders" element={<ProtectedRoute adminOnly><RemindersManagerPage /></ProtectedRoute>} />
       <Route path="/admin-panel/reminders/:userId" element={<ProtectedRoute adminOnly><RemindersManagerPage /></ProtectedRoute>} />
-      
-      <Route path="*" element={<HomeRedirect />} />
-    </Routes>
-  );
-}
+    </Route>
 
-const AppContent = () => {
-    const location = useLocation();
-    const navigate = useNavigate();
-    const [breadcrumbs, setBreadcrumbs] = useState([]);
-    const { user } = useAuth();
+    <Route path="*" element={<HomeRedirect />} />
+  </Routes>
+);
 
-    const noHeaderPaths = ['/login', '/signup', '/auth/check-email', '/auth/confirmed', '/reset-password', '/update-password', '/home'];
-    
-    const showHeader = !noHeaderPaths.some(path => location.pathname.startsWith(path)) && !(location.pathname === '/pricing' && !user);
-    
-    const noMobilePaddingPaths = ['/plan/dieta', '/create-snack', '/create-free-recipe', '/admin-panel/plan-detail', '/dashboard', '/coach-dashboard', '/plan', '/admin-panel/advisories', '/home', '/shopping-list', '/pricing', '/assign-diet-plan'];
-    const shouldRemoveMobilePadding = noMobilePaddingPaths.some(path => location.pathname.startsWith(path));
-    const isProfileDataPage = location.pathname === '/profile/data';
-
-    useEffect(() => {
-        const generateBreadcrumbs = async () => {
-            const path = location.pathname;
-            
-              if (
-                path.startsWith('/coach-dashboard') ||
-                path.startsWith('/admin-panel/advisories') ||
-                path.startsWith('/create-free-recipe') ||
-                path.startsWith('/create-snack') ||
-                path.startsWith('/home') ||
-                path.startsWith('/shopping-list') ||
-                path.startsWith('/pricing') ||
-                path.startsWith('/dashboard') ||
-                path.startsWith('/assign-diet-plan')) 
-              {
-                setBreadcrumbs([]);
-                return;
-            }
-        };
-
-        if (showHeader) {
-            generateBreadcrumbs();
-        }
-    }, [location.pathname, showHeader, user]);
-
-  return (
-    <div className="w-full h-full flex flex-col relative overflow-hidden bg-background text-foreground">
-      <OnboardingWizard />
-      <QuickStartGuideModal />
-
-      {showHeader && <Header onShoppingListClick={() => navigate('/shopping-list')} />}
-      
-      <div className={cn(
-          "w-full flex-1 overflow-y-auto sm:px-6",
-          showHeader && "app-main-shell",
-          shouldRemoveMobilePadding && "px-0 sm:px-0",
-          isProfileDataPage && "sm:px-6"
-        )}>
-        {showHeader && breadcrumbs.length > 0 && <Breadcrumbs items={breadcrumbs} shouldRemovePadding={shouldRemoveMobilePadding && !isProfileDataPage} />}
-        <AppRoutes />
-      </div>
-      <PWAInstallPrompt />
-      <Toaster />
-    </div>
-  );
-};
+const AppContent = () => (
+  <div className="w-full h-full flex flex-col relative overflow-hidden bg-background text-foreground">
+    <AppRoutes />
+    <PWAInstallPrompt />
+    <Toaster />
+  </div>
+);
 
 function App() {
   useEffect(() => {
@@ -285,11 +239,11 @@ function App() {
           <RealtimeProvider>
             <NotificationsProvider>
               <OnboardingProvider>
-                  <SwipeGestureProvider>
-                    <QuickStartGuideProvider>
-                      <AppContent />
-                    </QuickStartGuideProvider>
-                  </SwipeGestureProvider>
+                <SwipeGestureProvider>
+                  <QuickStartGuideProvider>
+                    <AppContent />
+                  </QuickStartGuideProvider>
+                </SwipeGestureProvider>
               </OnboardingProvider>
             </NotificationsProvider>
           </RealtimeProvider>

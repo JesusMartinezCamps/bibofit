@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
 import { getConflictInfo } from '@/lib/restrictionChecker.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FREE_RECIPE_STATUS, normalizeFreeRecipeStatus } from '@/lib/recipeEntity';
 
 const normalizeText = (text) => {
     return text
@@ -85,7 +86,7 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false); // Loading state for template creation
 
-  const fetchRecipes = async () => {
+  const fetchRecipes = useCallback(async () => {
     if (!open || !userId) return;
     setLoading(true);
     try {
@@ -171,7 +172,7 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
     } finally {
       setLoading(false);
     }
-  };
+  }, [open, userId]);
 
   useEffect(() => {
     if (open) {
@@ -179,10 +180,10 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
         setSearchQuery('');
         setFilterType('all');
     }
-  }, [open, userId]);
+  }, [open, fetchRecipes]);
 
   // Helper to analyze ingredients against restrictions
-  const analyzeIngredients = (ingredients) => {
+  const analyzeIngredients = useCallback((ingredients) => {
       let greenCount = 0;
       let redCount = 0;
       const coloredIngredients = [];
@@ -244,9 +245,9 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
 
       // Join elements with commas
       const display = items.reduce((prev, curr, i) => [prev, <span key={`sep-${i}`}>, </span>, curr]);
-      
+
       return { greenCount, redCount, display };
-  };
+  }, [allFoods, searchQuery, userRestrictions]);
 
   const filteredItems = useMemo(() => {
     let combined = [];
@@ -318,7 +319,7 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
         return dateB - dateA;
     });
 
-  }, [recipes, templateRecipes, searchQuery, filterType, userRestrictions, allFoods]);
+  }, [recipes, templateRecipes, searchQuery, filterType, analyzeIngredients]);
 
   const handleSelectClick = (recipe) => {
     setSelectedRecipeForPreview(recipe);
@@ -338,7 +339,7 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
                     instructions: recipe.instructions,
                     prep_time_min: recipe.prep_time_min,
                     difficulty: recipe.difficulty,
-                    status: 'approved', // As requested
+                    status: FREE_RECIPE_STATUS.APPROVED_PRIVATE,
                     diet_plan_id: planId || null,
                     parent_recipe_id: recipe.id, // Link to original template
                 })
@@ -352,7 +353,7 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
                 free_recipe_id: newFreeRecipe.id,
                 food_id: ing.food_id, 
                 grams: ing.grams,
-                status: 'approved'
+                status: 'linked'
             }));
 
             const { error: ingError } = await supabase
@@ -429,7 +430,7 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
   };
 
   const getStatusBadge = (status) => {
-    if (status !== 'pending') {
+    if (normalizeFreeRecipeStatus(status) !== FREE_RECIPE_STATUS.PENDING) {
       return null; 
     }
     return (
@@ -494,6 +495,7 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
                   filteredItems.map(recipe => {
                     const lastEaten = getLastEatenDate(recipe.last_used);
                     const isTemplate = recipe.type === 'template';
+                    const normalizedStatus = normalizeFreeRecipeStatus(recipe.status);
 
                     return (
                       <div key={`${recipe.type}-${recipe.id}`} className="relative group">
@@ -537,7 +539,7 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
                           </div>
 
                           <div className="flex items-center gap-3">
-                            {recipe.status === 'pending' ? (
+                            {normalizedStatus === FREE_RECIPE_STATUS.PENDING ? (
                               <Hourglass className="h-5 w-5 text-sky-400 flex-shrink-0" />
                             ) : (
                               <Utensils className={cn("h-5 w-5 flex-shrink-0", isTemplate ? "text-purple-400" : "text-sky-400")} />
