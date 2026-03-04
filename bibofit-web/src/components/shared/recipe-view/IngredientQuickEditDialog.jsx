@@ -97,7 +97,7 @@ const IngredientQuickEditDialog = ({
   if (isReplacing) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="bg-[#0E1528] border-border text-white max-w-2xl p-0">
+        <DialogContent className="bg-[#0E1528] border-border text-foreground dark:text-white max-w-2xl p-0">
           <div className="p-4 h-[70vh]">
             <IngredientSearch
               selectedIngredients={searchSelectedIngredients}
@@ -125,7 +125,7 @@ const IngredientQuickEditDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#0E1528] border-border text-white max-w-lg">
+      <DialogContent className="bg-[#0E1528] border-border text-foreground dark:text-white max-w-lg">
         <DialogHeader>
           <DialogTitle className="text-xl bg-clip-text text-transparent bg-gradient-to-r from-green-300 to-teal-400">
             Ajustar Ingrediente
@@ -135,13 +135,13 @@ const IngredientQuickEditDialog = ({
         <div className="space-y-4">
           <div className="rounded-lg border border-border/70 bg-card/80 p-3">
             <p className="text-sm text-muted-foreground">Ingrediente</p>
-            <p className="text-lg font-semibold text-slate-100">{selectedFood?.name || ingredient.food?.name}</p>
+            <p className="text-lg font-semibold text-foreground dark:text-slate-100">{selectedFood?.name || ingredient.food?.name}</p>
           </div>
 
           <Button
             type="button"
             variant="outline"
-            className="w-full border-blue-500 bg-blue-600/20 text-white p-1 transition-opacity hover:text-blue-100 hover:bg-blue-500/30"
+            className="w-full border-blue-500 bg-blue-600/20 text-blue-800 dark:text-white p-1 transition-opacity hover:text-blue-900 dark:hover:text-blue-100 hover:bg-blue-500/30"
             onClick={() => setIsReplacing(true)}
           >
             <ArrowRightLeft className="w-4 h-4 mr-2" />
@@ -167,19 +167,19 @@ const IngredientQuickEditDialog = ({
             <div className="rounded-lg border border-border/70 bg-card/80 p-3">
               <p className="text-xs text-muted-foreground mb-1">Macros originales</p>
               <div className="space-y-1 text-sm">
-                <p className="text-orange-300">Kcal: {Math.round(originalMacros.calories || 0)}</p>
-                <p className="text-red-300">Prot: {Math.round(originalMacros.proteins || 0)}g</p>
-                <p className="text-yellow-300">Carbs: {Math.round(originalMacros.carbs || 0)}g</p>
-                <p className="text-green-300">Grasas: {Math.round(originalMacros.fats || 0)}g</p>
+                <p className="text-orange-700 dark:text-orange-300">Kcal: {Math.round(originalMacros.calories || 0)}</p>
+                <p className="text-red-700 dark:text-red-300">Prot: {Math.round(originalMacros.proteins || 0)}g</p>
+                <p className="text-yellow-700 dark:text-yellow-300">Carbs: {Math.round(originalMacros.carbs || 0)}g</p>
+                <p className="text-green-700 dark:text-green-300">Grasas: {Math.round(originalMacros.fats || 0)}g</p>
               </div>
             </div>
             <div className="rounded-lg border border-cyan-700/60 bg-cyan-900/20 p-3">
-              <p className="text-xs text-cyan-300 mb-1">Macros actualizadas</p>
+              <p className="text-xs text-cyan-700 dark:text-cyan-300 mb-1">Macros actualizadas</p>
               <div className="space-y-1 text-sm">
-                <p className="text-orange-300">Kcal: {Math.round(updatedMacros.calories || 0)}</p>
-                <p className="text-red-300">Prot: {Math.round(updatedMacros.proteins || 0)}g</p>
-                <p className="text-yellow-300">Carbs: {Math.round(updatedMacros.carbs || 0)}g</p>
-                <p className="text-green-300">Grasas: {Math.round(updatedMacros.fats || 0)}g</p>
+                <p className="text-orange-700 dark:text-orange-300">Kcal: {Math.round(updatedMacros.calories || 0)}</p>
+                <p className="text-red-700 dark:text-red-300">Prot: {Math.round(updatedMacros.proteins || 0)}g</p>
+                <p className="text-yellow-700 dark:text-yellow-300">Carbs: {Math.round(updatedMacros.carbs || 0)}g</p>
+                <p className="text-green-700 dark:text-green-300">Grasas: {Math.round(updatedMacros.fats || 0)}g</p>
               </div>
             </div>
           </div>
@@ -189,13 +189,13 @@ const IngredientQuickEditDialog = ({
               <p className="text-xs text-muted-foreground mb-2">Vitaminas y Minerales</p>
               <div className="flex flex-wrap gap-2">
                 {selectedVitamins.map((v) => (
-                  <Badge key={`qv-${v.id}`} variant="outline" className="border-emerald-500/40 text-emerald-300 bg-emerald-900/20">
+                  <Badge key={`qv-${v.id}`} variant="outline" className="border-emerald-500/40 text-emerald-700 dark:text-emerald-300 bg-emerald-900/20">
                     {v.name}
                     {typeof v.mg_per_100g === 'number' ? ` (${v.mg_per_100g} mg/100g)` : ''}
                   </Badge>
                 ))}
                 {selectedMinerals.map((m) => (
-                  <Badge key={`qm-${m.id}`} variant="outline" className="border-sky-500/40 text-sky-300 bg-sky-900/20">
+                  <Badge key={`qm-${m.id}`} variant="outline" className="border-sky-500/40 text-sky-700 dark:text-sky-300 bg-sky-900/20">
                     {m.name}
                     {typeof m.mg_per_100g === 'number' ? ` (${m.mg_per_100g} mg/100g)` : ''}
                   </Badge>

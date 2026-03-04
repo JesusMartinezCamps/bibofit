@@ -69,12 +69,12 @@ const getStatusColorClasses = (type) => {
     case 'condition_avoid':
     case 'sensitivity':
     case 'non-preferred':
-      return 'bg-gradient-to-br from-red-900/30 via-slate-800/20 to-slate-800/20 border-red-500/50 text-red-300';
+      return 'bg-red-500/12 border-red-500/50 text-red-400';
     case 'condition_recommend':
     case 'preferred':
-      return 'bg-gradient-to-br from-green-900/30 via-slate-800/20 to-slate-800/20 border-green-500/50 text-green-300';
+      return 'bg-green-500/12 border-green-500/50 text-green-400';
     default:
-      return 'bg-gradient-to-br from-slate-800/60 via-slate-800/40 to-slate-800/40 border-border/50 text-gray-200';
+      return 'bg-muted/65 border-border/50 text-foreground';
   }
 };
 
@@ -107,9 +107,9 @@ const FoodStateBadge = ({ food, isUserCreated }) => {
 
   const status = (food.status || '').toLowerCase();
   const variants = {
-    pending: 'bg-violet-500/20 text-violet-200 border-violet-400/40',
-    approved_private: 'bg-indigo-500/20 text-indigo-200 border-indigo-400/40',
-    approved_general: 'bg-emerald-500/20 text-emerald-200 border-emerald-400/40',
+    pending: 'bg-violet-500/20 text-violet-700 dark:text-violet-200 border-violet-400/40',
+    approved_private: 'bg-indigo-500/20 text-indigo-700 dark:text-indigo-200 border-indigo-400/40',
+    approved_general: 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-200 border-emerald-400/40',
   };
 
   const label =

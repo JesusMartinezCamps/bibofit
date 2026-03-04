@@ -36,7 +36,7 @@ const CaloriesProgress = ({ name, actual, target, color }) => {
                     animate={{ width: `${percentage}%` }}
                     transition={{ duration: 0.8, ease: 'easeOut' }}
                 />
-                <span className="relative text-xs font-bold text-white z-10 drop-shadow-sm">
+                <span className="relative text-xs font-bold text-slate-900 dark:text-white z-10 drop-shadow-sm">
                     {Math.round(percentage)}%
                 </span>
             </div>

@@ -47,7 +47,7 @@ const SmartHighlight = ({ text, highlight }) => {
 
         const originalMatch = remainingText.substring(startIndex, startIndex + normalizedHighlight.length);
         result.push(
-            <span key={`${result.length}-highlight`} className="bg-yellow-500/40 text-yellow-100 font-bold rounded px-0.5 shadow-[0_0_10px_rgba(234,179,8,0.2)]">
+            <span key={`${result.length}-highlight`} className="bg-yellow-500/40 text-yellow-900 dark:text-yellow-100 font-bold rounded px-0.5 shadow-[0_0_10px_rgba(234,179,8,0.2)]">
                 {originalMatch}
             </span>
         );
@@ -103,7 +103,7 @@ const PrivateShoppingList = ({ items, onAdd, onToggle, onRemove, loading, search
                                 value={newItemName}
                                 onChange={(e) => setNewItemName(e.target.value)}
                                 placeholder="Añadir artículo..."
-                                className="bg-muted border-input text-white focus:border-[#9d59ef]"
+                                className="bg-muted border-input text-foreground dark:text-white focus:border-[#9d59ef]"
                                 onKeyDown={(e) => e.key === 'Enter' && handleAddClick()}
                             />
                             <Button onClick={handleAddClick} size="icon" className="bg-[#9d59ef] hover:bg-[#9d59ef]/90 flex-shrink-0">
@@ -127,7 +127,7 @@ const PrivateShoppingList = ({ items, onAdd, onToggle, onRemove, loading, search
                                         onCheckedChange={() => onToggle(item.id, !item.is_checked)}
                                         className="border-[#9d59ef]/80 data-[state=checked]:bg-[#9d59ef]/50 data-[state=checked]:border-[#9d59ef] data-[state=checked]:text-white mt-1"
                                     />
-                                    <Label htmlFor={`private-item-${item.id}`} className={cn("flex-1 text-base w-full block cursor-pointer select-none", item.is_checked ? "text-muted-foreground line-through" : "text-gray-200")}>
+                                    <Label htmlFor={`private-item-${item.id}`} className={cn("flex-1 text-base w-full block cursor-pointer select-none", item.is_checked ? "text-muted-foreground line-through" : "text-foreground dark:text-gray-200")}>
                                         <SmartHighlight text={item.item_name} highlight={searchQuery} />
                                     </Label>
                                     <Button
@@ -210,7 +210,7 @@ const ShoppingListGroup = ({ title, icon, items, checkedItems, onCheckedChange, 
                                         className="border-gray-500 data-[state=checked]:bg-cyan-600 data-[state=checked]:border-cyan-600 data-[state=checked]:text-white mt-1"
                                     />
                                     <div className="flex-1 pointer-events-none">
-                                        <Label htmlFor={`item-${itemKey}`} className={cn("text-base w-full block font-medium select-none", isChecked ? "text-muted-foreground line-through" : "text-gray-200")}>
+                                        <Label htmlFor={`item-${itemKey}`} className={cn("text-base w-full block font-medium select-none", isChecked ? "text-muted-foreground line-through" : "text-foreground dark:text-gray-200")}>
                                             <SmartHighlight text={item.name} highlight={searchQuery} />
                                             {(item.totalQuantity || item.displayQuantity) && (
                                                 <span className={cn("ml-2 font-bold", isChecked ? "text-muted-foreground" : "text-cyan-400")}>
@@ -813,7 +813,7 @@ const ShoppingListPage = () => {
                     <Button variant="ghost" size="icon" onClick={handleBack} className="hover:bg-muted text-muted-foreground hover:text-foreground">
                         <ArrowLeft className="w-6 h-6" />
                     </Button>
-                    <h1 className="text-3xl font-bold text-white flex items-center gap-2">
+                    <h1 className="text-3xl font-bold text-foreground dark:text-white flex items-center gap-2">
                         <ShoppingCart className="w-8 h-8 text-cyan-400" />
                         Lista de la Compra
                     </h1>
@@ -837,7 +837,7 @@ const ShoppingListPage = () => {
                             placeholder="Buscar ingrediente o receta..." 
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-9 pr-9 bg-muted border-border focus:border-cyan-500/50 focus:ring-cyan-500/20 placeholder:text-muted-foreground text-white"
+                            className="pl-9 pr-9 bg-muted border-border focus:border-cyan-500/50 focus:ring-cyan-500/20 placeholder:text-muted-foreground text-foreground dark:text-white"
                         />
                         {searchQuery && (
                             <button

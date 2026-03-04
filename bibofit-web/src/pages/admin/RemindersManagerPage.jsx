@@ -40,7 +40,7 @@ const ReminderCard = ({ reminder, onEdit, onDelete }) => {
 
     return (
       <Card 
-        className="bg-muted/65 border-border text-white relative group cursor-pointer transition-all hover:border-amber-500/50 hover:bg-muted shadow-sm hover:shadow-md"
+        className="bg-muted/65 border-border text-foreground dark:text-white relative group cursor-pointer transition-all hover:border-amber-500/50 hover:bg-muted shadow-sm hover:shadow-md"
         onClick={() => onEdit(reminder)}
       >
         <CardHeader className="pb-3 pr-10">
@@ -55,7 +55,7 @@ const ReminderCard = ({ reminder, onEdit, onDelete }) => {
                     {reminder.end_date && <span>- {format(parseISO(reminder.end_date), 'd MMM', { locale: es })}</span>}
                 </div>
                 {recurrenceText && (
-                    <div className="flex items-center gap-2 text-xs text-blue-300/80 bg-blue-900/20 px-2 py-0.5 rounded-md w-fit">
+                    <div className="flex items-center gap-2 text-xs text-blue-700 dark:text-blue-300/80 bg-blue-900/20 px-2 py-0.5 rounded-md w-fit">
                         <Repeat size={12} />
                         <span>{recurrenceText}</span>
                     </div>
@@ -196,7 +196,7 @@ const RemindersManagerPage = () => {
 
       {/* Right Panel: Reminders Manager - Flexible height on mobile to fill remaining space */}
       <div className="flex-grow h-full overflow-hidden flex flex-col">
-        <Card className="bg-card/75 border-border text-white shadow-xl h-full flex flex-col">
+        <Card className="bg-card/75 border-border text-foreground dark:text-white shadow-xl h-full flex flex-col">
           <CardHeader className="border-b border-border/60 pb-4 flex-shrink-0">
             <div className="flex flex-row justify-between items-center">
                 <CardTitle className="text-xl md:text-2xl flex items-center gap-3">

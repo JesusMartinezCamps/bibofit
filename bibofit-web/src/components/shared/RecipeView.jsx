@@ -408,7 +408,7 @@ const RecipeView = ({
   }
 
   return (
-    <div className="text-white space-y-6 p-2 sm:p-4 md:p-6">
+    <div className="text-foreground dark:text-white space-y-6 p-2 sm:p-4 md:p-6">
       <div className="text-center mt-6 relative z-10">
         {recipeImageUrl && (
           <div className="mb-4 overflow-hidden rounded-xl border border-border/70 bg-card/85">
@@ -434,7 +434,7 @@ const RecipeView = ({
           />
         ) : (
           <>
-            <h2 className="text-3xl font-bold text-center break-words bg-clip-text text-transparent bg-gradient-to-r from-green-300 to-teal-400">
+            <h2 className="text-3xl font-bold text-center break-words bg-clip-text text-transparent bg-gradient-to-r from-emerald-700 to-teal-700 dark:from-green-300 dark:to-teal-400">
               {recipe.name}
             </h2>
             <div className="flex justify-center gap-3 mt-2">
@@ -481,7 +481,7 @@ const RecipeView = ({
           )}
         >
           <div className={cn('min-w-0', !isEditing && 'flex flex-col items-center justify-center text-center')}>
-            <div className={cn('flex items-center gap-1 sm:gap-2 text-gray-200 font-semibold', !isEditing && 'justify-center')}>
+            <div className={cn('flex items-center gap-1 sm:gap-2 text-foreground dark:text-gray-200 font-semibold', !isEditing && 'justify-center')}>
               {!isEditing && <ChefHat className="w-4 h-4 text-muted-foreground shrink-0" />}
               <span className="truncate">Dificultad</span>
             </div>
@@ -503,7 +503,7 @@ const RecipeView = ({
           </div>
 
           <div className={cn('min-w-0', !isEditing && 'flex flex-col items-center justify-center text-center')}>
-            <div className={cn('flex items-center gap-1 sm:gap-2 text-gray-200 font-semibold', !isEditing && 'justify-center')}>
+            <div className={cn('flex items-center gap-1 sm:gap-2 text-foreground dark:text-gray-200 font-semibold', !isEditing && 'justify-center')}>
               {!isEditing && <Clock className="w-4 h-4 text-muted-foreground shrink-0" />}
               <span className="truncate">Tiempo</span>
             </div>
@@ -525,13 +525,13 @@ const RecipeView = ({
           </div>
 
           <div className={cn('min-w-0 relative', !isEditing && 'flex flex-col items-center justify-center text-center')}>
-            <div className="text-gray-200 font-semibold">Multiplicador</div>
+            <div className="text-foreground dark:text-gray-200 font-semibold">Multiplicador</div>
             <div className={cn('mt-1 flex items-center gap-1', !isEditing && 'justify-center')}>
               <Button
                 type="button"
                 variant="outline"
                 size="icon"
-                className="h-9 w-9 border-input bg-card/80 hover:bg-muted hover:text-muted-foreground text-gray-200 shrink-0"
+                className="h-9 w-9 border-input bg-card/80 hover:bg-muted hover:text-muted-foreground text-foreground dark:text-gray-200 shrink-0"
                 onClick={() => setServingMultiplier((prev) => clampMultiplier(prev - 1))}
                 disabled={servingMultiplier <= 1}
               >
@@ -552,7 +552,7 @@ const RecipeView = ({
                 type="button"
                 variant="outline"
                 size="icon"
-                className="h-9 w-9 border-input bg-card/80 hover:bg-muted hover:text-muted-foreground text-gray-200 shrink-0"
+                className="h-9 w-9 border-input bg-card/80 hover:bg-muted hover:text-muted-foreground text-foreground dark:text-gray-200 shrink-0"
                 onClick={handleIncreaseMultiplier}
               >
                 <Plus className="w-4 h-4" />
@@ -572,7 +572,7 @@ const RecipeView = ({
 
       {showPreparationSection && (
         <div className="relative z-10">
-          <h3 className="text-xl font-semibold mb-3 border-b border-border pb-2 bg-clip-text text-transparent bg-gradient-to-r from-green-300 to-teal-400">
+          <h3 className="text-xl font-semibold mb-3 border-b border-border pb-2 bg-clip-text text-transparent bg-gradient-to-r from-emerald-700 to-teal-700 dark:from-green-300 dark:to-teal-400">
             Preparacion
           </h3>
           <EditableField
@@ -589,11 +589,11 @@ const RecipeView = ({
       <div
         className={cn(
           enableStickyMacros &&
-            'sticky top-0 bg-[#0C101D] -mx-2 px-2 sm:-mx-4 sm:px-4 md:-mx-6 md:px-6 py-2 shadow-xl border-b border-border/60 mb-4',
+            'sticky top-0 bg-card/95 dark:bg-[#0C101D] -mx-2 px-2 sm:-mx-4 sm:px-4 md:-mx-6 md:px-6 py-2 shadow-xl border-b border-border/60 mb-4',
           'z-30'
         )}
       >
-        <h3 className="text-xl font-semibold mb-3 border-b border-border pb-2 bg-clip-text text-transparent bg-gradient-to-r from-green-300 to-teal-400">
+        <h3 className="text-xl font-semibold mb-3 border-b border-border pb-2 bg-clip-text text-transparent bg-gradient-to-r from-emerald-700 to-teal-700 dark:from-green-300 dark:to-teal-400">
           Macros Totales
         </h3>
         <MacroSummaryGrid macros={scaledTotalMacros} />
@@ -611,7 +611,7 @@ const RecipeView = ({
 
       <div className="relative z-10">
         <div className="flex justify-between items-center mb-3 border-b border-border pb-2">
-          <h3 className="text-xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-green-300 to-teal-400">
+          <h3 className="text-xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-emerald-700 to-teal-700 dark:from-green-300 dark:to-teal-400">
             Ingredientes
           </h3>
           {onAddIngredientClick && (
@@ -628,7 +628,7 @@ const RecipeView = ({
 
         <div className="space-y-4">
           {isEditing && isMultiplierActive && (
-            <p className="text-xs text-cyan-200/80 rounded-md border border-cyan-500/20 bg-cyan-500/5 px-3 py-2">
+            <p className="text-xs text-cyan-700 dark:text-cyan-200/80 rounded-md border border-cyan-500/35 dark:border-cyan-500/20 bg-cyan-500/10 dark:bg-cyan-500/5 px-3 py-2">
               En edicion, las cantidades se guardan en base x1. El multiplicador solo ajusta la vista para cocinar.
             </p>
           )}
