@@ -1,29 +1,24 @@
 begin;
-
 -- Keep food catalog write access for end users now that food is canonical.
 drop policy if exists "Allow users to insert own foods" on public.food;
 drop policy if exists "Allow users to update own foods" on public.food;
 drop policy if exists "Allow users to delete own foods" on public.food;
-
 create policy "Allow users to insert own foods"
   on public.food
   for insert
   to authenticated
   with check (auth.uid() = user_id);
-
 create policy "Allow users to update own foods"
   on public.food
   for update
   to authenticated
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
-
 create policy "Allow users to delete own foods"
   on public.food
   for delete
   to authenticated
   using (auth.uid() = user_id);
-
 -- Remove legacy user-created food schema.
 drop table if exists public.user_created_food_vitamins cascade;
 drop table if exists public.user_created_food_minerals cascade;
@@ -31,7 +26,6 @@ drop table if exists public.user_created_food_sensitivities cascade;
 drop table if exists public.user_created_food_to_food_groups cascade;
 drop table if exists public.user_created_foods cascade;
 drop sequence if exists public.user_created_foods_id_seq;
-
 -- Canonical delete RPC no longer references dropped legacy tables.
 create or replace function public.delete_food_with_dependencies(p_food_id bigint)
 returns void
@@ -74,7 +68,6 @@ begin
   delete from food where id = p_food_id;
 end;
 $$;
-
 -- Pending-food queue now lives in public.food.
 create or replace function public.get_users_with_pending_foods_count()
 returns table(user_id uuid, full_name text, pending_count integer)
@@ -96,7 +89,6 @@ begin
   order by p.full_name;
 end;
 $$;
-
 -- Free-recipe updates now write only canonical food_id.
 create or replace function public.update_free_recipe(
   p_recipe_id bigint,
@@ -137,7 +129,6 @@ begin
   end loop;
 end;
 $$;
-
 -- Plan payload no longer emits removed user_created_food_id.
 create or replace function public.get_plan_items(
   p_user_id uuid,
@@ -226,7 +217,6 @@ begin
   return result;
 end;
 $$;
-
 -- Full user deletion now removes canonical user-owned foods.
 create or replace function public.delete_user_complete(p_user_id uuid)
 returns void
@@ -301,5 +291,4 @@ begin
   delete from auth.users where id = p_user_id;
 end;
 $$;
-
 commit;

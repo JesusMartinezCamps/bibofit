@@ -31,7 +31,6 @@ BEGIN
     );
   END IF;
 END $$;
-
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -54,7 +53,6 @@ BEGIN
     );
   END IF;
 END $$;
-
 DO $$
 BEGIN
   IF NOT EXISTS (
