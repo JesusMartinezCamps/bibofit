@@ -12,10 +12,10 @@ const FinalCTA = () => {
                     <div className="absolute bottom-0 right-0 w-64 h-64 bg-black/10 rounded-full translate-x-1/2 translate-y-1/2 pointer-events-none" />
 
                     <h2 className="text-3xl md:text-5xl font-bold text-white mb-6 relative z-10">
-                        ¿Listo para escalar lograr el físico que deseas?
+                        Si quieres ver tu cambio físico en 3 meses y te limita la dieta, tienes la mejor oportunidad a un clic.
                     </h2>
                     <p className="text-green-100 text-lg max-w-2xl mx-auto mb-10 relative z-10">
-                        Aprovecha la mejor app de dietas diseñada para darte la flexibilidad que buscas. Bibofit.
+                        Aprovecha una app de dietas diseñada para darte la flexibilidad que buscas: Bibofit.
                     </p>
                     
                     <div className="flex flex-col sm:flex-row gap-4 justify-center relative z-10">

@@ -1,11 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Helmet } from 'react-helmet';
 import HeroSection from '@/components/landing/HeroSection';
 import ProblemSolution from '@/components/landing/ProblemSolution';
 import FeaturesGrid from '@/components/landing/FeaturesGrid';
-import HowItWorks from '@/components/landing/HowItWorks';
-import Testimonials from '@/components/landing/Testimonials';
-import ForWhom from '@/components/landing/ForWhom';
 import PricingPreview from '@/components/landing/PricingPreview';
 import FAQPreview from '@/components/landing/FAQPreview';
 import FinalCTA from '@/components/landing/FinalCTA';
@@ -13,6 +10,8 @@ import LandingFooter from '@/components/landing/LandingFooter';
 import WhatsAppButton from '@/components/landing/WhatsAppButton';
 
 const HomePage = () => {
+    const [landingAudience, setLandingAudience] = useState('user');
+
     return (
         <div className="min-h-screen bg-background font-sans selection:bg-green-500/30 text-foreground">
             <Helmet>
@@ -22,11 +21,8 @@ const HomePage = () => {
 
             <main>
                 <HeroSection />
-                <ProblemSolution />
-                <FeaturesGrid />
-                <HowItWorks />
-                <ForWhom />
-                {/* <Testimonials /> */}
+                <ProblemSolution audience={landingAudience} onAudienceChange={setLandingAudience} />
+                <FeaturesGrid audience={landingAudience} onAudienceChange={setLandingAudience} />
                 <PricingPreview />
                 <FAQPreview />
                 <FinalCTA />

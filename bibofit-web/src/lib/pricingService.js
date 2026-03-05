@@ -5,7 +5,7 @@ const FALLBACK_TIERS = [
     id: 'free',
     slug: 'free',
     name: 'Free',
-    subtitle: 'Para empezar',
+    subtitle: 'Una opción gratis que de verdad vale la pena',
     description: 'Para empezar a usar Bibofit de forma manual.',
     priceAmount: 0,
     priceCurrency: 'EUR',
@@ -18,11 +18,14 @@ const FALLBACK_TIERS = [
     sortOrder: 1,
     features: [
       { id: 'f-1', featureText: 'Asignación de 1 plantilla de Dieta', included: true, sortOrder: 1 },
-      { id: 'f-2', featureText: 'Registro de Peso y Progreso', included: true, sortOrder: 2 },
-      { id: 'f-3', featureText: 'Recetas Libres y Picoteos', included: true, sortOrder: 3 },
+      { id: 'f-2', featureText: 'Autocuadre inicial de Macros completo', included: true, sortOrder: 2 },
+      { id: 'f-3', featureText: 'Acceso ilimitado a las recetas de la app', included: true, sortOrder: 3 },
       { id: 'f-4', featureText: 'Lista de la Compra Inteligente', included: true, sortOrder: 4 },
-      { id: 'f-5', featureText: 'Autocuadre de Macros', included: false, sortOrder: 5 },
-      { id: 'f-6', featureText: 'Soporte Prioritario', included: false, sortOrder: 6 },
+      { id: 'f-5', featureText: 'Registro de Peso y Progreso sin restricciones', included: true, sortOrder: 5 },
+      { id: 'f-6', featureText: 'Añade tus picteos tambien sin restriccoines', included: true, sortOrder: 5 },
+      { id: 'f-7', featureText: 'Soporte directo por correo', included: true, sortOrder: 6 },
+      { id: 'f-8', featureText: 'Autocuadre de Macros automatizado', included: false, sortOrder: 6 },
+
     ],
     targets: ['free'],
   },
@@ -178,6 +181,31 @@ export const getPricingPlans = async ({ surface = 'pricing', includeInactive = f
   }
 
   return plans;
+};
+
+export const subscribePricingChanges = (onPricingChanged) => {
+  const channel = supabase
+    .channel(`pricing-changes-${Math.random().toString(36).slice(2)}`)
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'commercial_plans' },
+      onPricingChanged
+    )
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'commercial_plan_features' },
+      onPricingChanged
+    )
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'commercial_plan_role_targets' },
+      onPricingChanged
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
 };
 
 export const buildFeatureMatrix = (plans) => {

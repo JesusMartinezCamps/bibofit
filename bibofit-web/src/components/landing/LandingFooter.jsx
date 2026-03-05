@@ -24,10 +24,10 @@ const LandingFooter = () => {
                     <div>
                         <h4 className="text-foreground font-bold mb-4">Producto</h4>
                         <ul className="space-y-2 text-sm text-muted-foreground">
+                            <li><a href="#problem" className="hover:text-green-400">Solución</a></li>
                             <li><a href="#features" className="hover:text-green-400">Características</a></li>
                             <li><a href="#pricing" className="hover:text-green-400">Precios</a></li>
-                            <li><a href="#for-whom" className="hover:text-green-400">Para Clientes</a></li>
-                            <li><a href="#for-whom" className="hover:text-green-400">Para Entrenadores</a></li>
+                            <li><a href="#faq" className="hover:text-green-400">FAQ</a></li>
                         </ul>
                     </div>
 

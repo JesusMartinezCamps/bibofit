@@ -34,6 +34,12 @@ const FAQPreview = () => {
                             Sí, puedes crear y guardar tus propias recetas, alimentos y ejercicios en tu base de datos privada para usarlos en cualquier plan.
                         </AccordionContent>
                     </AccordionItem>
+                    <AccordionItem value="item-5" className="border-border">
+                        <AccordionTrigger className="text-foreground hover:text-green-500">¿Qué diferencia hay entre cliente y entrenador?</AccordionTrigger>
+                        <AccordionContent>
+                            El cliente usa Bibofit para seguir su plan diario, registrar progreso y organizar su alimentación. El entrenador usa Bibofit para crear, ajustar y supervisar planes de varios clientes desde una vista de gestión que le ahorra tiempo.
+                        </AccordionContent>
+                    </AccordionItem>
                 </Accordion>
             </div>
         </section>

@@ -6,6 +6,24 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import AppIcon from '@/components/icons/AppIcon';
 
+const getScrollableParent = (element) => {
+  let parent = element?.parentElement;
+
+  while (parent) {
+    const styles = window.getComputedStyle(parent);
+    const overflowY = styles.overflowY;
+    const canScroll = /(auto|scroll|overlay)/.test(overflowY) && parent.scrollHeight > parent.clientHeight;
+
+    if (canScroll) {
+      return parent;
+    }
+
+    parent = parent.parentElement;
+  }
+
+  return window;
+};
+
 const LandingNavbar = ({ showNavigationOptions = true }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -25,13 +43,29 @@ const LandingNavbar = ({ showNavigationOptions = true }) => {
 
   const scrollToSection = useCallback((selector, behavior = 'smooth') => {
     const element = document.querySelector(selector);
-    if (!element) return;
-    const top = element.getBoundingClientRect().top + window.scrollY - getNavbarOffset();
+    if (!element) return false;
 
-    window.scrollTo({
-      top: Math.max(0, top),
+    const offset = getNavbarOffset();
+    const scrollContainer = getScrollableParent(element);
+
+    if (scrollContainer === window) {
+      const top = element.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({
+        top: Math.max(0, top),
+        behavior,
+      });
+      return true;
+    }
+
+    const containerRect = scrollContainer.getBoundingClientRect();
+    const targetTop = element.getBoundingClientRect().top - containerRect.top + scrollContainer.scrollTop - offset;
+
+    scrollContainer.scrollTo({
+      top: Math.max(0, targetTop),
       behavior,
     });
+
+    return true;
   }, [getNavbarOffset]);
 
   useEffect(() => {
@@ -44,11 +78,23 @@ const LandingNavbar = ({ showNavigationOptions = true }) => {
   useEffect(() => {
     if (!isHome || !location.hash) return;
 
-    const frameId = requestAnimationFrame(() => {
-      scrollToSection(location.hash, 'smooth');
-    });
+    const timeouts = [];
+    let frameId = null;
 
-    return () => cancelAnimationFrame(frameId);
+    const runScrollAttempt = (attempt = 0) => {
+      const didScroll = scrollToSection(location.hash, 'smooth');
+      if (!didScroll && attempt < 6) {
+        const timeoutId = window.setTimeout(() => runScrollAttempt(attempt + 1), 80);
+        timeouts.push(timeoutId);
+      }
+    };
+
+    frameId = requestAnimationFrame(() => runScrollAttempt());
+
+    return () => {
+      if (frameId) cancelAnimationFrame(frameId);
+      timeouts.forEach((timeoutId) => clearTimeout(timeoutId));
+    };
   }, [isHome, location.hash, scrollToSection]);
 
   useEffect(() => {
@@ -58,9 +104,7 @@ const LandingNavbar = ({ showNavigationOptions = true }) => {
   const navLinks = [
     { name: 'Solución', href: '#problem', type: 'scroll' },
     { name: 'Funcionalidades', href: '#features', type: 'scroll' },
-    { name: 'Cómo funciona', href: '#how-it-works', type: 'scroll' },
-    { name: 'Para quién', href: '#for-whom', type: 'scroll' },
-    { name: 'Precios', href: '/pricing', type: 'route' },
+    { name: 'Precios', href: '#pricing', type: 'scroll' },
     { name: 'FAQ', href: '#faq', type: 'scroll' },
   ];
 

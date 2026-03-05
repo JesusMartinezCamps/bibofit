@@ -1,45 +1,75 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Check, X, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { getFallbackPricingPlans, getPricingPlans } from '@/lib/pricingService';
+import { getPricingPlans, subscribePricingChanges } from '@/lib/pricingService';
 
 const PERIOD_LABEL = {
   monthly: '/mes',
-  one_time: 'pago unico',
+  one_time: 'pago único',
 };
 
 const PricingComponent = ({ showTitle = true, className, surface = 'home' }) => {
-  const [plans, setPlans] = useState(getFallbackPricingPlans());
+  const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const refreshTimerRef = useRef(null);
+
+  const fetchPlans = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
+    try {
+      const data = await getPricingPlans({ surface });
+      setPlans(data);
+      setLoadError('');
+    } catch (error) {
+      console.error('[PricingComponent] Failed to fetch pricing plans:', error);
+      setLoadError('No se pudieron cargar los planes en este momento.');
+      if (!silent) setPlans([]);
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  }, [surface]);
 
   useEffect(() => {
-    let cancelled = false;
+    fetchPlans();
+  }, [fetchPlans]);
 
-    const fetchPlans = async () => {
-      try {
-        const data = await getPricingPlans({ surface });
-        if (!cancelled && data.length > 0) {
-          setPlans(data);
-        }
-      } catch (error) {
-        console.error('[PricingComponent] Failed to fetch pricing plans:', error);
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+  useEffect(() => {
+    const scheduleRefresh = () => {
+      if (refreshTimerRef.current) {
+        window.clearTimeout(refreshTimerRef.current);
+      }
+      refreshTimerRef.current = window.setTimeout(() => {
+        fetchPlans({ silent: true });
+      }, 250);
+    };
+
+    const unsubscribe = subscribePricingChanges(scheduleRefresh);
+
+    const onFocus = () => {
+      fetchPlans({ silent: true });
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchPlans({ silent: true });
       }
     };
 
-    fetchPlans();
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisibilityChange);
 
     return () => {
-      cancelled = true;
+      unsubscribe();
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      if (refreshTimerRef.current) {
+        window.clearTimeout(refreshTimerRef.current);
+      }
     };
-  }, [surface]);
+  }, [fetchPlans]);
 
   const visiblePlans = useMemo(() => plans.filter((plan) => plan.isActive !== false), [plans]);
 
@@ -57,6 +87,17 @@ const PricingComponent = ({ showTitle = true, className, surface = 'home' }) => 
           <div className="flex justify-center items-center py-14">
             <Loader2 className="h-8 w-8 animate-spin text-green-500" />
           </div>
+        ) : loadError ? (
+          <div className="max-w-2xl mx-auto rounded-xl border border-red-500/40 bg-red-500/10 p-5 text-center">
+            <p className="text-red-700 dark:text-red-300">{loadError}</p>
+            <Button onClick={() => fetchPlans()} className="mt-4 bg-green-600 hover:bg-green-700 text-white">
+              Reintentar
+            </Button>
+          </div>
+        ) : visiblePlans.length === 0 ? (
+          <div className="max-w-2xl mx-auto rounded-xl border border-border bg-card/60 p-5 text-center text-muted-foreground">
+            No hay planes disponibles para mostrar ahora mismo.
+          </div>
         ) : (
           <div className={cn('grid gap-8 max-w-6xl mx-auto', visiblePlans.length > 2 ? 'md:grid-cols-3' : 'md:grid-cols-2')}>
             {visiblePlans.map((plan) => (
@@ -69,7 +110,7 @@ const PricingComponent = ({ showTitle = true, className, surface = 'home' }) => 
               >
                 {plan.isPopular && (
                   <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                    <Badge className="bg-green-500 text-black hover:bg-green-600 px-4 py-1">Mas Popular</Badge>
+                    <Badge className="bg-green-500 text-black hover:bg-green-600 px-4 py-1">Más popular</Badge>
                   </div>
                 )}
 

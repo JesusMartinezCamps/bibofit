@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import LandingFooter from '@/components/landing/LandingFooter';
 import PricingComponent from '@/components/shared/PricingComponent';
@@ -9,11 +9,13 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { Check, X, Loader2 } from 'lucide-react';
-import { buildFeatureMatrix, getFallbackPricingPlans, getPricingPlans } from '@/lib/pricingService';
+import { buildFeatureMatrix, getPricingPlans, subscribePricingChanges } from '@/lib/pricingService';
 
 const PricingPage = () => {
-  const [plans, setPlans] = useState(getFallbackPricingPlans());
+  const [plans, setPlans] = useState([]);
   const [loadingComparison, setLoadingComparison] = useState(true);
+  const [comparisonError, setComparisonError] = useState('');
+  const refreshTimerRef = useRef(null);
 
   const faqs = [
     {
@@ -37,29 +39,58 @@ const PricingPage = () => {
     },
   ];
 
-  useEffect(() => {
-    let cancelled = false;
+  const fetchPlans = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoadingComparison(true);
+    try {
+      const data = await getPricingPlans({ surface: 'pricing' });
+      setPlans(data);
+      setComparisonError('');
+    } catch (error) {
+      console.error('[PricingPage] Failed to fetch plans:', error);
+      setComparisonError('No se pudo cargar la comparativa de planes.');
+      if (!silent) setPlans([]);
+    } finally {
+      if (!silent) setLoadingComparison(false);
+    }
+  }, []);
 
-    const fetchPlans = async () => {
-      try {
-        const data = await getPricingPlans({ surface: 'pricing' });
-        if (!cancelled && data.length > 0) {
-          setPlans(data);
-        }
-      } catch (error) {
-        console.error('[PricingPage] Failed to fetch plans:', error);
-      } finally {
-        if (!cancelled) {
-          setLoadingComparison(false);
-        }
+  useEffect(() => {
+    fetchPlans();
+  }, [fetchPlans]);
+
+  useEffect(() => {
+    const scheduleRefresh = () => {
+      if (refreshTimerRef.current) {
+        window.clearTimeout(refreshTimerRef.current);
+      }
+      refreshTimerRef.current = window.setTimeout(() => {
+        fetchPlans({ silent: true });
+      }, 250);
+    };
+
+    const unsubscribe = subscribePricingChanges(scheduleRefresh);
+
+    const onFocus = () => {
+      fetchPlans({ silent: true });
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchPlans({ silent: true });
       }
     };
 
-    fetchPlans();
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
     return () => {
-      cancelled = true;
+      unsubscribe();
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      if (refreshTimerRef.current) {
+        window.clearTimeout(refreshTimerRef.current);
+      }
     };
-  }, []);
+  }, [fetchPlans]);
 
   const visiblePlans = useMemo(() => plans.filter((plan) => plan.isActive !== false && plan.showOnPricing !== false), [plans]);
   const comparisonRows = useMemo(() => buildFeatureMatrix(visiblePlans), [visiblePlans]);
@@ -71,7 +102,7 @@ const PricingPage = () => {
         <meta name="description" content="Elige el plan perfecto para tus objetivos de fitness y nutrición." />
       </Helmet>
 
-      <main className="pt-10 pb-20 flex-grow">
+      <main className="pt-28 md:pt-32 pb-20 flex-grow">
         <div className="container mx-auto px-4 md:px-6">
           <div className="text-center mb-12 max-w-3xl mx-auto">
             <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-700 via-emerald-500 to-teal-400 dark:from-white dark:via-green-200 dark:to-emerald-400 mb-6">
@@ -90,6 +121,14 @@ const PricingPage = () => {
               {loadingComparison ? (
                 <div className="flex justify-center items-center h-24">
                   <Loader2 className="h-7 w-7 animate-spin text-green-500" />
+                </div>
+              ) : comparisonError ? (
+                <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-center">
+                  <p className="text-red-700 dark:text-red-300">{comparisonError}</p>
+                </div>
+              ) : visiblePlans.length === 0 ? (
+                <div className="rounded-xl border border-border bg-card/60 p-4 text-center text-muted-foreground">
+                  No hay planes activos visibles en la comparativa.
                 </div>
               ) : (
                 <table className="w-full text-left min-w-[620px]">

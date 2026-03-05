@@ -1,9 +1,11 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, CheckCircle, User, Briefcase } from 'lucide-react';
 
-const ProblemSolution = () => {
-  const [audience, setAudience] = useState('user');
+const ProblemSolution = ({ audience = 'user', onAudienceChange }) => {
+  const handleAudienceChange = (value) => {
+    onAudienceChange?.(value);
+  };
 
   const copy = useMemo(() => {
     if (audience === 'coach') {
@@ -50,11 +52,23 @@ const ProblemSolution = () => {
       <div className="container mx-auto px-4 md:px-6">
         <div className="text-center max-w-3xl mx-auto mb-16">
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
-            {copy.title}
+            Prueba cómo sería si tu{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-500 to-emerald-600 dark:from-green-300 dark:to-emerald-400">
+              Dietista
+            </span>{' '}
+            se convirtiera en{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-500 to-emerald-600 dark:from-green-300 dark:to-emerald-400">
+              Software
+            </span>
           </h2>
-          <p className="text-muted-foreground text-lg mb-6">{copy.subtitle}</p>
+          <p className="text-muted-foreground text-lg mb-6">
+            Bibofit es una app desarrollada por una{' '}
+            <span className="text-green-400 font-semibold">única persona</span>, con el objetivo de{' '}
+            <span className="text-green-400 font-semibold">facilitar</span> lo máximo posible a las personas que puedan llevar una{' '}
+            <span className="text-green-400 font-semibold">dieta saludable</span>. Mira lo que ofrece.
+          </p>
 
-          <RoleToggle value={audience} onChange={setAudience} />
+          <RoleToggle value={audience} onChange={handleAudienceChange} />
         </div>
 
         <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
@@ -66,13 +80,13 @@ const ProblemSolution = () => {
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
               whileHover={{ y: -5 }}
-              className="p-8 rounded-2xl bg-red-900/10 border border-red-500/20 relative overflow-hidden group"
+              className="p-8 rounded-2xl bg-blue-900/10 border border-blue-500/20 relative overflow-hidden group"
             >
               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                <AlertTriangle className="w-32 h-32 text-red-500" />
+                <AlertTriangle className="w-32 h-32 text-blue-500" />
               </div>
 
-              <h3 className="text-xl font-bold text-red-400 mb-4 flex items-center gap-2">
+              <h3 className="text-xl font-bold text-blue-400 mb-4 flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5" />
                 {copy.problemTitle}
               </h3>
@@ -80,7 +94,7 @@ const ProblemSolution = () => {
               <ul className="space-y-4 text-muted-foreground">
                 {copy.problem.map((item, idx) => (
                   <li key={idx} className="flex items-start gap-3">
-                    <span className="text-red-500 mt-1">✕</span>
+                    <span className="text-blue-500 mt-1">✕</span>
                     <span>{item}</span>
                   </li>
                 ))}
@@ -126,10 +140,10 @@ const ProblemSolution = () => {
 function RoleToggle({ value, onChange }) {
   return (
     <div className="flex justify-center">
-      <div className="relative inline-flex items-center rounded-2xl border border-border bg-muted/60 p-1 backdrop-blur">
+      <div className="relative inline-flex items-center rounded-2xl border border-border bg-muted/70 p-1 backdrop-blur">
         <motion.div
           layout
-          className="absolute top-1 bottom-1 rounded-xl bg-background"
+          className="absolute top-1 bottom-1 rounded-xl bg-emerald-200 border border-emerald-500/45 shadow-sm dark:bg-background dark:border-border"
           style={{
             left: value === 'user' ? 0 : '50%',
             width: 'calc(50% - 8px)',
@@ -142,13 +156,13 @@ function RoleToggle({ value, onChange }) {
           onClick={() => onChange('user')}
           className={`relative z-10 flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500/60 ${
             value === 'user'
-              ? 'text-foreground'
+              ? 'text-emerald-950 dark:text-foreground font-semibold'
               : 'text-muted-foreground hover:text-foreground'
           }`}
           aria-pressed={value === 'user'}
         >
           <User className="h-4 w-4" />
-          Soy usuario
+          Soy cliente
         </button>
 
         <button
@@ -156,7 +170,7 @@ function RoleToggle({ value, onChange }) {
           onClick={() => onChange('coach')}
           className={`relative z-10 flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500/60 ${
             value === 'coach'
-              ? 'text-foreground'
+              ? 'text-emerald-950 dark:text-foreground font-semibold'
               : 'text-muted-foreground hover:text-foreground'
           }`}
           aria-pressed={value === 'coach'}
