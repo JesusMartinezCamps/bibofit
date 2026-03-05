@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bibofit-cache-v1';
+const CACHE_NAME = 'bibofit-cache-v2';
 
 const STATIC_ASSETS = [
   '/',
@@ -37,6 +37,26 @@ self.addEventListener('fetch', (event) => {
 
   // Don't intercept API calls or Supabase requests
   if (event.request.url.includes('/api/') || event.request.url.includes('supabase.co')) {
+    return;
+  }
+
+  // Always try network first for navigations so new deploys are picked up immediately.
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put('/index.html', responseToCache);
+            });
+          }
+          return networkResponse;
+        })
+        .catch(async () => {
+          return (await caches.match(event.request)) || caches.match('/index.html');
+        })
+    );
     return;
   }
 

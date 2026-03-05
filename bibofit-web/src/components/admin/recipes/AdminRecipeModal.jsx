@@ -208,7 +208,8 @@ const AdminRecipeModal = ({
             (recipeData.name || '') !== (initialState.recipeData.name || '') ||
             (recipeData.instructions || '') !== (initialState.recipeData.instructions || '') ||
             String(recipeData.prep_time_min || '') !== String(initialState.recipeData.prep_time_min || '') ||
-            (recipeData.difficulty || '') !== (initialState.recipeData.difficulty || '');
+            (recipeData.difficulty || '') !== (initialState.recipeData.difficulty || '') ||
+            String(recipeData.recipe_style_id || '') !== String(initialState.recipeData.recipe_style_id || '');
 
         if (dataChanged) return true;
 

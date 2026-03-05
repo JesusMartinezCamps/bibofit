@@ -19,12 +19,12 @@ const AuthConfirmedPage = () => {
   }, [user]);
 
   useEffect(() => {
-    if (loading || !user) return;
+    if (loading) return;
     const timeout = setTimeout(() => {
       navigate(targetPath, { replace: true });
     }, 1800);
     return () => clearTimeout(timeout);
-  }, [loading, user, navigate, targetPath]);
+  }, [loading, navigate, targetPath]);
 
   return (
     <>

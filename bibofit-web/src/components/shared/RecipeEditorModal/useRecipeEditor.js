@@ -237,6 +237,12 @@ export const useRecipeEditor = ({ recipeToEdit, onSaveSuccess, isAdminView, user
       instructions: recipeToEdit.custom_instructions || recipeSource.instructions || recipeToEdit.instructions || '',
       prep_time_min: recipeToEdit.custom_prep_time_min ?? recipeSource.prep_time_min ?? recipeToEdit.prep_time_min,
       difficulty: recipeToEdit.custom_difficulty || recipeSource.difficulty || recipeToEdit.difficulty || 'Fácil',
+      recipe_style_id: String(
+        recipeToEdit.custom_recipe_style_id ??
+          recipeSource.recipe_style_id ??
+          recipeToEdit.recipe_style_id ??
+          ''
+      ),
     };
 
     setFormData(initialForm);

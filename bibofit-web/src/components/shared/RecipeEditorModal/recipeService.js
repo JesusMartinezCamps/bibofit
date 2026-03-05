@@ -3,6 +3,7 @@ import {
     fetchFreeRecipeDetails,
     persistFreeRecipeDefinition,
 } from '@/lib/freeRecipePersistence';
+import { parseRecipeStyleId } from '@/lib/recipeStyles';
 
 export const applyTemporaryChanges = async ({ formData, ingredients, recipeToEdit }) => {
     try {
@@ -60,6 +61,7 @@ export const submitChangeRequest = async ({ actionType, recipeToEdit, formData, 
                 instructions: formData.instructions,
                 prep_time_min: formData.prep_time_min,
                 difficulty: formData.difficulty,
+                recipe_style_id: parseRecipeStyleId(formData.recipe_style_id) || parseRecipeStyleId(recipeToEdit.recipe_style_id),
                 diet_plan_id: recipeToEdit.diet_plan_id,
                 day_meal_id: recipeToEdit.day_meal_id,
             })
@@ -143,7 +145,8 @@ export const updateRecipeDetails = async ({ recipeId, recipeType, updates }) => 
             name: updates.name,
             instructions: updates.instructions,
             prep_time_min: updates.prep_time_min ? parseInt(updates.prep_time_min) : null,
-            difficulty: updates.difficulty
+            difficulty: updates.difficulty,
+            recipe_style_id: parseRecipeStyleId(updates.recipe_style_id),
         };
 
         if (recipeType === 'diet_plan_recipe') {
@@ -154,6 +157,7 @@ export const updateRecipeDetails = async ({ recipeId, recipeType, updates }) => 
                     custom_instructions: safeUpdates.instructions,
                     custom_prep_time_min: safeUpdates.prep_time_min,
                     custom_difficulty: safeUpdates.difficulty,
+                    custom_recipe_style_id: safeUpdates.recipe_style_id,
                     is_customized: true
                 })
                 .eq('id', recipeId)
@@ -168,7 +172,8 @@ export const updateRecipeDetails = async ({ recipeId, recipeType, updates }) => 
                     name: safeUpdates.name,
                     instructions: safeUpdates.instructions,
                     prep_time_min: safeUpdates.prep_time_min,
-                    difficulty: safeUpdates.difficulty
+                    difficulty: safeUpdates.difficulty,
+                    recipe_style_id: safeUpdates.recipe_style_id
                 })
                 .eq('id', recipeId)
                 .select()
@@ -182,7 +187,8 @@ export const updateRecipeDetails = async ({ recipeId, recipeType, updates }) => 
                     name: safeUpdates.name,
                     instructions: safeUpdates.instructions,
                     prep_time_min: safeUpdates.prep_time_min,
-                    difficulty: safeUpdates.difficulty
+                    difficulty: safeUpdates.difficulty,
+                    recipe_style_id: safeUpdates.recipe_style_id
                 })
                 .eq('id', recipeId)
                 .select()
@@ -212,6 +218,7 @@ export const updateDietPlanRecipeCustomization = async ({ dietPlanRecipeId, form
                 custom_instructions: formData.instructions,
                 custom_prep_time_min: formData.prep_time_min ? parseInt(formData.prep_time_min) : null,
                 custom_difficulty: formData.difficulty,
+                custom_recipe_style_id: parseRecipeStyleId(formData.recipe_style_id),
             })
             .eq('id', dietPlanRecipeId);
 
@@ -260,6 +267,7 @@ export const savePrivateRecipe = async ({ recipeId, userId, formData, ingredient
                 instructions: formData.instructions,
                 prep_time_min: formData.prep_time_min,
                 difficulty: formData.difficulty,
+                recipe_style_id: parseRecipeStyleId(formData.recipe_style_id),
                 diet_plan_id: originalRecipe?.diet_plan_id,
                 day_meal_id: originalRecipe?.day_meal_id,
                 parent_user_recipe_id: recipeId,
@@ -308,6 +316,7 @@ export const saveDietPlanRecipe = async ({ recipeId, userId, formData, ingredien
             custom_instructions: formData.instructions,
             custom_prep_time_min: formData.prep_time_min,
             custom_difficulty: formData.difficulty,
+            custom_recipe_style_id: parseRecipeStyleId(formData.recipe_style_id),
             parent_diet_plan_recipe_id: originalRecipe.diet_plan_recipe_id || originalRecipe.id
         };
 
@@ -367,6 +376,7 @@ export const saveFreeRecipe = async ({ recipeId, userId, formData, ingredients, 
                 instructions: formData.instructions,
                 prep_time_min: formData.prep_time_min,
                 difficulty: formData.difficulty,
+                recipe_style_id: parseRecipeStyleId(formData.recipe_style_id),
                 status: currentStatus,
             },
             ingredients,

@@ -30,12 +30,14 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
   const [allVitamins, setAllVitamins] = useState([]);
   const [allMinerals, setAllMinerals] = useState([]);
   const [allFoodGroups, setAllFoodGroups] = useState([]);
+  const [recipeStyles, setRecipeStyles] = useState([]);
   const [ingredients, setIngredients] = useState([]);
   const [dayMealId, setDayMealId] = useState('');
   const [name, setName] = useState('');
   const [instructions, setInstructions] = useState('');
   const [prepTime, setPrepTime] = useState('');
   const [difficulty, setDifficulty] = useState('');
+  const [recipeStyleId, setRecipeStyleId] = useState('');
   const [hasChanges, setHasChanges] = useState(false);
   const [isEquivalenceDialogOpen, setIsEquivalenceDialogOpen] = useState(false);
   const [currentFreeMeal, setCurrentFreeMeal] = useState(freeMeal);
@@ -57,7 +59,8 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
           conditionsRes,
           individualRes,
           preferredRes,
-          nonPreferredRes
+          nonPreferredRes,
+          recipeStylesRes
       ] = await Promise.all([
           supabase.from('food').select('*, food_to_food_groups(food_group_id), food_vitamins(vitamin_id), food_minerals(mineral_id), food_sensitivities(sensitivity:sensitivities(*)), food_medical_conditions(relation_type, condition:medical_conditions(*))').is('user_id', null),
           supabase.from('vitamins').select('*'),
@@ -69,6 +72,7 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
           supabase.from('user_individual_food_restrictions').select('food(id, name)').eq('user_id', user.id),
           supabase.from('preferred_foods').select('food(id, name)').eq('user_id', user.id),
           supabase.from('non_preferred_foods').select('food(id, name)').eq('user_id', user.id),
+          supabase.from('recipe_styles').select('id, name').eq('is_active', true).order('display_order').order('name'),
       ]);
 
       if (foodsRes.error) throw foodsRes.error;
@@ -88,6 +92,7 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
       setAllVitamins(vitaminsRes.data || []);
       setAllMinerals(mineralsRes.data || []);
       setAllFoodGroups(groupsRes.data || []);
+      setRecipeStyles(recipeStylesRes.data || []);
 
       setUserRestrictions({
           sensitivities: (sensitivitiesRes.data || []).map(s => s.sensitivities).filter(Boolean),
@@ -115,6 +120,7 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
           setInstructions(freeMeal.instructions || '');
           setPrepTime(freeMeal.prep_time_min || '');
           setDifficulty(freeMeal.difficulty || 'Fácil');
+          setRecipeStyleId(freeMeal.recipe_style_id ? String(freeMeal.recipe_style_id) : '');
           setMode('view');
           setHasChanges(false);
         }
@@ -157,6 +163,7 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
         meal_date: currentFreeMeal.meal_date,
         name: currentFreeMeal.name || `Receta Libre: ${currentFreeMeal.day_meal?.name || ''}`,
         difficulty: currentFreeMeal.difficulty,
+        recipe_style_id: currentFreeMeal.recipe_style_id || null,
         prep_time_min: currentFreeMeal.prep_time_min,
         instructions: currentFreeMeal.instructions,
         ingredients: ingredientsForView.map(ing => ({
@@ -195,11 +202,12 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
           id: currentFreeMeal?.id,
           name: name,
           difficulty: difficulty,
+          recipe_style_id: recipeStyleId || null,
           prep_time_min: prepTime,
           instructions: instructions,
           ingredients: ingredientsForView
         };
-      }, [name, difficulty, prepTime, instructions, ingredients, allFoods, currentFreeMeal]);
+      }, [name, difficulty, recipeStyleId, prepTime, instructions, ingredients, allFoods, currentFreeMeal]);
 
     const editMacros = useMemo(() => {
         if (!recipeForEdit || !recipeForEdit.ingredients || !allFoods.length) return { proteins: 0, carbs: 0, fats: 0, calories: 0 };
@@ -272,6 +280,7 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
             instructions: instructions,
             prep_time_min: prepTime,
             difficulty: difficulty,
+            recipe_style_id: recipeStyleId || null,
             ingredients: updatedIngredients
         };
 
@@ -302,6 +311,7 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
                 instructions,
                 prep_time_min: prepTime,
                 difficulty,
+                recipe_style_id: recipeStyleId || null,
                 status: FREE_RECIPE_STATUS.PENDING,
                 parent_user_recipe_id: currentFreeMeal.id,
               },
@@ -330,6 +340,7 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
                 instructions,
                 prep_time_min: prepTime,
                 difficulty,
+                recipe_style_id: recipeStyleId || null,
                 status: currentFreeMeal.status,
               },
               ingredients: ingredientPayload,
@@ -384,6 +395,7 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
         if (name === 'instructions') setInstructions(value);
         if (name === 'prep_time_min') setPrepTime(value);
         if (name === 'difficulty') setDifficulty(value);
+        if (name === 'recipe_style_id') setRecipeStyleId(value);
         setHasChanges(true);
     };
 
@@ -499,6 +511,7 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
                           allFoodGroups={allFoodGroups}
                           macros={macros}
                           isFreeMealView={true}
+                          recipeStyles={recipeStyles}
                           conflicts={conflicts}
                           recommendations={recommendations}
                           // Action button removed from here, only kept at bottom
@@ -529,6 +542,7 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
                           allFoodGroups={allFoodGroups}
                           macros={editMacros}
                           isFreeMealView={true}
+                          recipeStyles={recipeStyles}
                           conflicts={conflicts}
                           recommendations={recommendations}
                         />

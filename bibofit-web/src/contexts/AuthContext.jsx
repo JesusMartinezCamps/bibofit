@@ -1,5 +1,9 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '@/lib/customSupabaseClient';
+import {
+  getAuthConfirmedRedirectUrl,
+  getDashboardRedirectUrl,
+} from '@/lib/authRedirects';
 
 export const AuthContext = createContext();
 
@@ -127,7 +131,7 @@ export const AuthProvider = ({ children }) => {
 
   const signup = async (email, password, fullName) => {
     try {
-      const confirmationRedirectUrl = `${window.location.origin}/auth/confirmed`;
+      const confirmationRedirectUrl = getAuthConfirmedRedirectUrl();
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -157,7 +161,7 @@ export const AuthProvider = ({ children }) => {
 
   const resendSignupConfirmation = async (email) => {
     try {
-      const confirmationRedirectUrl = `${window.location.origin}/auth/confirmed`;
+      const confirmationRedirectUrl = getAuthConfirmedRedirectUrl();
       const { error } = await supabase.auth.resend({
         type: 'signup',
         email,
@@ -179,7 +183,7 @@ export const AuthProvider = ({ children }) => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: provider,
         options: {
-          redirectTo: window.location.origin + '/dashboard',
+          redirectTo: getDashboardRedirectUrl(),
         }
       });
       if (error) return { success: false, error: error.message };
