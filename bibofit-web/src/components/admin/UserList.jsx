@@ -181,7 +181,7 @@ const UserList = ({ selectedUser, onSelectUser }) => {
                        <div className="flex items-center gap-3 overflow-hidden">
                           <div className={cn(
                             "w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-colors",
-                            isSelected ? "bg-white/20" : "bg-muted group-hover:bg-gray-600"
+                            isSelected ? "bg-white/20" : "bg-muted group-hover:bg-[rgb(60,134,126)]"
                           )}>
                             {user.role === 'coach' ? (
                                <UserCog className="w-5 h-5" />
