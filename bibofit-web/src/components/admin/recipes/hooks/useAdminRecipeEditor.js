@@ -67,7 +67,7 @@ export const useAdminRecipeEditor = ({ recipeToEdit, onSaveSuccess, userId, plan
             ({ data: ingredientsData, error } = await supabase
                 .from('recipe_ingredients')
                 .select('*, food(*, food_sensitivities(*, sensitivities(name)), food_medical_conditions(*), food_vitamins(*), food_minerals(*))')
-                .eq('private_recipe_id', recipeToEdit.id));
+                .eq('user_recipe_id', recipeToEdit.id));
         } else if (recipeToEdit.is_customized) {
             ({ data: ingredientsData, error } = await supabase
                 .from('recipe_ingredients')
@@ -192,8 +192,8 @@ export const useAdminRecipeEditor = ({ recipeToEdit, onSaveSuccess, userId, plan
         let recipeTable, idColumn, recipeId;
 
         if (recipeToEdit.is_private) {
-            recipeTable = 'private_recipes';
-            idColumn = 'private_recipe_id';
+            recipeTable = 'user_recipes';
+            idColumn = 'user_recipe_id';
             recipeId = recipeToEdit.id;
         } else {
             recipeTable = 'diet_plan_recipes';

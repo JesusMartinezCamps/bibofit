@@ -195,8 +195,9 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
                     .eq('day_meal_id', currentMealId);
                 
                 privateRecipesQuery = supabase
-                    .from('private_recipes')
-                    .select('*, private_recipe_ingredients:recipe_ingredients(*, food(*, food_sensitivities(*, sensitivities(id,name)), food_medical_conditions(*, medical_conditions(id, name))))')
+                    .from('user_recipes')
+                    .select('*, recipe_ingredients(*, food(*, food_sensitivities(*, sensitivities(id,name)), food_medical_conditions(*, medical_conditions(id, name))))')
+                    .eq('type', 'private')
                     .eq('diet_plan_id', dietPlanId)
                     .eq('day_meal_id', currentMealId);
 
@@ -205,9 +206,10 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
                     .select('*, recipe_ingredients(*, food(*, food_sensitivities(*, sensitivities(id,name)), food_medical_conditions(*, medical_conditions(id, name)))), recipe_sensitivities(*, sensitivities(id, name)), recipe_medical_conditions(*, medical_conditions(id, name)), recipe_macros(*)');
 
                  privateRecipesQuery = (!isTemplate && userId)
-                    ? supabase.from('private_recipes')
-                        .select('*, private_recipe_ingredients:recipe_ingredients(*, food(*, food_sensitivities(*, sensitivities(id,name)), food_medical_conditions(*, medical_conditions(id, name))))')
+                    ? supabase.from('user_recipes')
+                        .select('*, recipe_ingredients(*, food(*, food_sensitivities(*, sensitivities(id,name)), food_medical_conditions(*, medical_conditions(id, name))))')
                         .eq('user_id', userId)
+                        .eq('type', 'private')
                     : Promise.resolve({ data: [], error: null });
             }
 

@@ -23,12 +23,12 @@ const sanitizeIngredient = (ingredient) => {
   };
 };
 
-const buildIngredientRows = (freeRecipeId, ingredients = []) => {
+const buildIngredientRows = (userRecipeId, ingredients = []) => {
   return ingredients
     .map(sanitizeIngredient)
     .filter(Boolean)
     .map((ingredient) => ({
-      free_recipe_id: freeRecipeId,
+      user_recipe_id: userRecipeId,
       food_id: ingredient.food_id,
       grams: ingredient.grams,
       status: ingredient.status,
@@ -93,6 +93,7 @@ const upsertFreeRecipeHeader = async ({
   const numericPrepTime = recipe.prep_time_min ? Number.parseInt(recipe.prep_time_min, 10) : null;
 
   const payload = {
+    type: 'free',
     user_id: userId,
     day_meal_id: Number.isFinite(numericDayMealId) ? numericDayMealId : null,
     diet_plan_id: dietPlanId || null,
@@ -104,11 +105,13 @@ const upsertFreeRecipeHeader = async ({
   };
 
   if (recipe.parent_recipe_id) payload.parent_recipe_id = recipe.parent_recipe_id;
-  if (recipe.parent_free_recipe_id) payload.parent_free_recipe_id = recipe.parent_free_recipe_id;
+  if (recipe.parent_user_recipe_id) {
+    payload.parent_user_recipe_id = recipe.parent_user_recipe_id;
+  }
 
   if (recipeId) {
     const { data, error } = await supabase
-      .from('free_recipes')
+      .from('user_recipes')
       .update(payload)
       .eq('id', recipeId)
       .eq('user_id', userId)
@@ -120,7 +123,7 @@ const upsertFreeRecipeHeader = async ({
   }
 
   const { data, error } = await supabase
-    .from('free_recipes')
+    .from('user_recipes')
     .insert(payload)
     .select('*')
     .single();
@@ -133,7 +136,7 @@ const replaceIngredients = async ({ freeRecipeId, ingredients }) => {
   const { error: deleteError } = await supabase
     .from('recipe_ingredients')
     .delete()
-    .eq('free_recipe_id', freeRecipeId);
+    .eq('user_recipe_id', freeRecipeId);
 
   if (deleteError) throw deleteError;
 
@@ -151,7 +154,7 @@ const replaceIngredients = async ({ freeRecipeId, ingredients }) => {
 
 const upsertOccurrence = async ({ occurrenceId, freeRecipeId, userId, mealDate, dayMealId }) => {
   const payload = {
-    free_recipe_id: freeRecipeId,
+    user_recipe_id: freeRecipeId,
     user_id: userId,
     meal_date: mealDate,
     day_meal_id: Number.parseInt(dayMealId, 10),
@@ -190,7 +193,7 @@ const upsertMealLog = async ({ userId, mealDate, userDayMealId, occurrenceId }) 
         user_day_meal_id: userDayMealId,
         free_recipe_occurrence_id: occurrenceId,
         diet_plan_recipe_id: null,
-        private_recipe_id: null,
+        user_recipe_id: null,
       },
       { onConflict: 'user_id,log_date,user_day_meal_id' }
     )
@@ -237,7 +240,7 @@ export const fetchFreeRecipeDetails = async (freeRecipeId) => {
   }
 
   const { data, error } = await supabase
-    .from('free_recipes')
+    .from('user_recipes')
     .select(`
       *,
       day_meal:day_meal_id(id, name, display_order),
@@ -250,6 +253,7 @@ export const fetchFreeRecipeDetails = async (freeRecipeId) => {
       )
     `)
     .eq('id', numericId)
+    .eq('type', 'free')
     .single();
 
   if (error) throw error;

@@ -47,15 +47,15 @@ export const inferRecipeEntityType = (item) => {
   }
 
   if (item.snack_ingredients || item.snack_id) return RECIPE_ENTITY_TYPES.SNACK;
-  if (item.occurrence_id) return RECIPE_ENTITY_TYPES.FREE;
-  if (item.is_private || item.is_private_recipe) return RECIPE_ENTITY_TYPES.PRIVATE;
+  if (item.occurrence_id || item.type === 'free') return RECIPE_ENTITY_TYPES.FREE;
+  if (item.type === 'private' || item.is_private || item.is_private_recipe) return RECIPE_ENTITY_TYPES.PRIVATE;
 
   return RECIPE_ENTITY_TYPES.PLAN;
 };
 
 export const getRecipeParentId = (item) => {
   if (!item) return null;
-  return item.parent_recipe_id || item.parent_private_recipe_id || item.parent_free_recipe_id || null;
+  return item.parent_user_recipe_id || item.parent_recipe_id || null;
 };
 
 export const getRecipeDisplayName = (item) => {
@@ -95,7 +95,7 @@ export const getRecipeIngredients = (item) => {
 
 export const getMealLogDndId = (log) => {
   if (!log) return null;
-  if (log.private_recipe_id != null) return `private-${log.private_recipe_id}`;
+  if (log.user_recipe_id != null) return `private-${log.user_recipe_id}`;
   if (log.diet_plan_recipe_id != null) return `recipe-${log.diet_plan_recipe_id}`;
   if (log.free_recipe_occurrence_id != null) return `free-${log.free_recipe_occurrence_id}`;
   return null;
@@ -107,13 +107,13 @@ export const buildMealLogPayload = ({ userId, logDate, userDayMealId, entity }) 
     log_date: logDate,
     user_day_meal_id: userDayMealId,
     diet_plan_recipe_id: null,
-    private_recipe_id: null,
+    user_recipe_id: null,
     free_recipe_occurrence_id: null,
   };
 
   const type = inferRecipeEntityType(entity);
   if (type === RECIPE_ENTITY_TYPES.PRIVATE) {
-    return { ...basePayload, private_recipe_id: entity.id };
+    return { ...basePayload, user_recipe_id: entity.id };
   }
   if (type === RECIPE_ENTITY_TYPES.FREE) {
     return { ...basePayload, free_recipe_occurrence_id: entity.occurrence_id || entity.id };

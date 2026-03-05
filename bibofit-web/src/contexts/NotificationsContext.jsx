@@ -53,8 +53,9 @@ export const NotificationsProvider = ({ children }) => {
 
             // Pending Free Recipes
             const { count: freeRecipeCount, error: freeRecipeError } = await supabase
-                .from('free_recipes')
+                .from('user_recipes')
                 .select('*', { count: 'exact', head: true })
+                .eq('type', 'free')
                 .eq('status', 'pending');
             if (!freeRecipeError) setPendingFreeRecipeCount(freeRecipeCount || 0);
 

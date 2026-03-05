@@ -61,14 +61,15 @@ const WeeklyPlannerPage = () => {
                 if (recipesError) throw recipesError;
 
                 const { data: privateRecipes, error: privateRecipesError } = await supabase
-                    .from('private_recipes')
+                    .from('user_recipes')
                     .select(`
                         *,
-                        private_recipe_ingredients:recipe_ingredients(*, food(*)),
+                        recipe_ingredients(*, food(*)),
                         day_meal:day_meal_id!inner(id, name, display_order),
-                        change_requests:diet_change_requests!requested_changes_private_recipe_id(status)
+                        change_requests:diet_change_requests!requested_changes_user_recipe_id(status)
                     `)
-                    .eq('diet_plan_id', plan.id);
+                    .eq('diet_plan_id', plan.id)
+                    .eq('type', 'private');
                 if (privateRecipesError) throw privateRecipesError;
 
                 const { data: foods, error: foodsError } = await supabase.from('food').select('*');

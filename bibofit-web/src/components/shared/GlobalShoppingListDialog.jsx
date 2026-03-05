@@ -450,9 +450,10 @@ const GlobalShoppingListDialog = ({ open, onOpenChange, initialMode = 'planned',
                         supabase.from('diet_plan_recipes')
                             .select('id, custom_name, is_customized, custom_ingredients:recipe_ingredients(food_id, grams), recipe:recipes(name, recipe_ingredients(food_id, grams))')
                             .eq('diet_plan_id', activePlan.id),
-                        supabase.from('private_recipes')
-                            .select('id, name, private_recipe_ingredients:recipe_ingredients(food_id, grams)')
+                        supabase.from('user_recipes')
+                            .select('id, name, recipe_ingredients(food_id, grams)')
                             .eq('diet_plan_id', activePlan.id)
+                            .eq('type', 'private')
                     ]);
 
                     if (planRecipes.error) throw planRecipes.error;
@@ -466,35 +467,30 @@ const GlobalShoppingListDialog = ({ open, onOpenChange, initialMode = 'planned',
                 const endDate = format(addDays(new Date(startDate), 6), 'yyyy-MM-dd');
                 
                 const { data: plannedLogs, error: plannedError } = await supabase.from('planned_meals')
-                    .select('diet_plan_recipe_id, private_recipe_id, free_recipe_id')
+                    .select('diet_plan_recipe_id, user_recipe_id')
                     .eq('user_id', user.id)
                     .gte('plan_date', startDate)
                     .lte('plan_date', endDate);
-                
+
                 if (plannedError) throw plannedError;
 
                 if (plannedLogs && plannedLogs.length > 0) {
                     const dietIds = [...new Set(plannedLogs.map(p => p.diet_plan_recipe_id).filter(Boolean))];
-                    const privateIds = [...new Set(plannedLogs.map(p => p.private_recipe_id).filter(Boolean))];
-                    const freeIds = [...new Set(plannedLogs.map(p => p.free_recipe_id).filter(Boolean))];
+                    const userRecipeIds = [...new Set(plannedLogs.map(p => p.user_recipe_id).filter(Boolean))];
 
-                    const [dietRecipes, privateRecipes, freeRecipes] = await Promise.all([
+                    const [dietRecipes, userRecipes] = await Promise.all([
                         dietIds.length ? supabase.from('diet_plan_recipes').select('id, custom_name, is_customized, custom_ingredients:recipe_ingredients(food_id, grams), recipe:recipes(name, recipe_ingredients(food_id, grams))').in('id', dietIds) : { data: [] },
-                        privateIds.length ? supabase.from('private_recipes').select('id, name, private_recipe_ingredients:recipe_ingredients(food_id, grams)').in('id', privateIds) : { data: [] },
-                        freeIds.length ? supabase.from('free_recipes').select('id, name, free_recipe_ingredients:recipe_ingredients(food_id, grams)').in('id', freeIds) : { data: [] }
+                        userRecipeIds.length ? supabase.from('user_recipes').select('id, name, recipe_ingredients(food_id, grams)').in('id', userRecipeIds) : { data: [] },
                     ]);
 
                     const dietMap = new Map((dietRecipes.data || []).map(r => [r.id, r]));
-                    const privateMap = new Map((privateRecipes.data || []).map(r => [r.id, r]));
-                    const freeMap = new Map((freeRecipes.data || []).map(r => [r.id, r]));
+                    const userRecipeMap = new Map((userRecipes.data || []).map(r => [r.id, r]));
 
                     plannedLogs.forEach(log => {
                         if (log.diet_plan_recipe_id && dietMap.has(log.diet_plan_recipe_id)) {
                             allMealsToProcess.push(dietMap.get(log.diet_plan_recipe_id));
-                        } else if (log.private_recipe_id && privateMap.has(log.private_recipe_id)) {
-                            allMealsToProcess.push(privateMap.get(log.private_recipe_id));
-                        } else if (log.free_recipe_id && freeMap.has(log.free_recipe_id)) {
-                            allMealsToProcess.push(freeMap.get(log.free_recipe_id));
+                        } else if (log.user_recipe_id && userRecipeMap.has(log.user_recipe_id)) {
+                            allMealsToProcess.push(userRecipeMap.get(log.user_recipe_id));
                         }
                     });
                 }

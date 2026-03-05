@@ -29,19 +29,20 @@ const MyFreeRecipesPage = () => {
     setLoadingStatus(true);
     try {
       const { data, error } = await supabase
-        .from('free_recipes')
+        .from('user_recipes')
         .select(`
           *,
           day_meal:day_meal_id(name),
           ingredients:recipe_ingredients(
-            *, 
+            *,
             food:food_id(
-              *, 
+              *,
               food_to_food_groups(food_group_id)
             )
           )
         `)
         .eq('user_id', user.id)
+        .eq('type', 'free')
         .order('created_at', { ascending: false });
 
       if (error) throw error;

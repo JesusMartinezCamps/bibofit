@@ -48,9 +48,10 @@ const FreeMealRequestsPage = () => {
     setLoadingRecipes(true);
     try {
       const { data, error } = await supabase
-        .from('free_recipes')
+        .from('user_recipes')
         .select('*, day_meal:day_meals(name), ingredients:recipe_ingredients(*, food:food(*))')
         .eq('user_id', user.user_id)
+        .eq('type', 'free')
         .eq('status', tab)
         .order('created_at', { ascending: false });
       if (error) throw error;

@@ -102,7 +102,7 @@ const FreeMealList = ({
 
         } else if (actionType === 'keep_as_free_recipe') {
             const { error } = await supabase
-              .from('free_recipes')
+              .from('user_recipes')
               .update({ status: FREE_RECIPE_STATUS.KEPT_AS_FREE_RECIPE })
               .eq('id', recipe.id);
             if (error) throw error;
@@ -111,7 +111,7 @@ const FreeMealList = ({
 
         } else if (actionType === 'reject') {
             const { error } = await supabase
-              .from('free_recipes')
+              .from('user_recipes')
               .update({ status: FREE_RECIPE_STATUS.REJECTED })
               .eq('id', recipe.id);
             if (error) throw error;

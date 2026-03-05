@@ -60,12 +60,12 @@ import React, { useState, useEffect, useCallback } from 'react';
         useEffect(() => {
             if (open && userId && dietPlanId && currentMealId && recipe) {
                 const fetchExistingAssignments = async () => {
-                    const isPrivate = recipe.private_recipe_id || recipe.is_private;
-                    const recipeId = isPrivate ? (recipe.private_recipe_id || recipe.id) : recipe.id;
+                    const isPrivate = recipe.user_recipe_id || recipe.is_private;
+                    const recipeId = isPrivate ? (recipe.user_recipe_id || recipe.id) : recipe.id;
                     
                     const { data, error } = await supabase
                         .from('planned_meals')
-                        .select('id, plan_date, diet_plan_recipe_id, private_recipe_id')
+                        .select('id, plan_date, diet_plan_recipe_id, user_recipe_id')
                         .eq('user_id', userId)
                         .eq('diet_plan_id', dietPlanId)
                         .eq('day_meal_id', currentMealId);
@@ -79,7 +79,7 @@ import React, { useState, useEffect, useCallback } from 'react';
                     const otherPlanned = new Set();
 
                     data.forEach(d => {
-                        const isThisRecipe = (isPrivate && d.private_recipe_id === recipeId) || (!isPrivate && d.diet_plan_recipe_id === recipeId);
+                        const isThisRecipe = (isPrivate && d.user_recipe_id === recipeId) || (!isPrivate && d.diet_plan_recipe_id === recipeId);
                         if (isThisRecipe) {
                             existingDatesForThisRecipe.add(d.plan_date);
                         } else {
@@ -94,7 +94,7 @@ import React, { useState, useEffect, useCallback } from 'react';
                     setSelectedDays(existingDatesForThisRecipe);
                     setOtherPlannedDays(otherPlanned);
                     setInitialAssignments(data.filter(d => {
-                        const isThisRecipe = (isPrivate && d.private_recipe_id === recipeId) || (!isPrivate && d.diet_plan_recipe_id === recipeId);
+                        const isThisRecipe = (isPrivate && d.user_recipe_id === recipeId) || (!isPrivate && d.diet_plan_recipe_id === recipeId);
                         return isThisRecipe;
                     }));
                 };
@@ -122,10 +122,10 @@ import React, { useState, useEffect, useCallback } from 'react';
         const handleAssign = async () => {
             setLoading(true);
 
-            const isPrivate = recipe.private_recipe_id || recipe.is_private;
-            const recipeId = isPrivate ? (recipe.private_recipe_id || recipe.id) : recipe.id;
-            const recipeIdColumn = isPrivate ? 'private_recipe_id' : 'diet_plan_recipe_id';
-            const otherRecipeIdColumn = isPrivate ? 'diet_plan_recipe_id' : 'private_recipe_id';
+            const isPrivate = recipe.type === 'private' || recipe.is_private;
+            const recipeId = recipe.id;
+            const recipeIdColumn = isPrivate ? 'user_recipe_id' : 'diet_plan_recipe_id';
+            const otherRecipeIdColumn = isPrivate ? 'diet_plan_recipe_id' : 'user_recipe_id';
 
             const datesToAssign = Array.from(selectedDays);
             const initialDateStrings = new Set(initialAssignments.map(a => a.plan_date));
@@ -169,7 +169,7 @@ import React, { useState, useEffect, useCallback } from 'react';
                         [otherRecipeIdColumn]: null,
                     }));
 
-                    const { data: insertedData, error: insertError } = await supabase.from('planned_meals').insert(mealsToInsert).select(`*, diet_plan_recipe:diet_plan_recipes(*, recipe:recipes(*, recipe_ingredients(*, food(*))), custom_ingredients:recipe_ingredients(*, food(*))), private_recipe:private_recipes(*, private_recipe_ingredients:recipe_ingredients(*, food(*, food_sensitivities(*), food_medical_conditions(*)))), free_recipe:free_recipes(*)`);
+                    const { data: insertedData, error: insertError } = await supabase.from('planned_meals').insert(mealsToInsert).select(`*, diet_plan_recipe:diet_plan_recipes(*, recipe:recipes(*, recipe_ingredients(*, food(*))), custom_ingredients:recipe_ingredients(*, food(*))), user_recipe:user_recipes(*, recipe_ingredients(*, food(*, food_sensitivities(*), food_medical_conditions(*))))`);
                     if (insertError) throw insertError;
                     
                     onAssign(insertedData, [...assignmentsToRemove, ...replacedItems]);

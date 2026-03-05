@@ -71,8 +71,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 
             if (plannedItem.diet_plan_recipe_id) {
                 query.eq('diet_plan_recipe_id', plannedItem.diet_plan_recipe_id);
-            } else if (plannedItem.private_recipe_id) {
-                query.eq('private_recipe_id', plannedItem.private_recipe_id);
+            } else if (plannedItem.user_recipe_id) {
+                query.eq('user_recipe_id', plannedItem.user_recipe_id);
             }
 
             const { data, error } = await query;
@@ -115,7 +115,7 @@ import React, { useState, useEffect, useCallback } from 'react';
                 diet_plan_id: dietPlanId,
                 day_meal_id: plannedItem.day_meal_id,
                 diet_plan_recipe_id: plannedItem.diet_plan_recipe_id,
-                private_recipe_id: plannedItem.private_recipe_id,
+                user_recipe_id: plannedItem.user_recipe_id,
             };
 
             try {

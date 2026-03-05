@@ -52,8 +52,9 @@ export const submitChangeRequest = async ({ actionType, recipeToEdit, formData, 
     try {
         // 1. Create the new private recipe with the requested changes
         const { data: newPrivateRecipe, error: privateRecipeError } = await supabase
-            .from('private_recipes')
+            .from('user_recipes')
             .insert({
+                type: 'private',
                 user_id: userId,
                 name: formData.name,
                 instructions: formData.instructions,
@@ -72,7 +73,7 @@ export const submitChangeRequest = async ({ actionType, recipeToEdit, formData, 
 
         // 2. Insert ingredients for the new private recipe
         const newIngredientsData = ingredients.map(ing => ({
-            private_recipe_id: newPrivateRecipe.id,
+            user_recipe_id: newPrivateRecipe.id,
             food_id: ing.food_id,
             grams: ing.grams || ing.quantity || 0,
         }));
@@ -83,7 +84,7 @@ export const submitChangeRequest = async ({ actionType, recipeToEdit, formData, 
 
         if (ingredientsError) {
             console.error("Error inserting ingredients for private recipe:", ingredientsError);
-            await supabase.from('private_recipes').delete().eq('id', newPrivateRecipe.id);
+            await supabase.from('user_recipes').delete().eq('id', newPrivateRecipe.id);
             throw new Error(`No se pudieron guardar los ingredientes de la nueva receta: ${ingredientsError.message}`);
         }
 
@@ -92,11 +93,11 @@ export const submitChangeRequest = async ({ actionType, recipeToEdit, formData, 
             user_id: userId,
             status: 'pending',
             request_type: actionType,
-            requested_changes_private_recipe_id: newPrivateRecipe.id,
+            requested_changes_user_recipe_id: newPrivateRecipe.id,
         };
 
         if (recipeToEdit.is_private_recipe) {
-            changeRequest.private_recipe_id = recipeToEdit.id;
+            changeRequest.user_recipe_id = recipeToEdit.id;
         } else {
             const dietPlanRecipeId = recipeToEdit.diet_plan_recipe_id || recipeToEdit.diet_plan_recipe?.id || recipeToEdit.id;
             changeRequest.diet_plan_recipe_id = dietPlanRecipeId;
@@ -106,8 +107,8 @@ export const submitChangeRequest = async ({ actionType, recipeToEdit, formData, 
 
         if (requestError) {
             console.error("Error submitting change request:", requestError);
-            await supabase.from('recipe_ingredients').delete().eq('private_recipe_id', newPrivateRecipe.id);
-            await supabase.from('private_recipes').delete().eq('id', newPrivateRecipe.id);
+            await supabase.from('recipe_ingredients').delete().eq('user_recipe_id', newPrivateRecipe.id);
+            await supabase.from('user_recipes').delete().eq('id', newPrivateRecipe.id);
             throw new Error(`No se pudo enviar la solicitud de cambio: ${requestError.message}`);
         }
 
@@ -162,7 +163,7 @@ export const updateRecipeDetails = async ({ recipeId, recipeType, updates }) => 
             data = resData;
         } else if (recipeType === 'private_recipe') {
             const { data: resData, error: resError } = await supabase
-                .from('private_recipes')
+                .from('user_recipes')
                 .update({
                     name: safeUpdates.name,
                     instructions: safeUpdates.instructions,
@@ -176,7 +177,7 @@ export const updateRecipeDetails = async ({ recipeId, recipeType, updates }) => 
             data = resData;
         } else if (recipeType === 'free_recipe') {
             const { data: resData, error: resError } = await supabase
-                .from('free_recipes')
+                .from('user_recipes')
                 .update({
                     name: safeUpdates.name,
                     instructions: safeUpdates.instructions,
@@ -251,8 +252,9 @@ export const savePrivateRecipe = async ({ recipeId, userId, formData, ingredient
     try {
         // Create NEW private recipe version
         const { data: newRecipe, error: recipeInsertError } = await supabase
-            .from('private_recipes')
+            .from('user_recipes')
             .insert({
+                type: 'private',
                 user_id: userId,
                 name: formData.name,
                 instructions: formData.instructions,
@@ -260,8 +262,8 @@ export const savePrivateRecipe = async ({ recipeId, userId, formData, ingredient
                 difficulty: formData.difficulty,
                 diet_plan_id: originalRecipe?.diet_plan_id,
                 day_meal_id: originalRecipe?.day_meal_id,
-                parent_private_recipe_id: recipeId,
-                source_free_recipe_id: originalRecipe?.source_free_recipe_id
+                parent_user_recipe_id: recipeId,
+                source_user_recipe_id: originalRecipe?.source_user_recipe_id,
             })
             .select()
             .single();
@@ -270,7 +272,7 @@ export const savePrivateRecipe = async ({ recipeId, userId, formData, ingredient
 
         // Insert new ingredients
         const newIngredientsData = ingredients.map(ing => ({
-            private_recipe_id: newRecipe.id,
+            user_recipe_id: newRecipe.id,
             food_id: ing.food_id,
             grams: ing.grams || ing.quantity || 0,
         }));
@@ -280,7 +282,7 @@ export const savePrivateRecipe = async ({ recipeId, userId, formData, ingredient
             .insert(newIngredientsData);
 
         if (insertError) {
-             await supabase.from('private_recipes').delete().eq('id', newRecipe.id);
+             await supabase.from('user_recipes').delete().eq('id', newRecipe.id);
              throw new Error(insertError.message);
         }
 

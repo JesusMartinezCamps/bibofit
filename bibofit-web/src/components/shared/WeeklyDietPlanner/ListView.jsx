@@ -21,7 +21,7 @@ const getAdjustmentsForRecipe = (dailyIngredientAdjustments, equivalenceAdjustme
 
     const recipeAdjustments = dailyIngredientAdjustments.filter(dia => {
         return dia.equivalence_adjustment_id === eqAdjustment.id && 
-               (isPrivate ? dia.private_recipe_id === recipeId : dia.diet_plan_recipe_id === recipeId);
+               (isPrivate ? dia.user_recipe_id === recipeId : dia.diet_plan_recipe_id === recipeId);
     });
     
     return recipeAdjustments.length > 0 ? recipeAdjustments : null;

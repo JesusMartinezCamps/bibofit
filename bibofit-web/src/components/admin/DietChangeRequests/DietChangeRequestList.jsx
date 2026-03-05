@@ -140,12 +140,12 @@ const ReviewModal = ({ request, allFoods, clientRestrictions, open, onOpenChange
 
    const originalIngredientsWithDetails = useMemo(() => {
     if (!request) return [];
-    const source = request.private_recipe_id ? request.private_recipe : request.diet_plan_recipe;
+    const source = request.user_recipe_id ? request.user_recipe : request.diet_plan_recipe;
     if (!source) return [];
 
     let ingredients = [];
-    if (request.private_recipe_id) { // original is private
-         ingredients = source.private_recipe_ingredients || [];
+    if (request.user_recipe_id) { // original is private/free
+         ingredients = source.recipe_ingredients || [];
     } else if (source.is_customized) { // original is customized diet plan recipe
          ingredients = source.custom_ingredients || [];
     } else { // original is base recipe from plan
@@ -159,8 +159,8 @@ const ReviewModal = ({ request, allFoods, clientRestrictions, open, onOpenChange
 }, [request, allFoods]);
 
 const requestedIngredientsWithDetails = useMemo(() => {
-    if (!request?.requested_changes_recipe?.private_recipe_ingredients) return [];
-    return request.requested_changes_recipe.private_recipe_ingredients.map(ing => {
+    if (!request?.requested_changes_recipe?.recipe_ingredients) return [];
+    return request.requested_changes_recipe.recipe_ingredients.map(ing => {
         const foodDetails = allFoods.find(f => f.id === ing.food_id);
         return { ...ing, food: foodDetails, quantity: ing.grams, grams: ing.grams };
     });
@@ -271,43 +271,43 @@ const DietChangeRequestList = ({
 
         if (status === 'rejected') {
             if (requestedRecipe) {
-                await supabase.from('recipe_ingredients').delete().eq('private_recipe_id', requestedRecipe.id);
-                await supabase.from('private_recipes').delete().eq('id', requestedRecipe.id);
+                await supabase.from('recipe_ingredients').delete().eq('user_recipe_id', requestedRecipe.id);
+                await supabase.from('user_recipes').delete().eq('id', requestedRecipe.id);
             }
         } else if (status === 'approved') {
             if (!requestedRecipe) throw new Error("No se encontró la receta con los cambios solicitados.");
 
             if (approvalType === 'replace') {
                 // 1. Rename the temporary recipe to become the new permanent private recipe
-                const { error: renameError } = await supabase.from('private_recipes').update({ name: finalRecipeName }).eq('id', requestedRecipe.id);
+                const { error: renameError } = await supabase.from('user_recipes').update({ name: finalRecipeName }).eq('id', requestedRecipe.id);
                 if (renameError) throw renameError;
                 const newPrivateRecipeId = requestedRecipe.id;
 
                 // 2. Find all meal logs for the original recipe and UPDATE them (MIGRATE)
                 // This ensures "times_eaten" count is preserved on the new recipe.
                 let mealLogsQuery = supabase.from('daily_meal_logs').update({
-                    private_recipe_id: newPrivateRecipeId,
+                    user_recipe_id: newPrivateRecipeId,
                     diet_plan_recipe_id: null
                 });
 
-                if (request.private_recipe_id) {
-                    mealLogsQuery = mealLogsQuery.eq('private_recipe_id', request.private_recipe_id);
+                if (request.user_recipe_id) {
+                    mealLogsQuery = mealLogsQuery.eq('user_recipe_id', request.user_recipe_id);
                 } else if (request.diet_plan_recipe_id) {
                     mealLogsQuery = mealLogsQuery.eq('diet_plan_recipe_id', request.diet_plan_recipe_id);
                 }
-                
+
                 const { error: logsError } = await mealLogsQuery;
                 if (logsError) throw logsError;
 
                 // 3. Update planned_meals to point to the new recipe (instead of deleting)
                 // This prevents gaps in the schedule.
                 let plannedMealsUpdateQuery = supabase.from('planned_meals').update({
-                    private_recipe_id: newPrivateRecipeId,
+                    user_recipe_id: newPrivateRecipeId,
                     diet_plan_recipe_id: null
                 });
-                
-                if (request.private_recipe_id) {
-                    plannedMealsUpdateQuery = plannedMealsUpdateQuery.eq('private_recipe_id', request.private_recipe_id);
+
+                if (request.user_recipe_id) {
+                    plannedMealsUpdateQuery = plannedMealsUpdateQuery.eq('user_recipe_id', request.user_recipe_id);
                 } else if (request.diet_plan_recipe_id) {
                     plannedMealsUpdateQuery = plannedMealsUpdateQuery.eq('diet_plan_recipe_id', request.diet_plan_recipe_id);
                 }
@@ -321,8 +321,8 @@ const DietChangeRequestList = ({
                 // The new one (requestedRecipe) is already created as a separate entity, so it starts with 0 logs.
                 // We DO NOT migrate logs here.
 
-                const originalRecipeName = request.private_recipe_id
-                    ? request.private_recipe.name
+                const originalRecipeName = request.user_recipe_id
+                    ? request.user_recipe.name
                     : (request.diet_plan_recipe.custom_name || request.diet_plan_recipe.recipe.name);
                 
                 const newRecipeName = finalRecipeName === originalRecipeName
@@ -330,11 +330,11 @@ const DietChangeRequestList = ({
                     : finalRecipeName;
 
                 // Rename the temporary recipe
-                const { error: renameError } = await supabase.from('private_recipes').update({ name: newRecipeName }).eq('id', requestedRecipe.id);
+                const { error: renameError } = await supabase.from('user_recipes').update({ name: newRecipeName }).eq('id', requestedRecipe.id);
                 if (renameError) throw renameError;
 
                 // Add the new private recipe to the plan (at the same slot as the original to make it visible)
-                const originalRecipe = request.diet_plan_recipe || request.private_recipe;
+                const originalRecipe = request.diet_plan_recipe || request.user_recipe;
                 const planId = originalRecipe.diet_plan_id;
                 const dayMealId = originalRecipe.day_meal_id;
                 
@@ -343,7 +343,7 @@ const DietChangeRequestList = ({
                      const { data: plannedMeal, error: plannedMealError } = await supabase.from('planned_meals')
                         .select('plan_date')
                         .eq('user_id', request.user_id)
-                        .eq(request.diet_plan_recipe_id ? 'diet_plan_recipe_id' : 'private_recipe_id', originalRecipe.id)
+                        .eq(request.diet_plan_recipe_id ? 'diet_plan_recipe_id' : 'user_recipe_id', originalRecipe.id)
                         .limit(1)
                         .maybeSingle();
 
@@ -351,7 +351,7 @@ const DietChangeRequestList = ({
                          await supabase.from('planned_meals').insert({
                             user_id: request.user_id,
                             diet_plan_id: planId,
-                            private_recipe_id: requestedRecipe.id,
+                            user_recipe_id: requestedRecipe.id,
                             day_meal_id: dayMealId,
                             plan_date: plannedMeal.plan_date,
                         });

@@ -11,7 +11,7 @@ const getRecipeIngredients = (recipe) => {
   if (!recipe) return [];
 
   if (recipe.is_private_recipe || recipe.is_private || recipe.type === 'private_recipe') {
-    return recipe.recipe_ingredients || recipe.private_recipe_ingredients || [];
+    return recipe.recipe_ingredients || [];
   }
 
   if (Array.isArray(recipe.custom_ingredients) && recipe.custom_ingredients.length > 0) {

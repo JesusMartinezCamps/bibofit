@@ -55,7 +55,7 @@ const invokeBatchByGroups = async ({ meals, userId }) => {
 
     const recipeRef = meal.diet_plan_recipe_id
       ? { id: meal.diet_plan_recipe_id, is_private: false }
-      : { id: meal.private_recipe_id, is_private: true };
+      : { id: meal.user_recipe_id, is_private: true };
 
     const groupKey = `${meal.plan_date}|${momentId}`;
     if (!groups.has(groupKey)) {
@@ -99,10 +99,10 @@ const invokeBatchByGroups = async ({ meals, userId }) => {
 const fetchFuturePlannedMeals = async ({ userId, effectiveDate }) => {
   const { data, error } = await supabase
     .from('planned_meals')
-    .select('id, plan_date, day_meal_id, diet_plan_id, diet_plan_recipe_id, private_recipe_id')
+    .select('id, plan_date, day_meal_id, diet_plan_id, diet_plan_recipe_id, user_recipe_id')
     .eq('user_id', userId)
     .gte('plan_date', effectiveDate)
-    .or('diet_plan_recipe_id.not.is.null,private_recipe_id.not.is.null');
+    .or('diet_plan_recipe_id.not.is.null,user_recipe_id.not.is.null');
   if (error) throw error;
   return data || [];
 };
@@ -164,21 +164,21 @@ const getImpactedDietMeals = async ({ meals, foodId }) => {
 };
 
 const getImpactedPrivateMeals = async ({ meals, foodId }) => {
-  const privateMeals = meals.filter((m) => m.private_recipe_id);
-  const privateIds = uniqueByKey(privateMeals, (m) => String(m.private_recipe_id)).map(
-    (m) => m.private_recipe_id,
+  const privateMeals = meals.filter((m) => m.user_recipe_id);
+  const privateIds = uniqueByKey(privateMeals, (m) => String(m.user_recipe_id)).map(
+    (m) => m.user_recipe_id,
   );
   if (privateIds.length === 0) return [];
 
   const { data, error } = await supabase
     .from('recipe_ingredients')
-    .select('private_recipe_id')
-    .in('private_recipe_id', privateIds)
+    .select('user_recipe_id')
+    .in('user_recipe_id', privateIds)
     .eq('food_id', foodId);
   if (error) throw error;
 
-  const impactedPrivateIds = new Set((data || []).map((row) => row.private_recipe_id));
-  return privateMeals.filter((meal) => impactedPrivateIds.has(meal.private_recipe_id));
+  const impactedPrivateIds = new Set((data || []).map((row) => row.user_recipe_id));
+  return privateMeals.filter((meal) => impactedPrivateIds.has(meal.user_recipe_id));
 };
 
 const getSourceIngredientsByDpr = async ({ dietPlanRecipeIds, dprRows }) => {
@@ -276,26 +276,27 @@ const clonePrivateRecipeWithoutFood = async ({ originalRow, ingredients, foodId 
   }
 
   const clonePayload = {
+    type: 'private',
     user_id: originalRow.user_id,
-    source_free_recipe_id: originalRow.source_free_recipe_id,
+    source_user_recipe_id: originalRow.source_user_recipe_id,
     name: originalRow.name,
     instructions: originalRow.instructions,
     diet_plan_id: originalRow.diet_plan_id,
     day_meal_id: originalRow.day_meal_id,
     prep_time_min: originalRow.prep_time_min,
     difficulty: originalRow.difficulty,
-    parent_private_recipe_id: originalRow.id,
+    parent_user_recipe_id: originalRow.id,
   };
 
   const { data: inserted, error: insertError } = await supabase
-    .from('private_recipes')
+    .from('user_recipes')
     .insert(clonePayload)
     .select('id')
     .single();
   if (insertError) throw insertError;
 
   const ingredientsPayload = filtered.map((ing) => ({
-    private_recipe_id: inserted.id,
+    user_recipe_id: inserted.id,
     food_id: ing.food_id,
     grams: ing.grams || 0,
   }));
@@ -426,13 +427,13 @@ export const removeFoodFromFutureMealsAndRebalance = async ({
     }
 
     const dietMeals = plannedMeals.filter((m) => m.diet_plan_recipe_id);
-    const privateMeals = plannedMeals.filter((m) => m.private_recipe_id);
+    const privateMeals = plannedMeals.filter((m) => m.user_recipe_id);
 
     const dietPlanRecipeIds = uniqueByKey(dietMeals, (m) => String(m.diet_plan_recipe_id)).map(
       (m) => m.diet_plan_recipe_id,
     );
-    const privateRecipeIds = uniqueByKey(privateMeals, (m) => String(m.private_recipe_id)).map(
-      (m) => m.private_recipe_id,
+    const privateRecipeIds = uniqueByKey(privateMeals, (m) => String(m.user_recipe_id)).map(
+      (m) => m.user_recipe_id,
     );
 
     const failures = [];
@@ -457,15 +458,15 @@ export const removeFoodFromFutureMealsAndRebalance = async ({
     if (privateRecipeIds.length > 0) {
       const [{ data: pRows, error: pRowsError }, { data: pIngRows, error: pIngError }] = await Promise.all([
         supabase
-          .from('private_recipes')
+          .from('user_recipes')
           .select(
-            'id, user_id, source_free_recipe_id, name, instructions, diet_plan_id, day_meal_id, prep_time_min, difficulty',
+            'id, user_id, source_user_recipe_id, name, instructions, diet_plan_id, day_meal_id, prep_time_min, difficulty',
           )
           .in('id', privateRecipeIds),
         supabase
           .from('recipe_ingredients')
-          .select('private_recipe_id, food_id, grams')
-          .in('private_recipe_id', privateRecipeIds),
+          .select('user_recipe_id, food_id, grams')
+          .in('user_recipe_id', privateRecipeIds),
       ]);
       if (pRowsError) throw pRowsError;
       if (pIngError) throw pIngError;
@@ -476,9 +477,9 @@ export const removeFoodFromFutureMealsAndRebalance = async ({
     const privateById = new Map(privateRows.map((row) => [row.id, row]));
     const privateIngredientsById = new Map();
     privateIngredients.forEach((row) => {
-      if (!privateIngredientsById.has(row.private_recipe_id)) privateIngredientsById.set(row.private_recipe_id, []);
+      if (!privateIngredientsById.has(row.user_recipe_id)) privateIngredientsById.set(row.user_recipe_id, []);
       privateIngredientsById
-        .get(row.private_recipe_id)
+        .get(row.user_recipe_id)
         .push({ food_id: row.food_id, grams: row.grams });
     });
 
@@ -512,9 +513,9 @@ export const removeFoodFromFutureMealsAndRebalance = async ({
         }
       }
 
-      if (meal.private_recipe_id) {
-        const privateRecipe = privateById.get(meal.private_recipe_id);
-        const sourceIngredients = privateIngredientsById.get(meal.private_recipe_id) || [];
+      if (meal.user_recipe_id) {
+        const privateRecipe = privateById.get(meal.user_recipe_id);
+        const sourceIngredients = privateIngredientsById.get(meal.user_recipe_id) || [];
         const usesFood = sourceIngredients.some((ing) => Number(ing.food_id) === Number(foodId));
         if (!usesFood) continue;
 
@@ -526,11 +527,11 @@ export const removeFoodFromFutureMealsAndRebalance = async ({
           });
           const { error: updateError } = await supabase
             .from('planned_meals')
-            .update({ private_recipe_id: newPrivateId })
+            .update({ user_recipe_id: newPrivateId })
             .eq('id', meal.id);
           if (updateError) throw updateError;
 
-          changedMeals.push({ ...meal, private_recipe_id: newPrivateId });
+          changedMeals.push({ ...meal, user_recipe_id: newPrivateId });
         } catch (error) {
           failures.push({
             reason: 'private_recipe_clone_error',

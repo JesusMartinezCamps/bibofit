@@ -95,20 +95,20 @@ const ShoppingListDialog = ({ open, onOpenChange, userId, currentDate, activePla
 
                     const { data: logs, error: logError } = await supabase
                         .from('planned_meals')
-                        .select('diet_plan_recipe_id, private_recipe_id')
+                        .select('diet_plan_recipe_id, user_recipe_id')
                         .eq('user_id', userId)
                         .gte('plan_date', startDate)
                         .lte('plan_date', endDate);
 
                     if (logError) throw logError;
                     setWeekLogs(logs || []);
-                    
+
                     const dietPlanRecipeIds = logs.map(l => l.diet_plan_recipe_id).filter(Boolean);
-                    const privateRecipeIds = logs.map(l => l.private_recipe_id).filter(Boolean);
+                    const userRecipeIds = logs.map(l => l.user_recipe_id).filter(Boolean);
 
                     const [recipesRes, privateRecipesRes] = await Promise.all([
                         dietPlanRecipeIds.length > 0 ? supabase.from('diet_plan_recipes').select('*, recipe:recipe_id(name, recipe_ingredients(*)), custom_name, custom_ingredients:recipe_ingredients(*)').in('id', dietPlanRecipeIds) : Promise.resolve({ data: [] }),
-                        privateRecipeIds.length > 0 ? supabase.from('private_recipes').select('*, name, private_recipe_ingredients:recipe_ingredients(*)').in('id', privateRecipeIds) : Promise.resolve({ data: [] })
+                        userRecipeIds.length > 0 ? supabase.from('user_recipes').select('*, name, recipe_ingredients(*)').in('id', userRecipeIds) : Promise.resolve({ data: [] })
                     ]);
 
                     if (recipesRes.error) throw recipesRes.error;
@@ -121,18 +121,14 @@ const ShoppingListDialog = ({ open, onOpenChange, userId, currentDate, activePla
 
                     const { data: planRecipes, error: planRecipesError } = await supabase
                         .from('diet_plan_recipes')
-                        .select('custom_ingredients:recipe_ingredients(food_id), recipe:recipe_id(recipe_ingredients(food_id)), private_recipe:private_recipe_id(*, private_recipe_ingredients:recipe_ingredients(food_id))')
+                        .select('custom_ingredients:recipe_ingredients(food_id), recipe:recipe_id(recipe_ingredients(food_id))')
                         .eq('diet_plan_id', activePlan.id);
 
                     if (planRecipesError) throw planRecipesError;
                     
                     (planRecipes || []).forEach(recipe => {
-                        if (recipe.private_recipe && recipe.private_recipe.private_recipe_ingredients) {
-                            recipe.private_recipe.private_recipe_ingredients.forEach(ing => foodIds.add(ing.food_id));
-                        } else {
-                            const ingredients = recipe.custom_ingredients?.length > 0 ? recipe.custom_ingredients : recipe.recipe?.recipe_ingredients || [];
-                            ingredients.forEach(ing => foodIds.add(ing.food_id));
-                        }
+                        const ingredients = recipe.custom_ingredients?.length > 0 ? recipe.custom_ingredients : recipe.recipe?.recipe_ingredients || [];
+                        ingredients.forEach(ing => foodIds.add(ing.food_id));
                     });
                     
                     if (foodIds.size > 0) {
@@ -179,14 +175,14 @@ const ShoppingListDialog = ({ open, onOpenChange, userId, currentDate, activePla
             let recipeItem;
             if (log.diet_plan_recipe_id) {
                 recipeItem = plannedItems.find(p => p.id === log.diet_plan_recipe_id && !p.user_id);
-            } else if (log.private_recipe_id) {
-                recipeItem = plannedItems.find(p => p.id === log.private_recipe_id && p.user_id);
+            } else if (log.user_recipe_id) {
+                recipeItem = plannedItems.find(p => p.id === log.user_recipe_id && p.user_id);
             }
     
             if (!recipeItem) return;
     
             const recipeName = recipeItem.custom_name || recipeItem.recipe?.name || recipeItem.name || "Receta sin nombre";
-            let ingredientsSource = recipeItem.private_recipe_ingredients || recipeItem.custom_ingredients || recipeItem.recipe?.recipe_ingredients || [];
+            let ingredientsSource = recipeItem.recipe_ingredients || recipeItem.custom_ingredients || recipeItem.recipe?.recipe_ingredients || [];
     
             ingredientsSource.forEach(ing => {
                 const food = allFoods.find(f => String(f.id) === String(ing.food_id));

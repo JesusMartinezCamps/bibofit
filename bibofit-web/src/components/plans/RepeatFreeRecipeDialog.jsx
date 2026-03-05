@@ -115,9 +115,9 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
 
       // 2. Fetch Free Recipes with deep food relations
       const { data: freeData, error: freeError } = await supabase
-        .from('free_recipes')
+        .from('user_recipes')
         .select(`
-          *, 
+          *,
           ingredients:recipe_ingredients(
             *,
             food(
@@ -128,7 +128,8 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
           ),
           occurrences:free_recipe_occurrences(meal_date)
         `)
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .eq('type', 'free');
       
       if (freeError) throw freeError;
 
@@ -332,8 +333,9 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
         try {
             // 1. Create Free Recipe Header
             const { data: newFreeRecipe, error: createError } = await supabase
-                .from('free_recipes')
+                .from('user_recipes')
                 .insert({
+                    type: 'free',
                     user_id: userId,
                     name: recipe.name,
                     instructions: recipe.instructions,
@@ -350,7 +352,7 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
 
             // 2. Create Ingredients
             const ingredientsToInsert = recipe.ingredients.map(ing => ({
-                free_recipe_id: newFreeRecipe.id,
+                user_recipe_id: newFreeRecipe.id,
                 food_id: ing.food_id, 
                 grams: ing.grams,
                 status: 'linked'

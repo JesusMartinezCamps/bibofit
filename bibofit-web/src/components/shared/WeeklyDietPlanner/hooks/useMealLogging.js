@@ -59,8 +59,8 @@ export const useMealLogging = (userId, initialMealLogs, userDayMeals, onMealLogU
 
         const itemType = inferRecipeEntityType(item);
         const isCurrentlySelected = existingLog && (
-            (itemType === RECIPE_ENTITY_TYPES.PLAN && existingLog.diet_plan_recipe_id === item.id && !existingLog.private_recipe_id) ||
-            (itemType === RECIPE_ENTITY_TYPES.PRIVATE && existingLog.private_recipe_id === item.id) ||
+            (itemType === RECIPE_ENTITY_TYPES.PLAN && existingLog.diet_plan_recipe_id === item.id && !existingLog.user_recipe_id) ||
+            (itemType === RECIPE_ENTITY_TYPES.PRIVATE && existingLog.user_recipe_id === item.id) ||
             (itemType === RECIPE_ENTITY_TYPES.FREE && existingLog.free_recipe_occurrence_id === item.occurrence_id)
         );
 
@@ -109,8 +109,8 @@ export const useMealLogging = (userId, initialMealLogs, userDayMeals, onMealLogU
             if (onMealLogUpdate) {
                 const resolveExisting = (log) => {
                     if (!log) return null;
-                    if (log.private_recipe_id) {
-                        return { recipeType: 'private_recipe', recipeId: log.private_recipe_id };
+                    if (log.user_recipe_id) {
+                        return { recipeType: 'private_recipe', recipeId: log.user_recipe_id };
                     }
                     if (log.diet_plan_recipe_id) {
                         return { recipeType: 'recipe', recipeId: log.diet_plan_recipe_id };

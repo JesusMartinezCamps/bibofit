@@ -28,7 +28,7 @@ const getAdjustmentsForRecipe = (dailyIngredientAdjustments, equivalenceAdjustme
 
     const recipeAdjustments = dailyIngredientAdjustments.filter(dia => {
         return dia.equivalence_adjustment_id === eqAdjustment.id &&
-            (isPrivate ? dia.private_recipe_id === recipeId : dia.diet_plan_recipe_id === recipeId);
+            (isPrivate ? dia.user_recipe_id === recipeId : dia.diet_plan_recipe_id === recipeId);
     });
 
     return recipeAdjustments.length > 0 ? recipeAdjustments : null;
@@ -236,7 +236,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
         (allMealLogs || []).forEach(log => {
             if (!summary[log.log_date]) return;
             summary[log.log_date].logged += 1;
-            if (log.private_recipe_id) summary[log.log_date].loggedPrivate += 1;
+            if (log.user_recipe_id) summary[log.log_date].loggedPrivate += 1;
             else if (log.free_recipe_occurrence_id) summary[log.log_date].loggedFree += 1;
             else if (log.diet_plan_recipe_id) summary[log.log_date].loggedRecipe += 1;
         });
@@ -474,7 +474,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
             }
             
             const updatedLogs = allMealLogs.filter(log => {
-                if (isPrivate) return log.private_recipe_id !== recipeId;
+                if (isPrivate) return log.user_recipe_id !== recipeId;
                 return log.diet_plan_recipe_id !== recipeId;
             });
             setAllMealLogs(updatedLogs);
@@ -778,7 +778,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
             const { data: occurrence, error: occurrenceError } = await supabase
                 .from('free_recipe_occurrences')
                 .insert({
-                    free_recipe_id: recipeToRepeat.id,
+                    user_recipe_id: recipeToRepeat.id,
                     user_id: userId,
                     meal_date: logDateStr,
                     day_meal_id: mealId

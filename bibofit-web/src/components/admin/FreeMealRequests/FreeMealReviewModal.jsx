@@ -75,7 +75,7 @@ const FreeMealReviewModal = ({ isOpen, onOpenChange, freeMeal, onSuccess }) => {
         if (!result.success) throw new Error(result.error || 'Ocurrió un error en el servidor.');
 
         const { error: statusError } = await supabase
-          .from('free_recipes')
+          .from('user_recipes')
           .update({ status: FREE_RECIPE_STATUS.APPROVED_GENERAL })
           .eq('id', freeMeal.id);
         if (statusError) throw statusError;
@@ -101,10 +101,11 @@ const FreeMealReviewModal = ({ isOpen, onOpenChange, freeMeal, onSuccess }) => {
     setIsSubmitting(true);
     try {
       const { data: newPrivateRecipe, error: privateRecipeError } = await supabase
-        .from('private_recipes')
+        .from('user_recipes')
         .insert({
+          type: 'private',
           user_id: freeMeal.user_id,
-          source_free_recipe_id: freeMeal.id,
+          source_user_recipe_id: freeMeal.id,
           name: freeMeal.name,
           instructions: freeMeal.instructions,
           day_meal_id: freeMeal.day_meal_id,
@@ -114,7 +115,7 @@ const FreeMealReviewModal = ({ isOpen, onOpenChange, freeMeal, onSuccess }) => {
       if (privateRecipeError) throw privateRecipeError;
 
       const ingredientsToCopy = freeMeal.ingredients.map(ing => ({
-        private_recipe_id: newPrivateRecipe.id,
+        user_recipe_id: newPrivateRecipe.id,
         food_id: ing.food_id,
         grams: ing.grams,
       }));
@@ -132,14 +133,14 @@ const FreeMealReviewModal = ({ isOpen, onOpenChange, freeMeal, onSuccess }) => {
 
       if (activePlan) {
         const { error: privateUpdateError } = await supabase
-          .from('private_recipes')
+          .from('user_recipes')
           .update({ diet_plan_id: activePlan.id, day_meal_id: freeMeal.day_meal_id })
           .eq('id', newPrivateRecipe.id);
         if (privateUpdateError) throw privateUpdateError;
       }
 
       const { error: statusError } = await supabase
-        .from('free_recipes')
+        .from('user_recipes')
         .update({ status: FREE_RECIPE_STATUS.APPROVED_PRIVATE })
         .eq('id', freeMeal.id);
       if (statusError) throw statusError;

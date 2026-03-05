@@ -14,7 +14,7 @@ const PlanRecipeCard = ({ recipe, onEdit, onDelete, allFoods, userRestrictions, 
     const ingredients = useMemo(() => {
         if (!recipe) return [];
         if (recipe.is_private) {
-            return recipe.recipe_ingredients || recipe.private_recipe_ingredients || [];
+            return recipe.recipe_ingredients || [];
         }
         // If the recipe is customized in the plan and has custom ingredients, use them.
         // Otherwise, fallback to the base recipe ingredients.

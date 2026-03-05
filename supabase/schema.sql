@@ -1,3 +1,4 @@
+Dumping schemas from local database...
 
 
 
@@ -13,14 +14,195 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 
-CREATE SCHEMA IF NOT EXISTS "public";
+CREATE EXTENSION IF NOT EXISTS "pg_net" WITH SCHEMA "extensions";
 
 
-ALTER SCHEMA "public" OWNER TO "pg_database_owner";
+
+
 
 
 COMMENT ON SCHEMA "public" IS 'standard public schema';
 
+
+
+CREATE SCHEMA IF NOT EXISTS "unrestricted";
+
+
+ALTER SCHEMA "unrestricted" OWNER TO "postgres";
+
+
+CREATE EXTENSION IF NOT EXISTS "pg_graphql" WITH SCHEMA "graphql";
+
+
+
+
+
+
+CREATE EXTENSION IF NOT EXISTS "pg_stat_statements" WITH SCHEMA "extensions";
+
+
+
+
+
+
+CREATE EXTENSION IF NOT EXISTS "pgcrypto" WITH SCHEMA "extensions";
+
+
+
+
+
+
+CREATE EXTENSION IF NOT EXISTS "supabase_vault" WITH SCHEMA "vault";
+
+
+
+
+
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "extensions";
+
+
+
+
+
+
+CREATE OR REPLACE FUNCTION "public"."_trig_dpri_delete"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+  DELETE FROM recipe_ingredients WHERE id = OLD.id;
+  RETURN OLD;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."_trig_dpri_delete"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."_trig_dpri_insert"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+  INSERT INTO recipe_ingredients (diet_plan_recipe_id, food_id, grams, created_at)
+  VALUES (
+    NEW.diet_plan_recipe_id,
+    NEW.food_id,
+    COALESCE(NEW.grams, 0),
+    COALESCE(NEW.created_at, now())
+  );
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."_trig_dpri_insert"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."_trig_dpri_update"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+  UPDATE recipe_ingredients
+  SET food_id = NEW.food_id, grams = COALESCE(NEW.grams, 0)
+  WHERE id = OLD.id;
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."_trig_dpri_update"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."_trig_fri_delete"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+  DELETE FROM recipe_ingredients WHERE id = OLD.id;
+  RETURN OLD;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."_trig_fri_delete"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."_trig_fri_insert"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+  INSERT INTO recipe_ingredients (free_recipe_id, food_id, grams, status, created_at)
+  VALUES (
+    NEW.free_recipe_id,
+    NEW.food_id,   -- puede ser NULL para ingredientes pendientes
+    COALESCE(NEW.grams, 0),
+    COALESCE(NEW.status, 'linked'),
+    COALESCE(NEW.created_at, now())
+  );
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."_trig_fri_insert"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."_trig_fri_update"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+  UPDATE recipe_ingredients
+  SET food_id = NEW.food_id,
+      grams   = COALESCE(NEW.grams, 0),
+      status  = COALESCE(NEW.status, 'linked')
+  WHERE id = OLD.id;
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."_trig_fri_update"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."_trig_pri_delete"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+  DELETE FROM recipe_ingredients WHERE id = OLD.id;
+  RETURN OLD;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."_trig_pri_delete"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."_trig_pri_insert"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+  INSERT INTO recipe_ingredients (private_recipe_id, food_id, grams)
+  VALUES (NEW.private_recipe_id, NEW.food_id, COALESCE(NEW.grams, 0));
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."_trig_pri_insert"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."_trig_pri_update"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+  UPDATE recipe_ingredients
+  SET food_id = NEW.food_id, grams = COALESCE(NEW.grams, 0)
+  WHERE id = OLD.id;
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."_trig_pri_update"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."add_global_recipe_to_plan"("p_user_id" "uuid", "p_day_meal_id" bigint, "p_recipe_name" "text", "p_instructions" "text", "p_ingredients" "jsonb") RETURNS "jsonb"
@@ -232,25 +414,24 @@ DECLARE
     ingredient_record jsonb;
     occurrence_record record;
 BEGIN
-    -- Ensure the caller is an admin
     IF NOT is_admin() THEN
         RAISE EXCEPTION 'Only admins can perform this action';
     END IF;
 
-    -- 1. Get info from the original free recipe
+    -- 1. Get info from the original user recipe (type='free')
     SELECT user_id, diet_plan_id, day_meal_id
     INTO v_user_id, v_diet_plan_id, v_day_meal_id
-    FROM free_recipes
+    FROM user_recipes
     WHERE id = p_free_recipe_id;
-    
+
     -- 2. Create the new global recipe
     INSERT INTO recipes (name, instructions, prep_time_min, difficulty, created_by)
     VALUES (
-        p_recipe_data->>'name', 
-        p_recipe_data->>'instructions', 
-        (p_recipe_data->>'prep_time_min')::integer, 
-        p_recipe_data->>'difficulty', 
-        auth.uid() -- Admin creating it
+        p_recipe_data->>'name',
+        p_recipe_data->>'instructions',
+        (p_recipe_data->>'prep_time_min')::integer,
+        p_recipe_data->>'difficulty',
+        auth.uid()
     )
     RETURNING id INTO new_recipe_id;
 
@@ -268,46 +449,36 @@ BEGIN
 
     -- 4. Add the new recipe to the user's diet plan
     IF v_diet_plan_id IS NOT NULL THEN
-        -- Insert into diet_plan_recipes
         INSERT INTO diet_plan_recipes (
-            diet_plan_id, 
-            recipe_id, 
-            day_meal_id, 
-            is_customized, 
-            custom_name, 
-            custom_instructions, 
-            custom_prep_time_min, 
-            custom_difficulty
+            diet_plan_id, recipe_id, day_meal_id, is_customized,
+            custom_name, custom_instructions, custom_prep_time_min, custom_difficulty
         )
         VALUES (
-            v_diet_plan_id, 
-            new_recipe_id, 
-            v_day_meal_id, 
-            true, -- Customized to preserve exact details from free recipe
-            p_recipe_data->>'name', 
-            p_recipe_data->>'instructions', 
-            (p_recipe_data->>'prep_time_min')::integer, 
+            v_diet_plan_id, new_recipe_id, v_day_meal_id, true,
+            p_recipe_data->>'name',
+            p_recipe_data->>'instructions',
+            (p_recipe_data->>'prep_time_min')::integer,
             p_recipe_data->>'difficulty'
         )
         RETURNING id INTO new_diet_plan_recipe_id;
 
-        -- Insert ingredients into diet_plan_recipe_ingredients
+        -- Insert ingredients for the diet plan recipe
         FOR ingredient_record IN SELECT * FROM jsonb_array_elements(p_ingredients)
         LOOP
-            INSERT INTO diet_plan_recipe_ingredients (diet_plan_recipe_id, food_id, grams)
+            INSERT INTO recipe_ingredients (diet_plan_recipe_id, food_id, grams)
             VALUES (
                 new_diet_plan_recipe_id,
                 (ingredient_record->>'food_id')::bigint,
                 (ingredient_record->>'grams')::integer
             );
         END LOOP;
-        
+
         -- 5. Update daily_meal_logs to point to the new diet_plan_recipe
         FOR occurrence_record IN
-            SELECT id FROM free_recipe_occurrences WHERE free_recipe_id = p_free_recipe_id
+            SELECT id FROM free_recipe_occurrences WHERE user_recipe_id = p_free_recipe_id
         LOOP
             UPDATE daily_meal_logs
-            SET 
+            SET
                 diet_plan_recipe_id = new_diet_plan_recipe_id,
                 free_recipe_occurrence_id = NULL
             WHERE free_recipe_occurrence_id = occurrence_record.id;
@@ -315,21 +486,19 @@ BEGIN
 
         -- 6. Migrate equivalence adjustments
         UPDATE equivalence_adjustments
-        SET 
+        SET
             source_diet_plan_recipe_id = new_diet_plan_recipe_id,
-            source_free_recipe_id = NULL
-        WHERE source_free_recipe_id = p_free_recipe_id;
+            source_user_recipe_id = NULL
+        WHERE source_user_recipe_id = p_free_recipe_id;
 
-        -- 7. Clean up the original free recipe and its components
-        DELETE FROM free_recipe_occurrences WHERE free_recipe_id = p_free_recipe_id;
-        DELETE FROM free_recipe_ingredients WHERE free_recipe_id = p_free_recipe_id;
-        DELETE FROM free_recipes WHERE id = p_free_recipe_id;
+        -- 7. Clean up the original free recipe
+        DELETE FROM free_recipe_occurrences WHERE user_recipe_id = p_free_recipe_id;
+        DELETE FROM recipe_ingredients WHERE user_recipe_id = p_free_recipe_id;
+        UPDATE user_recipes SET source_user_recipe_id = NULL WHERE source_user_recipe_id = p_free_recipe_id;
+        DELETE FROM user_recipes WHERE id = p_free_recipe_id;
 
         RETURN jsonb_build_object('success', true, 'recipeId', new_recipe_id, 'addedToPlan', true);
     ELSE
-        -- Even if no diet plan found, we created the global recipe, but cannot replace assignment
-        -- This case implies a data inconsistency if the free recipe didn't have a plan ID.
-        -- We just return success on creation but note it wasn't added to plan.
         RETURN jsonb_build_object('success', true, 'recipeId', new_recipe_id, 'addedToPlan', false, 'reason', 'No diet plan ID found on free recipe');
     END IF;
 
@@ -706,31 +875,30 @@ CREATE OR REPLACE FUNCTION "public"."convert_free_to_private_recipe"("p_free_rec
         v_user_id uuid;
         v_diet_plan_id bigint;
         v_day_meal_id bigint;
-        new_private_recipe_id bigint;
+        new_user_recipe_id bigint;
         occurrence_record record;
         ingredient_record jsonb;
         is_coach boolean;
         is_admin_user boolean;
     BEGIN
-        -- Check permissions
         is_admin_user := is_admin();
         is_coach := EXISTS (
-            SELECT 1 FROM user_roles ur 
-            JOIN roles r ON ur.role_id = r.id 
+            SELECT 1 FROM user_roles ur
+            JOIN roles r ON ur.role_id = r.id
             WHERE ur.user_id = auth.uid() AND r.role = 'coach'
         );
 
-        -- 1. Get info from the original free recipe
+        -- 1. Get info from the original user recipe (type='free')
         SELECT user_id, diet_plan_id, day_meal_id
         INTO v_user_id, v_diet_plan_id, v_day_meal_id
-        FROM free_recipes
+        FROM user_recipes
         WHERE id = p_free_recipe_id;
-        
+
         IF v_user_id IS NULL THEN
             RAISE EXCEPTION 'Free recipe not found';
         END IF;
 
-        -- 2. Verify coach access if not admin
+        -- 2. Verify permissions
         IF NOT is_admin_user THEN
             IF is_coach THEN
                 IF NOT EXISTS (SELECT 1 FROM coach_clients WHERE coach_id = auth.uid() AND client_id = v_user_id) THEN
@@ -741,62 +909,57 @@ CREATE OR REPLACE FUNCTION "public"."convert_free_to_private_recipe"("p_free_rec
             END IF;
         END IF;
 
-        -- 3. Create the new private recipe
-        INSERT INTO private_recipes (
-            user_id,
-            name,
-            instructions,
-            prep_time_min,
-            difficulty,
-            diet_plan_id,
-            day_meal_id
+        -- 3. Create the new private recipe in user_recipes
+        INSERT INTO user_recipes (
+            user_id, type, name, instructions, prep_time_min, difficulty,
+            diet_plan_id, day_meal_id, source_user_recipe_id
         )
         VALUES (
             v_user_id,
+            'private',
             p_new_recipe_data->>'name',
             p_new_recipe_data->>'instructions',
             (p_new_recipe_data->>'prep_time_min')::integer,
             p_new_recipe_data->>'difficulty',
             v_diet_plan_id,
-            v_day_meal_id
+            v_day_meal_id,
+            p_free_recipe_id
         )
-        RETURNING id INTO new_private_recipe_id;
+        RETURNING id INTO new_user_recipe_id;
 
-        -- 4. Insert ingredients for the new private recipe
+        -- 4. Copy ingredients to the new private recipe
         FOR ingredient_record IN SELECT * FROM jsonb_array_elements(p_new_ingredients)
         LOOP
-            INSERT INTO private_recipe_ingredients (private_recipe_id, food_id, grams)
+            INSERT INTO recipe_ingredients (user_recipe_id, food_id, grams)
             VALUES (
-                new_private_recipe_id,
+                new_user_recipe_id,
                 (ingredient_record->>'food_id')::bigint,
                 (ingredient_record->>'grams')::numeric
             );
         END LOOP;
 
-        -- 5. Find all occurrences and update daily_meal_logs
+        -- 5. Update daily_meal_logs: replace occurrence link with direct user_recipe link
         FOR occurrence_record IN
-            SELECT id FROM free_recipe_occurrences WHERE free_recipe_id = p_free_recipe_id
+            SELECT id FROM free_recipe_occurrences WHERE user_recipe_id = p_free_recipe_id
         LOOP
             UPDATE daily_meal_logs
-            SET 
-                private_recipe_id = new_private_recipe_id,
+            SET
+                user_recipe_id = new_user_recipe_id,
                 free_recipe_occurrence_id = NULL
             WHERE free_recipe_occurrence_id = occurrence_record.id;
         END LOOP;
 
         -- 6. Migrate equivalence adjustments
         UPDATE equivalence_adjustments
-        SET 
-            source_private_recipe_id = new_private_recipe_id,
-            source_free_recipe_id = NULL
-        WHERE source_free_recipe_id = p_free_recipe_id;
+        SET source_user_recipe_id = new_user_recipe_id
+        WHERE source_user_recipe_id = p_free_recipe_id;
 
-        -- 7. Clean up the original free recipe and its components
-        DELETE FROM free_recipe_occurrences WHERE free_recipe_id = p_free_recipe_id;
-        DELETE FROM free_recipe_ingredients WHERE free_recipe_id = p_free_recipe_id;
-        DELETE FROM free_recipes WHERE id = p_free_recipe_id;
+        -- 7. Clean up the original free recipe
+        DELETE FROM free_recipe_occurrences WHERE user_recipe_id = p_free_recipe_id;
+        DELETE FROM recipe_ingredients WHERE user_recipe_id = p_free_recipe_id;
+        DELETE FROM user_recipes WHERE id = p_free_recipe_id;
 
-        RETURN new_private_recipe_id;
+        RETURN new_user_recipe_id;
     END;
 $$;
 
@@ -881,7 +1044,6 @@ begin
     '¡Tu receta libre "' || new.name || '" ha sido tan buena que ha sido guardada en tu plan para que la disfrutes cuando quieras!',
     'free_recipe_saved'
   );
-
   return new;
 end;
 $$;
@@ -1121,8 +1283,7 @@ CREATE OR REPLACE FUNCTION "public"."delete_free_recipe_and_occurrences"("p_free
         is_coach boolean;
         is_admin_user boolean;
     BEGIN
-        -- Get the user_id from the free_recipe to check ownership
-        SELECT user_id INTO v_user_id FROM free_recipes WHERE id = p_free_recipe_id;
+        SELECT user_id INTO v_user_id FROM user_recipes WHERE id = p_free_recipe_id;
 
         IF v_user_id IS NULL THEN
              RAISE EXCEPTION 'Free recipe not found';
@@ -1130,12 +1291,11 @@ CREATE OR REPLACE FUNCTION "public"."delete_free_recipe_and_occurrences"("p_free
 
         is_admin_user := is_admin();
         is_coach := EXISTS (
-            SELECT 1 FROM user_roles ur 
-            JOIN roles r ON ur.role_id = r.id 
+            SELECT 1 FROM user_roles ur
+            JOIN roles r ON ur.role_id = r.id
             WHERE ur.user_id = auth.uid() AND r.role = 'coach'
         );
 
-        -- Check permissions
         IF auth.uid() != v_user_id AND NOT is_admin_user THEN
              IF is_coach THEN
                 IF NOT EXISTS (SELECT 1 FROM coach_clients WHERE coach_id = auth.uid() AND client_id = v_user_id) THEN
@@ -1146,27 +1306,17 @@ CREATE OR REPLACE FUNCTION "public"."delete_free_recipe_and_occurrences"("p_free
              END IF;
         END IF;
 
-        -- Delete from equivalence_adjustments linked to the free recipe
         DELETE FROM equivalence_adjustments
-        WHERE source_free_recipe_id = p_free_recipe_id;
+        WHERE source_user_recipe_id = p_free_recipe_id;
 
-        -- Delete from daily_meal_logs
         DELETE FROM daily_meal_logs
         WHERE free_recipe_occurrence_id IN (
-            SELECT id FROM free_recipe_occurrences WHERE free_recipe_id = p_free_recipe_id
+            SELECT id FROM free_recipe_occurrences WHERE user_recipe_id = p_free_recipe_id
         );
 
-        -- Delete from free_recipe_occurrences
-        DELETE FROM free_recipe_occurrences
-        WHERE free_recipe_id = p_free_recipe_id;
-
-        -- Delete from free_recipe_ingredients
-        DELETE FROM free_recipe_ingredients
-        WHERE free_recipe_id = p_free_recipe_id;
-
-        -- Finally, delete the free_recipe itself
-        DELETE FROM free_recipes
-        WHERE id = p_free_recipe_id;
+        DELETE FROM free_recipe_occurrences WHERE user_recipe_id = p_free_recipe_id;
+        DELETE FROM recipe_ingredients WHERE user_recipe_id = p_free_recipe_id;
+        DELETE FROM user_recipes WHERE id = p_free_recipe_id;
     END;
 $$;
 
@@ -1184,10 +1334,10 @@ declare
   v_is_admin boolean;
   v_is_coach boolean;
 begin
-  select pr.user_id
+  select ur.user_id
   into v_owner_user_id
-  from public.private_recipes pr
-  where pr.id = p_recipe_id;
+  from public.user_recipes ur
+  where ur.id = p_recipe_id AND ur.type = 'private';
 
   if not found then
     raise exception 'Private recipe not found';
@@ -1213,41 +1363,43 @@ begin
     end if;
   end if;
 
+  -- Recursively delete children (versioning chain)
   for child_id in
     select id
-    from public.private_recipes
-    where parent_private_recipe_id = p_recipe_id
+    from public.user_recipes
+    where parent_user_recipe_id = p_recipe_id
+      and type = 'private'
   loop
     perform public.delete_private_recipe_cascade(child_id);
   end loop;
 
   delete from public.diet_change_requests
-  where private_recipe_id = p_recipe_id
-     or requested_changes_private_recipe_id = p_recipe_id;
+  where user_recipe_id = p_recipe_id
+     or requested_changes_user_recipe_id = p_recipe_id;
 
-  delete from public.private_recipe_ingredients
-  where private_recipe_id = p_recipe_id;
+  delete from public.recipe_ingredients
+  where user_recipe_id = p_recipe_id;
 
   delete from public.daily_meal_logs
-  where private_recipe_id = p_recipe_id;
+  where user_recipe_id = p_recipe_id;
 
   delete from public.planned_meals
-  where private_recipe_id = p_recipe_id;
+  where user_recipe_id = p_recipe_id;
 
   delete from public.daily_ingredient_adjustments
-  where private_recipe_id = p_recipe_id;
+  where user_recipe_id = p_recipe_id;
 
   delete from public.daily_ingredient_adjustments
   where equivalence_adjustment_id in (
     select id
     from public.equivalence_adjustments
-    where source_private_recipe_id = p_recipe_id
+    where source_user_recipe_id = p_recipe_id
   );
 
   delete from public.equivalence_adjustments
-  where source_private_recipe_id = p_recipe_id;
+  where source_user_recipe_id = p_recipe_id;
 
-  delete from public.private_recipes
+  delete from public.user_recipes
   where id = p_recipe_id;
 end;
 $$;
@@ -1331,11 +1483,9 @@ begin
   delete from diet_change_requests where user_id = p_user_id;
 
   delete from free_recipe_occurrences where user_id = p_user_id;
-  delete from free_recipe_ingredients where free_recipe_id in (select id from free_recipes where user_id = p_user_id);
-  delete from free_recipes where user_id = p_user_id;
-
-  delete from private_recipe_ingredients where private_recipe_id in (select id from private_recipes where user_id = p_user_id);
-  delete from private_recipes where user_id = p_user_id;
+  delete from recipe_ingredients
+  where user_recipe_id in (select id from user_recipes where user_id = p_user_id);
+  delete from user_recipes where user_id = p_user_id;
 
   delete from snack_occurrences where user_id = p_user_id;
   delete from snack_ingredients where snack_id in (select id from snacks where user_id = p_user_id);
@@ -1418,14 +1568,14 @@ declare
   result jsonb;
 begin
   select jsonb_build_object(
-    'planRecipes', (
+    'dietPlanRecipes', (
       select coalesce(jsonb_agg(dpr_agg), '[]'::jsonb)
       from (
         select
           dpr.*,
           r.name as recipe_name,
           r.instructions as recipe_instructions,
-          r.prep_time_min as recipe_prep_time_min,
+          r.prep_time_min as recipe_prep_time,
           r.difficulty as recipe_difficulty,
           (
             select jsonb_agg(jsonb_build_object('food_id', ri.food_id, 'grams', ri.grams))
@@ -1439,36 +1589,36 @@ begin
       ) dpr_agg
     ),
     'privateRecipes', (
-      select coalesce(jsonb_agg(pr_agg), '[]'::jsonb)
+      select coalesce(jsonb_agg(ur_agg), '[]'::jsonb)
       from (
-        select pr.*
-        from private_recipes pr
-        where pr.user_id = p_user_id and pr.diet_plan_id = p_plan_id
-      ) pr_agg
+        select ur.*
+        from user_recipes ur
+        where ur.user_id = p_user_id
+          and ur.diet_plan_id = p_plan_id
+          and ur.type = 'private'
+      ) ur_agg
     ),
     'freeMeals', (
       select coalesce(jsonb_agg(fm_agg), '[]'::jsonb)
       from (
         select
           fro.*,
-          fr.name,
-          fr.instructions,
-          fr.prep_time_min,
-          fr.difficulty,
-          fr.day_meal_id,
+          ur.name,
+          ur.instructions,
+          ur.prep_time_min,
+          ur.difficulty,
+          ur.day_meal_id,
           (
-            select jsonb_agg(jsonb_build_object(
-              'food_id', fri.food_id,
-              'grams', fri.grams
-            ))
-            from free_recipe_ingredients fri
-            where fri.free_recipe_id = fr.id
-          ) as free_recipe_ingredients,
+            select jsonb_agg(jsonb_build_object('food_id', ri.food_id, 'grams', ri.grams))
+            from recipe_ingredients ri
+            where ri.user_recipe_id = ur.id
+          ) as recipe_ingredients,
           fro.id as occurrence_id
         from free_recipe_occurrences fro
-        join free_recipes fr on fro.free_recipe_id = fr.id
+        join user_recipes ur on fro.user_recipe_id = ur.id
         where fro.user_id = p_user_id
-          and (fr.diet_plan_id = p_plan_id or fr.diet_plan_id is null)
+          and (ur.diet_plan_id = p_plan_id or ur.diet_plan_id is null)
+          and ur.type = 'free'
           and fro.meal_date between p_start_date and p_end_date
       ) fm_agg
     ),
@@ -1582,12 +1732,13 @@ begin
   select
     p.user_id,
     p.full_name,
-    count(fr.id)::integer as pending_count
-  from public.free_recipes fr
-  join public.profiles p on p.user_id = fr.user_id
-  where fr.status = p_status
+    count(ur.id)::integer as pending_count
+  from public.user_recipes ur
+  join public.profiles p on ur.user_id = p.user_id
+  where ur.type = 'free'
+    and ur.status = p_status
   group by p.user_id, p.full_name
-  having count(fr.id) > 0
+  having count(ur.id) > 0
   order by p.full_name;
 end;
 $$;
@@ -1955,10 +2106,10 @@ declare
   v_is_admin boolean;
   v_is_coach boolean;
 begin
-  select fr.user_id
+  select ur.user_id
   into v_owner_user_id
-  from public.free_recipes fr
-  where fr.id = p_recipe_id;
+  from public.user_recipes ur
+  where ur.id = p_recipe_id AND ur.type = 'free';
 
   if not found then
     raise exception 'Free recipe not found';
@@ -1967,9 +2118,9 @@ begin
   v_is_admin := public.is_admin();
   v_is_coach := exists (
     select 1
-    from public.user_roles ur
-    join public.roles r on r.id = ur.role_id
-    where ur.user_id = auth.uid()
+    from public.user_roles ur2
+    join public.roles r on r.id = ur2.role_id
+    where ur2.user_id = auth.uid()
       and r.role = 'coach'
   );
 
@@ -1984,7 +2135,7 @@ begin
     end if;
   end if;
 
-  update public.free_recipes
+  update public.user_recipes
   set
     name = p_name,
     instructions = p_instructions,
@@ -1992,14 +2143,14 @@ begin
     difficulty = p_difficulty
   where id = p_recipe_id;
 
-  delete from public.free_recipe_ingredients
-  where free_recipe_id = p_recipe_id;
+  delete from public.recipe_ingredients
+  where user_recipe_id = p_recipe_id;
 
   for ingredient_record in
     select *
     from jsonb_array_elements(coalesce(p_ingredients, '[]'::jsonb))
   loop
-    insert into public.free_recipe_ingredients (free_recipe_id, food_id, grams, status)
+    insert into public.recipe_ingredients (user_recipe_id, food_id, grams, status)
     values (
       p_recipe_id,
       (ingredient_record->>'food_id')::bigint,
@@ -2028,10 +2179,10 @@ declare
   v_is_admin boolean;
   v_is_coach boolean;
 begin
-  select pr.user_id
+  select ur.user_id
   into v_owner_user_id
-  from public.private_recipes pr
-  where pr.id = p_recipe_id;
+  from public.user_recipes ur
+  where ur.id = p_recipe_id AND ur.type = 'private';
 
   if not found then
     raise exception 'Private recipe not found';
@@ -2040,9 +2191,9 @@ begin
   v_is_admin := public.is_admin();
   v_is_coach := exists (
     select 1
-    from public.user_roles ur
-    join public.roles r on r.id = ur.role_id
-    where ur.user_id = auth.uid()
+    from public.user_roles ur2
+    join public.roles r on r.id = ur2.role_id
+    where ur2.user_id = auth.uid()
       and r.role = 'coach'
   );
 
@@ -2057,7 +2208,7 @@ begin
     end if;
   end if;
 
-  update public.private_recipes
+  update public.user_recipes
   set
     name = p_name,
     instructions = p_instructions,
@@ -2065,14 +2216,14 @@ begin
     difficulty = p_difficulty
   where id = p_recipe_id;
 
-  delete from public.private_recipe_ingredients
-  where private_recipe_id = p_recipe_id;
+  delete from public.recipe_ingredients
+  where user_recipe_id = p_recipe_id;
 
   for ingredient_record in
     select *
     from jsonb_array_elements(coalesce(p_ingredients, '[]'::jsonb))
   loop
-    insert into public.private_recipe_ingredients (private_recipe_id, food_id, grams)
+    insert into public.recipe_ingredients (user_recipe_id, food_id, grams)
     values (
       p_recipe_id,
       (ingredient_record->>'food_id')::bigint,
@@ -2434,11 +2585,11 @@ CREATE TABLE IF NOT EXISTS "public"."daily_ingredient_adjustments" (
     "id" bigint NOT NULL,
     "equivalence_adjustment_id" bigint NOT NULL,
     "diet_plan_recipe_id" bigint,
-    "private_recipe_id" bigint,
     "food_id" bigint NOT NULL,
     "original_grams" numeric NOT NULL,
     "adjusted_grams" numeric NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL
+    "created_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
+    "user_recipe_id" bigint
 );
 
 
@@ -2463,8 +2614,8 @@ CREATE TABLE IF NOT EXISTS "public"."daily_meal_logs" (
     "diet_plan_recipe_id" bigint,
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "user_day_meal_id" bigint,
-    "private_recipe_id" bigint,
-    "free_recipe_occurrence_id" bigint
+    "free_recipe_occurrence_id" bigint,
+    "user_recipe_id" bigint
 );
 
 
@@ -2560,9 +2711,9 @@ CREATE TABLE IF NOT EXISTS "public"."diet_change_requests" (
     "status" "text" DEFAULT 'pending'::"text" NOT NULL,
     "admin_comment" "text",
     "request_type" "text" DEFAULT 'replace'::"text" NOT NULL,
-    "private_recipe_id" bigint,
-    "requested_changes_private_recipe_id" bigint,
-    CONSTRAINT "check_one_recipe_id" CHECK (((("diet_plan_recipe_id" IS NOT NULL) AND ("private_recipe_id" IS NULL)) OR (("diet_plan_recipe_id" IS NULL) AND ("private_recipe_id" IS NOT NULL)))),
+    "user_recipe_id" bigint,
+    "requested_changes_user_recipe_id" bigint,
+    CONSTRAINT "check_one_recipe_id" CHECK (((("diet_plan_recipe_id" IS NOT NULL) AND ("user_recipe_id" IS NULL)) OR (("diet_plan_recipe_id" IS NULL) AND ("user_recipe_id" IS NOT NULL)))),
     CONSTRAINT "chk_status" CHECK (("status" = ANY (ARRAY['pending'::"text", 'approved'::"text", 'rejected'::"text"])))
 );
 
@@ -2635,31 +2786,35 @@ CREATE TABLE IF NOT EXISTS "public"."diet_plan_medical_conditions" (
 ALTER TABLE "public"."diet_plan_medical_conditions" OWNER TO "postgres";
 
 
-CREATE TABLE IF NOT EXISTS "public"."diet_plan_recipe_ingredients" (
+CREATE TABLE IF NOT EXISTS "public"."recipe_ingredients" (
     "id" bigint NOT NULL,
-    "diet_plan_recipe_id" bigint NOT NULL,
-    "food_id" bigint NOT NULL,
-    "grams" numeric(10,2),
-    "created_at" timestamp with time zone DEFAULT "now"()
+    "recipe_id" bigint,
+    "diet_plan_recipe_id" bigint,
+    "food_id" bigint,
+    "grams" numeric(10,2) DEFAULT 0 NOT NULL,
+    "food_group_id" bigint,
+    "status" "text" DEFAULT 'linked'::"text",
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    "user_recipe_id" bigint,
+    CONSTRAINT "exactly_one_parent" CHECK (((((("recipe_id" IS NOT NULL))::integer + (("diet_plan_recipe_id" IS NOT NULL))::integer) + (("user_recipe_id" IS NOT NULL))::integer) = 1)),
+    CONSTRAINT "recipe_ingredients_new_status_check" CHECK (("status" = ANY (ARRAY['linked'::"text", 'pending'::"text", 'rejected'::"text"])))
 );
 
 
-ALTER TABLE "public"."diet_plan_recipe_ingredients" OWNER TO "postgres";
+ALTER TABLE "public"."recipe_ingredients" OWNER TO "postgres";
 
 
-CREATE SEQUENCE IF NOT EXISTS "public"."diet_plan_recipe_ingredients_id_seq"
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
+CREATE OR REPLACE VIEW "public"."diet_plan_recipe_ingredients" AS
+ SELECT "id",
+    "diet_plan_recipe_id",
+    "food_id",
+    "grams",
+    "created_at"
+   FROM "public"."recipe_ingredients"
+  WHERE ("diet_plan_recipe_id" IS NOT NULL);
 
 
-ALTER SEQUENCE "public"."diet_plan_recipe_ingredients_id_seq" OWNER TO "postgres";
-
-
-ALTER SEQUENCE "public"."diet_plan_recipe_ingredients_id_seq" OWNED BY "public"."diet_plan_recipe_ingredients"."id";
-
+ALTER VIEW "public"."diet_plan_recipe_ingredients" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."diet_plan_recipes" (
@@ -2829,14 +2984,13 @@ CREATE TABLE IF NOT EXISTS "public"."equivalence_adjustments" (
     "adjustment_proteins" numeric NOT NULL,
     "adjustment_carbs" numeric NOT NULL,
     "adjustment_fats" numeric NOT NULL,
-    "source_free_recipe_id" bigint,
     "source_daily_snack_log_id" bigint,
     "source_diet_plan_recipe_id" bigint,
     "status" "text" DEFAULT 'pending'::"text" NOT NULL,
     "created_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
     "error_message" "text",
-    "source_private_recipe_id" bigint,
-    "source_free_recipe_occurrence_id" bigint
+    "source_free_recipe_occurrence_id" bigint,
+    "source_user_recipe_id" bigint
 );
 
 
@@ -3339,69 +3493,51 @@ CREATE TABLE IF NOT EXISTS "public"."food_vitamins" (
 ALTER TABLE "public"."food_vitamins" OWNER TO "postgres";
 
 
-CREATE TABLE IF NOT EXISTS "public"."free_recipe_ingredients" (
-    "id" bigint NOT NULL,
-    "free_recipe_id" bigint NOT NULL,
-    "food_id" bigint,
-    "grams" numeric NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "status" "text" DEFAULT 'linked'::"text" NOT NULL,
-    CONSTRAINT "free_recipe_ingredients_status_check" CHECK (("status" = ANY (ARRAY['linked'::"text", 'pending'::"text", 'rejected'::"text"])))
-);
-
-
-ALTER TABLE "public"."free_recipe_ingredients" OWNER TO "postgres";
-
-
-ALTER TABLE "public"."free_recipe_ingredients" ALTER COLUMN "id" ADD GENERATED BY DEFAULT AS IDENTITY (
-    SEQUENCE NAME "public"."free_meal_ingredients_id_seq"
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1
-);
-
-
-
-CREATE TABLE IF NOT EXISTS "public"."free_recipes" (
+CREATE TABLE IF NOT EXISTS "public"."user_recipes" (
     "id" bigint NOT NULL,
     "user_id" "uuid" NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "day_meal_id" bigint,
+    "type" "text" DEFAULT 'free'::"text" NOT NULL,
     "name" "text",
     "instructions" "text",
-    "status" "text" DEFAULT 'pending'::"text" NOT NULL,
+    "day_meal_id" bigint,
     "diet_plan_id" bigint,
     "prep_time_min" integer,
     "difficulty" "text",
-    "parent_free_recipe_id" bigint,
+    "status" "text",
+    "parent_user_recipe_id" bigint,
     "parent_recipe_id" bigint,
-    CONSTRAINT "free_recipes_status_check" CHECK (("status" = ANY (ARRAY['pending'::"text", 'approved_private'::"text", 'approved_general'::"text", 'kept_as_free_recipe'::"text", 'rejected'::"text"])))
+    "source_user_recipe_id" bigint,
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    CONSTRAINT "user_recipes_status_check" CHECK (("status" = ANY (ARRAY['pending'::"text", 'approved_private'::"text", 'approved_general'::"text", 'kept_as_free_recipe'::"text", 'rejected'::"text"]))),
+    CONSTRAINT "user_recipes_type_check" CHECK (("type" = ANY (ARRAY['free'::"text", 'private'::"text"])))
 );
 
 
-ALTER TABLE "public"."free_recipes" OWNER TO "postgres";
+ALTER TABLE "public"."user_recipes" OWNER TO "postgres";
 
 
-ALTER TABLE "public"."free_recipes" ALTER COLUMN "id" ADD GENERATED BY DEFAULT AS IDENTITY (
-    SEQUENCE NAME "public"."free_meals_id_seq"
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1
-);
+CREATE OR REPLACE VIEW "public"."free_recipe_ingredients" AS
+ SELECT "ri"."id",
+    "ri"."user_recipe_id" AS "free_recipe_id",
+    "ri"."food_id",
+    "ri"."grams",
+    "ri"."status",
+    "ri"."created_at"
+   FROM ("public"."recipe_ingredients" "ri"
+     JOIN "public"."user_recipes" "ur" ON (("ur"."id" = "ri"."user_recipe_id")))
+  WHERE ("ur"."type" = 'free'::"text");
 
+
+ALTER VIEW "public"."free_recipe_ingredients" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."free_recipe_occurrences" (
     "id" bigint NOT NULL,
-    "free_recipe_id" bigint NOT NULL,
     "user_id" "uuid" NOT NULL,
     "meal_date" "date" NOT NULL,
     "day_meal_id" bigint NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "user_recipe_id" bigint
 );
 
 
@@ -3419,6 +3555,27 @@ ALTER TABLE "public"."free_recipe_occurrences" ALTER COLUMN "id" ADD GENERATED B
 
 
 
+CREATE OR REPLACE VIEW "public"."free_recipes" AS
+ SELECT "id",
+    "user_id",
+    "created_at",
+    "day_meal_id",
+    "name",
+    "instructions",
+    "status",
+    "diet_plan_id",
+    "prep_time_min",
+    "difficulty",
+    "parent_user_recipe_id" AS "parent_free_recipe_id",
+    "parent_recipe_id",
+    "source_user_recipe_id" AS "source_free_recipe_id"
+   FROM "public"."user_recipes"
+  WHERE ("type" = 'free'::"text");
+
+
+ALTER VIEW "public"."free_recipes" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."joints" (
     "id" bigint NOT NULL,
     "name" "text"
@@ -3426,21 +3583,6 @@ CREATE TABLE IF NOT EXISTS "public"."joints" (
 
 
 ALTER TABLE "public"."joints" OWNER TO "postgres";
-
-
-CREATE SEQUENCE IF NOT EXISTS "public"."joints_id_seq"
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER SEQUENCE "public"."joints_id_seq" OWNER TO "postgres";
-
-
-ALTER SEQUENCE "public"."joints_id_seq" OWNED BY "public"."joints"."id";
-
 
 
 CREATE TABLE IF NOT EXISTS "public"."macro_roles" (
@@ -3639,12 +3781,11 @@ CREATE TABLE IF NOT EXISTS "public"."planned_meals" (
     "user_id" "uuid" NOT NULL,
     "diet_plan_id" bigint NOT NULL,
     "diet_plan_recipe_id" bigint,
-    "private_recipe_id" bigint,
-    "free_recipe_id" bigint,
     "day_meal_id" bigint NOT NULL,
     "plan_date" "date" NOT NULL,
     "created_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
-    CONSTRAINT "chk_one_meal_type" CHECK (((("diet_plan_recipe_id" IS NOT NULL) AND ("private_recipe_id" IS NULL) AND ("free_recipe_id" IS NULL)) OR (("diet_plan_recipe_id" IS NULL) AND ("private_recipe_id" IS NOT NULL) AND ("free_recipe_id" IS NULL)) OR (("diet_plan_recipe_id" IS NULL) AND ("private_recipe_id" IS NULL) AND ("free_recipe_id" IS NOT NULL))))
+    "user_recipe_id" bigint,
+    CONSTRAINT "chk_one_meal_type" CHECK (((("diet_plan_recipe_id" IS NOT NULL) AND ("user_recipe_id" IS NULL)) OR (("diet_plan_recipe_id" IS NULL) AND ("user_recipe_id" IS NOT NULL))))
 );
 
 
@@ -3671,55 +3812,37 @@ CREATE TABLE IF NOT EXISTS "public"."preferred_foods" (
 ALTER TABLE "public"."preferred_foods" OWNER TO "postgres";
 
 
-CREATE TABLE IF NOT EXISTS "public"."private_recipe_ingredients" (
-    "id" bigint NOT NULL,
-    "private_recipe_id" bigint NOT NULL,
-    "food_id" bigint NOT NULL,
-    "grams" numeric(10,2) NOT NULL
-);
+CREATE OR REPLACE VIEW "public"."private_recipe_ingredients" AS
+ SELECT "ri"."id",
+    "ri"."user_recipe_id" AS "private_recipe_id",
+    "ri"."food_id",
+    "ri"."grams",
+    "ri"."created_at"
+   FROM ("public"."recipe_ingredients" "ri"
+     JOIN "public"."user_recipes" "ur" ON (("ur"."id" = "ri"."user_recipe_id")))
+  WHERE ("ur"."type" = 'private'::"text");
 
 
-ALTER TABLE "public"."private_recipe_ingredients" OWNER TO "postgres";
+ALTER VIEW "public"."private_recipe_ingredients" OWNER TO "postgres";
 
 
-ALTER TABLE "public"."private_recipe_ingredients" ALTER COLUMN "id" ADD GENERATED BY DEFAULT AS IDENTITY (
-    SEQUENCE NAME "public"."private_recipe_ingredients_id_seq"
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1
-);
+CREATE OR REPLACE VIEW "public"."private_recipes" AS
+ SELECT "id",
+    "user_id",
+    "source_user_recipe_id" AS "source_free_recipe_id",
+    "name",
+    "instructions",
+    "created_at",
+    "diet_plan_id",
+    "day_meal_id",
+    "prep_time_min",
+    "difficulty",
+    "parent_user_recipe_id" AS "parent_private_recipe_id"
+   FROM "public"."user_recipes"
+  WHERE ("type" = 'private'::"text");
 
 
-
-CREATE TABLE IF NOT EXISTS "public"."private_recipes" (
-    "id" bigint NOT NULL,
-    "user_id" "uuid" NOT NULL,
-    "source_free_recipe_id" bigint,
-    "name" "text" NOT NULL,
-    "instructions" "text",
-    "created_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
-    "diet_plan_id" bigint,
-    "day_meal_id" bigint,
-    "prep_time_min" integer,
-    "difficulty" "text",
-    "parent_private_recipe_id" bigint
-);
-
-
-ALTER TABLE "public"."private_recipes" OWNER TO "postgres";
-
-
-ALTER TABLE "public"."private_recipes" ALTER COLUMN "id" ADD GENERATED BY DEFAULT AS IDENTITY (
-    SEQUENCE NAME "public"."private_recipes_id_seq"
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1
-);
-
+ALTER VIEW "public"."private_recipes" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."private_shopping_list_items" (
@@ -3795,15 +3918,15 @@ ALTER TABLE "public"."protein_sources" ALTER COLUMN "id" ADD GENERATED ALWAYS AS
 
 
 
-CREATE TABLE IF NOT EXISTS "public"."recipe_ingredients" (
-    "recipe_id" bigint NOT NULL,
-    "food_id" bigint NOT NULL,
-    "grams" integer,
-    "food_group_id" bigint
+ALTER TABLE "public"."recipe_ingredients" ALTER COLUMN "id" ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME "public"."recipe_ingredients_new_id_seq"
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
 );
 
-
-ALTER TABLE "public"."recipe_ingredients" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."recipe_macros" (
@@ -4331,6 +4454,17 @@ ALTER TABLE "public"."user_notifications" ALTER COLUMN "id" ADD GENERATED BY DEF
 
 
 
+ALTER TABLE "public"."user_recipes" ALTER COLUMN "id" ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME "public"."user_recipes_id_seq"
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+
 CREATE TABLE IF NOT EXISTS "public"."user_roles" (
     "user_id" "uuid" NOT NULL,
     "role_id" integer
@@ -4538,10 +4672,6 @@ ALTER TABLE ONLY "public"."activity_levels" ALTER COLUMN "id" SET DEFAULT "nextv
 
 
 
-ALTER TABLE ONLY "public"."diet_plan_recipe_ingredients" ALTER COLUMN "id" SET DEFAULT "nextval"('"public"."diet_plan_recipe_ingredients_id_seq"'::"regclass");
-
-
-
 ALTER TABLE ONLY "public"."diet_plans" ALTER COLUMN "id" SET DEFAULT "nextval"('"public"."diet_plans_id_seq"'::"regclass");
 
 
@@ -4563,10 +4693,6 @@ ALTER TABLE ONLY "public"."food" ALTER COLUMN "id" SET DEFAULT "nextval"('"publi
 
 
 ALTER TABLE ONLY "public"."food_aminogram_properties" ALTER COLUMN "id" SET DEFAULT "nextval"('"public"."food_aminogram_properties_id_seq"'::"regclass");
-
-
-
-ALTER TABLE ONLY "public"."joints" ALTER COLUMN "id" SET DEFAULT "nextval"('"public"."joints_id_seq"'::"regclass");
 
 
 
@@ -4781,11 +4907,6 @@ ALTER TABLE ONLY "public"."diet_plan_medical_conditions"
 
 
 
-ALTER TABLE ONLY "public"."diet_plan_recipe_ingredients"
-    ADD CONSTRAINT "diet_plan_recipe_ingredients_pkey" PRIMARY KEY ("id");
-
-
-
 ALTER TABLE ONLY "public"."diet_plan_recipes"
     ADD CONSTRAINT "diet_plan_recipes_pkey" PRIMARY KEY ("id");
 
@@ -4991,16 +5112,6 @@ ALTER TABLE ONLY "public"."food_vitamins"
 
 
 
-ALTER TABLE ONLY "public"."free_recipe_ingredients"
-    ADD CONSTRAINT "free_meal_ingredients_pkey" PRIMARY KEY ("id");
-
-
-
-ALTER TABLE ONLY "public"."free_recipes"
-    ADD CONSTRAINT "free_meals_pkey" PRIMARY KEY ("id");
-
-
-
 ALTER TABLE ONLY "public"."free_recipe_occurrences"
     ADD CONSTRAINT "free_recipe_occurrences_pkey" PRIMARY KEY ("id");
 
@@ -5081,16 +5192,6 @@ ALTER TABLE ONLY "public"."preferred_foods"
 
 
 
-ALTER TABLE ONLY "public"."private_recipe_ingredients"
-    ADD CONSTRAINT "private_recipe_ingredients_pkey" PRIMARY KEY ("id");
-
-
-
-ALTER TABLE ONLY "public"."private_recipes"
-    ADD CONSTRAINT "private_recipes_pkey" PRIMARY KEY ("id");
-
-
-
 ALTER TABLE ONLY "public"."private_shopping_list_items"
     ADD CONSTRAINT "private_shopping_list_items_pkey" PRIMARY KEY ("id");
 
@@ -5117,7 +5218,7 @@ ALTER TABLE ONLY "public"."protein_sources"
 
 
 ALTER TABLE ONLY "public"."recipe_ingredients"
-    ADD CONSTRAINT "recipe_ingredients_pkey" PRIMARY KEY ("recipe_id", "food_id");
+    ADD CONSTRAINT "recipe_ingredients_new_pkey" PRIMARY KEY ("id");
 
 
 
@@ -5281,6 +5382,11 @@ ALTER TABLE ONLY "public"."user_notifications"
 
 
 
+ALTER TABLE ONLY "public"."user_recipes"
+    ADD CONSTRAINT "user_recipes_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "public"."user_roles"
     ADD CONSTRAINT "user_roles_pkey" PRIMARY KEY ("user_id");
 
@@ -5346,14 +5452,6 @@ CREATE INDEX "idx_diet_plan_calorie_overrides_user_plan" ON "public"."diet_plan_
 
 
 
-CREATE INDEX "idx_diet_plan_recipe_ingredients_diet_plan_recipe_id" ON "public"."diet_plan_recipe_ingredients" USING "btree" ("diet_plan_recipe_id");
-
-
-
-CREATE INDEX "idx_diet_plan_recipe_ingredients_food_id" ON "public"."diet_plan_recipe_ingredients" USING "btree" ("food_id");
-
-
-
 CREATE INDEX "idx_food_source_user_created_food_id" ON "public"."food" USING "btree" ("source_user_created_food_id");
 
 
@@ -5382,10 +5480,6 @@ CREATE INDEX "idx_food_user_id" ON "public"."food" USING "btree" ("user_id");
 
 
 
-CREATE INDEX "idx_free_meals_status" ON "public"."free_recipes" USING "btree" ("status");
-
-
-
 CREATE INDEX "idx_profiles_has_seen_quick_guide" ON "public"."profiles" USING "btree" ("has_seen_quick_guide");
 
 
@@ -5399,6 +5493,34 @@ CREATE INDEX "idx_recipe_macros_diet_plan_recipe_id" ON "public"."recipe_macros"
 
 
 CREATE INDEX "idx_recipe_macros_recipe_id" ON "public"."recipe_macros" USING "btree" ("recipe_id");
+
+
+
+CREATE INDEX "idx_ri_diet_plan_recipe_id" ON "public"."recipe_ingredients" USING "btree" ("diet_plan_recipe_id") WHERE ("diet_plan_recipe_id" IS NOT NULL);
+
+
+
+CREATE INDEX "idx_ri_food_id" ON "public"."recipe_ingredients" USING "btree" ("food_id");
+
+
+
+CREATE INDEX "idx_ri_recipe_id" ON "public"."recipe_ingredients" USING "btree" ("recipe_id") WHERE ("recipe_id" IS NOT NULL);
+
+
+
+CREATE INDEX "idx_ri_user_recipe_id" ON "public"."recipe_ingredients" USING "btree" ("user_recipe_id") WHERE ("user_recipe_id" IS NOT NULL);
+
+
+
+CREATE INDEX "idx_user_recipes_status" ON "public"."user_recipes" USING "btree" ("status") WHERE ("status" IS NOT NULL);
+
+
+
+CREATE INDEX "idx_user_recipes_type" ON "public"."user_recipes" USING "btree" ("type");
+
+
+
+CREATE INDEX "idx_user_recipes_user_id" ON "public"."user_recipes" USING "btree" ("user_id");
 
 
 
@@ -5446,7 +5568,7 @@ CREATE OR REPLACE TRIGGER "on_equivalence_adjustment_created" AFTER INSERT ON "p
 
 
 
-CREATE OR REPLACE TRIGGER "on_private_recipe_creation_from_free_meal" AFTER INSERT ON "public"."private_recipes" FOR EACH ROW WHEN (("new"."source_free_recipe_id" IS NOT NULL)) EXECUTE FUNCTION "public"."create_private_recipe_notification"();
+CREATE OR REPLACE TRIGGER "on_user_recipe_conversion_from_free" AFTER INSERT ON "public"."user_recipes" FOR EACH ROW WHEN ((("new"."type" = 'private'::"text") AND ("new"."source_user_recipe_id" IS NOT NULL))) EXECUTE FUNCTION "public"."create_private_recipe_notification"();
 
 
 
@@ -5463,6 +5585,18 @@ CREATE OR REPLACE TRIGGER "trg_commercial_plans_updated_at" BEFORE UPDATE ON "pu
 
 
 CREATE OR REPLACE TRIGGER "trg_user_subscriptions_updated_at" BEFORE UPDATE ON "public"."user_subscriptions" FOR EACH ROW EXECUTE FUNCTION "public"."set_updated_at"();
+
+
+
+CREATE OR REPLACE TRIGGER "trig_dpri_delete" INSTEAD OF DELETE ON "public"."diet_plan_recipe_ingredients" FOR EACH ROW EXECUTE FUNCTION "public"."_trig_dpri_delete"();
+
+
+
+CREATE OR REPLACE TRIGGER "trig_dpri_insert" INSTEAD OF INSERT ON "public"."diet_plan_recipe_ingredients" FOR EACH ROW EXECUTE FUNCTION "public"."_trig_dpri_insert"();
+
+
+
+CREATE OR REPLACE TRIGGER "trig_dpri_update" INSTEAD OF UPDATE ON "public"."diet_plan_recipe_ingredients" FOR EACH ROW EXECUTE FUNCTION "public"."_trig_dpri_update"();
 
 
 
@@ -5531,11 +5665,6 @@ ALTER TABLE ONLY "public"."daily_ingredient_adjustments"
 
 
 
-ALTER TABLE ONLY "public"."daily_ingredient_adjustments"
-    ADD CONSTRAINT "daily_ingredient_adjustments_private_recipe_id_fkey" FOREIGN KEY ("private_recipe_id") REFERENCES "public"."private_recipes"("id");
-
-
-
 ALTER TABLE ONLY "public"."daily_meal_logs"
     ADD CONSTRAINT "daily_meal_logs_diet_plan_recipe_id_fkey" FOREIGN KEY ("diet_plan_recipe_id") REFERENCES "public"."diet_plan_recipes"("id") ON DELETE CASCADE;
 
@@ -5543,11 +5672,6 @@ ALTER TABLE ONLY "public"."daily_meal_logs"
 
 ALTER TABLE ONLY "public"."daily_meal_logs"
     ADD CONSTRAINT "daily_meal_logs_free_recipe_occurrence_id_fkey" FOREIGN KEY ("free_recipe_occurrence_id") REFERENCES "public"."free_recipe_occurrences"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."daily_meal_logs"
-    ADD CONSTRAINT "daily_meal_logs_private_recipe_id_fkey" FOREIGN KEY ("private_recipe_id") REFERENCES "public"."private_recipes"("id");
 
 
 
@@ -5582,12 +5706,22 @@ ALTER TABLE ONLY "public"."daily_snack_logs"
 
 
 ALTER TABLE ONLY "public"."diet_change_requests"
-    ADD CONSTRAINT "diet_change_requests_diet_plan_recipe_id_fkey" FOREIGN KEY ("diet_plan_recipe_id") REFERENCES "public"."diet_plan_recipes"("id") ON DELETE CASCADE;
+    ADD CONSTRAINT "dcr_req_changes_user_recipe_fk" FOREIGN KEY ("requested_changes_user_recipe_id") REFERENCES "public"."user_recipes"("id") ON DELETE SET NULL;
 
 
 
 ALTER TABLE ONLY "public"."diet_change_requests"
-    ADD CONSTRAINT "diet_change_requests_requested_changes_private_recipe_id_fkey" FOREIGN KEY ("requested_changes_private_recipe_id") REFERENCES "public"."private_recipes"("id") ON DELETE SET NULL;
+    ADD CONSTRAINT "dcr_user_recipe_fk" FOREIGN KEY ("user_recipe_id") REFERENCES "public"."user_recipes"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."daily_ingredient_adjustments"
+    ADD CONSTRAINT "dia_user_recipe_fk" FOREIGN KEY ("user_recipe_id") REFERENCES "public"."user_recipes"("id");
+
+
+
+ALTER TABLE ONLY "public"."diet_change_requests"
+    ADD CONSTRAINT "diet_change_requests_diet_plan_recipe_id_fkey" FOREIGN KEY ("diet_plan_recipe_id") REFERENCES "public"."diet_plan_recipes"("id") ON DELETE CASCADE;
 
 
 
@@ -5628,16 +5762,6 @@ ALTER TABLE ONLY "public"."diet_plan_medical_conditions"
 
 ALTER TABLE ONLY "public"."diet_plan_medical_conditions"
     ADD CONSTRAINT "diet_plan_medical_conditions_diet_plan_id_fkey" FOREIGN KEY ("diet_plan_id") REFERENCES "public"."diet_plans"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."diet_plan_recipe_ingredients"
-    ADD CONSTRAINT "diet_plan_recipe_ingredients_diet_plan_recipe_id_fkey" FOREIGN KEY ("diet_plan_recipe_id") REFERENCES "public"."diet_plan_recipes"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."diet_plan_recipe_ingredients"
-    ADD CONSTRAINT "diet_plan_recipe_ingredients_food_id_fkey" FOREIGN KEY ("food_id") REFERENCES "public"."food"("id") ON DELETE CASCADE;
 
 
 
@@ -5686,6 +5810,16 @@ ALTER TABLE ONLY "public"."diet_preferences"
 
 
 
+ALTER TABLE ONLY "public"."daily_meal_logs"
+    ADD CONSTRAINT "dml_user_recipe_fk" FOREIGN KEY ("user_recipe_id") REFERENCES "public"."user_recipes"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."equivalence_adjustments"
+    ADD CONSTRAINT "ea_source_user_recipe_fk" FOREIGN KEY ("source_user_recipe_id") REFERENCES "public"."user_recipes"("id") ON DELETE SET NULL;
+
+
+
 ALTER TABLE ONLY "public"."equivalence_adjustments"
     ADD CONSTRAINT "equivalence_adjustments_source_daily_snack_log_id_fkey" FOREIGN KEY ("source_daily_snack_log_id") REFERENCES "public"."daily_snack_logs"("id") ON DELETE SET NULL;
 
@@ -5697,17 +5831,7 @@ ALTER TABLE ONLY "public"."equivalence_adjustments"
 
 
 ALTER TABLE ONLY "public"."equivalence_adjustments"
-    ADD CONSTRAINT "equivalence_adjustments_source_free_recipe_id_fkey" FOREIGN KEY ("source_free_recipe_id") REFERENCES "public"."free_recipes"("id");
-
-
-
-ALTER TABLE ONLY "public"."equivalence_adjustments"
     ADD CONSTRAINT "equivalence_adjustments_source_free_recipe_occurrence_id_fkey" FOREIGN KEY ("source_free_recipe_occurrence_id") REFERENCES "public"."free_recipe_occurrences"("id");
-
-
-
-ALTER TABLE ONLY "public"."equivalence_adjustments"
-    ADD CONSTRAINT "equivalence_adjustments_source_private_recipe_id_fkey" FOREIGN KEY ("source_private_recipe_id") REFERENCES "public"."private_recipes"("id");
 
 
 
@@ -5766,11 +5890,6 @@ ALTER TABLE ONLY "public"."diet_plan_recipes"
 
 
 
-ALTER TABLE ONLY "public"."free_recipes"
-    ADD CONSTRAINT "fk_diet_plan" FOREIGN KEY ("diet_plan_id") REFERENCES "public"."diet_plans"("id") ON DELETE SET NULL;
-
-
-
 ALTER TABLE ONLY "public"."diet_preferences"
     ADD CONSTRAINT "fk_diet_type" FOREIGN KEY ("diet_type_id") REFERENCES "public"."diet_types"("id") ON DELETE SET NULL;
 
@@ -5783,11 +5902,6 @@ ALTER TABLE ONLY "public"."fat_types"
 
 ALTER TABLE ONLY "public"."food_antioxidants"
     ADD CONSTRAINT "fk_food" FOREIGN KEY ("food_id") REFERENCES "public"."food"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."diet_change_requests"
-    ADD CONSTRAINT "fk_private_recipe" FOREIGN KEY ("private_recipe_id") REFERENCES "public"."private_recipes"("id") ON DELETE CASCADE;
 
 
 
@@ -5986,33 +6100,8 @@ ALTER TABLE ONLY "public"."food_vitamins"
 
 
 
-ALTER TABLE ONLY "public"."free_recipe_ingredients"
-    ADD CONSTRAINT "free_meal_ingredients_food_id_fkey" FOREIGN KEY ("food_id") REFERENCES "public"."food"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."free_recipe_ingredients"
-    ADD CONSTRAINT "free_meal_ingredients_free_meal_id_fkey" FOREIGN KEY ("free_recipe_id") REFERENCES "public"."free_recipes"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."free_recipes"
-    ADD CONSTRAINT "free_meals_day_meal_id_fkey" FOREIGN KEY ("day_meal_id") REFERENCES "public"."day_meals"("id");
-
-
-
-ALTER TABLE ONLY "public"."free_recipes"
-    ADD CONSTRAINT "free_meals_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("user_id") ON DELETE CASCADE;
-
-
-
 ALTER TABLE ONLY "public"."free_recipe_occurrences"
     ADD CONSTRAINT "free_recipe_occurrences_day_meal_id_fkey" FOREIGN KEY ("day_meal_id") REFERENCES "public"."day_meals"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."free_recipe_occurrences"
-    ADD CONSTRAINT "free_recipe_occurrences_free_recipe_id_fkey" FOREIGN KEY ("free_recipe_id") REFERENCES "public"."free_recipes"("id") ON DELETE CASCADE;
 
 
 
@@ -6021,13 +6110,8 @@ ALTER TABLE ONLY "public"."free_recipe_occurrences"
 
 
 
-ALTER TABLE ONLY "public"."free_recipes"
-    ADD CONSTRAINT "free_recipes_parent_free_recipe_id_fkey" FOREIGN KEY ("parent_free_recipe_id") REFERENCES "public"."free_recipes"("id");
-
-
-
-ALTER TABLE ONLY "public"."free_recipes"
-    ADD CONSTRAINT "free_recipes_parent_recipe_id_fkey" FOREIGN KEY ("parent_recipe_id") REFERENCES "public"."recipes"("id");
+ALTER TABLE ONLY "public"."free_recipe_occurrences"
+    ADD CONSTRAINT "fro_user_recipe_fk" FOREIGN KEY ("user_recipe_id") REFERENCES "public"."user_recipes"("id") ON DELETE CASCADE;
 
 
 
@@ -6077,17 +6161,12 @@ ALTER TABLE ONLY "public"."planned_meals"
 
 
 ALTER TABLE ONLY "public"."planned_meals"
-    ADD CONSTRAINT "planned_meals_free_meal_id_fkey" FOREIGN KEY ("free_recipe_id") REFERENCES "public"."free_recipes"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."planned_meals"
-    ADD CONSTRAINT "planned_meals_private_recipe_id_fkey" FOREIGN KEY ("private_recipe_id") REFERENCES "public"."private_recipes"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."planned_meals"
     ADD CONSTRAINT "planned_meals_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("user_id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."planned_meals"
+    ADD CONSTRAINT "pm_user_recipe_fk" FOREIGN KEY ("user_recipe_id") REFERENCES "public"."user_recipes"("id") ON DELETE CASCADE;
 
 
 
@@ -6098,41 +6177,6 @@ ALTER TABLE ONLY "public"."preferred_foods"
 
 ALTER TABLE ONLY "public"."preferred_foods"
     ADD CONSTRAINT "preferred_foods_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."private_recipe_ingredients"
-    ADD CONSTRAINT "private_recipe_ingredients_food_id_fkey" FOREIGN KEY ("food_id") REFERENCES "public"."food"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."private_recipe_ingredients"
-    ADD CONSTRAINT "private_recipe_ingredients_private_recipe_id_fkey" FOREIGN KEY ("private_recipe_id") REFERENCES "public"."private_recipes"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."private_recipes"
-    ADD CONSTRAINT "private_recipes_day_meal_id_fkey" FOREIGN KEY ("day_meal_id") REFERENCES "public"."day_meals"("id");
-
-
-
-ALTER TABLE ONLY "public"."private_recipes"
-    ADD CONSTRAINT "private_recipes_diet_plan_id_fkey" FOREIGN KEY ("diet_plan_id") REFERENCES "public"."diet_plans"("id");
-
-
-
-ALTER TABLE ONLY "public"."private_recipes"
-    ADD CONSTRAINT "private_recipes_parent_private_recipe_id_fkey" FOREIGN KEY ("parent_private_recipe_id") REFERENCES "public"."private_recipes"("id");
-
-
-
-ALTER TABLE ONLY "public"."private_recipes"
-    ADD CONSTRAINT "private_recipes_source_free_meal_id_fkey" FOREIGN KEY ("source_free_recipe_id") REFERENCES "public"."free_recipes"("id") ON DELETE SET NULL;
-
-
-
-ALTER TABLE ONLY "public"."private_recipes"
-    ADD CONSTRAINT "private_recipes_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("user_id") ON DELETE CASCADE;
 
 
 
@@ -6152,17 +6196,12 @@ ALTER TABLE ONLY "public"."profiles"
 
 
 ALTER TABLE ONLY "public"."recipe_ingredients"
-    ADD CONSTRAINT "recipe_ingredients_food_group_id_fkey" FOREIGN KEY ("food_group_id") REFERENCES "public"."food_groups"("id");
+    ADD CONSTRAINT "recipe_ingredients_new_food_group_id_fkey" FOREIGN KEY ("food_group_id") REFERENCES "public"."food_groups"("id");
 
 
 
 ALTER TABLE ONLY "public"."recipe_ingredients"
-    ADD CONSTRAINT "recipe_ingredients_food_id_fkey" FOREIGN KEY ("food_id") REFERENCES "public"."food"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."recipe_ingredients"
-    ADD CONSTRAINT "recipe_ingredients_recipe_id_fkey" FOREIGN KEY ("recipe_id") REFERENCES "public"."recipes"("id") ON DELETE CASCADE;
+    ADD CONSTRAINT "recipe_ingredients_new_food_id_fkey" FOREIGN KEY ("food_id") REFERENCES "public"."food"("id") ON DELETE CASCADE;
 
 
 
@@ -6223,6 +6262,21 @@ ALTER TABLE ONLY "public"."reminders"
 
 ALTER TABLE ONLY "public"."reminders"
     ADD CONSTRAINT "reminders_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("user_id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."recipe_ingredients"
+    ADD CONSTRAINT "ri_diet_plan_recipe_id_fkey" FOREIGN KEY ("diet_plan_recipe_id") REFERENCES "public"."diet_plan_recipes"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."recipe_ingredients"
+    ADD CONSTRAINT "ri_recipe_id_fkey" FOREIGN KEY ("recipe_id") REFERENCES "public"."recipes"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."recipe_ingredients"
+    ADD CONSTRAINT "ri_user_recipe_fk" FOREIGN KEY ("user_recipe_id") REFERENCES "public"."user_recipes"("id") ON DELETE CASCADE;
 
 
 
@@ -6288,6 +6342,36 @@ ALTER TABLE ONLY "public"."snacks"
 
 ALTER TABLE ONLY "public"."training_preferences"
     ADD CONSTRAINT "training_preferences_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."user_recipes"
+    ADD CONSTRAINT "ur_day_meal_fk" FOREIGN KEY ("day_meal_id") REFERENCES "public"."day_meals"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."user_recipes"
+    ADD CONSTRAINT "ur_diet_plan_fk" FOREIGN KEY ("diet_plan_id") REFERENCES "public"."diet_plans"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."user_recipes"
+    ADD CONSTRAINT "ur_parent_fk" FOREIGN KEY ("parent_user_recipe_id") REFERENCES "public"."user_recipes"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."user_recipes"
+    ADD CONSTRAINT "ur_parent_recipe_fk" FOREIGN KEY ("parent_recipe_id") REFERENCES "public"."recipes"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."user_recipes"
+    ADD CONSTRAINT "ur_source_fk" FOREIGN KEY ("source_user_recipe_id") REFERENCES "public"."user_recipes"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."user_recipes"
+    ADD CONSTRAINT "ur_user_fk" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("user_id") ON DELETE CASCADE;
 
 
 
@@ -6428,7 +6512,15 @@ CREATE POLICY "Admin full access commercial plans" ON "public"."commercial_plans
 
 
 
+CREATE POLICY "Admin full access on recipe_ingredients" ON "public"."recipe_ingredients" USING ("public"."is_admin"()) WITH CHECK ("public"."is_admin"());
+
+
+
 CREATE POLICY "Admin full access user subscriptions" ON "public"."user_subscriptions" USING ("public"."is_admin"()) WITH CHECK ("public"."is_admin"());
+
+
+
+CREATE POLICY "Admin or coach can manage recipe_ingredients" ON "public"."recipe_ingredients" USING ("public"."is_admin_or_coach"()) WITH CHECK ("public"."is_admin_or_coach"());
 
 
 
@@ -6660,10 +6752,6 @@ CREATE POLICY "Allow admin full access on diet_plan_medical_conditions" ON "publ
 
 
 
-CREATE POLICY "Allow admin full access on diet_plan_recipe_ingredients" ON "public"."diet_plan_recipe_ingredients" USING ("public"."is_admin"());
-
-
-
 CREATE POLICY "Allow admin full access on diet_plan_recipes" ON "public"."diet_plan_recipes" USING ("public"."is_admin"()) WITH CHECK ("public"."is_admin"());
 
 
@@ -6723,14 +6811,6 @@ CREATE POLICY "Allow admin full access on food_to_food_groups" ON "public"."food
 
 
 
-CREATE POLICY "Allow admin full access on free meal ingredients" ON "public"."free_recipe_ingredients" USING ("public"."is_admin"()) WITH CHECK ("public"."is_admin"());
-
-
-
-CREATE POLICY "Allow admin full access on free meals" ON "public"."free_recipes" USING ("public"."is_admin"()) WITH CHECK ("public"."is_admin"());
-
-
-
 CREATE POLICY "Allow admin full access on free recipe occurrences" ON "public"."free_recipe_occurrences" USING ("public"."is_admin"());
 
 
@@ -6758,16 +6838,6 @@ CREATE POLICY "Allow admin full access on planned meals" ON "public"."planned_me
 
 
 CREATE POLICY "Allow admin full access on protein_sources" ON "public"."protein_sources" USING ((EXISTS ( SELECT 1
-   FROM ("public"."user_roles" "ur"
-     JOIN "public"."roles" "r" ON (("ur"."role_id" = "r"."id")))
-  WHERE (("ur"."user_id" = "auth"."uid"()) AND ("r"."role" = 'admin'::"text")))));
-
-
-
-CREATE POLICY "Allow admin full access on recipe_ingredients" ON "public"."recipe_ingredients" USING ((EXISTS ( SELECT 1
-   FROM ("public"."user_roles" "ur"
-     JOIN "public"."roles" "r" ON (("ur"."role_id" = "r"."id")))
-  WHERE (("ur"."user_id" = "auth"."uid"()) AND ("r"."role" = 'admin'::"text"))))) WITH CHECK ((EXISTS ( SELECT 1
    FROM ("public"."user_roles" "ur"
      JOIN "public"."roles" "r" ON (("ur"."role_id" = "r"."id")))
   WHERE (("ur"."user_id" = "auth"."uid"()) AND ("r"."role" = 'admin'::"text")))));
@@ -6849,6 +6919,10 @@ CREATE POLICY "Allow admin full access on user_medical_conditions" ON "public"."
 
 
 
+CREATE POLICY "Allow admin full access on user_recipes" ON "public"."user_recipes" USING ("public"."is_admin"()) WITH CHECK ("public"."is_admin"());
+
+
+
 CREATE POLICY "Allow admin full access to diet preferences" ON "public"."diet_preferences" USING ((EXISTS ( SELECT 1
    FROM ("public"."user_roles" "ur"
      JOIN "public"."roles" "r" ON (("ur"."role_id" = "r"."id")))
@@ -6899,14 +6973,6 @@ CREATE POLICY "Allow admin to read all notifications" ON "public"."user_notifica
 
 
 CREATE POLICY "Allow admin to update user roles" ON "public"."user_roles" FOR UPDATE USING ("public"."is_admin"());
-
-
-
-CREATE POLICY "Allow admin to view all private_recipe_ingredients" ON "public"."private_recipe_ingredients" FOR SELECT USING ("public"."is_admin"());
-
-
-
-CREATE POLICY "Allow admin to view all private_recipes" ON "public"."private_recipes" FOR SELECT USING ("public"."is_admin"());
 
 
 
@@ -7043,10 +7109,6 @@ CREATE POLICY "Allow authenticated users to read exercise_muscles" ON "public"."
 
 
 CREATE POLICY "Allow authenticated users to read exercises" ON "public"."exercises" FOR SELECT USING (("auth"."role"() = 'authenticated'::"text"));
-
-
-
-CREATE POLICY "Allow authenticated users to read recipe_ingredients" ON "public"."recipe_ingredients" FOR SELECT USING (("auth"."role"() = 'authenticated'::"text"));
 
 
 
@@ -7266,13 +7328,6 @@ CREATE POLICY "Allow users to manage their own day meals" ON "public"."user_day_
 
 
 
-CREATE POLICY "Allow users to manage their own diet plan recipe ingredients" ON "public"."diet_plan_recipe_ingredients" USING ((EXISTS ( SELECT 1
-   FROM ("public"."diet_plan_recipes" "dpr"
-     JOIN "public"."diet_plans" "dp" ON (("dpr"."diet_plan_id" = "dp"."id")))
-  WHERE (("dpr"."id" = "diet_plan_recipe_ingredients"."diet_plan_recipe_id") AND ("dp"."user_id" = "auth"."uid"())))));
-
-
-
 CREATE POLICY "Allow users to manage their own diet plan recipes" ON "public"."diet_plan_recipes" USING ((EXISTS ( SELECT 1
    FROM "public"."diet_plans" "dp"
   WHERE (("dp"."id" = "diet_plan_recipes"."diet_plan_id") AND ("dp"."user_id" = "auth"."uid"())))));
@@ -7288,18 +7343,6 @@ CREATE POLICY "Allow users to manage their own diet_plans" ON "public"."diet_pla
 
 
 CREATE POLICY "Allow users to manage their own equivalence adjustments" ON "public"."equivalence_adjustments" USING (("auth"."uid"() = "user_id"));
-
-
-
-CREATE POLICY "Allow users to manage their own free meal ingredients" ON "public"."free_recipe_ingredients" USING ((EXISTS ( SELECT 1
-   FROM "public"."free_recipes" "fm"
-  WHERE (("fm"."id" = "free_recipe_ingredients"."free_recipe_id") AND ("fm"."user_id" = "auth"."uid"()))))) WITH CHECK ((EXISTS ( SELECT 1
-   FROM "public"."free_recipes" "fm"
-  WHERE (("fm"."id" = "free_recipe_ingredients"."free_recipe_id") AND ("fm"."user_id" = "auth"."uid"())))));
-
-
-
-CREATE POLICY "Allow users to manage their own free meals" ON "public"."free_recipes" USING (("auth"."uid"() = "user_id")) WITH CHECK (("auth"."uid"() = "user_id"));
 
 
 
@@ -7328,18 +7371,6 @@ CREATE POLICY "Allow users to manage their own planned meals" ON "public"."plann
 
 
 CREATE POLICY "Allow users to manage their own preferred foods" ON "public"."preferred_foods" USING (("auth"."uid"() = "user_id")) WITH CHECK (("auth"."uid"() = "user_id"));
-
-
-
-CREATE POLICY "Allow users to manage their own private recipe ingredients" ON "public"."private_recipe_ingredients" USING (("public"."is_admin"() OR (EXISTS ( SELECT 1
-   FROM "public"."private_recipes" "pr"
-  WHERE (("pr"."id" = "private_recipe_ingredients"."private_recipe_id") AND ("pr"."user_id" = "auth"."uid"())))))) WITH CHECK (("public"."is_admin"() OR (EXISTS ( SELECT 1
-   FROM "public"."private_recipes" "pr"
-  WHERE (("pr"."id" = "private_recipe_ingredients"."private_recipe_id") AND ("pr"."user_id" = "auth"."uid"()))))));
-
-
-
-CREATE POLICY "Allow users to manage their own private recipes" ON "public"."private_recipes" USING ((("auth"."uid"() = "user_id") OR "public"."is_admin"())) WITH CHECK ((("auth"."uid"() = "user_id") OR "public"."is_admin"()));
 
 
 
@@ -7374,6 +7405,10 @@ CREATE POLICY "Allow users to manage their own snapshots" ON "public"."daily_pla
 
 
 CREATE POLICY "Allow users to manage their own training preferences" ON "public"."training_preferences" USING (("auth"."uid"() = "user_id")) WITH CHECK (("auth"."uid"() = "user_id"));
+
+
+
+CREATE POLICY "Allow users to manage their own user_recipes" ON "public"."user_recipes" USING (("auth"."uid"() = "user_id")) WITH CHECK (("auth"."uid"() = "user_id"));
 
 
 
@@ -7525,41 +7560,23 @@ CREATE POLICY "Coaches can manage calorie overrides for clients" ON "public"."di
 
 
 
+CREATE POLICY "Coaches can manage client diet plan recipe ingredients" ON "public"."recipe_ingredients" USING ((("diet_plan_recipe_id" IS NOT NULL) AND (EXISTS ( SELECT 1
+   FROM (("public"."diet_plan_recipes"
+     JOIN "public"."diet_plans" ON (("diet_plan_recipes"."diet_plan_id" = "diet_plans"."id")))
+     JOIN "public"."coach_clients" ON (("diet_plans"."user_id" = "coach_clients"."client_id")))
+  WHERE (("diet_plan_recipes"."id" = "recipe_ingredients"."diet_plan_recipe_id") AND ("coach_clients"."coach_id" = "auth"."uid"()))))));
+
+
+
 CREATE POLICY "Coaches can manage client equivalence adjustments" ON "public"."equivalence_adjustments" USING ((EXISTS ( SELECT 1
    FROM "public"."coach_clients"
   WHERE (("coach_clients"."coach_id" = "auth"."uid"()) AND ("coach_clients"."client_id" = "equivalence_adjustments"."user_id")))));
 
 
 
-CREATE POLICY "Coaches can manage client free recipe ingredients" ON "public"."free_recipe_ingredients" USING ((EXISTS ( SELECT 1
-   FROM ("public"."free_recipes" "fr"
-     JOIN "public"."coach_clients" "cc" ON (("fr"."user_id" = "cc"."client_id")))
-  WHERE (("fr"."id" = "free_recipe_ingredients"."free_recipe_id") AND ("cc"."coach_id" = "auth"."uid"())))));
-
-
-
 CREATE POLICY "Coaches can manage client free recipe occurrences" ON "public"."free_recipe_occurrences" USING ((EXISTS ( SELECT 1
    FROM "public"."coach_clients"
   WHERE (("coach_clients"."coach_id" = "auth"."uid"()) AND ("coach_clients"."client_id" = "free_recipe_occurrences"."user_id")))));
-
-
-
-CREATE POLICY "Coaches can manage client free recipes" ON "public"."free_recipes" USING ((EXISTS ( SELECT 1
-   FROM "public"."coach_clients"
-  WHERE (("coach_clients"."coach_id" = "auth"."uid"()) AND ("coach_clients"."client_id" = "free_recipes"."user_id")))));
-
-
-
-CREATE POLICY "Coaches can manage client private recipe ingredients" ON "public"."private_recipe_ingredients" USING ((EXISTS ( SELECT 1
-   FROM ("public"."private_recipes" "pr"
-     JOIN "public"."coach_clients" "cc" ON (("pr"."user_id" = "cc"."client_id")))
-  WHERE (("pr"."id" = "private_recipe_ingredients"."private_recipe_id") AND ("cc"."coach_id" = "auth"."uid"())))));
-
-
-
-CREATE POLICY "Coaches can manage client private recipes" ON "public"."private_recipes" USING ((EXISTS ( SELECT 1
-   FROM "public"."coach_clients"
-  WHERE (("coach_clients"."coach_id" = "auth"."uid"()) AND ("coach_clients"."client_id" = "private_recipes"."user_id")))));
 
 
 
@@ -7582,17 +7599,17 @@ CREATE POLICY "Coaches can manage client snacks" ON "public"."snacks" USING ((EX
 
 
 
+CREATE POLICY "Coaches can manage client user_recipes" ON "public"."user_recipes" USING ((EXISTS ( SELECT 1
+   FROM "public"."coach_clients" "cc"
+  WHERE (("cc"."coach_id" = "auth"."uid"()) AND ("cc"."client_id" = "user_recipes"."user_id"))))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM "public"."coach_clients" "cc"
+  WHERE (("cc"."coach_id" = "auth"."uid"()) AND ("cc"."client_id" = "user_recipes"."user_id")))));
+
+
+
 CREATE POLICY "Coaches can manage conditions in their own templates" ON "public"."diet_plan_medical_conditions" USING ((EXISTS ( SELECT 1
    FROM "public"."diet_plans" "dp"
   WHERE (("dp"."id" = "diet_plan_medical_conditions"."diet_plan_id") AND ("dp"."is_template" = true) AND ("dp"."created_by" = "auth"."uid"())))));
-
-
-
-CREATE POLICY "Coaches can manage diet plan ingredients for clients" ON "public"."diet_plan_recipe_ingredients" USING ((EXISTS ( SELECT 1
-   FROM (("public"."diet_plan_recipes"
-     JOIN "public"."diet_plans" ON (("diet_plan_recipes"."diet_plan_id" = "diet_plans"."id")))
-     JOIN "public"."coach_clients" ON (("diet_plans"."user_id" = "coach_clients"."client_id")))
-  WHERE (("diet_plan_recipes"."id" = "diet_plan_recipe_ingredients"."diet_plan_recipe_id") AND ("coach_clients"."coach_id" = "auth"."uid"())))));
 
 
 
@@ -7631,10 +7648,10 @@ CREATE POLICY "Coaches can manage global recipe macros" ON "public"."recipe_macr
 
 
 
-CREATE POLICY "Coaches can manage ingredients in their own templates" ON "public"."diet_plan_recipe_ingredients" USING ((EXISTS ( SELECT 1
+CREATE POLICY "Coaches can manage ingredients in their own templates" ON "public"."recipe_ingredients" USING ((("diet_plan_recipe_id" IS NOT NULL) AND (EXISTS ( SELECT 1
    FROM ("public"."diet_plan_recipes" "dpr"
      JOIN "public"."diet_plans" "dp" ON (("dpr"."diet_plan_id" = "dp"."id")))
-  WHERE (("dpr"."id" = "diet_plan_recipe_ingredients"."diet_plan_recipe_id") AND ("dp"."is_template" = true) AND ("dp"."created_by" = "auth"."uid"())))));
+  WHERE (("dpr"."id" = "recipe_ingredients"."diet_plan_recipe_id") AND ("dp"."is_template" = true) AND ("dp"."created_by" = "auth"."uid"()))))));
 
 
 
@@ -7660,10 +7677,6 @@ CREATE POLICY "Coaches can manage non preferred foods for clients" ON "public"."
 CREATE POLICY "Coaches can manage preferred foods for clients" ON "public"."preferred_foods" USING ((EXISTS ( SELECT 1
    FROM "public"."coach_clients"
   WHERE (("coach_clients"."coach_id" = "auth"."uid"()) AND ("coach_clients"."client_id" = "preferred_foods"."user_id")))));
-
-
-
-CREATE POLICY "Coaches can manage recipe ingredients" ON "public"."recipe_ingredients" USING ("public"."is_admin_or_coach"());
 
 
 
@@ -7838,6 +7851,16 @@ CREATE POLICY "Coaches delete own templates" ON "public"."diet_plans" FOR DELETE
 
 
 
+CREATE POLICY "Coaches manage client user_recipe ingredients" ON "public"."recipe_ingredients" USING ((("user_recipe_id" IS NOT NULL) AND (EXISTS ( SELECT 1
+   FROM ("public"."user_recipes" "ur"
+     JOIN "public"."coach_clients" "cc" ON (("cc"."client_id" = "ur"."user_id")))
+  WHERE (("ur"."id" = "recipe_ingredients"."user_recipe_id") AND ("cc"."coach_id" = "auth"."uid"())))))) WITH CHECK ((("user_recipe_id" IS NOT NULL) AND (EXISTS ( SELECT 1
+   FROM ("public"."user_recipes" "ur"
+     JOIN "public"."coach_clients" "cc" ON (("cc"."client_id" = "ur"."user_id")))
+  WHERE (("ur"."id" = "recipe_ingredients"."user_recipe_id") AND ("cc"."coach_id" = "auth"."uid"()))))));
+
+
+
 CREATE POLICY "Coaches manage own templates" ON "public"."diet_plans" FOR UPDATE USING ((("is_template" = true) AND ("created_by" = "auth"."uid"()) AND ("template_scope" = 'global'::"text") AND (EXISTS ( SELECT 1
    FROM ("public"."user_roles" "ur"
      JOIN "public"."roles" "r" ON (("ur"."role_id" = "r"."id")))
@@ -7891,7 +7914,18 @@ CREATE POLICY "Users can manage their own calorie overrides" ON "public"."diet_p
 
 
 
+CREATE POLICY "Users can manage their own diet plan recipe ingredients" ON "public"."recipe_ingredients" USING ((("diet_plan_recipe_id" IS NOT NULL) AND (EXISTS ( SELECT 1
+   FROM ("public"."diet_plan_recipes" "dpr"
+     JOIN "public"."diet_plans" "dp" ON (("dpr"."diet_plan_id" = "dp"."id")))
+  WHERE (("dpr"."id" = "recipe_ingredients"."diet_plan_recipe_id") AND ("dp"."user_id" = "auth"."uid"()))))));
+
+
+
 CREATE POLICY "Users can read own subscriptions" ON "public"."user_subscriptions" FOR SELECT USING (("auth"."uid"() = "user_id"));
+
+
+
+CREATE POLICY "Users can read template recipe_ingredients" ON "public"."recipe_ingredients" FOR SELECT USING ((("recipe_id" IS NOT NULL) AND ("auth"."role"() = 'authenticated'::"text")));
 
 
 
@@ -7923,6 +7957,14 @@ CREATE POLICY "Users can view their own medical conditions" ON "public"."diet_pl
 
 
 CREATE POLICY "Users can view their own medical conditions" ON "public"."user_medical_conditions" FOR SELECT TO "authenticated" USING (("auth"."uid"() = "user_id"));
+
+
+
+CREATE POLICY "Users manage own user_recipe ingredients" ON "public"."recipe_ingredients" USING ((("user_recipe_id" IS NOT NULL) AND (EXISTS ( SELECT 1
+   FROM "public"."user_recipes" "ur"
+  WHERE (("ur"."id" = "recipe_ingredients"."user_recipe_id") AND ("ur"."user_id" = "auth"."uid"())))))) WITH CHECK ((("user_recipe_id" IS NOT NULL) AND (EXISTS ( SELECT 1
+   FROM "public"."user_recipes" "ur"
+  WHERE (("ur"."id" = "recipe_ingredients"."user_recipe_id") AND ("ur"."user_id" = "auth"."uid"()))))));
 
 
 
@@ -8013,9 +8055,6 @@ ALTER TABLE "public"."diet_plan_centers" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."diet_plan_medical_conditions" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."diet_plan_recipe_ingredients" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."diet_plan_recipes" ENABLE ROW LEVEL SECURITY;
@@ -8114,13 +8153,7 @@ ALTER TABLE "public"."food_to_stores" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."food_vitamins" ENABLE ROW LEVEL SECURITY;
 
 
-ALTER TABLE "public"."free_recipe_ingredients" ENABLE ROW LEVEL SECURITY;
-
-
 ALTER TABLE "public"."free_recipe_occurrences" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."free_recipes" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."joints" ENABLE ROW LEVEL SECURITY;
@@ -8166,12 +8199,6 @@ ALTER TABLE "public"."planned_meals" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."preferred_foods" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."private_recipe_ingredients" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."private_recipes" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."private_shopping_list_items" ENABLE ROW LEVEL SECURITY;
@@ -8270,6 +8297,9 @@ ALTER TABLE "public"."user_medical_conditions" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."user_notifications" ENABLE ROW LEVEL SECURITY;
 
 
+ALTER TABLE "public"."user_recipes" ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE "public"."user_roles" ENABLE ROW LEVEL SECURITY;
 
 
@@ -8297,10 +8327,236 @@ ALTER TABLE "public"."workout_exercises" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."workouts" ENABLE ROW LEVEL SECURITY;
 
 
+
+
+ALTER PUBLICATION "supabase_realtime" OWNER TO "postgres";
+
+
+
+
+
+
+ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."equivalence_adjustments";
+
+
+
+
+
+
 GRANT USAGE ON SCHEMA "public" TO "postgres";
 GRANT USAGE ON SCHEMA "public" TO "anon";
 GRANT USAGE ON SCHEMA "public" TO "authenticated";
 GRANT USAGE ON SCHEMA "public" TO "service_role";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+GRANT ALL ON FUNCTION "public"."_trig_dpri_delete"() TO "anon";
+GRANT ALL ON FUNCTION "public"."_trig_dpri_delete"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."_trig_dpri_delete"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."_trig_dpri_insert"() TO "anon";
+GRANT ALL ON FUNCTION "public"."_trig_dpri_insert"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."_trig_dpri_insert"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."_trig_dpri_update"() TO "anon";
+GRANT ALL ON FUNCTION "public"."_trig_dpri_update"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."_trig_dpri_update"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."_trig_fri_delete"() TO "anon";
+GRANT ALL ON FUNCTION "public"."_trig_fri_delete"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."_trig_fri_delete"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."_trig_fri_insert"() TO "anon";
+GRANT ALL ON FUNCTION "public"."_trig_fri_insert"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."_trig_fri_insert"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."_trig_fri_update"() TO "anon";
+GRANT ALL ON FUNCTION "public"."_trig_fri_update"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."_trig_fri_update"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."_trig_pri_delete"() TO "anon";
+GRANT ALL ON FUNCTION "public"."_trig_pri_delete"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."_trig_pri_delete"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."_trig_pri_insert"() TO "anon";
+GRANT ALL ON FUNCTION "public"."_trig_pri_insert"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."_trig_pri_insert"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."_trig_pri_update"() TO "anon";
+GRANT ALL ON FUNCTION "public"."_trig_pri_update"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."_trig_pri_update"() TO "service_role";
 
 
 
@@ -8550,6 +8806,21 @@ GRANT ALL ON FUNCTION "public"."update_profile_current_weight"() TO "service_rol
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 GRANT ALL ON TABLE "public"."activity_levels" TO "anon";
 GRANT ALL ON TABLE "public"."activity_levels" TO "authenticated";
 GRANT ALL ON TABLE "public"."activity_levels" TO "service_role";
@@ -8796,15 +9067,15 @@ GRANT ALL ON TABLE "public"."diet_plan_medical_conditions" TO "service_role";
 
 
 
+GRANT ALL ON TABLE "public"."recipe_ingredients" TO "anon";
+GRANT ALL ON TABLE "public"."recipe_ingredients" TO "authenticated";
+GRANT ALL ON TABLE "public"."recipe_ingredients" TO "service_role";
+
+
+
 GRANT ALL ON TABLE "public"."diet_plan_recipe_ingredients" TO "anon";
 GRANT ALL ON TABLE "public"."diet_plan_recipe_ingredients" TO "authenticated";
 GRANT ALL ON TABLE "public"."diet_plan_recipe_ingredients" TO "service_role";
-
-
-
-GRANT ALL ON SEQUENCE "public"."diet_plan_recipe_ingredients_id_seq" TO "anon";
-GRANT ALL ON SEQUENCE "public"."diet_plan_recipe_ingredients_id_seq" TO "authenticated";
-GRANT ALL ON SEQUENCE "public"."diet_plan_recipe_ingredients_id_seq" TO "service_role";
 
 
 
@@ -9114,27 +9385,15 @@ GRANT ALL ON TABLE "public"."food_vitamins" TO "service_role";
 
 
 
+GRANT ALL ON TABLE "public"."user_recipes" TO "anon";
+GRANT ALL ON TABLE "public"."user_recipes" TO "authenticated";
+GRANT ALL ON TABLE "public"."user_recipes" TO "service_role";
+
+
+
 GRANT ALL ON TABLE "public"."free_recipe_ingredients" TO "anon";
 GRANT ALL ON TABLE "public"."free_recipe_ingredients" TO "authenticated";
 GRANT ALL ON TABLE "public"."free_recipe_ingredients" TO "service_role";
-
-
-
-GRANT ALL ON SEQUENCE "public"."free_meal_ingredients_id_seq" TO "anon";
-GRANT ALL ON SEQUENCE "public"."free_meal_ingredients_id_seq" TO "authenticated";
-GRANT ALL ON SEQUENCE "public"."free_meal_ingredients_id_seq" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."free_recipes" TO "anon";
-GRANT ALL ON TABLE "public"."free_recipes" TO "authenticated";
-GRANT ALL ON TABLE "public"."free_recipes" TO "service_role";
-
-
-
-GRANT ALL ON SEQUENCE "public"."free_meals_id_seq" TO "anon";
-GRANT ALL ON SEQUENCE "public"."free_meals_id_seq" TO "authenticated";
-GRANT ALL ON SEQUENCE "public"."free_meals_id_seq" TO "service_role";
 
 
 
@@ -9150,15 +9409,15 @@ GRANT ALL ON SEQUENCE "public"."free_recipe_occurrences_id_seq" TO "service_role
 
 
 
+GRANT ALL ON TABLE "public"."free_recipes" TO "anon";
+GRANT ALL ON TABLE "public"."free_recipes" TO "authenticated";
+GRANT ALL ON TABLE "public"."free_recipes" TO "service_role";
+
+
+
 GRANT ALL ON TABLE "public"."joints" TO "anon";
 GRANT ALL ON TABLE "public"."joints" TO "authenticated";
 GRANT ALL ON TABLE "public"."joints" TO "service_role";
-
-
-
-GRANT ALL ON SEQUENCE "public"."joints_id_seq" TO "anon";
-GRANT ALL ON SEQUENCE "public"."joints_id_seq" TO "authenticated";
-GRANT ALL ON SEQUENCE "public"."joints_id_seq" TO "service_role";
 
 
 
@@ -9276,21 +9535,9 @@ GRANT ALL ON TABLE "public"."private_recipe_ingredients" TO "service_role";
 
 
 
-GRANT ALL ON SEQUENCE "public"."private_recipe_ingredients_id_seq" TO "anon";
-GRANT ALL ON SEQUENCE "public"."private_recipe_ingredients_id_seq" TO "authenticated";
-GRANT ALL ON SEQUENCE "public"."private_recipe_ingredients_id_seq" TO "service_role";
-
-
-
 GRANT ALL ON TABLE "public"."private_recipes" TO "anon";
 GRANT ALL ON TABLE "public"."private_recipes" TO "authenticated";
 GRANT ALL ON TABLE "public"."private_recipes" TO "service_role";
-
-
-
-GRANT ALL ON SEQUENCE "public"."private_recipes_id_seq" TO "anon";
-GRANT ALL ON SEQUENCE "public"."private_recipes_id_seq" TO "authenticated";
-GRANT ALL ON SEQUENCE "public"."private_recipes_id_seq" TO "service_role";
 
 
 
@@ -9324,9 +9571,9 @@ GRANT ALL ON SEQUENCE "public"."protein_sources_id_seq" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."recipe_ingredients" TO "anon";
-GRANT ALL ON TABLE "public"."recipe_ingredients" TO "authenticated";
-GRANT ALL ON TABLE "public"."recipe_ingredients" TO "service_role";
+GRANT ALL ON SEQUENCE "public"."recipe_ingredients_new_id_seq" TO "anon";
+GRANT ALL ON SEQUENCE "public"."recipe_ingredients_new_id_seq" TO "authenticated";
+GRANT ALL ON SEQUENCE "public"."recipe_ingredients_new_id_seq" TO "service_role";
 
 
 
@@ -9570,6 +9817,12 @@ GRANT ALL ON SEQUENCE "public"."user_notifications_id_seq" TO "service_role";
 
 
 
+GRANT ALL ON SEQUENCE "public"."user_recipes_id_seq" TO "anon";
+GRANT ALL ON SEQUENCE "public"."user_recipes_id_seq" TO "authenticated";
+GRANT ALL ON SEQUENCE "public"."user_recipes_id_seq" TO "service_role";
+
+
+
 GRANT ALL ON TABLE "public"."user_roles" TO "anon";
 GRANT ALL ON TABLE "public"."user_roles" TO "authenticated";
 GRANT ALL ON TABLE "public"."user_roles" TO "service_role";
@@ -9660,6 +9913,12 @@ GRANT ALL ON SEQUENCE "public"."workouts_id_seq" TO "service_role";
 
 
 
+
+
+
+
+
+
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "postgres";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "authenticated";
@@ -9684,6 +9943,30 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TAB
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "authenticated";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "service_role";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

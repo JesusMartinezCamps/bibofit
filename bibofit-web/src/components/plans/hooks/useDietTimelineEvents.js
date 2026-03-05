@@ -29,8 +29,8 @@ export const useDietTimelineEvents = ({ userId, weekDates, isAdminView, refreshT
             log_date,
             free_recipe_occurrence_id,
             diet_plan_recipe:diet_plan_recipe_id(diet_plan_id),
-            private_recipe:private_recipe_id(diet_plan_id),
-            free_recipe_occurrence:free_recipe_occurrence_id(free_recipe:free_recipe_id(diet_plan_id))
+            user_recipe:user_recipe_id(diet_plan_id),
+            free_recipe_occurrence:free_recipe_occurrence_id(user_recipe:user_recipe_id(diet_plan_id))
           `)
           .eq('user_id', userId)
           .gte('log_date', startDate)
@@ -66,8 +66,8 @@ export const useDietTimelineEvents = ({ userId, weekDates, isAdminView, refreshT
         .filter((l) => {
           if (!targetPlanId) return false;
           const recipePlanId = Number(l.diet_plan_recipe?.diet_plan_id);
-          const privatePlanId = Number(l.private_recipe?.diet_plan_id);
-          const freePlanId = Number(l.free_recipe_occurrence?.free_recipe?.diet_plan_id);
+          const privatePlanId = Number(l.user_recipe?.diet_plan_id);
+          const freePlanId = Number(l.free_recipe_occurrence?.user_recipe?.diet_plan_id);
           return recipePlanId === targetPlanId || privatePlanId === targetPlanId || freePlanId === targetPlanId;
         })
         .forEach((l) => addEvent(l.log_date, 'diet_log', l.free_recipe_occurrence_id !== null));

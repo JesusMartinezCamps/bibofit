@@ -303,7 +303,7 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
                 prep_time_min: prepTime,
                 difficulty,
                 status: FREE_RECIPE_STATUS.PENDING,
-                parent_free_recipe_id: currentFreeMeal.id,
+                parent_user_recipe_id: currentFreeMeal.id,
               },
               ingredients: ingredientPayload,
             });

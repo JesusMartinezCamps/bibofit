@@ -134,11 +134,10 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
         adjustment_proteins: sourceItemMacros.proteins,
         adjustment_carbs: sourceItemMacros.carbs,
         adjustment_fats: sourceItemMacros.fats,
-        source_free_recipe_id: freeRecipeId,
+        source_user_recipe_id: freeRecipeId || (sourceItemType === 'private_recipe' ? sourceItem.id : null),
         source_free_recipe_occurrence_id: freeRecipeOccurrenceId,
         source_daily_snack_log_id: sourceItemType === 'snack' ? sourceLogId : null,
         source_diet_plan_recipe_id: sourceItemType === 'recipe' ? sourceItem.id : null,
-        source_private_recipe_id: sourceItemType === 'private_recipe' ? sourceItem.id : null,
         status: 'pending',
       };
       
@@ -161,19 +160,18 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
       // Private Recipes
       const { data: plannedPrivate } = await supabase
         .from('planned_meals')
-        .select('private_recipe_id')
+        .select('user_recipe_id')
         .eq('user_id', user.id)
         .eq('diet_plan_id', selectedMeal.diet_plan_id)
         .eq('plan_date', selectedMeal.date)
         .eq('day_meal_id', selectedMeal.day_meal_id);
-
 
       const recipesPayload = [];
       if (planRecipes) {
           planRecipes.forEach(r => recipesPayload.push({ id: r.id, is_private: false }));
       }
       if (plannedPrivate) {
-          plannedPrivate.forEach(p => recipesPayload.push({ id: p.private_recipe_id, is_private: true }));
+          plannedPrivate.forEach(p => recipesPayload.push({ id: p.user_recipe_id, is_private: true }));
       }
       console.log('2. Identified Recipes:', recipesPayload);
 

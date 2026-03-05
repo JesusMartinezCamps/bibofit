@@ -41,7 +41,7 @@ export const useDietMacros = ({ data, activePlan, userId, logDate, viewMode, toa
         const [{ data: consumedLogs, error: logsError }, { data: snackLogs, error: snackLogsError }] = await Promise.all([
           supabase
             .from('daily_meal_logs')
-            .select('diet_plan_recipe_id, private_recipe_id, free_recipe_occurrence_id')
+            .select('diet_plan_recipe_id, user_recipe_id, free_recipe_occurrence_id')
             .eq('user_id', userId)
             .eq('log_date', logDate),
           supabase.from('daily_snack_logs').select('snack_occurrence_id').eq('user_id', userId).eq('log_date', logDate),
@@ -57,7 +57,7 @@ export const useDietMacros = ({ data, activePlan, userId, logDate, viewMode, toa
         }
 
         const dietPlanRecipeIds = consumedLogs.map((l) => l.diet_plan_recipe_id).filter(Boolean);
-        const privateRecipeIds = consumedLogs.map((l) => l.private_recipe_id).filter(Boolean);
+        const privateRecipeIds = consumedLogs.map((l) => l.user_recipe_id).filter(Boolean);
         const freeRecipeOccurrenceIds = consumedLogs.map((l) => l.free_recipe_occurrence_id).filter(Boolean);
         const snackOccurrenceIds = snackLogs.map((l) => l.snack_occurrence_id).filter(Boolean);
 
@@ -77,14 +77,14 @@ export const useDietMacros = ({ data, activePlan, userId, logDate, viewMode, toa
           privateRecipeIds.length > 0
             ? supabase
                 .from('recipe_ingredients')
-                .select('private_recipe_id, food_id, grams, food(id, proteins, total_carbs, total_fats, food_unit)')
-                .in('private_recipe_id', privateRecipeIds)
+                .select('user_recipe_id, food_id, grams, food(id, proteins, total_carbs, total_fats, food_unit)')
+                .in('user_recipe_id', privateRecipeIds)
             : Promise.resolve({ data: [], error: null }),
           freeRecipeOccurrenceIds.length > 0
             ? supabase
                 .from('free_recipe_occurrences')
                 .select(
-                  'id, free_recipe:free_recipes(id, free_recipe_ingredients:recipe_ingredients(id, grams, food(id, proteins, total_carbs, total_fats, food_unit)))'
+                  'id, user_recipe:user_recipes(id, recipe_ingredients(id, grams, food(id, proteins, total_carbs, total_fats, food_unit)))'
                 )
                 .in('id', freeRecipeOccurrenceIds)
             : Promise.resolve({ data: [], error: null }),
@@ -123,14 +123,14 @@ export const useDietMacros = ({ data, activePlan, userId, logDate, viewMode, toa
         if (equivalenceAdjustments.length > 0) {
           const { data: adjData, error: adjError } = await supabase
             .from('daily_ingredient_adjustments')
-            .select('equivalence_adjustment_id, diet_plan_recipe_id, private_recipe_id, food_id, adjusted_grams')
+            .select('equivalence_adjustment_id, diet_plan_recipe_id, user_recipe_id, food_id, adjusted_grams')
             .in('equivalence_adjustment_id', equivalenceAdjustments.map((ea) => ea.id));
           if (adjError) throw adjError;
           ingredientAdjustments = adjData || [];
         }
 
         const freeRecipeIngredients = freeRecipeOccurrences.flatMap((occurrence) =>
-          occurrence.free_recipe.free_recipe_ingredients.map((ing) => ({ ...ing, food: ing.food }))
+          (occurrence.user_recipe?.recipe_ingredients || []).map((ing) => ({ ...ing, food: ing.food }))
         );
         const snackIngredients = snackOccurrences.flatMap((occurrence) =>
           occurrence.snack.snack_ingredients.map((ing) => ({ ...ing, food: ing.food }))
@@ -143,8 +143,8 @@ export const useDietMacros = ({ data, activePlan, userId, logDate, viewMode, toa
         );
         const privateAdjustmentMap = new Map(
           ingredientAdjustments
-            .filter((adj) => adj.private_recipe_id && adj.food_id)
-            .map((adj) => [`${adj.private_recipe_id}-${adj.food_id}`, adj.adjusted_grams])
+            .filter((adj) => adj.user_recipe_id && adj.food_id)
+            .map((adj) => [`${adj.user_recipe_id}-${adj.food_id}`, adj.adjusted_grams])
         );
 
         const adjustedDietPlanIngredients = dietPlanIngredients.map((ing) => {
@@ -154,7 +154,7 @@ export const useDietMacros = ({ data, activePlan, userId, logDate, viewMode, toa
         });
 
         const adjustedPrivateRecipeIngredients = privateRecipeIngredients.map((ing) => {
-          const adjustedGrams = privateAdjustmentMap.get(`${ing.private_recipe_id}-${ing.food_id}`);
+          const adjustedGrams = privateAdjustmentMap.get(`${ing.user_recipe_id}-${ing.food_id}`);
           const adjustment = adjustedGrams !== undefined ? { adjusted_grams: adjustedGrams } : null;
           return adjustment ? { ...ing, grams: adjustment.adjusted_grams } : ing;
         });

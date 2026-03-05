@@ -135,16 +135,17 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOn
             }
 
             // 3. Fetch Private Recipes
-            const { data: privateRecipesData, error: privateRecipesError } = await supabase.from('private_recipes')
+            const { data: privateRecipesData, error: privateRecipesError } = await supabase.from('user_recipes')
                 .select(`
-                    *, 
-                    private_recipe_ingredients:recipe_ingredients(
+                    *,
+                    recipe_ingredients(
                         *,
                         food(*)
                     ),
                     day_meal:day_meal_id!inner(id,name,display_order)
                 `)
-                .eq('diet_plan_id', plan.id);
+                .eq('diet_plan_id', plan.id)
+                .eq('type', 'private');
 
             if (privateRecipesError) {
                 console.warn("Error fetching private recipes:", privateRecipesError);
@@ -166,11 +167,9 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOn
                         // Ensure macros are accessible
                         recipe_macros: r.recipe_macros || []
                     })),
-                    ...(privateRecipesData || []).map(r => ({ 
-                        ...r, 
+                    ...(privateRecipesData || []).map(r => ({
+                        ...r,
                         is_private: true,
-                        // Private recipes use this structure
-                        private_recipe_ingredients: r.private_recipe_ingredients || []
                     }))
                 ];
 
@@ -264,7 +263,7 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOn
     
         if (recipeToDelete.isPrivate) {
             promise = supabase
-                .from('private_recipes')
+                .from('user_recipes')
                 .update({ diet_plan_id: null, day_meal_id: null })
                 .eq('id', recipeToDelete.id);
             successMessage = 'Receta privada desasignada del plan.';
