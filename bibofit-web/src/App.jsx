@@ -176,6 +176,8 @@ const AppRoutes = () => (
       <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
       <Route path="/profile/data" element={<ProtectedRoute><ProfileDataPage /></ProtectedRoute>} />
       <Route path="/profile/my-free-recipes" element={<ProtectedRoute><MyFreeRecipesPage /></ProtectedRoute>} />
+      <Route path="/profile/variantes-recetas" element={<ProtectedRoute><VariantTreePage /></ProtectedRoute>} />
+      <Route path="/profile/ver-receta" element={<ProtectedRoute><RecipeViewPage /></ProtectedRoute>} />
       <Route path="/profile/my-foods" element={<ProtectedRoute><MyFoodsPage /></ProtectedRoute>} />
       <Route path="/profile/weight-history" element={<ProtectedRoute><WeightHistoryPage /></ProtectedRoute>} />
       <Route path="/my-plan" element={<ProtectedRoute><ClientPlanDetailPage /></ProtectedRoute>} />

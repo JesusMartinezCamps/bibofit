@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate, Link } from 'react-router-dom';
-import { User, Utensils, LogOut, ChevronRight, LineChart, CalendarCheck, RotateCcw, PlayCircle, Bell, Moon, Sun } from 'lucide-react'; 
+import { User,GitBranch, LogOut, ChevronRight, LineChart, CalendarCheck, RotateCcw, PlayCircle, Bell, Moon, Sun } from 'lucide-react'; 
 import {
   AlertDialog,
   AlertDialogAction,
@@ -79,9 +79,9 @@ const ProfilePage = () => {
       color: 'bg-gradient-to-r from-emerald-700 to-green-600 hover:from-emerald-600 hover:to-green-500',
     },
     {
-      label: 'Mis Recetas Libres',
-      href: '/profile/my-free-recipes',
-      icon: Utensils,
+      label: 'Mis Variantes de Recetas',
+      href: '/profile/variantes-recetas',
+      icon: GitBranch,
       color: 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-cyan-400',
     },
      {

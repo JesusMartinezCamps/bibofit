@@ -44,6 +44,7 @@ const VariantTreePage = () => {
   const [userRecipes, setUserRecipes] = useState([]);
   const [mealLinkedVariantIds, setMealLinkedVariantIds] = useState(new Set());
   const [deletingVariantId, setDeletingVariantId] = useState(null);
+  const [openingRecipeKey, setOpeningRecipeKey] = useState(null);
 
   const targetUserId = paramUserId || user?.id;
   const dateKey = useMemo(() => {
@@ -51,9 +52,14 @@ const VariantTreePage = () => {
     return isValid(parsed) ? format(parsed, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd');
   }, [paramDate]);
 
-  const backPath = useMemo(
-    () => (paramUserId ? `/plan/dieta/${paramUserId}/${dateKey}` : `/plan/dieta/${dateKey}`),
-    [dateKey, paramUserId]
+  const isProfileMode = !paramDate;
+  const backPath = useMemo(() => {
+    if (isProfileMode) return '/profile';
+    return paramUserId ? `/plan/dieta/${paramUserId}/${dateKey}` : `/plan/dieta/${dateKey}`;
+  }, [isProfileMode, paramUserId, dateKey]);
+  const recipeViewPath = useMemo(
+    () => (isProfileMode ? '/profile/ver-receta' : `${backPath}/ver-receta`),
+    [isProfileMode, backPath]
   );
 
   const loadData = useCallback(async () => {
@@ -62,6 +68,60 @@ const VariantTreePage = () => {
     setError(null);
 
     try {
+      // Modo perfil: cargar TODAS las variantes del usuario sin filtrar por plan
+      if (isProfileMode) {
+        const { data: allUserRecipes, error: userRecipesError } = await supabase
+          .from('user_recipes')
+          .select(`
+            id,
+            user_id,
+            diet_plan_id,
+            day_meal_id,
+            type,
+            name,
+            variant_label,
+            parent_user_recipe_id,
+            source_diet_plan_recipe_id,
+            is_archived,
+            archived_at,
+            created_at,
+            day_meal:day_meal_id(name, display_order)
+          `)
+          .eq('user_id', targetUserId)
+          .in('type', ['private', 'variant']);
+
+        if (userRecipesError) throw userRecipesError;
+
+        const allPlanIds = [...new Set((allUserRecipes || []).map((r) => r.diet_plan_id).filter(Boolean))];
+        let allPlanRecipes = [];
+        if (allPlanIds.length > 0) {
+          const { data: planRecipesData, error: planRecipesError } = await supabase
+            .from('diet_plan_recipes')
+            .select(`
+              id,
+              diet_plan_id,
+              day_meal_id,
+              parent_diet_plan_recipe_id,
+              is_archived,
+              archived_at,
+              created_at,
+              custom_name,
+              recipe:recipe_id(id, name),
+              day_meal:day_meal_id(name, display_order)
+            `)
+            .in('diet_plan_id', allPlanIds);
+          if (planRecipesError) throw planRecipesError;
+          allPlanRecipes = planRecipesData || [];
+        }
+
+        setPlanInfo({ id: null, profileMode: true });
+        setPlanRecipes(allPlanRecipes.sort(byCreatedAtAsc));
+        setUserRecipes((allUserRecipes || []).sort(byCreatedAtAsc));
+        setMealLinkedVariantIds(new Set());
+        setLoading(false);
+        return;
+      }
+
       const requestedPlanId = searchParams.get('planId');
 
       let plan = null;
@@ -181,7 +241,7 @@ const VariantTreePage = () => {
     } finally {
       setLoading(false);
     }
-  }, [dateKey, searchParams, targetUserId]);
+  }, [dateKey, isProfileMode, searchParams, targetUserId]);
 
   useEffect(() => {
     loadData();
@@ -334,17 +394,108 @@ const VariantTreePage = () => {
     }
   }, [canDeleteVariantNode, deletingVariantId, toast]);
 
+  const handleOpenRecipeNode = useCallback(async (nodeType, node) => {
+    if (!node?.id || openingRecipeKey) return;
+
+    const key = `${nodeType}-${node.id}`;
+    setOpeningRecipeKey(key);
+
+    try {
+      let recipePayload = null;
+
+      if (nodeType === 'plan') {
+        const { data, error: planError } = await supabase
+          .from('diet_plan_recipes')
+          .select(`
+            *,
+            recipe:recipe_id(*, template_ingredients:recipe_ingredients(*)),
+            custom_ingredients:recipe_ingredients(*),
+            day_meal:day_meal_id(id, name, display_order)
+          `)
+          .eq('id', node.id)
+          .maybeSingle();
+
+        if (planError) throw planError;
+        if (!data) throw new Error('No se pudo cargar la receta del plan.');
+
+        recipePayload = {
+          ...data,
+          type: 'recipe',
+          is_private: false,
+          dnd_id: `recipe-${data.id}`,
+        };
+      } else {
+        const { data, error: userError } = await supabase
+          .from('user_recipes')
+          .select(`
+            *,
+            recipe_ingredients(*),
+            day_meal:day_meal_id(id, name, display_order)
+          `)
+          .eq('id', node.id)
+          .maybeSingle();
+
+        if (userError) throw userError;
+        if (!data) throw new Error('No se pudo cargar la variante.');
+
+        recipePayload = {
+          ...data,
+          user_recipe_type: data.type,
+          type: 'private_recipe',
+          is_private: true,
+          is_private_recipe: true,
+          dnd_id: `private-${data.id}`,
+        };
+      }
+
+      const isAdminView = user?.id !== targetUserId;
+      sessionStorage.setItem('recipe_view_data', JSON.stringify({
+        recipe: recipePayload,
+        userId: targetUserId,
+        isAdminView,
+        adjustments: null,
+        returnTo: `${window.location.pathname}${window.location.search || ''}`,
+      }));
+
+      navigate(recipeViewPath);
+    } catch (err) {
+      toast({
+        title: 'No se pudo abrir la receta',
+        description: err.message || 'Error cargando datos de la receta.',
+        variant: 'destructive',
+      });
+    } finally {
+      setOpeningRecipeKey(null);
+    }
+  }, [navigate, openingRecipeKey, recipeViewPath, targetUserId, toast, user?.id]);
+
   const renderVariantNode = useCallback((node, depth = 0) => {
     const children = userChildrenMap.get(node.id) || [];
     const canDelete = canDeleteVariantNode(node);
     const isDeleting = deletingVariantId === node.id;
+    const isOpening = openingRecipeKey === `variant-${node.id}`;
 
     return (
       <div
         key={`variant-${node.id}`}
         className={cn('space-y-2', depth > 0 && 'ml-4 border-l border-cyan-500/30 pl-4')}
       >
-        <div className="rounded-xl border border-cyan-500/35 bg-gradient-to-r from-cyan-500/8 via-cyan-500/5 to-transparent p-3">
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => handleOpenRecipeNode('variant', node)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              handleOpenRecipeNode('variant', node);
+            }
+          }}
+          className={cn(
+            "rounded-xl border border-cyan-500/35 bg-gradient-to-r from-cyan-500/8 via-cyan-500/5 to-transparent p-3 transition-colors",
+            "cursor-pointer hover:bg-cyan-500/12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/50",
+            isOpening && "opacity-80"
+          )}
+        >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="mb-1 flex flex-wrap items-center gap-1.5">
@@ -368,7 +519,10 @@ const VariantTreePage = () => {
               {canDelete && (
                 <button
                   type="button"
-                  onClick={() => handleDeleteVariant(node)}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleDeleteVariant(node);
+                  }}
                   disabled={isDeleting}
                   className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-red-600/60 bg-red-500/15 text-red-700 transition-colors hover:bg-red-500/30 hover:text-red-800 dark:border-red-500/55 dark:text-red-200 dark:hover:text-red-100 disabled:cursor-not-allowed disabled:opacity-50"
                   title="Eliminar variante"
@@ -376,6 +530,7 @@ const VariantTreePage = () => {
                   {isDeleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
                 </button>
               )}
+              {isOpening && <Loader2 className="h-3.5 w-3.5 animate-spin text-cyan-700 dark:text-cyan-200" />}
               <span className="text-[11px] text-muted-foreground">#{node.id}</span>
             </div>
           </div>
@@ -392,25 +547,38 @@ const VariantTreePage = () => {
         )}
       </div>
     );
-  }, [canDeleteVariantNode, deletingVariantId, handleDeleteVariant, userChildrenMap]);
+  }, [canDeleteVariantNode, deletingVariantId, handleDeleteVariant, handleOpenRecipeNode, openingRecipeKey, userChildrenMap]);
 
   const renderPlanNode = useCallback((node, depth = 0) => {
     const childVersions = (planChildrenMap.get(node.id) || []).filter((child) => hasVariantsInPlanBranch(child.id));
     const linkedVariants = userRootsBySourceMap.get(node.id) || [];
     const createdLabel = formatDateTime(node.created_at);
     const archivedLabel = formatDateTime(node.archived_at);
+    const isOpening = openingRecipeKey === `plan-${node.id}`;
 
     return (
       <div
         key={`plan-${node.id}`}
         className={cn('space-y-3', depth > 0 && 'ml-5 border-l border-amber-500/30 pl-4')}
       >
-        <div className={cn(
-          'rounded-2xl border p-4',
-          node.is_archived
-            ? 'border-orange-500/40 bg-gradient-to-r from-orange-500/10 via-orange-500/6 to-transparent'
-            : 'border-amber-500/40 bg-gradient-to-r from-amber-500/14 via-amber-500/8 to-transparent'
-        )}>
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => handleOpenRecipeNode('plan', node)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              handleOpenRecipeNode('plan', node);
+            }
+          }}
+          className={cn(
+            'rounded-2xl border p-4 transition-colors cursor-pointer hover:bg-amber-500/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/45',
+            node.is_archived
+              ? 'border-orange-500/40 bg-gradient-to-r from-orange-500/10 via-orange-500/6 to-transparent'
+              : 'border-amber-500/40 bg-gradient-to-r from-amber-500/14 via-amber-500/8 to-transparent',
+            isOpening && 'opacity-80'
+          )}
+        >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="mb-1 flex flex-wrap items-center gap-1.5">
@@ -430,6 +598,7 @@ const VariantTreePage = () => {
               </div>
               <p className="truncate text-base font-semibold text-foreground">{getPlanNodeName(node)}</p>
               <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                {isOpening ? <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-700 dark:text-amber-200" /> : null}
                 <span>#{node.id}</span>
                 {createdLabel ? <span>{createdLabel}</span> : null}
                 {archivedLabel ? <span>Archivada: {archivedLabel}</span> : null}
@@ -456,7 +625,7 @@ const VariantTreePage = () => {
         )}
       </div>
     );
-  }, [hasVariantsInPlanBranch, planChildrenMap, renderVariantNode, userRootsBySourceMap]);
+  }, [handleOpenRecipeNode, hasVariantsInPlanBranch, openingRecipeKey, planChildrenMap, renderVariantNode, userRootsBySourceMap]);
 
   return (
     <div className="relative min-h-full">
@@ -480,7 +649,7 @@ const VariantTreePage = () => {
               </div>
               <Button variant="outline" onClick={() => navigate(backPath)}>
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                Volver al plan
+                {isProfileMode ? 'Volver al perfil' : 'Volver al plan'}
               </Button>
             </div>
 
@@ -488,7 +657,6 @@ const VariantTreePage = () => {
               <Badge variant="secondary">Recetas del plan: {stats.planNodes}</Badge>
               <Badge variant="secondary">Recetas variante: {stats.variantNodes}</Badge>
               <Badge variant="secondary">Archivados: {stats.archivedNodes}</Badge>
-              {planInfo?.id ? <Badge variant="outline">Plan #{planInfo.id}</Badge> : null}
             </div>
           </CardHeader>
         </Card>
@@ -505,7 +673,7 @@ const VariantTreePage = () => {
           </Card>
         )}
 
-        {!loading && !error && !planInfo && (
+        {!loading && !error && !planInfo && !isProfileMode && (
             <Card className="border-amber-500/35 bg-amber-500/10">
             <CardContent className="py-6 text-sm text-amber-900 dark:text-amber-100">
               No se encontró un plan de dieta para mostrar el árbol en esta fecha.
@@ -525,10 +693,18 @@ const VariantTreePage = () => {
                   </Card>
                 ))}
               </div>
-            ) : (
+            ) : !isProfileMode ? (
               <Card className="border-border/70 bg-card/80">
                 <CardContent className="py-6 text-sm text-muted-foreground">
                   Este plan no tiene recetas base con variantes vinculadas.
+                </CardContent>
+              </Card>
+            ) : null}
+
+            {isProfileMode && visibleRootPlanNodes.length === 0 && unlinkedVariantRoots.length === 0 && (
+              <Card className="border-border/70 bg-card/80">
+                <CardContent className="py-6 text-sm text-muted-foreground">
+                  Aún no tienes variantes de recetas creadas.
                 </CardContent>
               </Card>
             )}
