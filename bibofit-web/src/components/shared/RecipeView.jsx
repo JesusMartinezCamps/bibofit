@@ -664,7 +664,7 @@ const RecipeView = ({
         {isEditing && (mealTargetMacros || fetchedTargets) && !isTemplate && (
           <div className="mt-4">
             <h4 className="text-sm font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
-              Macros Objetivo (Limite)
+              Macros Objetivo
             </h4>
             <MacroTargetGrid targets={mealTargetMacros || fetchedTargets} />
           </div>
@@ -683,7 +683,7 @@ const RecipeView = ({
               variant="ghost"
               size="icon"
               onClick={onAddIngredientClick}
-              className="text-green-400 hover:bg-green-500/10 hover:text-green-300"
+              className="text-green-700 dark:text-green-300 hover:bg-green-500/10 hover:text-green-800 dark:hover:text-green-200"
             >
               <PlusCircle className="w-6 h-6" />
             </Button>
