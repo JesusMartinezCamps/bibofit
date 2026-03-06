@@ -248,9 +248,9 @@ const AdvisoryVisualizer = () => {
                     {/* Button for Diet Plan Manager */}
                     <Button
                       size="sm"
-                      variant="outline-profile"
+                      variant="outline"
                       onClick={() => navigate(`/admin/manage-diet/${selectedUser.user_id}`)}
-                      className="mt-2 text-xs sm:text-sm bg-indigo-100/90 text-slate-900 border-indigo-300 hover:bg-indigo-200 dark:bg-gradient-to-br dark:from-[rgb(66_52_143_/50%)] dark:to-emerald-300/0 dark:text-indigo-300 dark:border-indigo-500/70"
+                      className="mt-2 text-xs sm:text-sm"
                     >
                       Gestor de Planes de Dieta
                     </Button>

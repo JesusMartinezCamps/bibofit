@@ -12,6 +12,7 @@ import HighlightedText from '@/components/shared/HighlightedText';
 import { analyzeRecipeConflicts } from '@/lib/recipeConflictAnalyzer';
 import { useTheme } from '@/contexts/ThemeContext';
 import { RecipeCardBackground, RecipeCardPanel } from '@/components/shared/recipe-card/RecipeCardBase';
+import { getIngredientHighlightForQuery } from '@/lib/recipeSearch';
 import {
   getRecipeDifficulty,
   getRecipeDisplayName,
@@ -108,6 +109,12 @@ const RecipeCard = ({
             const unit = food.food_unit === 'unidades' ? 'ud' : 'g';
             text = `${food.name} (${Math.round(ing.quantity || 0)}${unit})`;
         }
+
+        const ingredientHighlight = getIngredientHighlightForQuery({
+          food,
+          query: searchQuery,
+          allowFuzzy: true,
+        });
         
         const isUnsafe = unsafeFoodsSet.has(food.name);
         const isRecommended = recommendedFoodsSet.has(food.name);
@@ -118,7 +125,7 @@ const RecipeCard = ({
         
         return (
             <span key={ing.food_id || index} className={className}>
-                <HighlightedText text={text} highlight={searchQuery} />
+                <HighlightedText text={text} highlight={ingredientHighlight} />
             </span>
         );
     }).filter(Boolean);

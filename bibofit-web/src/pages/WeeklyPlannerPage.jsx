@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Helmet } from 'react-helmet';
 import { motion } from 'framer-motion';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabaseClient';
 import { Button } from '@/components/ui/button';
@@ -13,12 +13,12 @@ import { useToast } from '@/components/ui/use-toast';
 import { Loader2 } from 'lucide-react';
 import AddRecipeToPlanDialog from '@/components/plans/AddRecipeToPlanDialog';
 import RecipeCard from '@/components/shared/WeeklyDietPlanner/RecipeCard';
-import RecipeEditorModal from '@/components/shared/RecipeEditorModal/RecipeEditorModal';
 
 const WeeklyPlannerPage = () => {
     const { user: authUser } = useAuth();
     const { userId: paramUserId } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const { toast } = useToast();
 
     const userId = paramUserId || authUser.id;
@@ -36,8 +36,6 @@ const WeeklyPlannerPage = () => {
     const [selectedMealLogs, setSelectedMealLogs] = useState(new Set());
     const [selectionCounts, setSelectionCounts] = useState({});
     
-    const [recipeToEdit, setRecipeToEdit] = useState(null);
-    const [isEditorOpen, setIsEditorOpen] = useState(false);
 
     const todayRef = useRef(new Date());
     const today = todayRef.current;
@@ -215,8 +213,18 @@ const WeeklyPlannerPage = () => {
     }, [userId, toast, fetchLogs, selectedMealLogs]);
 
     const handleRecipeClick = (recipe) => {
-        setRecipeToEdit(recipe);
-        setIsEditorOpen(true);
+        try {
+            sessionStorage.setItem('recipe_view_data', JSON.stringify({
+                recipe,
+                userId,
+                isAdminView,
+                adjustments: null,
+                returnTo: location.pathname,
+            }));
+        } catch (e) {
+            console.error('Error saving recipe to sessionStorage:', e);
+        }
+        navigate(`${location.pathname}/ver-receta`);
     };
 
     const handleShoppingListClick = () => {
@@ -317,19 +325,6 @@ const WeeklyPlannerPage = () => {
                     userId={userId}
                     preselectedMeal={addRecipeParams.meal}
                     dayOfWeek={addRecipeParams.dayOfWeek}
-                />
-            )}
-            {recipeToEdit && (
-                <RecipeEditorModal
-                    open={isEditorOpen}
-                    onOpenChange={setIsEditorOpen}
-                    recipeToEdit={recipeToEdit}
-                    onSaveSuccess={() => {
-                        setIsEditorOpen(false);
-                        fetchPlannerData();
-                    }}
-                    isAdminView={isAdminView}
-                    userId={userId}
                 />
             )}
         </>

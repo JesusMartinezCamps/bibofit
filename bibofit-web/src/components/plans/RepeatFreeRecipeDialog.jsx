@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Utensils, Clock, BarChart3, Sparkles, Calendar, Loader2, X, Hourglass, Search, FileText, AlertTriangle, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Utensils, Clock, BarChart3, Sparkles, Calendar, Loader2, X, Hourglass, Search, FileText, AlertTriangle, ThumbsUp, ArrowLeft } from 'lucide-react';
 import { formatDistanceToNow, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -13,58 +13,15 @@ import { useToast } from '@/components/ui/use-toast';
 import { getConflictInfo } from '@/lib/restrictionChecker.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FREE_RECIPE_STATUS, normalizeFreeRecipeStatus } from '@/lib/recipeEntity';
+import HighlightedText from '@/components/shared/HighlightedText';
+import {
+  filterRecipesByQuery,
+  getIngredientHighlightForQuery,
+  RECIPE_SEARCH_MATCH_TYPE_LABELS,
+} from '@/lib/recipeSearch';
+import { normalizeText } from '@/lib/textSearch';
 
-const normalizeText = (text) => {
-    return text
-        ? text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
-        : "";
-};
-
-const getHighlightedText = (text, highlight) => {
-  if (!highlight || !text || !highlight.trim()) return text;
-
-  const normalizedText = normalizeText(text);
-  const normalizedHighlight = normalizeText(highlight);
-  
-  if (normalizedText.length !== text.length) {
-      return text;
-  }
-
-  const matchIndices = [];
-  let startIndex = 0;
-  let searchIndex = normalizedText.indexOf(normalizedHighlight, startIndex);
-
-  while (searchIndex !== -1) {
-    matchIndices.push({ start: searchIndex, end: searchIndex + normalizedHighlight.length });
-    startIndex = searchIndex + normalizedHighlight.length;
-    searchIndex = normalizedText.indexOf(normalizedHighlight, startIndex);
-  }
-
-  if (matchIndices.length === 0) return text;
-
-  const result = [];
-  let lastIndex = 0;
-
-  matchIndices.forEach((match, i) => {
-    if (match.start > lastIndex) {
-      result.push(<span key={`text-${i}`}>{text.substring(lastIndex, match.start)}</span>);
-    }
-    result.push(
-      <span key={`highlight-${i}`} className="text-yellow-400 font-bold bg-yellow-400/10 rounded-[2px] px-0.5">
-        {text.substring(match.start, match.end)}
-      </span>
-    );
-    lastIndex = match.end;
-  });
-
-  if (lastIndex < text.length) {
-    result.push(<span key="text-end">{text.substring(lastIndex)}</span>);
-  }
-
-  return result;
-};
-
-const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, userId, onDeleteRecipe, allFoods }) => {
+const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, userId, onDeleteRecipe, allFoods = [], asPage = false }) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [recipes, setRecipes] = useState([]);
@@ -118,10 +75,12 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
         .from('user_recipes')
         .select(`
           *,
+          recipe_style:recipe_style_id(id, name),
           ingredients:recipe_ingredients(
             *,
             food(
                 *,
+                food_to_food_groups(food_group:food_groups(*)),
                 food_sensitivities(sensitivity:sensitivities(*)),
                 food_medical_conditions(relation_type, condition:medical_conditions(*))
             )
@@ -147,10 +106,12 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
         .from('recipes')
         .select(`
             *,
+            recipe_style:recipe_style_id(id, name),
             ingredients:recipe_ingredients(
                 *, 
                 food(
                     *,
+                    food_to_food_groups(food_group:food_groups(*)),
                     food_sensitivities(sensitivity:sensitivities(*)),
                     food_medical_conditions(relation_type, condition:medical_conditions(*))
                 )
@@ -219,7 +180,15 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
 
         if (!foodToCheck) {
             coloredIngredients.push({ text, colorClass: 'text-muted-foreground' });
-            return <span key={index} className="text-muted-foreground">{getHighlightedText(text, searchQuery)}</span>;
+            return (
+              <span key={index} className="text-muted-foreground">
+                <HighlightedText
+                  text={text}
+                  highlight={getIngredientHighlightForQuery({ food: foodDetails, query: searchQuery, allowFuzzy: true })}
+                  className="text-yellow-400 font-bold bg-yellow-400/10 rounded-[2px] px-0.5"
+                />
+              </span>
+            );
         }
 
         const conflict = getConflictInfo(foodToCheck, userRestrictions);
@@ -239,7 +208,11 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
         coloredIngredients.push({ text, colorClass });
         return (
             <span key={index} className={colorClass}>
-                {getHighlightedText(text, searchQuery)}
+                <HighlightedText
+                  text={text}
+                  highlight={getIngredientHighlightForQuery({ food: foodDetails, query: searchQuery, allowFuzzy: true })}
+                  className="text-yellow-400 font-bold bg-yellow-400/10 rounded-[2px] px-0.5"
+                />
             </span>
         );
       });
@@ -250,7 +223,7 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
       return { greenCount, redCount, display };
   }, [allFoods, searchQuery, userRestrictions]);
 
-  const filteredItems = useMemo(() => {
+  const { filteredItems, searchMatchTypes, searchHasFuzzyMatch } = useMemo(() => {
     let combined = [];
 
     // 1. Filter by Type first
@@ -278,36 +251,25 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
     combined = [...uniqueFree, ...availableTemplates];
 
     // 4. Process items to add analysis data
-    // NOTE: analyzeIngredients depends on searchQuery, so this useMemo will re-run when search changes
     const processedItems = combined.map(item => {
         const analysis = analyzeIngredients(item.ingredients);
         return { ...item, ...analysis };
     });
 
-    // 5. Filter by Search
-    let result = processedItems;
-    if (searchQuery.trim()) {
-        const normalizedQuery = normalizeText(searchQuery);
-        result = result.filter(item => {
-            // Match Name
-            if (normalizeText(item.name).includes(normalizedQuery)) return true;
-            
-            // Match Ingredients
-            if (item.ingredients && item.ingredients.length > 0) {
-                return item.ingredients.some(ing => {
-                    const foodName = ing.food?.name || '';
-                    return normalizeText(foodName).includes(normalizedQuery);
-                });
-            }
-            return false;
-        });
-    }
+    const searchResult = filterRecipesByQuery({
+      items: processedItems,
+      query: searchQuery,
+      allFoods,
+      allowFuzzy: true,
+    });
+
+    const resultItems = searchQuery.trim() ? searchResult.items : processedItems;
 
     // 6. Sort
     // Priority 1: Red Count (Ascending) - Less reds is better
     // Priority 2: Green Count (Descending) - More greens is better
     // Priority 3: Date (Newest first) - For free recipes mainly
-    return result.sort((a, b) => {
+    const sortedItems = [...resultItems].sort((a, b) => {
         if (a.redCount !== b.redCount) {
             return a.redCount - b.redCount; 
         }
@@ -319,8 +281,18 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
         const dateB = b.last_used ? new Date(b.last_used).getTime() : 0;
         return dateB - dateA;
     });
+    
+    return {
+      filteredItems: sortedItems,
+      searchMatchTypes: searchResult.matchTypes,
+      searchHasFuzzyMatch: searchResult.hasFuzzyMatch,
+    };
 
   }, [recipes, templateRecipes, searchQuery, filterType, analyzeIngredients]);
+
+  const hasActiveSearch = normalizeText(searchQuery).trim().length > 0;
+  const showSearchLegend = hasActiveSearch && filteredItems.length > 0 && searchMatchTypes.length > 0;
+  const searchLegendText = searchMatchTypes.map((type) => RECIPE_SEARCH_MATCH_TYPE_LABELS[type]).join(' · ');
 
   const handleSelectClick = (recipe) => {
     setSelectedRecipeForPreview(recipe);
@@ -393,7 +365,7 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
             setIsCreating(false);
         }
     } else {
-        onSelectRecipe(recipe);
+        await onSelectRecipe(recipe);
         setIsPreviewOpen(false);
         onOpenChange(false);
     }
@@ -442,22 +414,35 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
     );
   };
 
-  return (
+  const innerContent = (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="bg-background border-border text-white sm:max-w-md p-0 sm:p-0 flex flex-col h-[80vh] sm:h-[650px]">
-          <div className="p-6 pb-2 flex-shrink-0 space-y-4">
-            <DialogHeader>
-              <DialogTitle className="text-center text-2xl">Repetir una Receta</DialogTitle>
-              <DialogDescription className="text-center">
-                Selecciona una receta libre anterior o una plantilla.
-              </DialogDescription>
-            </DialogHeader>
+      <div className="px-4 pt-4 pb-2 flex-shrink-0 space-y-4">
+        {asPage ? (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onOpenChange(false)}
+              className="text-muted-foreground hover:text-foreground h-8 w-8 flex items-center justify-center flex-shrink-0 transition-colors"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <div>
+              <h1 className="text-2xl font-semibold text-foreground">Repetir una Receta</h1>
+              <p className="text-sm text-muted-foreground">Selecciona una receta libre anterior o una plantilla.</p>
+            </div>
+          </div>
+        ) : (
+          <DialogHeader>
+            <DialogTitle className="text-center text-2xl">Repetir una Receta</DialogTitle>
+            <DialogDescription className="text-center">
+              Selecciona una receta libre anterior o una plantilla.
+            </DialogDescription>
+          </DialogHeader>
+        )}
             
             <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                    placeholder="Buscar por nombre o ingrediente..."
+                    placeholder="Buscar receta, ingrediente, grupo, estilo o dificultad..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-9 bg-muted border-border focus:border-sky-500"
@@ -478,15 +463,21 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
                         <SelectValue placeholder="Filtrar recetas" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">Todas las recetas</SelectItem>
-                        <SelectItem value="free">Mis recetas libres</SelectItem>
-                        <SelectItem value="template">Plantillas de recetas</SelectItem>
+                        <SelectItem value="all">Filtrar por todas las recetas</SelectItem>
+                        <SelectItem value="free">Filtrar por mis recetas libres</SelectItem>
+                        <SelectItem value="template">Filtrar por plantillas de recetas</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
+            {showSearchLegend && (
+              <div className="rounded-md border border-border/60 bg-card/55 px-3 py-1.5 text-[11px] text-muted-foreground">
+                Coincidencia por: <span className="text-foreground/90">{searchLegendText}</span>
+                {searchHasFuzzyMatch ? <span className="ml-1 text-foreground/75">(incluye typo)</span> : null}
+              </div>
+            )}
           </div>
           
-          <ScrollArea className="flex-1 w-full rounded-md p-6 pt-2" type="always">
+          <ScrollArea className="flex-1 w-full rounded-md px-4 pt-2 pb-4">
             {loading ? (
               <div className="flex justify-center items-center h-full">
                 <Loader2 className="h-8 w-8 animate-spin text-sky-400" />
@@ -546,8 +537,12 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
                             ) : (
                               <Utensils className={cn("h-5 w-5 flex-shrink-0", isTemplate ? "text-purple-400" : "text-sky-400")} />
                             )}
-                            <p className={cn("font-semibold text-lg", isTemplate ? "text-gray-100" : "text-white")}>
-                                {getHighlightedText(recipe.name, searchQuery)}
+                            <p className="font-semibold text-lg text-foreground">
+                                <HighlightedText
+                                  text={recipe.name}
+                                  highlight={searchQuery}
+                                  className="text-yellow-400 font-bold bg-yellow-400/10 rounded-[2px] px-0.5"
+                                />
                             </p>
                           </div>
                           
@@ -589,8 +584,6 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
             )}
             <ScrollBar orientation="vertical" className="[&>div]:bg-[rgb(59,159,189)]" />
           </ScrollArea>
-        </DialogContent>
-      </Dialog>
 
       <AlertDialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
         <AlertDialogContent>
@@ -609,7 +602,7 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
         </AlertDialogContent>
       </AlertDialog>
 
-      {selectedRecipeForPreview && (
+      {!asPage && selectedRecipeForPreview && (
           <FreeRecipeViewDialog
             open={isPreviewOpen}
             onOpenChange={setIsPreviewOpen}
@@ -620,6 +613,35 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
           />
       )}
     </>
+  );
+
+  if (asPage) {
+    if (isPreviewOpen && selectedRecipeForPreview) {
+      return (
+        <FreeRecipeViewDialog
+          open={true}
+          asPage={true}
+          onOpenChange={(open) => { if (!open) setIsPreviewOpen(false); }}
+          freeMeal={selectedRecipeForPreview}
+          onSelect={handleConfirmSelect}
+          onUpdate={handleRecipeUpdate}
+          isActionLoading={isCreating}
+        />
+      );
+    }
+    return (
+      <div className="flex flex-col h-full bg-background text-white">
+        {innerContent}
+      </div>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="bg-background border-border text-white sm:max-w-md p-0 sm:p-0 flex flex-col h-[80vh] sm:h-[650px]">
+        {innerContent}
+      </DialogContent>
+    </Dialog>
   );
 };
 

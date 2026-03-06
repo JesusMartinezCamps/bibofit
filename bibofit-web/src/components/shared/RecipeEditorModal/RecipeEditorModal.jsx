@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Loader2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Loader2, ArrowLeft } from 'lucide-react';
 import { useRecipeEditor } from './useRecipeEditor';
 import RecipeView from '../RecipeView';
 import { Button } from '@/components/ui/button';
@@ -21,21 +21,22 @@ const SimpleHeader = ({ title, className }) => (
   </div>
 );
 
-const RecipeEditorModal = ({ 
-    open, 
-    onOpenChange, 
-    recipeToEdit, 
-    onSaveSuccess, 
-    isAdminView, 
-    userId, 
-    planRestrictions, 
-    initialConflicts = null, 
-    adjustments = null, 
+const RecipeEditorModal = ({
+    open,
+    onOpenChange,
+    recipeToEdit,
+    onSaveSuccess,
+    isAdminView,
+    userId,
+    planRestrictions,
+    initialConflicts = null,
+    adjustments = null,
     readOnly = false,
     isEditable: propIsEditable,
     isTemplate = false,
     // Backward-compatible alias. Prefer `isTemplate` in callers.
-    isTemplatePlan = false
+    isTemplatePlan = false,
+    asPage = false,
 }) => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -188,6 +189,7 @@ const RecipeEditorModal = ({
 
   const [isSearching, setIsSearching] = useState(false);
   const [scrollToFoodId, setScrollToFoodId] = useState(null);
+  const [isLeaveConfirmOpen, setIsLeaveConfirmOpen] = useState(false);
   const [quickEditIngredientKey, setQuickEditIngredientKey] = useState(null);
   const ingredientsContainerRef = useRef(null);
 
@@ -213,6 +215,10 @@ const RecipeEditorModal = ({
 
   const handleClose = () => {
     if (isSubmitting) return;
+    if (asPage && hasChanges) {
+      setIsLeaveConfirmOpen(true);
+      return;
+    }
     onOpenChange(false);
     setIsSearching(false);
   };
@@ -224,6 +230,15 @@ const RecipeEditorModal = ({
   }
 
   const handleSaveClick = async () => {
+    const success = await handleSubmit('save');
+    if (success) {
+      onOpenChange(false);
+      setIsSearching(false);
+    }
+  };
+
+  const handleSaveAndLeave = async () => {
+    setIsLeaveConfirmOpen(false);
     const success = await handleSubmit('save');
     if (success) {
       onOpenChange(false);
@@ -303,112 +318,152 @@ const RecipeEditorModal = ({
   // Disabled if no changes, no premium, OR if it's a template (templates don't have personal targets usually)
   const shouldDisableAutoBalance = !hasIngredientChanges || !canUseAutoFrame || effectiveIsTemplate;
 
-  return (
+  const innerContent = totalLoading ? (
+    <div className="flex justify-center items-center h-full min-h-[400px]">
+      <Loader2 className="h-12 w-12 animate-spin text-green-500" />
+    </div>
+  ) : (
     <>
-      <Dialog open={open} onOpenChange={handleClose}>
-        <DialogContent className="bg-[#0C101D] border-border text-white w-[95vw] max-w-4xl p-0 flex flex-col h-[90vh]">
-          {totalLoading ? (
-            <div className="flex justify-center items-center h-full min-h-[400px]">
-              <Loader2 className="h-12 w-12 animate-spin text-green-500" />
-            </div>
-          ) : (
-            <>
-              {(!isSearching) && (
-                (isEditable && !readOnly) ? (
-                  <ViewModeToggle
-                    mode={mode}
-                    onModeChange={handleModeChange}
-                    loading={isSubmitting}
-                    className={cn("flex-shrink-0", headerBgClass)}
-                    hasChanges={hasChanges}
-                    isClientRequestView={isClientRequestView}
-                    switchCheckedColor={toggleSwitchColor}
-                    activeIconColor={activeIconColor}
-                  />
-                ) : (
-                  <SimpleHeader title={formData.name} className={headerBgClass} />
-                )
-              )}
-              
-              <div ref={ingredientsContainerRef} className="flex-1 overflow-y-auto styled-scrollbar-green">
-                {isSearching ? (
-                  <div className="p-4 h-full">
-                    <IngredientSearch 
-                      selectedIngredients={ingredients}
-                      onIngredientAdded={handleLocalAddIngredient}
-                      availableFoods={allFoods}
-                      userRestrictions={userRestrictions}
-                      onFoodCreated={handleInlineFoodCreated}
-                      createFoodUserId={userId || user?.id}
-                      onBack={() => setIsSearching(false)}
-                    />
-                  </div>
-                ) : (
-                  <RecipeView
-                    recipe={recipeForView}
-                    allFoods={allFoods}
-                    allVitamins={allVitamins}
-                    allMinerals={allMinerals}
-                    allFoodGroups={allFoodGroups}
-                    macros={macros}
-                    conflicts={conflicts}
-                    recommendations={recommendations}
-                    userRestrictions={userRestrictions}
-                    isEditing={isEditingMode}
-                    onFormChange={handleFormChange}
-                    onIngredientsChange={isEditable && !readOnly ? handleIngredientsChange : undefined}
-                    onRemoveIngredient={isEditable && !readOnly ? handleRemoveIngredient : undefined}
-                    onAddIngredientClick={isEditable && !readOnly ? () => setIsSearching(true) : undefined}
-                    disableAutoBalance={shouldDisableAutoBalance}
-                    onAutoBalanceBlocked={!canUseAutoFrame ? handleBlockedFeature : undefined}
-                    enableStickyMacros={true}
-                    isTemplate={effectiveIsTemplate}
-                    quickEditIngredientKey={quickEditIngredientKey}
-                    onQuickEditConsumed={() => setQuickEditIngredientKey(null)}
-                    onFoodCreated={handleInlineFoodCreated}
-                  />
+      {(!isSearching) && (
+        (isEditable && !readOnly) ? (
+          <ViewModeToggle
+            mode={mode}
+            onModeChange={handleModeChange}
+            loading={isSubmitting}
+            className={cn("flex-shrink-0", headerBgClass)}
+            hasChanges={hasChanges}
+            isClientRequestView={isClientRequestView}
+            switchCheckedColor={toggleSwitchColor}
+            activeIconColor={activeIconColor}
+            leftElement={asPage ? (
+              <button
+                onClick={handleClose}
+                className="text-muted-foreground hover:text-foreground h-8 w-8 flex items-center justify-center transition-colors"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+            ) : null}
+          />
+        ) : (
+          <SimpleHeader title={formData.name} className={headerBgClass} />
+        )
+      )}
+
+      <div ref={ingredientsContainerRef} className="flex-1 overflow-y-auto styled-scrollbar-green">
+        {isSearching ? (
+          <div className="p-4 h-full">
+            <IngredientSearch
+              selectedIngredients={ingredients}
+              onIngredientAdded={handleLocalAddIngredient}
+              availableFoods={allFoods}
+              userRestrictions={userRestrictions}
+              onFoodCreated={handleInlineFoodCreated}
+              createFoodUserId={userId || user?.id}
+              onBack={() => setIsSearching(false)}
+            />
+          </div>
+        ) : (
+          <RecipeView
+            recipe={recipeForView}
+            allFoods={allFoods}
+            allVitamins={allVitamins}
+            allMinerals={allMinerals}
+            allFoodGroups={allFoodGroups}
+            macros={macros}
+            conflicts={conflicts}
+            recommendations={recommendations}
+            userRestrictions={userRestrictions}
+            isEditing={isEditingMode}
+            onFormChange={handleFormChange}
+            onIngredientsChange={isEditable && !readOnly ? handleIngredientsChange : undefined}
+            onRemoveIngredient={isEditable && !readOnly ? handleRemoveIngredient : undefined}
+            onAddIngredientClick={isEditable && !readOnly ? () => setIsSearching(true) : undefined}
+            disableAutoBalance={shouldDisableAutoBalance}
+            onAutoBalanceBlocked={!canUseAutoFrame ? handleBlockedFeature : undefined}
+            enableStickyMacros={true}
+            isTemplate={effectiveIsTemplate}
+            quickEditIngredientKey={quickEditIngredientKey}
+            onQuickEditConsumed={() => setQuickEditIngredientKey(null)}
+            onFoodCreated={handleInlineFoodCreated}
+          />
+        )}
+
+        {!isSearching && isEditable && !readOnly && (
+          <div className="flex justify-center pt-4 px-2 gap-4 pb-4">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span tabIndex={0}>
+                    <Button
+                      type="button"
+                      onClick={handleSaveClick}
+                      disabled={isButtonDisabled}
+                      className={cn(
+                        "bg-gradient-to-r from-[#550d4f] to-[#2f0596] hover:from-[#6b1062] hover:to-[#3b06bb] text-white font-bold transition-all duration-300",
+                        "disabled:opacity-80 disabled:cursor-not-allowed disabled:from-[#533750] disabled:to-[#443a5d]",
+                        (hasChanges && !hasCriticalConflicts && (hasInitialConflicts || hasIngredientChanges)) && "from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 border border-green-400/50 shadow-[0_0_15px_rgba(34,197,94,0.3)]"
+                      )}
+                    >
+                      {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {saveButtonText}
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                {isButtonDisabled && (
+                  <TooltipContent className="bg-card border-border text-white">
+                    {hasCriticalConflicts
+                      ? <p className="text-red-400">Debes resolver todos los conflictos antes de guardar.</p>
+                      : <p>Realiza cambios en la receta para habilitar el guardado.</p>
+                    }
+                  </TooltipContent>
                 )}
-                  
-                  {!isSearching && isEditable && !readOnly && (
-                    <div className="flex justify-center pt-4 px-2 gap-4 pb-4">
-                      <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <span tabIndex={0}>
-                                  <Button 
-                                    type="button" 
-                                    onClick={handleSaveClick} 
-                                    disabled={isButtonDisabled} 
-                                    className={cn(
-                                      "bg-gradient-to-r from-[#550d4f] to-[#2f0596] hover:from-[#6b1062] hover:to-[#3b06bb] text-white font-bold transition-all duration-300",
-                                      "disabled:opacity-80 disabled:cursor-not-allowed disabled:from-[#533750] disabled:to-[#443a5d]",
-                                      // Special styling for conflict resolution success state
-                                      (hasChanges && !hasCriticalConflicts && (hasInitialConflicts || hasIngredientChanges)) && "from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 border border-green-400/50 shadow-[0_0_15px_rgba(34,197,94,0.3)]"
-                                    )}
-                                  >
-                                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    {saveButtonText}
-                                  </Button>
-                                </span>
-                            </TooltipTrigger>
-                            {(isButtonDisabled) && (
-                                <TooltipContent className="bg-card border-border text-white">
-                                     {hasCriticalConflicts 
-                                        ? <p className="text-red-400">Debes resolver todos los conflictos antes de guardar.</p>
-                                        : <p>Realiza cambios en la receta para habilitar el guardado.</p>
-                                     }
-                                </TooltipContent>
-                            )}
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                  )}
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        )}
+      </div>
     </>
+  );
+
+  if (asPage) {
+    return (
+      <>
+        <div className="flex flex-col h-full bg-[#0C101D] text-white">
+          {innerContent}
+        </div>
+        <Dialog open={isLeaveConfirmOpen} onOpenChange={setIsLeaveConfirmOpen}>
+          <DialogContent className="max-w-sm">
+            <DialogTitle>¿Guardar cambios?</DialogTitle>
+            <DialogDescription>
+              Tienes cambios sin guardar en la receta.
+            </DialogDescription>
+            <div className="flex flex-col gap-2 pt-1">
+              <Button
+                onClick={handleSaveAndLeave}
+                className="w-full bg-green-600 hover:bg-green-700 text-white"
+              >
+                Salir y guardar
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => { setIsLeaveConfirmOpen(false); onOpenChange(false); setIsSearching(false); }}
+                className="w-full text-red-400 hover:text-red-300 hover:bg-red-500/10"
+              >
+                Salir sin guardar
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="bg-[#0C101D] border-border text-white w-[95vw] max-w-4xl p-0 flex flex-col h-[90vh]">
+        {innerContent}
+      </DialogContent>
+    </Dialog>
   );
 };
 

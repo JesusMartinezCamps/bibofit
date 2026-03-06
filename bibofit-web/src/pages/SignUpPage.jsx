@@ -13,6 +13,7 @@ const SignUpPage = () => {
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [phone, setPhone] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { signup, signInWithProvider, ensureDefaultTemplate } = useAuth(); // Using new function
   const { toast } = useToast();
@@ -23,7 +24,7 @@ const SignUpPage = () => {
     setIsLoading(true);
 
     try {
-      const result = await signup(email, password, firstName, lastName);
+      const result = await signup(email, password, firstName, lastName, phone);
       if (!result.success) {
         toast({
           title: "Error de registro",
@@ -132,6 +133,16 @@ const SignUpPage = () => {
                     onChange={(e) => setLastName(e.target.value)}
                     className="input-field w-full"
                     placeholder="Pérez García"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">Teléfono <span className="text-muted-foreground/60">(Opcional)</span></label>
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="input-field w-full"
+                    placeholder="+34 600 000 000"
                   />
                 </div>
                 <div>

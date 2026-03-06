@@ -4,7 +4,7 @@ import ViewModeToggle from '@/components/shared/AdminViewToggle';
 import { useAuth } from '@/contexts/AuthContext';
 import RecipeView from '@/components/shared/RecipeView';
 import { useToast } from '@/components/ui/use-toast';
-import { Loader2, Scale, Utensils, FileText } from 'lucide-react';
+import { Loader2, Scale, Utensils, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import DayMealSelect from '@/components/ui/day-meal-select';
 import { Button } from '@/components/ui/button';
@@ -20,7 +20,7 @@ import {
   persistFreeRecipeDefinition,
 } from '@/lib/freeRecipePersistence';
 
-const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquivalenceSuccess, onSelect, isActionLoading }) => {
+const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquivalenceSuccess, onSelect, isActionLoading, asPage = false }) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [mode, setMode] = useState('view');
@@ -451,136 +451,163 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
 
     if (!currentFreeMeal) return null;
 
+    const backButton = asPage ? (
+      <button
+        onClick={handleClose}
+        className="text-muted-foreground hover:text-foreground h-8 w-8 flex items-center justify-center transition-colors"
+      >
+        <ArrowLeft className="h-5 w-5" />
+      </button>
+    ) : null;
+
+    const header = !isSearching ? (
+      <div className="flex justify-between items-center bg-sky-900/30">
+          {mode === 'view' && canShowEquivalence && (
+            <Button variant="ghost" size="icon" onClick={() => setIsEquivalenceDialogOpen(true)} className="text-blue-400 hover:bg-blue-500/10 hover:text-blue-300 border border-[#70a3f3] h-8 w-8 ml-4" style={{borderWidth: 'thin'}}>
+                <Scale className="h-5 w-5" />
+            </Button>
+          )}
+          <div className={mode === 'view' && canShowEquivalence ? "flex-grow" : "w-full"}>
+                <ViewModeToggle
+                    mode={mode}
+                    onModeChange={handleModeChange}
+                    loading={isSubmitting}
+                    className="flex-shrink-0"
+                    hasChanges={hasChanges}
+                    switchCheckedColor="data-[state=checked]:bg-sky-400"
+                    activeIconColor="text-sky-400"
+                    leftElement={backButton}
+                />
+          </div>
+          {!asPage && <DialogClose />}
+      </div>
+    ) : null;
+
+    const body = (
+      <div className="flex-1 overflow-y-auto styled-scrollbar-green">
+        {isSearching ? (
+          <div className="p-4 h-full">
+              <IngredientSearch
+                  selectedIngredients={ingredients}
+                  onIngredientAdded={handleAddIngredient}
+                  availableFoods={allFoods}
+                  userRestrictions={userRestrictions}
+                  createFoodUserId={currentFreeMeal?.user_id || user?.id}
+                  onBack={() => setIsSearching(false)}
+              />
+          </div>
+        ) : (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={mode}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="text-white space-y-6"
+            >
+              {loading ? (
+                <div className="flex justify-center items-center h-full"><Loader2 className="h-12 w-12 animate-spin text-blue-500" /></div>
+              ) : mode === 'view' ? (
+                <div className="flex flex-col h-full">
+                  <RecipeView
+                    recipe={recipeForView}
+                    allFoods={allFoods}
+                    allVitamins={allVitamins}
+                    allMinerals={allMinerals}
+                    allFoodGroups={allFoodGroups}
+                    macros={macros}
+                    isFreeMealView={true}
+                    recipeStyles={recipeStyles}
+                    conflicts={conflicts}
+                    recommendations={recommendations}
+                  />
+                  {onSelect && (
+                      <div className="p-6 pt-4 border-t border-border mt-auto bg-[#0C101D]">
+                          {renderAddButton()}
+                      </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-6 p-0">
+                  <div className="pt-4 px-4">
+                    <Label>Momento del Día</Label>
+                    <DayMealSelect userId={user.id} value={dayMealId} onValueChange={(v) => { setDayMealId(v); setHasChanges(true); }} className="mt-1" />
+                  </div>
+
+                  <RecipeView
+                    recipe={recipeForEdit}
+                    isEditing={true}
+                    onFormChange={handleFormChange}
+                    onIngredientsChange={handleIngredientsUpdate}
+                    onRemoveIngredient={handleRemoveIngredient}
+                    onAddIngredientClick={() => setIsSearching(true)}
+                    allFoods={allFoods}
+                    allVitamins={allVitamins}
+                    allMinerals={allMinerals}
+                    allFoodGroups={allFoodGroups}
+                    macros={editMacros}
+                    isFreeMealView={true}
+                    recipeStyles={recipeStyles}
+                    conflicts={conflicts}
+                    recommendations={recommendations}
+                  />
+
+                  {isApproved && !isTemplate && (
+                      <div className="px-4 pb-4">
+                          <Button
+                              onClick={handleUpdate}
+                              disabled={isSubmitting || !hasChanges}
+                              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                          >
+                              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                              Guardar como nueva receta
+                          </Button>
+                          <p className="text-xs text-muted-foreground text-center mt-2">
+                              Se creará una nueva versión pendiente de aprobación. La receta original no se modificará.
+                          </p>
+                      </div>
+                  )}
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        )}
+      </div>
+    );
+
+    const equivalenceDialog = recipeForView && canShowEquivalence ? (
+      <EquivalenceDialog
+        open={isEquivalenceDialogOpen}
+        onOpenChange={setIsEquivalenceDialogOpen}
+        sourceItem={recipeForView}
+        sourceItemType="free_recipe"
+        sourceItemMacros={macros}
+        onSuccess={handleEquivalenceApplied}
+      />
+    ) : null;
+
+    if (asPage) {
+      return (
+        <>
+          <div className="flex flex-col h-full bg-[#0C101D] text-white">
+            {header}
+            {body}
+          </div>
+          {equivalenceDialog}
+        </>
+      );
+    }
+
     return (
       <>
         <Dialog open={open} onOpenChange={handleClose}>
           <DialogContent className="bg-[#0C101D] border-border text-white w-[95vw] max-w-4xl h-[90vh] flex flex-col p-0">
-            {!isSearching && (
-              <div className="flex justify-between items-center bg-sky-900/30">
-                  {mode === 'view' && canShowEquivalence && (
-                    <Button variant="ghost" size="icon" onClick={() => setIsEquivalenceDialogOpen(true)} className="text-blue-400 hover:bg-blue-500/10 hover:text-blue-300 border border-[#70a3f3] h-8 w-8 ml-4" style={{borderWidth: 'thin'}}>
-                        <Scale className="h-5 w-5" />
-                    </Button>
-                  )}
-                  <div className={mode === 'view' && canShowEquivalence ? "flex-grow" : "w-full"}>
-                        <ViewModeToggle
-                            mode={mode}
-                            onModeChange={handleModeChange}
-                            loading={isSubmitting}
-                            className="flex-shrink-0"
-                            hasChanges={hasChanges}
-                            switchCheckedColor="data-[state=checked]:bg-sky-400"
-                            activeIconColor="text-sky-400"
-                        />
-                  </div>
-                  <DialogClose />
-              </div>
-            )}
-
-            <div className="flex-1 overflow-y-auto styled-scrollbar-green">
-              {isSearching ? (
-                <div className="p-4 h-full">
-                    <IngredientSearch 
-                        selectedIngredients={ingredients}
-                        onIngredientAdded={handleAddIngredient}
-                        availableFoods={allFoods}
-                        userRestrictions={userRestrictions}
-                        createFoodUserId={currentFreeMeal?.user_id || user?.id}
-                        onBack={() => setIsSearching(false)}
-                    />
-                </div>
-              ) : (
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={mode}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.3 }}
-                    className="text-white space-y-6"
-                  >
-                    {loading ? (
-                      <div className="flex justify-center items-center h-full"><Loader2 className="h-12 w-12 animate-spin text-blue-500" /></div>
-                    ) : mode === 'view' ? (
-                      <div className="flex flex-col h-full">
-                        <RecipeView
-                          recipe={recipeForView}
-                          allFoods={allFoods}
-                          allVitamins={allVitamins}
-                          allMinerals={allMinerals}
-                          allFoodGroups={allFoodGroups}
-                          macros={macros}
-                          isFreeMealView={true}
-                          recipeStyles={recipeStyles}
-                          conflicts={conflicts}
-                          recommendations={recommendations}
-                          // Action button removed from here, only kept at bottom
-                        />
-                        {onSelect && (
-                            <div className="p-6 pt-4 border-t border-border mt-auto bg-[#0C101D]">
-                                {renderAddButton()}
-                            </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="space-y-6 p-0">
-                        <div className="pt-4 px-4">
-                          <Label>Momento del Día</Label>
-                          <DayMealSelect userId={user.id} value={dayMealId} onValueChange={(v) => { setDayMealId(v); setHasChanges(true); }} className="mt-1" />
-                        </div>
-                        
-                        <RecipeView
-                          recipe={recipeForEdit}
-                          isEditing={true}
-                          onFormChange={handleFormChange}
-                          onIngredientsChange={handleIngredientsUpdate}
-                          onRemoveIngredient={handleRemoveIngredient}
-                          onAddIngredientClick={() => setIsSearching(true)}
-                          allFoods={allFoods}
-                          allVitamins={allVitamins}
-                          allMinerals={allMinerals}
-                          allFoodGroups={allFoodGroups}
-                          macros={editMacros}
-                          isFreeMealView={true}
-                          recipeStyles={recipeStyles}
-                          conflicts={conflicts}
-                          recommendations={recommendations}
-                        />
-
-                        {isApproved && !isTemplate && (
-                            <div className="px-4 pb-4">
-                                <Button 
-                                    onClick={handleUpdate} 
-                                    disabled={isSubmitting || !hasChanges}
-                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                                >
-                                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                                    Guardar como nueva receta
-                                </Button>
-                                <p className="text-xs text-muted-foreground text-center mt-2">
-                                    Se creará una nueva versión pendiente de aprobación. La receta original no se modificará.
-                                </p>
-                            </div>
-                        )}
-                      </div>
-                    )}
-                  </motion.div>
-                </AnimatePresence>
-              )}
-            </div>
+            {header}
+            {body}
           </DialogContent>
         </Dialog>
-
-        {recipeForView && canShowEquivalence && (
-          <EquivalenceDialog
-            open={isEquivalenceDialogOpen}
-            onOpenChange={setIsEquivalenceDialogOpen}
-            sourceItem={recipeForView}
-            sourceItemType="free_recipe"
-            sourceItemMacros={macros}
-            onSuccess={handleEquivalenceApplied}
-          />
-        )}
+        {equivalenceDialog}
       </>
     );
   };

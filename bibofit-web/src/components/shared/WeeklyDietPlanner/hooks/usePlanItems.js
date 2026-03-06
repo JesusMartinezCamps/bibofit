@@ -57,6 +57,7 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [allAvailableFoods, setAllAvailableFoods] = useState([]);
+  const [recipeStyles, setRecipeStyles] = useState([]);
 
   const staticCacheRef = useRef({ key: null, data: null });
   const rangeCacheRef = useRef(new Map());
@@ -82,6 +83,7 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
 
     if (staticData) {
       setStateIfChanged('allAvailableFoods', staticData.allFoods, setAllAvailableFoods);
+      setStateIfChanged('recipeStyles', staticData.recipeStyles, setRecipeStyles);
       setStateIfChanged('planRecipes', staticData.planRecipes, setPlanRecipes);
       setStateIfChanged('userDayMeals', staticData.userDayMeals, setUserDayMeals);
     }
@@ -134,7 +136,7 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
 
       let staticData = cachedStatic;
       if (shouldFetchStatic) {
-        const [dietPlanRecipesRes, privateRecipesRes, userDayMealsRes, foodsRes, userFoodsRes, changeRequestsRes] = await Promise.all([
+        const [dietPlanRecipesRes, privateRecipesRes, userDayMealsRes, foodsRes, userFoodsRes, changeRequestsRes, recipeStylesRes] = await Promise.all([
           supabase.from('diet_plan_recipes').select(`
             *,
             recipe:recipe_id(*, template_ingredients:recipe_ingredients(*)),
@@ -159,11 +161,15 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
             food_minerals(mg_per_100g, mineral:minerals(*)), 
             food_to_food_groups(food_group:food_groups(*))
           `).is('user_id', null),
-          supabase.from('food').select('*').eq('user_id', userId).not('status', 'eq', 'rejected'),
+          supabase.from('food').select(`
+            *,
+            food_to_food_groups(food_group:food_groups(*))
+          `).eq('user_id', userId).not('status', 'eq', 'rejected'),
           supabase.from('diet_change_requests').select('*').eq('user_id', userId).eq('status', 'pending'),
+          supabase.from('recipe_styles').select('id, name').eq('is_active', true).order('display_order').order('name'),
         ]);
 
-        const staticResponses = [dietPlanRecipesRes, privateRecipesRes, userDayMealsRes, foodsRes, userFoodsRes, changeRequestsRes];
+        const staticResponses = [dietPlanRecipesRes, privateRecipesRes, userDayMealsRes, foodsRes, userFoodsRes, changeRequestsRes, recipeStylesRes];
         for (const res of staticResponses) {
           if (res.error) throw res.error;
         }
@@ -207,6 +213,7 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
 
         staticData = {
           allFoods,
+          recipeStyles: recipeStylesRes.data || [],
           planRecipes: [...processedDietPlanRecipes, ...processedPrivateRecipes],
           userDayMeals: userDayMealsRes.data || [],
         };
@@ -447,5 +454,6 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
     snackLogs,
     setSnackLogs,
     allAvailableFoods,
+    recipeStyles,
   };
 };

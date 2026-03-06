@@ -12,6 +12,7 @@ import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/comp
 import { Input } from '@/components/ui/input';
 import { normalizeText } from '@/lib/textSearch';
 import { getRecipeIngredients } from '@/lib/recipeEntity';
+import { filterRecipesByQuery, RECIPE_SEARCH_MATCH_TYPE_LABELS } from '@/lib/recipeSearch';
 
 const getAdjustmentsForRecipe = (dailyIngredientAdjustments, equivalenceAdjustments, recipeId, userDayMealId, logDate, isPrivate) => {
     if (!dailyIngredientAdjustments || !equivalenceAdjustments) return null;
@@ -25,95 +26,6 @@ const getAdjustmentsForRecipe = (dailyIngredientAdjustments, equivalenceAdjustme
     });
     
     return recipeAdjustments.length > 0 ? recipeAdjustments : null;
-};
-
-const tokenizeNormalizedText = (value = '') => {
-  const normalized = normalizeText(value).trim();
-  return normalized ? normalized.split(/\s+/).filter(Boolean) : [];
-};
-
-const SEARCH_MATCH_TYPE_ORDER = ['name', 'difficulty', 'ingredient', 'group'];
-const SEARCH_MATCH_TYPE_LABELS = {
-  name: 'nombre',
-  difficulty: 'dificultad',
-  ingredient: 'ingrediente',
-  group: 'grupo',
-};
-
-const getLevenshteinDistance = (a = '', b = '') => {
-  if (a === b) return 0;
-  if (!a.length) return b.length;
-  if (!b.length) return a.length;
-
-  const rows = b.length + 1;
-  const cols = a.length + 1;
-  const matrix = Array.from({ length: rows }, () => Array(cols).fill(0));
-
-  for (let i = 0; i < rows; i += 1) matrix[i][0] = i;
-  for (let j = 0; j < cols; j += 1) matrix[0][j] = j;
-
-  for (let i = 1; i < rows; i += 1) {
-    for (let j = 1; j < cols; j += 1) {
-      const substitutionCost = b[i - 1] === a[j - 1] ? 0 : 1;
-      matrix[i][j] = Math.min(
-        matrix[i - 1][j] + 1,
-        matrix[i][j - 1] + 1,
-        matrix[i - 1][j - 1] + substitutionCost
-      );
-    }
-  }
-
-  return matrix[b.length][a.length];
-};
-
-const isFuzzyTokenMatch = (queryToken = '', targetToken = '') => {
-  if (!queryToken || !targetToken) return false;
-  if (targetToken.includes(queryToken) || queryToken.includes(targetToken)) return true;
-  if (queryToken.length < 4 || targetToken.length < 4) return false;
-
-  const maxLen = Math.max(queryToken.length, targetToken.length);
-  const maxDistance = maxLen >= 8 ? 2 : 1;
-
-  return getLevenshteinDistance(queryToken, targetToken) <= maxDistance;
-};
-
-const getSearchMatchMeta = (value = '', normalizedQuery = '', queryTokens = []) => {
-  const normalizedValue = normalizeText(value);
-  if (!normalizedValue) return { matched: false, fuzzy: false };
-  if (normalizedValue.includes(normalizedQuery)) return { matched: true, fuzzy: false };
-  if (!queryTokens.length) return { matched: false, fuzzy: false };
-
-  const valueTokens = tokenizeNormalizedText(normalizedValue);
-  if (!valueTokens.length) return { matched: false, fuzzy: false };
-
-  let hasFuzzy = false;
-  const allTokensMatch = queryTokens.every((queryToken) => {
-    let tokenMatched = false;
-
-    for (const targetToken of valueTokens) {
-      if (targetToken.includes(queryToken) || queryToken.includes(targetToken)) {
-        tokenMatched = true;
-        break;
-      }
-
-      if (isFuzzyTokenMatch(queryToken, targetToken)) {
-        tokenMatched = true;
-        hasFuzzy = true;
-        break;
-      }
-    }
-
-    return tokenMatched;
-  });
-
-  return { matched: allTokensMatch, fuzzy: allTokensMatch && hasFuzzy };
-};
-
-const getFoodGroupNames = (food) => {
-  const groups = food?.food_to_food_groups || [];
-  return groups
-    .map((entry) => entry?.food_group?.name || entry?.food_groups?.name || entry?.food_group_name)
-    .filter(Boolean);
 };
 
 const MealHeader = React.memo(({ mealName, mealId, name, items, isAnyRecipeSelectedInMeal, isFreeRecipeSelected, isPrivateRecipeSelected, mealTargetData, mealAdjustment, handleUndoEquivalence, handleAddSnack, handleAddFreeMeal, hasSnacks }) => {
@@ -219,7 +131,8 @@ const ListView = ({
   userDayMeals,
   activePlan,
   handleAddSnack,
-  handleUndoEquivalence
+  handleUndoEquivalence,
+  recipeStyles = [],
 }) => {
   const [searchQueries, setSearchQueries] = useState({});
   const foodById = useMemo(() => {
@@ -259,74 +172,16 @@ const ListView = ({
     }));
   }, []);
 
-  const getItemSearchMatchInfo = useCallback((item, normalizedQuery, queryTokens) => {
-    const itemMatchTypes = new Set();
-    let hasFuzzyMatch = false;
-
-    const registerMatch = (matchType, matchMeta) => {
-      if (!matchMeta.matched) return;
-      itemMatchTypes.add(matchType);
-      if (matchMeta.fuzzy) hasFuzzyMatch = true;
-    };
-
-    const name = item.name || item.custom_name || item.recipe?.name || '';
-    registerMatch('name', getSearchMatchMeta(name, normalizedQuery, queryTokens));
-
-    const difficulty = item.difficulty || item.recipe?.difficulty || '';
-    registerMatch('difficulty', getSearchMatchMeta(difficulty, normalizedQuery, queryTokens));
-
-    const ingredients = getRecipeIngredients(item);
-
-    if (ingredients && ingredients.length > 0) {
-      ingredients.forEach((ing) => {
-        const food = ing.food || ing.user_created_food || foodById.get(ing.food_id);
-        const foodName = food?.name || '';
-        registerMatch('ingredient', getSearchMatchMeta(foodName, normalizedQuery, queryTokens));
-
-        const foodGroupNames = getFoodGroupNames(food);
-        foodGroupNames.forEach((groupName) => {
-          registerMatch('group', getSearchMatchMeta(groupName, normalizedQuery, queryTokens));
-        });
-      });
-    }
-
-    return {
-      matched: itemMatchTypes.size > 0,
-      matchTypes: itemMatchTypes,
-      hasFuzzyMatch,
-    };
-  }, [foodById]);
-
   const filterItems = useCallback((items, query) => {
-    if (!query) {
-      return {
-        items,
-        matchTypes: [],
-        hasFuzzyMatch: false,
-      };
-    }
-
-    const normalizedQuery = normalizeText(query);
-    const queryTokens = tokenizeNormalizedText(normalizedQuery);
-    const matchedTypes = new Set();
-    let hasFuzzyMatch = false;
-
-    const filteredItems = items.filter(item => {
-        const matchInfo = getItemSearchMatchInfo(item, normalizedQuery, queryTokens);
-        if (!matchInfo.matched) return false;
-
-        matchInfo.matchTypes.forEach((type) => matchedTypes.add(type));
-        if (matchInfo.hasFuzzyMatch) hasFuzzyMatch = true;
-        return true;
+    return filterRecipesByQuery({
+      items,
+      query,
+      recipeStyles,
+      allFoods,
+      foodById,
+      allowFuzzy: true,
     });
-
-    const orderedMatchTypes = SEARCH_MATCH_TYPE_ORDER.filter((type) => matchedTypes.has(type));
-    return {
-      items: filteredItems,
-      matchTypes: orderedMatchTypes,
-      hasFuzzyMatch,
-    };
-  }, [getItemSearchMatchInfo]);
+  }, [allFoods, foodById, recipeStyles]);
 
   if (!isValid(currentDate)) {
       return <div>Fecha inválida</div>;
@@ -385,7 +240,7 @@ const ListView = ({
         const { items: filteredItems, matchTypes: mealMatchTypes, hasFuzzyMatch: mealHasFuzzyMatch } = filterItems(sortedItems, mealSearchQuery);
         const hasActiveSearch = normalizeText(mealSearchQuery).length > 0;
         const showSearchLegend = hasActiveSearch && filteredItems.length > 0 && mealMatchTypes.length > 0;
-        const matchLegendText = mealMatchTypes.map((type) => SEARCH_MATCH_TYPE_LABELS[type]).join(' · ');
+        const matchLegendText = mealMatchTypes.map((type) => RECIPE_SEARCH_MATCH_TYPE_LABELS[type]).join(' · ');
 
         const mealTargetData = userDayMeals?.find(udm => udm.id === mealId);
         const mealAdjustment = equivalenceAdjustments?.find(adj => adj.target_user_day_meal_id === mealId && adj.log_date === logDate);
@@ -420,7 +275,7 @@ const ListView = ({
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                     <Input 
                         type="text"
-                        placeholder="Buscar receta, ingrediente o grupo..."
+                        placeholder="Buscar receta, ingrediente, grupo o estilo..."
                         value={searchQueries[mealId] || ''}
                         onChange={(e) => handleSearchChange(mealId, e.target.value)}
                         className="pl-9 bg-card/85 border-border text-sm w-full focus:ring-green-500/20 focus:border-green-500/50 text-foreground placeholder:text-muted-foreground transition-all duration-200 h-10"

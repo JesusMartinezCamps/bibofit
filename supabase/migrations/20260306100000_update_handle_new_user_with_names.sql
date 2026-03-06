@@ -5,16 +5,21 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.profiles (user_id, first_name, last_name, full_name, email)
+  insert into public.profiles (user_id, first_name, last_name, full_name, email, phone)
   values (
     new.id,
     new.raw_user_meta_data->>'first_name',
     new.raw_user_meta_data->>'last_name',
     new.raw_user_meta_data->>'full_name',
-    new.email
+    new.email,
+    new.raw_user_meta_data->>'phone'
   )
   on conflict (user_id) do update
-  set email = excluded.email;
+  set
+    email      = excluded.email,
+    first_name = coalesce(profiles.first_name, excluded.first_name),
+    last_name  = coalesce(profiles.last_name,  excluded.last_name),
+    phone      = coalesce(profiles.phone,      excluded.phone);
 
   insert into public.user_roles (user_id, role_id)
   values (new.id, (select id from public.roles where role = 'free'))

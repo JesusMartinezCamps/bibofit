@@ -10,6 +10,7 @@ import { FREE_RECIPE_STATUS, normalizeFreeRecipeStatus } from '@/lib/recipeEntit
 import { cn } from '@/lib/utils';
 import { RecipeCardBackground, RecipeCardPanel } from '@/components/shared/recipe-card/RecipeCardBase';
 import { useTheme } from '@/contexts/ThemeContext';
+import { getIngredientHighlightForQuery } from '@/lib/recipeSearch';
 
 const FreeRecipeCard = ({
   freeMeal,
@@ -42,10 +43,15 @@ const FreeRecipeCard = ({
       if (!foodDetails) return null;
       const unit = foodDetails.food_unit === 'unidades' ? 'ud' : 'g';
       const text = `${foodDetails.name} (${Math.round(ing.grams || 0)}${unit})`;
+      const ingredientHighlight = getIngredientHighlightForQuery({
+        food: foodDetails,
+        query: searchQuery,
+        allowFuzzy: true,
+      });
       
       return (
           <span key={index}>
-             <HighlightedText text={text} highlight={searchQuery} />
+             <HighlightedText text={text} highlight={ingredientHighlight} />
           </span>
       );
     }).filter(Boolean);

@@ -59,6 +59,9 @@ const Header = () => {
     return '/plan';
   };
 
+  const displayName = `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || user?.full_name || user?.email || 'Usuario';
+  const profileImageUrl = user?.avatar_url || null;
+
   return (
     <motion.header
       initial={{ opacity: 0, y: -20 }}
@@ -102,21 +105,7 @@ const Header = () => {
               </nav>
             </div>
 
-            <div className="flex items-center space-x-4">
-              <div className="hidden sm:flex items-center space-x-3">
-                <div className={`flex h-8 w-8 items-center justify-center rounded-full ${isCoach ? 'border border-amber-500/30 bg-amber-500/20 text-amber-500' : 'bg-primary text-primary-foreground'}`}>
-                  <User className="w-4 h-4" />
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium text-foreground">
-                    {user?.full_name || user?.email || 'Usuario'}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {getRoleDisplayName(user?.role)}
-                  </p>
-                </div>
-              </div>
-
+            <div className="ml-2 flex items-center gap-2 sm:gap-3">
               <div className="flex items-center space-x-2">
                 {isStaff ? (
                   <Tooltip>
@@ -166,19 +155,35 @@ const Header = () => {
                     <p>Lista de la Compra</p>
                   </TooltipContent>
                 </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button asChild variant="ghost" size="icon" className="text-muted-foreground hover:bg-accent hover:text-accent-foreground">
-                      <Link to="/profile">
-                        <User className="w-5 h-5" />
-                      </Link>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Mi Perfil</p>
-                  </TooltipContent>
-                </Tooltip>
               </div>
+
+              <Link
+                to="/profile"
+                className={cn(
+                  'flex max-w-[12rem] items-center gap-2 px-1 py-1 transition-opacity hover:opacity-85',
+                  location.pathname.startsWith('/profile') && 'opacity-85'
+                )}
+              >
+                {profileImageUrl ? (
+                  <img
+                    src={profileImageUrl}
+                    alt="Foto de perfil"
+                    className="h-8 w-8 shrink-0 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${isCoach ? 'border border-amber-500/30 bg-amber-500/20 text-amber-500' : 'bg-primary text-primary-foreground'}`}>
+                    <User className="w-4 h-4" />
+                  </div>
+                )}
+                <div className="hidden min-w-0 text-left sm:block">
+                  <p className="truncate text-xs font-medium text-foreground sm:text-sm">
+                    {displayName}
+                  </p>
+                  <p className="truncate text-[11px] text-muted-foreground sm:text-xs">
+                    {getRoleDisplayName(user?.role)}
+                  </p>
+                </div>
+              </Link>
             </div>
           </div>
         </div>

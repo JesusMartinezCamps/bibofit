@@ -37,7 +37,17 @@ export const AuthProvider = ({ children }) => {
       
       const userRole = roleData?.roles?.role || 'free';
       const cleanProfile = profile ? { ...profile } : {};
-      
+
+      // Fallback: si el perfil no tiene first_name/last_name, usar auth metadata
+      // (cubre casos donde el trigger DB aún no los guardó)
+      const userMeta = sessionUser.user_metadata || {};
+      if (!cleanProfile.first_name && userMeta.first_name) {
+        cleanProfile.first_name = userMeta.first_name;
+      }
+      if (!cleanProfile.last_name && userMeta.last_name) {
+        cleanProfile.last_name = userMeta.last_name;
+      }
+
       const fullUser = {
         ...sessionUser,
         ...cleanProfile,
@@ -129,7 +139,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const signup = async (email, password, firstName, lastName) => {
+  const signup = async (email, password, firstName, lastName, phone) => {
     try {
       const confirmationRedirectUrl = getAuthConfirmedRedirectUrl();
       const fullName = [firstName, lastName].filter(Boolean).join(' ');
@@ -141,6 +151,7 @@ export const AuthProvider = ({ children }) => {
             first_name: firstName || null,
             last_name: lastName || null,
             full_name: fullName || null,
+            phone: phone || null,
           },
           emailRedirectTo: confirmationRedirectUrl,
         },
