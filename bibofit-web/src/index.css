@@ -266,11 +266,11 @@ html:not(.dark) .app-main-shell {
 }
 
 .bf-date-trigger {
-  @apply flex min-h-[48px] w-full items-center justify-between rounded-xl border border-input bg-card px-4 py-3 text-sm text-foreground transition-all duration-200;
+  @apply flex min-h-[48px] w-full items-center justify-between rounded-xl border border-input bg-background px-4 py-3 text-sm text-foreground transition-all duration-200;
 }
 
 .bf-date-trigger:hover {
-  @apply border-primary/50 bg-card/80;
+  @apply border-primary/50 bg-accent text-foreground;
 }
 
 .bf-date-trigger:focus-visible {
@@ -314,11 +314,15 @@ html:not(.dark) .app-main-shell {
 }
 
 .bf-datepicker__select {
-  @apply h-11 min-w-0 rounded-lg border border-input bg-background px-4 text-base text-foreground focus:border-primary focus:outline-none;
+  @apply h-11 min-w-0 rounded-lg border border-input bg-background px-4 text-base text-foreground transition-colors focus:border-primary focus:outline-none;
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
   background-image: none;
+}
+
+.bf-datepicker__select:hover {
+  @apply border-primary/50 bg-accent text-foreground;
 }
 
 .bf-datepicker__select--month {
@@ -392,37 +396,11 @@ html:not(.dark) .app-main-shell {
 }
 
 .bf-datepicker__nav-btn:hover:not(:disabled) {
-  @apply border-primary/50 bg-accent;
+  @apply border-primary/50 bg-accent text-foreground;
 }
 
 .bf-datepicker__nav-btn:disabled {
   @apply cursor-not-allowed opacity-40;
-}
-
-.bf-datepicker.bf-datepicker--onboarding-dark {
-  background-color: #000 !important;
-  color: #fff !important;
-  border-color: hsl(var(--border)) !important;
-}
-
-.bf-datepicker.bf-datepicker--onboarding-dark .bf-datepicker__select,
-.bf-datepicker.bf-datepicker--onboarding-dark .bf-datepicker__nav-btn,
-.bf-datepicker.bf-datepicker--onboarding-dark .react-datepicker__month-container {
-  background-color: #000 !important;
-  color: #fff !important;
-}
-
-.bf-datepicker.bf-datepicker--onboarding-dark .bf-datepicker__select option {
-  background-color: #000 !important;
-  color: #fff !important;
-}
-
-html:not(.dark) .bf-datepicker.bf-datepicker--onboarding-dark,
-html:not(.dark) .bf-datepicker.bf-datepicker--onboarding-dark .bf-datepicker__select,
-html:not(.dark) .bf-datepicker.bf-datepicker--onboarding-dark .bf-datepicker__nav-btn,
-html:not(.dark) .bf-datepicker.bf-datepicker--onboarding-dark .react-datepicker__month-container {
-  background-color: #000 !important;
-  color: #fff !important;
 }
 
 @keyframes bfDateMonthIn {
@@ -438,8 +416,13 @@ html:not(.dark) .bf-datepicker.bf-datepicker--onboarding-dark .react-datepicker_
 
 @media (max-width: 640px) {
   .bf-datepicker {
+    @apply rounded-2xl border p-3;
+    min-height: auto;
+  }
+
+  .react-datepicker__portal .bf-datepicker {
     @apply rounded-none border-0 p-4;
-    min-height: 100vh;
+    min-height: 100dvh;
   }
 
   .bf-datepicker .react-datepicker__day {
@@ -728,6 +711,29 @@ html:not(.dark) .bf-datepicker__nav-btn {
 html:not(.dark) .bf-datepicker__select option {
   background-color: hsl(var(--card));
   color: hsl(var(--foreground));
+}
+
+html.dark .bf-datepicker,
+html.dark .bf-datepicker__select,
+html.dark .bf-datepicker__nav-btn {
+  background-color: hsl(var(--card)) !important;
+  color: hsl(var(--foreground)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+html.dark .bf-datepicker__select option {
+  background-color: hsl(var(--card)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+html.dark .bf-datepicker .react-datepicker__day,
+html.dark .bf-datepicker .react-datepicker__day-name {
+  color: hsl(var(--foreground)) !important;
+}
+
+html.dark .bf-datepicker .react-datepicker__day:hover {
+  background-color: hsl(var(--accent)) !important;
+  color: hsl(var(--foreground)) !important;
 }
 
 /* Light mode: enforce opaque gradient palettes on interactive buttons */
