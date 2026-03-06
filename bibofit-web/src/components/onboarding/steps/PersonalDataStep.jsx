@@ -7,14 +7,15 @@ import { useAuth } from '@/contexts/AuthContext';
 const PersonalDataStep = ({ onNext, isLoading }) => {
   const { user } = useAuth();
   const [formData, setFormData] = useState({
-    full_name: user?.full_name || '',
+    first_name: user?.first_name || '',
+    last_name: user?.last_name || '',
     phone: user?.phone || ''
   });
   const [errors, setErrors] = useState({});
 
   const validate = () => {
     const newErrors = {};
-    if (!formData.full_name.trim()) newErrors.full_name = 'El nombre es obligatorio';
+    if (!formData.first_name.trim()) newErrors.first_name = 'El nombre es obligatorio';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -22,7 +23,13 @@ const PersonalDataStep = ({ onNext, isLoading }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (validate()) {
-      onNext(formData);
+      const firstName = formData.first_name.trim();
+      const lastName = formData.last_name.trim();
+      onNext({
+        first_name: firstName,
+        last_name: lastName,
+        phone: formData.phone
+      });
     }
   };
 
@@ -30,15 +37,26 @@ const PersonalDataStep = ({ onNext, isLoading }) => {
     <form onSubmit={handleSubmit} className="flex flex-col h-full">
       <div className="flex-1 space-y-6 overflow-y-auto pr-1">
         <div className="space-y-2">
-            <Label htmlFor="full_name" className="text-muted-foreground">Nombre Completo</Label>
+            <Label htmlFor="first_name" className="text-muted-foreground">Nombre</Label>
             <Input
-                id="full_name"
-                value={formData.full_name}
-                onChange={(e) => setFormData({...formData, full_name: e.target.value})}
+                id="first_name"
+                value={formData.first_name}
+                onChange={(e) => setFormData({...formData, first_name: e.target.value})}
                 className="bf-form-control"
                 placeholder="Tu nombre"
             />
-            {errors.full_name && <p className="text-red-400 text-sm mt-1">{errors.full_name}</p>}
+            {errors.first_name && <p className="text-red-400 text-sm mt-1">{errors.first_name}</p>}
+        </div>
+
+        <div className="space-y-2">
+            <Label htmlFor="last_name" className="text-muted-foreground">Apellidos</Label>
+            <Input
+                id="last_name"
+                value={formData.last_name}
+                onChange={(e) => setFormData({...formData, last_name: e.target.value})}
+                className="bf-form-control"
+                placeholder="Tus apellidos"
+            />
         </div>
 
         <div className="space-y-2">

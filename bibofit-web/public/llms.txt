@@ -1,5 +1,6 @@
 ## Pages
 - [- Bibofit](/profile): Gestiona tu información y consulta tus creaciones.
+- [- Bibofit](/recipeview): No description available
 - [- Gsus Martz`}](/diet): No description available
 - [` : 'Crear Alimento'} - Gsus Martz](/createfood): No description available
 - [` : 'Plan de Entreno'} - Gsus Martz](/workout): No description available
@@ -33,6 +34,8 @@
 - [Precios y Planes | Bibofit](/pricing): Elige el plan perfecto para tus objetivos de fitness y nutrición.
 - [Recordatorios - Entrenador](/coachreminders): No description available
 - [Registrarse - Bibofit](/signup): Crea tu cuenta en Bibofit y empieza tu transformación fitness
+- [Registro de Peso - Bibofit](/weightlog): No description available
+- [Repetir Receta - Bibofit](/repeatrecipe): No description available
 - [Restablecer Contraseña - Bibofit](/resetpassword): Recupera el acceso a tu cuenta de Bibofit.
 - [Revisa Tu Correo - Bibofit](/checkemail): Confirma tu email para activar tu cuenta y empezar en Bibofit.
 - [Solicitudes de Alimentos - Gestión](/usercreatedfoods): Gestiona los alimentos creados por los usuarios.

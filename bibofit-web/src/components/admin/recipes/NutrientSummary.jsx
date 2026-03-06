@@ -9,7 +9,11 @@ const NutrientSummary = ({ macros, allVitamins, allMinerals, recipeNutrients }) 
     return allNutrients
       .filter(nutrient => selectedIds.includes(nutrient.id))
       .map(nutrient => (
-        <Badge key={nutrient.id} variant="outline" className="bg-green-900/50 border-green-700/50 text-green-300">
+        <Badge
+          key={nutrient.id}
+          variant="outline"
+          className="bg-emerald-500/12 dark:bg-emerald-900/50 border-emerald-500/35 dark:border-emerald-700/50 text-emerald-700 dark:text-emerald-300"
+        >
           {nutrient.name}
         </Badge>
       ));
@@ -22,19 +26,19 @@ const NutrientSummary = ({ macros, allVitamins, allMinerals, recipeNutrients }) 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
           <div className="bg-muted/75 p-3 rounded-lg">
             <p className="text-sm text-muted-foreground">Calorías</p>
-            <p className="text-xl font-bold text-white">{Math.round(macros?.calories || 0)}</p>
+            <p className="text-xl font-bold text-foreground dark:text-white">{Math.round(macros?.calories || 0)}</p>
           </div>
           <div className="bg-muted/75 p-3 rounded-lg">
             <p className="text-sm text-muted-foreground">Proteínas</p>
-            <p className="text-xl font-bold text-white">{Math.round(macros?.proteins || 0)}g</p>
+            <p className="text-xl font-bold text-foreground dark:text-white">{Math.round(macros?.proteins || 0)}g</p>
           </div>
           <div className="bg-muted/75 p-3 rounded-lg">
             <p className="text-sm text-muted-foreground">Carbs</p>
-            <p className="text-xl font-bold text-white">{Math.round(macros?.carbs || 0)}g</p>
+            <p className="text-xl font-bold text-foreground dark:text-white">{Math.round(macros?.carbs || 0)}g</p>
           </div>
           <div className="bg-muted/75 p-3 rounded-lg">
             <p className="text-sm text-muted-foreground">Grasas</p>
-            <p className="text-xl font-bold text-white">{Math.round(macros?.fats || 0)}g</p>
+            <p className="text-xl font-bold text-foreground dark:text-white">{Math.round(macros?.fats || 0)}g</p>
           </div>
         </div>
       </div>

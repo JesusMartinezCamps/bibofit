@@ -1,8 +1,9 @@
 import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, CheckCircle, User, Briefcase } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
-const ProblemSolution = ({ audience = 'user', onAudienceChange }) => {
+const ProblemSolution = ({ audience = 'user', onAudienceChange, onOpenMobileDemo }) => {
   const handleAudienceChange = (value) => {
     onAudienceChange?.(value);
   };
@@ -61,6 +62,16 @@ const ProblemSolution = ({ audience = 'user', onAudienceChange }) => {
               Software
             </span>
           </h2>
+          <div className="mb-4 sm:hidden">
+            <Button
+              type="button"
+              size="lg"
+              onClick={onOpenMobileDemo}
+              className="h-12 px-6 bg-blue-600 text-blue-50 hover:bg-blue-700 dark:bg-blue-500 dark:text-slate-950 dark:hover:bg-blue-400 border border-blue-700/40 dark:border-blue-300/40 shadow-sm"
+            >
+              Descubre como se ve la app
+            </Button>
+          </div>
           <p className="text-muted-foreground text-lg mb-6">
             Bibofit es una app desarrollada por una{' '}
             <span className="text-green-400 font-semibold">única persona</span>, con el objetivo de{' '}

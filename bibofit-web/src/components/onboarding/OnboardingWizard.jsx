@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Moon, Sun, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import OnboardingModal from './OnboardingModal';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // Existing Steps
 import IntroStep from './steps/IntroStep';
-import PersonalDataStep from './steps/PersonalDataStep';
 import PhysicalDataStep from './steps/PhysicalDataStep';
 import DietObjectiveStep from './steps/DietObjectiveStep';
 import DietMealsStep from './steps/DietMealsStep';
@@ -20,6 +20,7 @@ import MealMacroDistributionStep from './steps/MealMacroDistributionStep';
 import MealAdjustmentStep from './steps/MealAdjustmentStep';
 
 const OnboardingWizard = ({ isOpen: propIsOpen }) => {
+  const { isDark, toggleTheme } = useTheme();
   const {
     currentStep,
     currentStepIndex,
@@ -94,7 +95,6 @@ const OnboardingWizard = ({ isOpen: propIsOpen }) => {
 
   const StepComponent = {
     'intro': IntroStep,
-    'personal-data': PersonalDataStep,
     'physical-data': PhysicalDataStep,
     'diet_objective_history': DietObjectiveStep,
     'diet_meals_preferences': DietMealsStep, 
@@ -148,12 +148,22 @@ const OnboardingWizard = ({ isOpen: propIsOpen }) => {
           )}
 
           {!isFirstStep && !isLastStep && (
-              <span className="font-semibold text-sm md:text-base text-gray-200">
+              <span className="font-semibold text-sm md:text-base text-foreground">
                   Paso {currentStepIndex} de {totalSteps - 2}
               </span>
           )}
 
            <div className="min-w-[5.5rem] flex justify-end gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              className="text-muted-foreground hover:text-foreground hover:bg-muted"
+              aria-label={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+              disabled={isLoading}
+            >
+              {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </Button>
             {canJumpToMealAdjustment && (
               <Button
                 variant="ghost"

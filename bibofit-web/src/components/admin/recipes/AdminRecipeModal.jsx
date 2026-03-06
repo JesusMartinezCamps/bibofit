@@ -10,7 +10,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import _ from 'lodash';
-import { updateDietPlanRecipeCustomization } from '@/components/shared/RecipeEditorModal/recipeService';
+import { versionDietPlanRecipe } from '@/components/shared/RecipeEditorModal/recipeService';
 import { saveDietPlanRecipeIngredients } from '@/lib/macroCalculator';
 
 const AdminRecipeModal = ({ 
@@ -208,7 +208,8 @@ const AdminRecipeModal = ({
             (recipeData.name || '') !== (initialState.recipeData.name || '') ||
             (recipeData.instructions || '') !== (initialState.recipeData.instructions || '') ||
             String(recipeData.prep_time_min || '') !== String(initialState.recipeData.prep_time_min || '') ||
-            (recipeData.difficulty || '') !== (initialState.recipeData.difficulty || '');
+            (recipeData.difficulty || '') !== (initialState.recipeData.difficulty || '') ||
+            String(recipeData.recipe_style_id || '') !== String(initialState.recipeData.recipe_style_id || '');
 
         if (dataChanged) return true;
 
@@ -369,15 +370,16 @@ const AdminRecipeModal = ({
             // Check context: Assigned Plan vs Template
             if (isAssignedPlan && !isAdding) {
                 // ASSIGNED PLAN CONTEXT
-                const result = await updateDietPlanRecipeCustomization({
-                    dietPlanRecipeId: recipeToEdit.id,
+                const result = await versionDietPlanRecipe({
+                    oldDietPlanRecipeId: recipeToEdit.id,
                     formData: recipeData,
-                    ingredients: ingredients
+                    ingredients: ingredients,
+                    originalRecipe: recipeToEdit,
                 });
-                
+
                 if (result.success) {
                     toast({ title: "Receta actualizada", description: "Se han guardado los cambios en la receta asignada." });
-                    if (onSaveSuccess) onSaveSuccess({ id: recipeToEdit.id }, 'customized_update');
+                    if (onSaveSuccess) onSaveSuccess(result.data, 'version_created');
                 } else {
                     throw new Error(result.message);
                 }

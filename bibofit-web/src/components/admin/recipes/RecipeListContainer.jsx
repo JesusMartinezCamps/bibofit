@@ -5,6 +5,7 @@ import { Loader2, X } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import RecipeCard from '@/components/admin/recipes/RecipeCard';
+import { filterRecipesByQuery } from '@/lib/recipeSearch';
 
 const RecipeListContainer = ({ onSelectRecipe, selectedRecipeId, onDeleteRecipe, refreshToken = 0 }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -19,6 +20,7 @@ const RecipeListContainer = ({ onSelectRecipe, selectedRecipeId, onDeleteRecipe,
         .from('recipes')
         .select(`
           *,
+          recipe_style:recipe_style_id(id, name),
           recipe_ingredients:recipe_ingredients(*, food:food(id, name, food_unit, proteins, total_carbs, total_fats, food_to_food_groups(food_group_id, food_group:food_groups(id, name)), food_vitamins(vitamin_id, vitamins(id, name)), food_minerals(mineral_id, minerals(id, name)))),
           recipe_sensitivities:recipe_sensitivities(*, sensitivities:sensitivities(id, name))
         `)
@@ -69,28 +71,11 @@ const RecipeListContainer = ({ onSelectRecipe, selectedRecipeId, onDeleteRecipe,
   };
 
   const filteredRecipes = useMemo(() => {
-    if (!searchTerm) return allRecipes;
-    
-    // Normalize string helper: remove accents and lowercase
-    const normalize = (str) => 
-      str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "";
-
-    const lowercasedFilter = normalize(searchTerm);
-
-    return allRecipes.filter(recipe => {
-      // Check Recipe Name
-      const nameMatch = normalize(recipe.name).includes(lowercasedFilter);
-      
-      // Check Difficulty
-      const difficultyMatch = normalize(recipe.difficulty).includes(lowercasedFilter);
-      
-      // Check Ingredients
-      const ingredientsMatch = recipe.recipe_ingredients?.some(ing => 
-        ing.food && normalize(ing.food.name).includes(lowercasedFilter)
-      );
-
-      return nameMatch || difficultyMatch || ingredientsMatch;
-    });
+    return filterRecipesByQuery({
+      items: allRecipes,
+      query: searchTerm,
+      allowFuzzy: true,
+    }).items;
   }, [searchTerm, allRecipes]);
 
   return (
@@ -99,7 +84,7 @@ const RecipeListContainer = ({ onSelectRecipe, selectedRecipeId, onDeleteRecipe,
       <div className="relative mb-4">
         <Input
           type="text"
-          placeholder="Buscar por nombre, ingrediente o dificultad..."
+          placeholder="Buscar por nombre, ingrediente, grupo, estilo o dificultad..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="input-field pr-10"

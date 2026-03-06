@@ -47,6 +47,7 @@ const FreeMealApprovalModal = ({ freeMeal, isOpen, onOpenChange, onAction }) => 
     name: '',
     prep_time_min: 15,
     difficulty: 'Fácil',
+    recipe_style_id: '',
     instructions: '',
   });
   const [ingredients, setIngredients] = useState([]);
@@ -57,6 +58,7 @@ const FreeMealApprovalModal = ({ freeMeal, isOpen, onOpenChange, onAction }) => 
   const [allVitamins, setAllVitamins] = useState([]);
   const [allMinerals, setAllMinerals] = useState([]);
   const [allFoodGroups, setAllFoodGroups] = useState([]);
+  const [recipeStyles, setRecipeStyles] = useState([]);
 
   const [planRestrictions, setPlanRestrictions] = useState({
     sensitivities: [],
@@ -78,7 +80,7 @@ const FreeMealApprovalModal = ({ freeMeal, isOpen, onOpenChange, onAction }) => 
     setIsLoading(true);
     try {
       const userId = freeMeal.user_id;
-      const [foodsRes, profileRes, sensitivitiesRes, conditionsRes, preferredRes, nonPreferredRes, vitaminsRes, mineralsRes, foodGroupsRes] =
+      const [foodsRes, profileRes, sensitivitiesRes, conditionsRes, preferredRes, nonPreferredRes, vitaminsRes, mineralsRes, foodGroupsRes, recipeStylesRes] =
         await Promise.all([
           supabase
             .from('food')
@@ -95,6 +97,7 @@ const FreeMealApprovalModal = ({ freeMeal, isOpen, onOpenChange, onAction }) => 
           supabase.from('vitamins').select('id, name'),
           supabase.from('minerals').select('id, name'),
           supabase.from('food_groups').select('id, name'),
+          supabase.from('recipe_styles').select('id, name').eq('is_active', true).order('display_order').order('name'),
         ]);
 
       if (foodsRes.error) throw foodsRes.error;
@@ -106,6 +109,7 @@ const FreeMealApprovalModal = ({ freeMeal, isOpen, onOpenChange, onAction }) => 
       if (vitaminsRes.error) throw vitaminsRes.error;
       if (mineralsRes.error) throw mineralsRes.error;
       if (foodGroupsRes.error) throw foodGroupsRes.error;
+      if (recipeStylesRes.error) throw recipeStylesRes.error;
 
       setPlanRestrictions({
         sensitivities: profileRes.data.user_sensitivities.map((s) => s.sensitivity_id),
@@ -120,11 +124,13 @@ const FreeMealApprovalModal = ({ freeMeal, isOpen, onOpenChange, onAction }) => 
       setAllVitamins(vitaminsRes.data || []);
       setAllMinerals(mineralsRes.data || []);
       setAllFoodGroups(foodGroupsRes.data || []);
+      setRecipeStyles(recipeStylesRes.data || []);
 
       setFormData({
         name: freeMeal.name,
         prep_time_min: freeMeal.prep_time_min || 15,
         difficulty: freeMeal.difficulty || 'Fácil',
+        recipe_style_id: freeMeal.recipe_style_id ? String(freeMeal.recipe_style_id) : '',
         instructions: freeMeal.instructions || '',
       });
 
@@ -318,6 +324,7 @@ const FreeMealApprovalModal = ({ freeMeal, isOpen, onOpenChange, onAction }) => 
         instructions: formData.instructions,
         prep_time_min: formData.prep_time_min,
         difficulty: formData.difficulty,
+        recipe_style_id: formData.recipe_style_id || null,
         userId: freeMeal.user_id,
         ingredients: ingredients.map((i) => ({
           food_id: i.food_id,
@@ -430,6 +437,7 @@ const FreeMealApprovalModal = ({ freeMeal, isOpen, onOpenChange, onAction }) => 
                 onRemoveIngredient={handleRemoveKnownIngredient}
                 onAddIngredientClick={() => setIsSearchingIngredient(true)}
                 disableAutoBalance={true}
+                recipeStyles={recipeStyles}
                 conflicts={conflictingIngredientsData.map((c) => ({
                   foodId: c.foodId,
                   type: c.type,

@@ -32,6 +32,7 @@ const CreateFreeRecipePage = () => {
     const [recipeForEquivalence, setRecipeForEquivalence] = useState(null);
     const [recipeNameForToast, setRecipeNameForToast] = useState('');
     const [availableFoods, setAvailableFoods] = useState([]);
+    const [recipeStyles, setRecipeStyles] = useState([]);
     const [userRestrictions, setUserRestrictions] = useState(null);
     const [dietPlanId, setDietPlanId] = useState(null);
 
@@ -65,6 +66,7 @@ const CreateFreeRecipePage = () => {
         recipeName, setRecipeName,
         prepTime, setPrepTime,
         difficulty, setDifficulty,
+        recipeStyleId, setRecipeStyleId,
         instructions, setInstructions,
         ingredients, setIngredients,
         macros,
@@ -105,12 +107,13 @@ const CreateFreeRecipePage = () => {
     const fetchInitialData = useCallback(async () => {
         setLoadingInitialData(true);
         try {
-            const [foodsRes, userFoodsRes, restrictionsRes, preferredFoodsRes, nonPreferredFoodsRes] = await Promise.all([
+            const [foodsRes, userFoodsRes, restrictionsRes, preferredFoodsRes, nonPreferredFoodsRes, recipeStylesRes] = await Promise.all([
                 supabase.from('food').select(`*, food_sensitivities(sensitivities(id, name)), food_medical_conditions(medical_conditions(id, name), relation_type)`).is('user_id', null),
                 supabase.from('food').select(`*, food_sensitivities(sensitivities(id, name)), food_medical_conditions(medical_conditions(id, name), relation_type)`).eq('user_id', targetUserId).neq('status', 'rejected'),
                 supabase.rpc('get_user_restrictions', { p_user_id: targetUserId }),
                 supabase.from('preferred_foods').select('food(*)').eq('user_id', targetUserId),
-                supabase.from('non_preferred_foods').select('food(*)').eq('user_id', targetUserId)
+                supabase.from('non_preferred_foods').select('food(*)').eq('user_id', targetUserId),
+                supabase.from('recipe_styles').select('id, name').eq('is_active', true).order('display_order').order('name')
             ]);
             
             // Fetch Active Diet Plan ID
@@ -130,13 +133,14 @@ const CreateFreeRecipePage = () => {
                 setDietPlanId(planData.id);
             }
 
-            if (foodsRes.error || userFoodsRes.error || restrictionsRes.error || preferredFoodsRes.error || nonPreferredFoodsRes.error) {
-                throw new Error(foodsRes.error?.message || userFoodsRes.error?.message || restrictionsRes.error?.message || preferredFoodsRes.error?.message || nonPreferredFoodsRes.error?.message || "An unknown error occurred while fetching initial data.");
+            if (foodsRes.error || userFoodsRes.error || restrictionsRes.error || preferredFoodsRes.error || nonPreferredFoodsRes.error || recipeStylesRes.error) {
+                throw new Error(foodsRes.error?.message || userFoodsRes.error?.message || restrictionsRes.error?.message || preferredFoodsRes.error?.message || nonPreferredFoodsRes.error?.message || recipeStylesRes.error?.message || "An unknown error occurred while fetching initial data.");
             }
 
             const publicFoods = (foodsRes.data || []).map(f => ({ ...f, is_user_created: false }));
             const userFoods = (userFoodsRes.data || []).map(f => ({ ...f, is_user_created: true }));
             setAvailableFoods([...publicFoods, ...userFoods]);
+            setRecipeStyles(recipeStylesRes.data || []);
             
             const finalRestrictions = {
                 ...(restrictionsRes.data || {}),
@@ -210,7 +214,7 @@ const CreateFreeRecipePage = () => {
                             <label htmlFor="recipeName" className="block text-sm font-medium text-muted-foreground">Nombre de la Receta</label>
                             <Input id="recipeName" type="text" placeholder="Ej: Pollo al curry con arroz" value={recipeName} onChange={(e) => setRecipeName(e.target.value)} />
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div>
                                 <label htmlFor="prepTime" className="block text-sm font-medium text-muted-foreground">Tiempo (min)</label>
                                 <Input id="prepTime" type="number" placeholder="Ej: 30" value={prepTime} onChange={(e) => setPrepTime(e.target.value)} />
@@ -220,6 +224,19 @@ const CreateFreeRecipePage = () => {
                                 <Select value={difficulty} onValueChange={setDifficulty}>
                                     <SelectTrigger><SelectValue placeholder="Selecciona dificultad" /></SelectTrigger>
                                     <SelectContent><SelectItem value="Fácil">Fácil</SelectItem><SelectItem value="Media">Media</SelectItem><SelectItem value="Difícil">Difícil</SelectItem></SelectContent>
+                                </Select>
+                            </div>
+                            <div>
+                                <label htmlFor="recipeStyle" className="block text-sm font-medium text-muted-foreground">Estilo</label>
+                                <Select value={recipeStyleId || ''} onValueChange={setRecipeStyleId}>
+                                    <SelectTrigger id="recipeStyle"><SelectValue placeholder="Selecciona estilo" /></SelectTrigger>
+                                    <SelectContent>
+                                        {recipeStyles.map((style) => (
+                                            <SelectItem key={style.id} value={String(style.id)}>
+                                                {style.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
                                 </Select>
                             </div>
                         </div>

@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowRightLeft } from 'lucide-react';
+import { ArrowRightLeft, AlertTriangle, ThumbsUp } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import IngredientSearch from '@/components/plans/IngredientSearch';
 import { calculateMacros } from '@/lib/macroCalculator';
+import { cn } from '@/lib/utils';
 
 const IngredientQuickEditDialog = ({
   open,
@@ -173,7 +174,7 @@ const IngredientQuickEditDialog = ({
                 <p className="text-green-700 dark:text-green-300">Grasas: {Math.round(originalMacros.fats || 0)}g</p>
               </div>
             </div>
-            <div className="rounded-lg border border-cyan-700/60 bg-cyan-900/20 p-3">
+            <div className="rounded-lg border border-cyan-500/35 dark:border-cyan-700/60 bg-cyan-500/12 dark:bg-cyan-900/20 p-3">
               <p className="text-xs text-cyan-700 dark:text-cyan-300 mb-1">Macros actualizadas</p>
               <div className="space-y-1 text-sm">
                 <p className="text-orange-700 dark:text-orange-300">Kcal: {Math.round(updatedMacros.calories || 0)}</p>
@@ -189,13 +190,13 @@ const IngredientQuickEditDialog = ({
               <p className="text-xs text-muted-foreground mb-2">Vitaminas y Minerales</p>
               <div className="flex flex-wrap gap-2">
                 {selectedVitamins.map((v) => (
-                  <Badge key={`qv-${v.id}`} variant="outline" className="border-emerald-500/40 text-emerald-700 dark:text-emerald-300 bg-emerald-900/20">
+                  <Badge key={`qv-${v.id}`} variant="outline" className="border-emerald-500/40 text-emerald-700 dark:text-emerald-300 bg-emerald-500/12 dark:bg-emerald-900/20">
                     {v.name}
                     {typeof v.mg_per_100g === 'number' ? ` (${v.mg_per_100g} mg/100g)` : ''}
                   </Badge>
                 ))}
                 {selectedMinerals.map((m) => (
-                  <Badge key={`qm-${m.id}`} variant="outline" className="border-sky-500/40 text-sky-700 dark:text-sky-300 bg-sky-900/20">
+                  <Badge key={`qm-${m.id}`} variant="outline" className="border-sky-500/40 text-sky-700 dark:text-sky-300 bg-sky-500/12 dark:bg-sky-900/20">
                     {m.name}
                     {typeof m.mg_per_100g === 'number' ? ` (${m.mg_per_100g} mg/100g)` : ''}
                   </Badge>
@@ -203,6 +204,74 @@ const IngredientQuickEditDialog = ({
               </div>
             </div>
           )}
+
+          {(() => {
+            const conflictType = ingredient.conflictType;
+            const conflictDetails = ingredient.conflictDetails || [];
+            const recommendationDetails = ingredient.recommendationDetails || [];
+            const isConflict = ['condition_avoid', 'sensitivity', 'non-preferred'].includes(conflictType);
+            const isRecommended = ['condition_recommend', 'preferred'].includes(conflictType);
+            if (!isConflict && !isRecommended) return null;
+
+            const conditionNames = recommendationDetails
+              .map((r) => {
+                if (r?.conditionName) return String(r.conditionName).trim();
+                const raw = String(r?.restrictionName || '').trim();
+                if (/^Recomendado por:\s*/i.test(raw)) {
+                  return raw.replace(/^Recomendado por:\s*/i, '').trim();
+                }
+                return null;
+              })
+              .filter(Boolean);
+            const uniqueConditionNames = [...new Set(conditionNames)];
+
+            const typeLabel = (() => {
+              switch (conflictType) {
+                case 'sensitivity':
+                  return 'Sensibilidad';
+                case 'condition_avoid':
+                  return 'Condición médica (evitar)';
+                case 'non-preferred':
+                  return 'No preferido';
+                case 'condition_recommend':
+                  return uniqueConditionNames.length > 0
+                    ? `Recomendado (${uniqueConditionNames.join(', ')})`
+                    : 'Recomendado';
+                case 'preferred':
+                  return 'Recomendado';
+                default:
+                  return conflictType;
+              }
+            })();
+
+            const names = isConflict
+              ? conflictDetails.map((c) => c.restrictionName).filter(Boolean)
+              : (conflictType === 'preferred' ? ['Alimento preferido'] : []);
+
+            return (
+              <div className={cn(
+                'rounded-lg border p-3 flex items-start gap-2',
+                isConflict
+                  ? 'border-red-500/40 bg-red-500/10'
+                  : 'border-green-500/40 bg-green-500/10'
+              )}>
+                {isConflict
+                  ? <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                  : <ThumbsUp className="w-4 h-4 text-green-700 dark:text-green-400 shrink-0 mt-0.5" />
+                }
+                <div>
+                  <p className={cn('text-xs font-semibold', isConflict ? 'text-red-400' : 'text-green-800 dark:text-green-300')}>
+                    {typeLabel}
+                  </p>
+                  {names.length > 0 && (
+                    <p className={cn('text-xs mt-0.5', isConflict ? 'text-red-300/80' : 'text-green-700/90 dark:text-green-300/80')}>
+                      {names.join(', ')}
+                    </p>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           <Button
             type="button"

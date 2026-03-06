@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Loader2, MailQuestion, Inbox, CheckCircle, X, Check, Save, Copy } from 'lucide-react';
+import { Loader2, MailQuestion, Inbox, CheckCircle, X, Save, Copy } from 'lucide-react';
+import { archiveUserRecipe } from '@/components/shared/RecipeEditorModal/recipeService';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabaseClient';
@@ -270,9 +271,12 @@ const DietChangeRequestList = ({
         const requestedRecipe = request.requested_changes_recipe;
 
         if (status === 'rejected') {
+            // Archivar la propuesta — nunca eliminar (Principio 1: el historial es inmutable)
             if (requestedRecipe) {
-                await supabase.from('recipe_ingredients').delete().eq('user_recipe_id', requestedRecipe.id);
-                await supabase.from('user_recipes').delete().eq('id', requestedRecipe.id);
+                const archiveResult = await archiveUserRecipe(requestedRecipe.id);
+                if (!archiveResult.success) {
+                    console.warn('No se pudo archivar la propuesta rechazada:', archiveResult.message);
+                }
             }
         } else if (status === 'approved') {
             if (!requestedRecipe) throw new Error("No se encontró la receta con los cambios solicitados.");
@@ -340,7 +344,7 @@ const DietChangeRequestList = ({
                 
                 if (planId && dayMealId) {
                     // Fix: Use maybeSingle() to handle case where no planned meal exists (e.g. 0 rows) gracefully
-                     const { data: plannedMeal, error: plannedMealError } = await supabase.from('planned_meals')
+                     const { data: plannedMeal } = await supabase.from('planned_meals')
                         .select('plan_date')
                         .eq('user_id', request.user_id)
                         .eq(request.diet_plan_recipe_id ? 'diet_plan_recipe_id' : 'user_recipe_id', originalRecipe.id)

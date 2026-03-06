@@ -8,7 +8,7 @@ import {
   Minus,
   PlusCircle,
   Plus,
-  ThumbsUp,
+  UtensilsCrossed,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -29,6 +29,7 @@ import {
   calculateRecipeConflicts,
   resolveRecipeImageUrl,
 } from '@/components/shared/recipe-view/recipeViewUtils';
+import { resolveRecipeStyleId, resolveRecipeStyleName } from '@/lib/recipeStyles';
 
 const clampMultiplier = (value) => {
   const parsed = Number(value);
@@ -78,6 +79,7 @@ const RecipeView = ({
   showMetaFields = true,
   showPreparationSection = true,
   onFoodCreated,
+  recipeStyles = null,
 }) => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -90,11 +92,22 @@ const RecipeView = ({
   const [quantityEditorIngredient, setQuantityEditorIngredient] = useState(null);
   const [servingMultiplier, setServingMultiplier] = useState(1);
   const [showMultiplierEasterEgg, setShowMultiplierEasterEgg] = useState(false);
+  const [internalRecipeStyles, setInternalRecipeStyles] = useState([]);
 
   const safeFoods = allFoods || [];
   const safeVitamins = allVitamins || [];
   const safeMinerals = allMinerals || [];
   const safeFoodGroups = allFoodGroups || [];
+  const safeRecipeStyles =
+    Array.isArray(recipeStyles) && recipeStyles.length > 0
+      ? recipeStyles
+      : internalRecipeStyles;
+
+  const recipeStyleId = useMemo(() => resolveRecipeStyleId(recipe), [recipe]);
+  const recipeStyleName = useMemo(
+    () => resolveRecipeStyleName(recipe, safeRecipeStyles),
+    [recipe, safeRecipeStyles]
+  );
 
   const recipeImageUrl = useMemo(() => resolveRecipeImageUrl(recipe), [recipe]);
   const scaledTotalMacros = useMemo(
@@ -111,6 +124,31 @@ const RecipeView = ({
     const timeoutId = setTimeout(() => setShowMultiplierEasterEgg(false), 2000);
     return () => clearTimeout(timeoutId);
   }, [showMultiplierEasterEgg]);
+
+  useEffect(() => {
+    if (Array.isArray(recipeStyles) && recipeStyles.length > 0) return;
+
+    const fetchRecipeStyles = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('recipe_styles')
+          .select('id, name')
+          .eq('is_active', true)
+          .order('display_order', { ascending: true })
+          .order('name', { ascending: true });
+
+        if (error) {
+          console.error('Error fetching recipe styles:', error);
+          return;
+        }
+        setInternalRecipeStyles(data || []);
+      } catch (err) {
+        console.error('Error fetching recipe styles:', err);
+      }
+    };
+
+    fetchRecipeStyles();
+  }, [recipeStyles]);
 
   useEffect(() => {
     if (mealTargetMacros || !user || !recipe?.day_meal_id || isTemplate) return;
@@ -361,7 +399,6 @@ const RecipeView = ({
     toast({ title: 'Ingrediente reemplazado', description: `Se ha sustituido por ${newFoodData.food_name}.` });
   };
 
-  const greenCount = recommendations.length;
   const redCount = conflicts.length;
   const hasIngredients = (recipe?.ingredients || []).length > 0;
   const canManageIngredientsInView = !!onIngredientsChange && !!onRemoveIngredient;
@@ -438,11 +475,6 @@ const RecipeView = ({
               {recipe.name}
             </h2>
             <div className="flex justify-center gap-3 mt-2">
-              {greenCount > 0 && (
-                <span className="flex items-center text-sm text-green-400 gap-1.5 bg-green-900/20 px-2 py-1 rounded-full border border-green-500/30">
-                  <ThumbsUp className="w-4 h-4" /> {greenCount} Recomendados
-                </span>
-              )}
               {redCount > 0 && (
                 <span className="flex items-center text-sm text-red-400 gap-1.5 bg-red-900/20 px-2 py-1 rounded-full border border-red-500/30">
                   <AlertTriangle className="w-4 h-4" /> {redCount} Conflictos
@@ -476,7 +508,7 @@ const RecipeView = ({
       {showMetaFields && (
         <div
           className={cn(
-            'grid grid-cols-3 gap-2 sm:gap-3 rounded-lg relative z-10',
+            'grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 rounded-lg relative z-10',
             isEditing ? 'sm:p-0.5' : 'p-3 bg-muted/65'
           )}
         >
@@ -499,6 +531,31 @@ const RecipeView = ({
                 ]}
                 className={isEditing ? 'py-1 pr-1 pl-2' : ''}
               />
+            </div>
+          </div>
+
+          <div className={cn('min-w-0', !isEditing && 'flex flex-col items-center justify-center text-center')}>
+            <div className={cn('flex items-center gap-1 sm:gap-2 text-foreground dark:text-gray-200 font-semibold', !isEditing && 'justify-center')}>
+              {!isEditing && <UtensilsCrossed className="w-4 h-4 text-muted-foreground shrink-0" />}
+              <span className="truncate">Estilo</span>
+            </div>
+            <div className="mt-1">
+              {isEditing ? (
+                <EditableField
+                  value={recipeStyleId ? String(recipeStyleId) : undefined}
+                  onChange={(value) => onFormChange({ target: { name: 'recipe_style_id', value } })}
+                  isEditing={isEditing}
+                  placeholder="No definido"
+                  type="select"
+                  options={safeRecipeStyles.map((style) => ({
+                    value: String(style.id),
+                    label: style.name,
+                  }))}
+                  className={isEditing ? 'py-1 pr-1 pl-2' : ''}
+                />
+              ) : (
+                <span className="text-muted-foreground">{recipeStyleName || 'No definido'}</span>
+              )}
             </div>
           </div>
 
@@ -600,7 +657,7 @@ const RecipeView = ({
         {isEditing && (mealTargetMacros || fetchedTargets) && !isTemplate && (
           <div className="mt-4">
             <h4 className="text-sm font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
-              Macros Objetivo (Limite)
+              Macros Objetivo
             </h4>
             <MacroTargetGrid targets={mealTargetMacros || fetchedTargets} />
           </div>
@@ -619,7 +676,7 @@ const RecipeView = ({
               variant="ghost"
               size="icon"
               onClick={onAddIngredientClick}
-              className="text-green-400 hover:bg-green-500/10 hover:text-green-300"
+              className="text-green-700 dark:text-green-300 hover:bg-green-500/10 hover:text-green-800 dark:hover:text-green-200"
             >
               <PlusCircle className="w-6 h-6" />
             </Button>

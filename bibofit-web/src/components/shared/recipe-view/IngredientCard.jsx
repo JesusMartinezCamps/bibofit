@@ -4,6 +4,8 @@ import {
   AlertTriangle,
   ThumbsUp,
   ArrowRightLeft,
+  Plus,
+  Minus,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -13,14 +15,20 @@ import ProteinIcon from '@/components/icons/ProteinIcon';
 import CarbsIcon from '@/components/icons/CarbsIcon';
 import FatsIcon from '@/components/icons/FatsIcon';
 
-const NutrientBadge = ({ nutrient }) => (
-  <Badge
-    variant="outline"
-    className="text-[10px] px-1.5 py-0 h-5 bg-muted/65 border-border text-muted-foreground"
-  >
-    {nutrient.name}
-  </Badge>
-);
+const NutrientBadge = ({ nutrient, type = 'vitamin' }) => {
+  const toneClasses = type === 'mineral'
+    ? 'bg-sky-500/12 dark:bg-sky-900/20 border-sky-500/35 dark:border-sky-500/40 text-sky-700 dark:text-sky-300'
+    : 'bg-emerald-500/12 dark:bg-emerald-900/20 border-emerald-500/35 dark:border-emerald-500/40 text-emerald-700 dark:text-emerald-300';
+
+  return (
+    <Badge
+      variant="outline"
+      className={cn('text-[10px] px-1.5 py-0 h-5', toneClasses)}
+    >
+      {nutrient.name}
+    </Badge>
+  );
+};
 
 const renderMacros = ({
   macros,
@@ -69,13 +77,33 @@ const getStatusColorClasses = (type) => {
     case 'condition_avoid':
     case 'sensitivity':
     case 'non-preferred':
-      return 'bg-red-500/12 border-red-500/50 text-red-400';
+      return 'bg-red-500/5 border-red-500/30 text-red-400';
     case 'condition_recommend':
     case 'preferred':
-      return 'bg-green-500/12 border-green-500/50 text-green-400';
+      return 'bg-green-500/5 border-green-500/30 text-green-400';
     default:
       return 'bg-muted/65 border-border/50 text-foreground';
   }
+};
+
+const DiffBadge = ({ action }) => {
+  if (action === 'add') {
+    return (
+      <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 rounded-full px-1.5 py-0 h-4 shrink-0">
+        <Plus className="w-2.5 h-2.5" />
+        Añadido
+      </span>
+    );
+  }
+  if (action === 'remove') {
+    return (
+      <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-red-400/70 bg-red-500/10 border border-red-500/20 rounded-full px-1.5 py-0 h-4 shrink-0">
+        <Minus className="w-2.5 h-2.5" />
+        Eliminado
+      </span>
+    );
+  }
+  return null;
 };
 
 const StatusDisplay = ({ type, conflicts, recommendations, isEditing }) => {
@@ -148,22 +176,26 @@ const IngredientCard = ({
   allFoodGroups,
   multiplier = 1,
 }) => {
-  const { food, quantity, macros, vitamins, minerals, conflictType, conflictDetails, recommendationDetails } = ingredient;
+  const { food, quantity, macros, vitamins, minerals, conflictType, conflictDetails, recommendationDetails, diffAction, is_ghost } = ingredient;
 
   const foodGroupName =
     allFoodGroups?.find((g) => String(g.id) === String(ingredient.food_group_id))?.name ||
     ingredient.food?.food_to_food_groups?.[0]?.food_group?.name ||
     'Otros';
 
-  const statusColorClasses = getStatusColorClasses(conflictType);
+  const statusColorClasses = is_ghost
+    ? 'bg-muted/30 border-border/30 text-muted-foreground/50'
+    : getStatusColorClasses(conflictType);
   const safeMultiplier = Number.isFinite(Number(multiplier)) ? Math.max(1, Number(multiplier)) : 1;
   const baseQuantity = quantity === '' || quantity === null || Number.isNaN(Number(quantity)) ? 0 : Number(quantity);
   const displayQuantity = Math.round(baseQuantity * safeMultiplier);
   const scaledMacros = scaleMacrosByMultiplier(macros, safeMultiplier);
   const unitLabel = food.food_unit === 'unidades' ? 'ud' : 'g';
-  const canManageIngredient = typeof onRemove === 'function' && typeof onReplace === 'function';
-  const hasConflict = ['condition_avoid', 'sensitivity', 'non-preferred'].includes(conflictType);
-  const isRecommended = ['condition_recommend', 'preferred'].includes(conflictType);
+  // Ghosts are never interactive
+  const canManageIngredient = !is_ghost && typeof onRemove === 'function' && typeof onReplace === 'function';
+  const canQuickEdit = !is_ghost && typeof onQuickEdit === 'function';
+  const hasConflict = !is_ghost && ['condition_avoid', 'sensitivity', 'non-preferred'].includes(conflictType);
+  const isRecommended = !is_ghost && ['condition_recommend', 'preferred'].includes(conflictType);
   const isUserCreated = !!ingredient.is_user_created || !!food.is_user_created || !!food.user_id;
 
   if (displayAsBullet) {
@@ -200,33 +232,40 @@ const IngredientCard = ({
           <div
             className={cn(
               'flex items-center justify-between text-sm rounded-sm transition-colors w-full group min-w-0',
-              onQuickEdit && 'cursor-pointer hover:bg-muted/20'
+              canQuickEdit && 'cursor-pointer hover:bg-muted/20'
             )}
-            onClick={() => onQuickEdit && onQuickEdit()}
+            onClick={() => canQuickEdit && onQuickEdit()}
           >
-            <div className="flex items-center min-w-0 mr-4 w-full">
+            <div className="flex items-center min-w-0 mr-4 w-full flex-wrap gap-x-1">
               <span
                 className={cn(
                   'text-base truncate transition-colors',
-                  hasConflict
-                    ? 'text-red-400 group-hover:text-red-300'
-                    : isRecommended
-                      ? 'text-green-400 group-hover:text-green-300'
-                      : 'group-hover:text-green-300',
-                  statusColorClasses.split(' ').find((c) => c.startsWith('text-'))
+                  is_ghost
+                    ? 'text-muted-foreground/50 line-through'
+                    : hasConflict
+                      ? 'text-red-400 group-hover:text-red-300'
+                      : isRecommended
+                        ? 'text-green-400 group-hover:text-green-300'
+                        : 'group-hover:text-green-300',
+                  !is_ghost && statusColorClasses.split(' ').find((c) => c.startsWith('text-'))
                 )}
               >
                 {food.name}
               </span>
-              <span className="text-muted-foreground text-xs ml-2 whitespace-nowrap">
-                ({displayQuantity}
-                {food.food_unit === 'unidades' ? ' ud' : 'g'})
-              </span>
-              <div className="ml-2 shrink-0">
+              {!is_ghost && (
+                <span className={cn(
+                  'text-xs whitespace-nowrap',
+                  hasConflict ? 'text-red-400' : isRecommended ? 'text-green-400' : 'text-muted-foreground'
+                )}>
+                  ({displayQuantity}{food.food_unit === 'unidades' ? ' ud' : 'g'})
+                </span>
+              )}
+              <div className="shrink-0">
                 <FoodStateBadge food={food} isUserCreated={isUserCreated} />
               </div>
-              {hasConflict && <AlertTriangle className="w-3.5 h-3.5 text-red-500 ml-2 shrink-0" />}
-              {isRecommended && <ThumbsUp className="w-3.5 h-3.5 text-green-500 ml-2 shrink-0" />}
+              {hasConflict && <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0" />}
+              {isRecommended && <ThumbsUp className="w-3.5 h-3.5 text-green-500 shrink-0" />}
+              {diffAction && <DiffBadge action={diffAction} />}
             </div>
           </div>
 
@@ -324,13 +363,21 @@ const IngredientCard = ({
           ) : (
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start">
               <div className="flex flex-col min-w-0">
-                <div className={cn('font-semibold flex flex-wrap items-center gap-2', statusColorClasses.split(' ').find((c) => c.startsWith('text-')))}>
-                  <span>{food.name}</span>
-                  <span className="text-sm font-normal text-muted-foreground font-numeric">
-                    ({displayQuantity}
-                    {food.food_unit === 'unidades' ? ' ud' : 'g'})
-                  </span>
+                <div className={cn(
+                  'font-semibold flex flex-wrap items-center gap-2',
+                  is_ghost ? 'text-muted-foreground/50' : statusColorClasses.split(' ').find((c) => c.startsWith('text-'))
+                )}>
+                  <span className={cn(is_ghost && 'line-through')}>{food.name}</span>
+                  {!is_ghost && (
+                    <span className={cn(
+                      'text-sm font-normal font-numeric',
+                      hasConflict ? 'text-red-400' : isRecommended ? 'text-green-400' : 'text-muted-foreground'
+                    )}>
+                      ({displayQuantity}{food.food_unit === 'unidades' ? ' ud' : 'g'})
+                    </span>
+                  )}
                   <FoodStateBadge food={food} isUserCreated={isUserCreated} />
+                  {diffAction && <DiffBadge action={diffAction} />}
 
                   {!isEditing && hasConflict && (
                     <span className="inline-flex items-center gap-1.5 text-red-400 text-xs font-medium ml-1 px-2 py-0.5 rounded-full bg-red-900/20 border border-red-500/20">
@@ -382,10 +429,10 @@ const IngredientCard = ({
             )}
           >
             {vitamins.map((v) => (
-              <NutrientBadge key={`v-${v.id}`} nutrient={v} />
+              <NutrientBadge key={`v-${v.id}`} nutrient={v} type="vitamin" />
             ))}
             {minerals.map((m) => (
-              <NutrientBadge key={`m-${m.id}`} nutrient={m} />
+              <NutrientBadge key={`m-${m.id}`} nutrient={m} type="mineral" />
             ))}
           </div>
         )}

@@ -7,7 +7,6 @@ import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '@/comp
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/customSupabaseClient';
-import WeightLogDialog from '@/components/shared/WeightLogDialog';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
 import { format, isSameDay, startOfWeek, endOfWeek, eachDayOfInterval, addDays, isWithinInterval, parseISO, add, sub } from 'date-fns';
@@ -26,8 +25,6 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isWeightLogOpen, setIsWeightLogOpen] = useState(false);
-  const [selectedWeightDate, setSelectedWeightDate] = useState(null);
   const [events, setEvents] = useState({});
   const [reminders, setReminders] = useState([]);
   const [totalMealSlots, setTotalMealSlots] = useState(0);
@@ -391,8 +388,7 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
                     if (typeof window !== 'undefined' && window.innerWidth < 640) return;
                     e.stopPropagation();
                     if (event.type === 'weight') {
-                      setSelectedWeightDate(day);
-                      setIsWeightLogOpen(true);
+                      navigate(`/registro-peso?date=${dateString}&userId=${userId}`);
                       return;
                     }
                     if (event.type === 'diet_log') {
@@ -436,7 +432,7 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
               : `/plan/dieta/${userId}/${format(selectedDate, 'yyyy-MM-dd')}`
           )}
           variant="outline-diet"
-          className="flex-grow bg-green-900/15 dark:bg-green-800/20 btn-standard"
+          className="flex-grow bg-green-900/15 dark:bg-green-800/20 dark:text-green-400 btn-standard"
         >
           <Apple className="w-6 h-6 mr-2" />Plan de Dieta
         </Button>
@@ -444,7 +440,7 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
         <Button
           onClick={() => navigate(!isClientView ? `/admin/manage-training/${userId}` : '/plan/entreno')}
           variant="outline-training"
-          className="flex-grow bg-red-900/15 dark:bg-red-800/20"
+          className="flex-grow bg-red-900/15 dark:bg-red-800/20 dark:text-red-400"
         >
           <Dumbbell className="w-6 h-6 mr-2" />Plan de Entreno
         </Button>
@@ -453,11 +449,10 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
       <Button
         onClick={() => {
           setIsModalOpen(false);
-          setSelectedWeightDate(selectedDate);
-          setIsWeightLogOpen(true);
+          navigate(`/registro-peso?date=${format(selectedDate, 'yyyy-MM-dd')}&userId=${userId}`);
         }}
         variant="outline-weight"
-        className="bg-purple-900/15 dark:bg-purple-800/20"
+        className="bg-purple-900/15 dark:bg-purple-800/20 dark:text-purple-400"
       >
         {!isClientView ? 'Añadirle un Registro de Peso' : 'Añadir Registro de Peso'}
       </Button>
@@ -466,7 +461,7 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
         <Button
           onClick={handleOpenNewReminder}
           variant="outline-reminder"
-          className="bg-orange-900/15 dark:bg-orange-800/20"
+          className="bg-orange-900/15 dark:bg-orange-800/20 dark:text-amber-400"
         >
           <PlusCircle className="w-6 h-6 mr-2" />Añadir Recordatorio
         </Button>
@@ -475,13 +470,6 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
   </DialogContent>
 </Dialog>
 
-<WeightLogDialog
-  open={isWeightLogOpen}
-  onOpenChange={setIsWeightLogOpen}
-  onLogAdded={fetchEventsAndReminders}
-  initialDate={selectedWeightDate}
-  userId={userId}
-/>
 
 {isManagerView && (
   <ReminderFormDialog

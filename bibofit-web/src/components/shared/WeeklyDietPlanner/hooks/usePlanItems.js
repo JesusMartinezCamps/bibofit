@@ -44,6 +44,119 @@ const buildIngredientEnricher = (foods = []) => {
   };
 };
 
+const getRequestTimestamp = (request) => {
+  const raw = request?.requested_at || request?.created_at;
+  const parsed = raw ? Date.parse(raw) : NaN;
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const buildLatestRequestMap = (requests = [], keyName) => {
+  const map = new Map();
+
+  requests.forEach((request) => {
+    const key = request?.[keyName];
+    if (key == null) return;
+
+    const mapKey = String(key);
+    const current = map.get(mapKey);
+    if (!current || getRequestTimestamp(request) > getRequestTimestamp(current)) {
+      map.set(mapKey, request);
+    }
+  });
+
+  return map;
+};
+
+const getRecipeImageUrl = (recipeLike) => {
+  if (!recipeLike) return null;
+  return recipeLike.img_url || recipeLike.image_url || recipeLike.recipe?.img_url || recipeLike.recipe?.image_url || null;
+};
+
+const isVariantRecipe = (recipeLike) => (
+  recipeLike?.user_recipe_type === 'variant'
+  || recipeLike?.type === 'variant'
+  || Boolean(recipeLike?.parent_user_recipe_id)
+  || Boolean(recipeLike?.source_diet_plan_recipe_id)
+);
+
+const inheritVariantImages = (dietPlanRecipes = [], privateRecipes = []) => {
+  const dietById = new Map((dietPlanRecipes || []).map((recipe) => [recipe.id, recipe]));
+  const privateById = new Map((privateRecipes || []).map((recipe) => [recipe.id, recipe]));
+
+  const dietImageCache = new Map();
+  const privateImageCache = new Map();
+
+  const resolveDietImage = (dietPlanRecipeId, visited = new Set()) => {
+    if (dietPlanRecipeId == null) return null;
+    if (dietImageCache.has(dietPlanRecipeId)) return dietImageCache.get(dietPlanRecipeId);
+
+    const recipe = dietById.get(dietPlanRecipeId);
+    if (!recipe) {
+      dietImageCache.set(dietPlanRecipeId, null);
+      return null;
+    }
+
+    const ownImage = getRecipeImageUrl(recipe);
+    if (ownImage) {
+      dietImageCache.set(dietPlanRecipeId, ownImage);
+      return ownImage;
+    }
+
+    if (visited.has(dietPlanRecipeId)) return null;
+    visited.add(dietPlanRecipeId);
+    const inheritedImage = resolveDietImage(recipe.parent_diet_plan_recipe_id, visited);
+    visited.delete(dietPlanRecipeId);
+
+    dietImageCache.set(dietPlanRecipeId, inheritedImage || null);
+    return inheritedImage || null;
+  };
+
+  const resolvePrivateImage = (privateRecipeId, visited = new Set()) => {
+    if (privateRecipeId == null) return null;
+    if (privateImageCache.has(privateRecipeId)) return privateImageCache.get(privateRecipeId);
+
+    const recipe = privateById.get(privateRecipeId);
+    if (!recipe) {
+      privateImageCache.set(privateRecipeId, null);
+      return null;
+    }
+
+    const ownImage = getRecipeImageUrl(recipe);
+    if (ownImage) {
+      privateImageCache.set(privateRecipeId, ownImage);
+      return ownImage;
+    }
+
+    if (visited.has(privateRecipeId)) return null;
+    visited.add(privateRecipeId);
+
+    let inheritedImage = null;
+    if (recipe.parent_user_recipe_id != null) {
+      inheritedImage = resolvePrivateImage(recipe.parent_user_recipe_id, visited);
+    }
+    if (!inheritedImage && recipe.source_diet_plan_recipe_id != null) {
+      inheritedImage = resolveDietImage(recipe.source_diet_plan_recipe_id);
+    }
+
+    visited.delete(privateRecipeId);
+    privateImageCache.set(privateRecipeId, inheritedImage || null);
+    return inheritedImage || null;
+  };
+
+  return (privateRecipes || []).map((recipe) => {
+    if (!isVariantRecipe(recipe) || getRecipeImageUrl(recipe)) return recipe;
+
+    const inheritedImage = resolvePrivateImage(recipe.id);
+    if (!inheritedImage) return recipe;
+
+    return {
+      ...recipe,
+      img_url: inheritedImage,
+      image_url: inheritedImage,
+    };
+  });
+};
+
 export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => {
   const [planRecipes, setPlanRecipes] = useState([]);
   const [freeMeals, setFreeMeals] = useState([]);
@@ -57,6 +170,7 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [allAvailableFoods, setAllAvailableFoods] = useState([]);
+  const [recipeStyles, setRecipeStyles] = useState([]);
 
   const staticCacheRef = useRef({ key: null, data: null });
   const rangeCacheRef = useRef(new Map());
@@ -82,6 +196,7 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
 
     if (staticData) {
       setStateIfChanged('allAvailableFoods', staticData.allFoods, setAllAvailableFoods);
+      setStateIfChanged('recipeStyles', staticData.recipeStyles, setRecipeStyles);
       setStateIfChanged('planRecipes', staticData.planRecipes, setPlanRecipes);
       setStateIfChanged('userDayMeals', staticData.userDayMeals, setUserDayMeals);
     }
@@ -134,18 +249,18 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
 
       let staticData = cachedStatic;
       if (shouldFetchStatic) {
-        const [dietPlanRecipesRes, privateRecipesRes, userDayMealsRes, foodsRes, userFoodsRes, changeRequestsRes] = await Promise.all([
+        const [dietPlanRecipesRes, privateRecipesRes, userDayMealsRes, foodsRes, userFoodsRes, changeRequestsRes, recipeStylesRes] = await Promise.all([
           supabase.from('diet_plan_recipes').select(`
             *,
             recipe:recipe_id(*, template_ingredients:recipe_ingredients(*)),
             custom_ingredients:recipe_ingredients(*),
             day_meal:day_meal_id!inner(id,name,display_order)
-          `).eq('diet_plan_id', activePlan.id),
+          `).eq('diet_plan_id', activePlan.id).eq('is_archived', false),
           supabase.from('user_recipes').select(`
             *,
             recipe_ingredients(*),
             day_meal:day_meal_id!inner(id,name,display_order)
-          `).eq('diet_plan_id', activePlan.id).eq('type', 'private'),
+          `).eq('diet_plan_id', activePlan.id).in('type', ['private', 'variant']).eq('is_archived', false),
           supabase.from('user_day_meals')
             .select('*, day_meal:day_meals(*)')
             .eq('user_id', userId)
@@ -159,11 +274,15 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
             food_minerals(mg_per_100g, mineral:minerals(*)), 
             food_to_food_groups(food_group:food_groups(*))
           `).is('user_id', null),
-          supabase.from('food').select('*').eq('user_id', userId).not('status', 'eq', 'rejected'),
+          supabase.from('food').select(`
+            *,
+            food_to_food_groups(food_group:food_groups(*))
+          `).eq('user_id', userId).not('status', 'eq', 'rejected'),
           supabase.from('diet_change_requests').select('*').eq('user_id', userId).eq('status', 'pending'),
+          supabase.from('recipe_styles').select('id, name').eq('is_active', true).order('display_order').order('name'),
         ]);
 
-        const staticResponses = [dietPlanRecipesRes, privateRecipesRes, userDayMealsRes, foodsRes, userFoodsRes, changeRequestsRes];
+        const staticResponses = [dietPlanRecipesRes, privateRecipesRes, userDayMealsRes, foodsRes, userFoodsRes, changeRequestsRes, recipeStylesRes];
         for (const res of staticResponses) {
           if (res.error) throw res.error;
         }
@@ -174,11 +293,19 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
         ];
         const enrichIngredients = buildIngredientEnricher(allFoods);
         const changeRequests = changeRequestsRes.data || [];
+        const latestChangeRequestByPlanRecipeId = buildLatestRequestMap(
+          changeRequests.filter((request) => !request.requested_changes_user_recipe_id),
+          'diet_plan_recipe_id'
+        );
+        const latestChangeRequestByRequestedUserRecipeId = buildLatestRequestMap(
+          changeRequests,
+          'requested_changes_user_recipe_id'
+        );
 
         const processedDietPlanRecipes = (dietPlanRecipesRes.data || []).map((r) => {
           const recipeIngredients = enrichIngredients(r.recipe?.template_ingredients || []);
           const customIngredients = enrichIngredients(r.custom_ingredients || []);
-          const request = changeRequests.find((cr) => cr.diet_plan_recipe_id === r.id && !cr.requested_changes_user_recipe_id);
+          const request = latestChangeRequestByPlanRecipeId.get(String(r.id));
 
           return {
             ...r,
@@ -193,10 +320,11 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
 
         const processedPrivateRecipes = (privateRecipesRes.data || []).map((r) => {
           const recipeIngredients = enrichIngredients(r.recipe_ingredients || []);
-          const request = changeRequests.find((cr) => cr.requested_changes_user_recipe_id === r.id);
+          const request = latestChangeRequestByRequestedUserRecipeId.get(String(r.id));
 
           return {
             ...r,
+            user_recipe_type: r.type,
             recipe_ingredients: recipeIngredients,
             dnd_id: `private-${r.id}`,
             type: RECIPE_ENTITY_TYPES.PRIVATE,
@@ -205,9 +333,15 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
           };
         });
 
+        const privateRecipesWithInheritedImages = inheritVariantImages(
+          processedDietPlanRecipes,
+          processedPrivateRecipes
+        );
+
         staticData = {
           allFoods,
-          planRecipes: [...processedDietPlanRecipes, ...processedPrivateRecipes],
+          recipeStyles: recipeStylesRes.data || [],
+          planRecipes: [...processedDietPlanRecipes, ...privateRecipesWithInheritedImages],
           userDayMeals: userDayMealsRes.data || [],
         };
 
@@ -267,8 +401,9 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
         if (nextPm.user_recipe) {
           nextPm.user_recipe = {
             ...nextPm.user_recipe,
+            user_recipe_type: nextPm.user_recipe.type,
             recipe_ingredients: enrichIngredients(nextPm.user_recipe.recipe_ingredients || []),
-            is_private: nextPm.user_recipe.type === 'private',
+            is_private: ['private', 'variant'].includes(nextPm.user_recipe.type),
           };
         }
 
@@ -447,5 +582,6 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
     snackLogs,
     setSnackLogs,
     allAvailableFoods,
+    recipeStyles,
   };
 };

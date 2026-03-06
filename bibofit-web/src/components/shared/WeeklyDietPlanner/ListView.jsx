@@ -12,6 +12,7 @@ import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/comp
 import { Input } from '@/components/ui/input';
 import { normalizeText } from '@/lib/textSearch';
 import { getRecipeIngredients } from '@/lib/recipeEntity';
+import { filterRecipesByQuery, RECIPE_SEARCH_MATCH_TYPE_LABELS } from '@/lib/recipeSearch';
 
 const getAdjustmentsForRecipe = (dailyIngredientAdjustments, equivalenceAdjustments, recipeId, userDayMealId, logDate, isPrivate) => {
     if (!dailyIngredientAdjustments || !equivalenceAdjustments) return null;
@@ -25,95 +26,6 @@ const getAdjustmentsForRecipe = (dailyIngredientAdjustments, equivalenceAdjustme
     });
     
     return recipeAdjustments.length > 0 ? recipeAdjustments : null;
-};
-
-const tokenizeNormalizedText = (value = '') => {
-  const normalized = normalizeText(value).trim();
-  return normalized ? normalized.split(/\s+/).filter(Boolean) : [];
-};
-
-const SEARCH_MATCH_TYPE_ORDER = ['name', 'difficulty', 'ingredient', 'group'];
-const SEARCH_MATCH_TYPE_LABELS = {
-  name: 'nombre',
-  difficulty: 'dificultad',
-  ingredient: 'ingrediente',
-  group: 'grupo',
-};
-
-const getLevenshteinDistance = (a = '', b = '') => {
-  if (a === b) return 0;
-  if (!a.length) return b.length;
-  if (!b.length) return a.length;
-
-  const rows = b.length + 1;
-  const cols = a.length + 1;
-  const matrix = Array.from({ length: rows }, () => Array(cols).fill(0));
-
-  for (let i = 0; i < rows; i += 1) matrix[i][0] = i;
-  for (let j = 0; j < cols; j += 1) matrix[0][j] = j;
-
-  for (let i = 1; i < rows; i += 1) {
-    for (let j = 1; j < cols; j += 1) {
-      const substitutionCost = b[i - 1] === a[j - 1] ? 0 : 1;
-      matrix[i][j] = Math.min(
-        matrix[i - 1][j] + 1,
-        matrix[i][j - 1] + 1,
-        matrix[i - 1][j - 1] + substitutionCost
-      );
-    }
-  }
-
-  return matrix[b.length][a.length];
-};
-
-const isFuzzyTokenMatch = (queryToken = '', targetToken = '') => {
-  if (!queryToken || !targetToken) return false;
-  if (targetToken.includes(queryToken) || queryToken.includes(targetToken)) return true;
-  if (queryToken.length < 4 || targetToken.length < 4) return false;
-
-  const maxLen = Math.max(queryToken.length, targetToken.length);
-  const maxDistance = maxLen >= 8 ? 2 : 1;
-
-  return getLevenshteinDistance(queryToken, targetToken) <= maxDistance;
-};
-
-const getSearchMatchMeta = (value = '', normalizedQuery = '', queryTokens = []) => {
-  const normalizedValue = normalizeText(value);
-  if (!normalizedValue) return { matched: false, fuzzy: false };
-  if (normalizedValue.includes(normalizedQuery)) return { matched: true, fuzzy: false };
-  if (!queryTokens.length) return { matched: false, fuzzy: false };
-
-  const valueTokens = tokenizeNormalizedText(normalizedValue);
-  if (!valueTokens.length) return { matched: false, fuzzy: false };
-
-  let hasFuzzy = false;
-  const allTokensMatch = queryTokens.every((queryToken) => {
-    let tokenMatched = false;
-
-    for (const targetToken of valueTokens) {
-      if (targetToken.includes(queryToken) || queryToken.includes(targetToken)) {
-        tokenMatched = true;
-        break;
-      }
-
-      if (isFuzzyTokenMatch(queryToken, targetToken)) {
-        tokenMatched = true;
-        hasFuzzy = true;
-        break;
-      }
-    }
-
-    return tokenMatched;
-  });
-
-  return { matched: allTokensMatch, fuzzy: allTokensMatch && hasFuzzy };
-};
-
-const getFoodGroupNames = (food) => {
-  const groups = food?.food_to_food_groups || [];
-  return groups
-    .map((entry) => entry?.food_group?.name || entry?.food_groups?.name || entry?.food_group_name)
-    .filter(Boolean);
 };
 
 const MealHeader = React.memo(({ mealName, mealId, name, items, isAnyRecipeSelectedInMeal, isFreeRecipeSelected, isPrivateRecipeSelected, mealTargetData, mealAdjustment, handleUndoEquivalence, handleAddSnack, handleAddFreeMeal, hasSnacks }) => {
@@ -187,10 +99,10 @@ const MealHeader = React.memo(({ mealName, mealId, name, items, isAnyRecipeSelec
                             </Tooltip>
                         </TooltipProvider>
                     )}
-                    <Button size="icon" variant="ghost" className={cn("h-7 w-7 text-orange-400 hover:bg-orange-500/10 hover:text-orange-300 border border-orange-400", hasSnacks && "bg-orange-300/25")} style={{borderWidth: 'thin'}} onClick={() => handleAddSnack(mealId, name)}>
+                    <Button size="icon" variant="ghost" className={cn("h-7 w-7 text-orange-400 dark:text-orange-400 hover:bg-orange-500/10 hover:text-orange-300 dark:hover:text-orange-300 border border-orange-400", hasSnacks && "bg-orange-300/25")} style={{borderWidth: 'thin'}} onClick={() => handleAddSnack(mealId, name)}>
                         <Apple className="h-5 w-5" />
                     </Button>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-blue-400 hover:bg-blue-500/10 hover:text-blue-300 border border-[#70a3f3]" style={{borderWidth: 'thin'}} onClick={() => handleAddFreeMeal(mealId, name)}>
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-blue-400 dark:text-blue-400 hover:bg-blue-500/10 hover:text-blue-300 dark:hover:text-blue-300 border border-[#70a3f3]" style={{borderWidth: 'thin'}} onClick={() => handleAddFreeMeal(mealId, name)}>
                         <UtensilsCrossed className="h-5 w-5" />
                     </Button>
                 </div>
@@ -219,7 +131,8 @@ const ListView = ({
   userDayMeals,
   activePlan,
   handleAddSnack,
-  handleUndoEquivalence
+  handleUndoEquivalence,
+  recipeStyles = [],
 }) => {
   const [searchQueries, setSearchQueries] = useState({});
   const foodById = useMemo(() => {
@@ -259,74 +172,16 @@ const ListView = ({
     }));
   }, []);
 
-  const getItemSearchMatchInfo = useCallback((item, normalizedQuery, queryTokens) => {
-    const itemMatchTypes = new Set();
-    let hasFuzzyMatch = false;
-
-    const registerMatch = (matchType, matchMeta) => {
-      if (!matchMeta.matched) return;
-      itemMatchTypes.add(matchType);
-      if (matchMeta.fuzzy) hasFuzzyMatch = true;
-    };
-
-    const name = item.name || item.custom_name || item.recipe?.name || '';
-    registerMatch('name', getSearchMatchMeta(name, normalizedQuery, queryTokens));
-
-    const difficulty = item.difficulty || item.recipe?.difficulty || '';
-    registerMatch('difficulty', getSearchMatchMeta(difficulty, normalizedQuery, queryTokens));
-
-    const ingredients = getRecipeIngredients(item);
-
-    if (ingredients && ingredients.length > 0) {
-      ingredients.forEach((ing) => {
-        const food = ing.food || ing.user_created_food || foodById.get(ing.food_id);
-        const foodName = food?.name || '';
-        registerMatch('ingredient', getSearchMatchMeta(foodName, normalizedQuery, queryTokens));
-
-        const foodGroupNames = getFoodGroupNames(food);
-        foodGroupNames.forEach((groupName) => {
-          registerMatch('group', getSearchMatchMeta(groupName, normalizedQuery, queryTokens));
-        });
-      });
-    }
-
-    return {
-      matched: itemMatchTypes.size > 0,
-      matchTypes: itemMatchTypes,
-      hasFuzzyMatch,
-    };
-  }, [foodById]);
-
   const filterItems = useCallback((items, query) => {
-    if (!query) {
-      return {
-        items,
-        matchTypes: [],
-        hasFuzzyMatch: false,
-      };
-    }
-
-    const normalizedQuery = normalizeText(query);
-    const queryTokens = tokenizeNormalizedText(normalizedQuery);
-    const matchedTypes = new Set();
-    let hasFuzzyMatch = false;
-
-    const filteredItems = items.filter(item => {
-        const matchInfo = getItemSearchMatchInfo(item, normalizedQuery, queryTokens);
-        if (!matchInfo.matched) return false;
-
-        matchInfo.matchTypes.forEach((type) => matchedTypes.add(type));
-        if (matchInfo.hasFuzzyMatch) hasFuzzyMatch = true;
-        return true;
+    return filterRecipesByQuery({
+      items,
+      query,
+      recipeStyles,
+      allFoods,
+      foodById,
+      allowFuzzy: true,
     });
-
-    const orderedMatchTypes = SEARCH_MATCH_TYPE_ORDER.filter((type) => matchedTypes.has(type));
-    return {
-      items: filteredItems,
-      matchTypes: orderedMatchTypes,
-      hasFuzzyMatch,
-    };
-  }, [getItemSearchMatchInfo]);
+  }, [allFoods, foodById, recipeStyles]);
 
   if (!isValid(currentDate)) {
       return <div>Fecha inválida</div>;
@@ -385,7 +240,7 @@ const ListView = ({
         const { items: filteredItems, matchTypes: mealMatchTypes, hasFuzzyMatch: mealHasFuzzyMatch } = filterItems(sortedItems, mealSearchQuery);
         const hasActiveSearch = normalizeText(mealSearchQuery).length > 0;
         const showSearchLegend = hasActiveSearch && filteredItems.length > 0 && mealMatchTypes.length > 0;
-        const matchLegendText = mealMatchTypes.map((type) => SEARCH_MATCH_TYPE_LABELS[type]).join(' · ');
+        const matchLegendText = mealMatchTypes.map((type) => RECIPE_SEARCH_MATCH_TYPE_LABELS[type]).join(' · ');
 
         const mealTargetData = userDayMeals?.find(udm => udm.id === mealId);
         const mealAdjustment = equivalenceAdjustments?.find(adj => adj.target_user_day_meal_id === mealId && adj.log_date === logDate);
@@ -420,7 +275,7 @@ const ListView = ({
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                     <Input 
                         type="text"
-                        placeholder="Buscar receta, ingrediente o grupo..."
+                        placeholder="Buscar receta, ingrediente, grupo o estilo..."
                         value={searchQueries[mealId] || ''}
                         onChange={(e) => handleSearchChange(mealId, e.target.value)}
                         className="pl-9 bg-card/85 border-border text-sm w-full focus:ring-green-500/20 focus:border-green-500/50 text-foreground placeholder:text-muted-foreground transition-all duration-200 h-10"
@@ -442,88 +297,146 @@ const ListView = ({
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {filteredItems.map(item => {
-                    if (item.type === 'snack') {
-                        return <div key={item.occurrence_id} className="h-full">{item.itemContent}</div>;
-                    }
-
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {(() => {
                     const userDayMealId = groupedByMeal[mealName].mealId;
                     const logKey = `${logDate}-${userDayMealId}`;
                     const selectedLog = selectedMealLogs ? selectedMealLogs.get(logKey) : undefined;
-                    const isSelected = selectedLog?.dnd_id === item.dnd_id;
-                    const selectionCount = mealCounts[item.dnd_id] || 0;
-                    const isPending = item.changeRequest?.status === 'pending';
-                    const isFreeRecipe = item.type === 'free_recipe';
-                    const isPrivateRecipe = item.type === 'private_recipe' || item.is_private_recipe;
-                    
-                    const isSafe = (() => {
+                    const itemOrder = new Map(filteredItems.map((item, idx) => [item.dnd_id || `snack-${item.occurrence_id}`, idx]));
+
+                    const isRecipeNode = (item) => item?.type === 'recipe' || item?.type === 'private_recipe';
+                    const isPrivateRecipeNode = (item) => item?.type === 'private_recipe' || item?.is_private_recipe || item?.is_private;
+                    const getNodeKey = (item) => `${isPrivateRecipeNode(item) ? 'u' : 'p'}-${item.id}`;
+                    const getParentKey = (item) => {
+                      if (!item) return null;
+                      if (isPrivateRecipeNode(item)) {
+                        if (item.parent_user_recipe_id) return `u-${item.parent_user_recipe_id}`;
+                        if (item.source_diet_plan_recipe_id) return `p-${item.source_diet_plan_recipe_id}`;
+                        return null;
+                      }
+                      if (item.parent_diet_plan_recipe_id) return `p-${item.parent_diet_plan_recipe_id}`;
+                      return null;
+                    };
+
+                    const renderCardContent = (item) => {
+                      if (item.type === 'snack') {
+                        return item.itemContent;
+                      }
+
+                      const isSelected = selectedLog?.dnd_id === item.dnd_id;
+                      const selectionCount = mealCounts[item.dnd_id] || 0;
+                      const isPending = item.changeRequest?.status === 'pending';
+                      const isFreeRecipe = item.type === 'free_recipe';
+                      const isPrivateRecipe = isPrivateRecipeNode(item);
+                      const isVariantRecipe = isPrivateRecipe && (
+                        item.user_recipe_type === 'variant' ||
+                        item.type === 'variant' ||
+                        Boolean(item.parent_user_recipe_id) ||
+                        Boolean(item.source_diet_plan_recipe_id)
+                      );
+                      const isPlanVersionRecipe = !isPrivateRecipe && Boolean(item.parent_diet_plan_recipe_id);
+
+                      const isSafe = (() => {
                         if (item.type === 'free_meal') return true;
-                        if (!restrictionSets.hasAny) {
-                            return true;
-                        }
-                        
+                        if (!restrictionSets.hasAny) return true;
+
                         const ingredients = getRecipeIngredients(item);
-                        
                         const unsafeFoodsSet = new Set();
 
-                        ingredients.forEach(ing => {
-                            const food = foodById.get(ing.food_id);
-                            if (!food) return;
-                            
-                            if (restrictionSets.nonPreferred.has(food.id)) unsafeFoodsSet.add(food.name);
-                            if (restrictionSets.restricted.has(food.id)) unsafeFoodsSet.add(food.name);
+                        ingredients.forEach((ing) => {
+                          const food = foodById.get(ing.food_id);
+                          if (!food) return;
 
-                            // ROBUST CHECK: Handle both direct ID and nested object
-                            const foodSensitivityIds = new Set(food.food_sensitivities?.map(fs => fs.sensitivity?.id || fs.sensitivity_id).filter(Boolean) || []);
-                            foodSensitivityIds.forEach(id => {
-                                if (restrictionSets.sensitivities.has(id)) unsafeFoodsSet.add(food.name);
-                            });
+                          if (restrictionSets.nonPreferred.has(food.id)) unsafeFoodsSet.add(food.name);
+                          if (restrictionSets.restricted.has(food.id)) unsafeFoodsSet.add(food.name);
 
-                            (food.food_medical_conditions || []).forEach(fmc => {
-                              // ROBUST CHECK: Handle both direct ID and nested object
-                              const condId = fmc.condition?.id || fmc.condition_id;
-                              if (restrictionSets.conditions.has(condId) && (fmc.relation_type === 'to_avoid' || fmc.relation_type === 'evitar')) {
-                                unsafeFoodsSet.add(food.name);
-                              }
-                            });
+                          const foodSensitivityIds = new Set(
+                            food.food_sensitivities?.map((fs) => fs.sensitivity?.id || fs.sensitivity_id).filter(Boolean) || []
+                          );
+                          foodSensitivityIds.forEach((id) => {
+                            if (restrictionSets.sensitivities.has(id)) unsafeFoodsSet.add(food.name);
+                          });
+
+                          (food.food_medical_conditions || []).forEach((fmc) => {
+                            const condId = fmc.condition?.id || fmc.condition_id;
+                            if (restrictionSets.conditions.has(condId) && (fmc.relation_type === 'to_avoid' || fmc.relation_type === 'evitar')) {
+                              unsafeFoodsSet.add(food.name);
+                            }
+                          });
                         });
-                        return unsafeFoodsSet.size === 0;
-                    })();
-    
-                    const selectionIndicator = (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleMealSelection(item, currentDate);
-                        }}
-                        className={cn(
-                          'flex items-center  gap-1.5 p-4 rounded-full text-xs transition-all duration-200 border',
-                          isSelected && isPending ? 'bg-[rgba(195,55,204,0.1)] text-[rgb(195,55,204)] border-[rgb(195,55,204)]' :
-                          isSelected && isFreeRecipe ? 'bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border-cyan-500/60' : 
-                          isSelected ? 'bg-emerald-700/25 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 border-emerald-700/70 dark:border-emerald-400/60' : 
-                          !isSafe ? 'bg-red-500/12 dark:bg-red-900/20 text-red-700 dark:text-red-300 border-red-500/35 dark:border-red-800/30 hover:border-red-500/55' :
-                          'bg-muted/50 text-muted-foreground border-input/50 hover:border-gray-500/50'
-                        )}
-                        title={isSelected ? "Desmarcar como comida" : "Marcar como comida"}
-                      >
-                        <Utensils className={cn(
-                            'w-4 h-4',
-                            isSelected && isPending ? 'text-[rgb(195,55,204)]' :
-                            isSelected && isFreeRecipe ? 'text-cyan-700 dark:text-cyan-300' : 
-                            isSelected ? 'text-emerald-800 dark:text-emerald-200' : 
-                            !isSafe ? 'text-red-700 dark:text-red-400' :
-                            'text-muted-foreground'
-                        )} />
-                        <span>{selectionCount}</span>
-                      </button>
-                    );
-                    
-                    const adjustmentsForThisCard = getAdjustmentsForRecipe(dailyIngredientAdjustments, equivalenceAdjustments, item.id, userDayMealId, logDate, isPrivateRecipe);
 
-                    return (
-                      <div key={item.dnd_id} className="h-full">
-                        {item.type === 'recipe' || item.type === 'private_recipe' ? (
+                        return unsafeFoodsSet.size === 0;
+                      })();
+
+                      const selectionIndicator = (
+                        (() => {
+                          const tone = isFreeRecipe
+                            ? 'free'
+                            : isVariantRecipe
+                              ? 'variant'
+                              : isPrivateRecipe
+                                ? 'private'
+                                : isPlanVersionRecipe
+                                  ? 'planVersion'
+                                  : 'planBase';
+
+                          const toneClasses = {
+                            planVersion: {
+                              idle: 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/45 hover:border-amber-400/75 hover:bg-amber-500/18',
+                              selected: 'bg-amber-500/28 text-amber-900 dark:text-amber-100 border-amber-400/80',
+                            },
+                            variant: {
+                              idle: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border-cyan-500/45 hover:border-cyan-400/75 hover:bg-cyan-500/18',
+                              selected: 'bg-cyan-500/28 text-cyan-900 dark:text-cyan-100 border-cyan-400/80',
+                            },
+                            private: {
+                              idle: 'bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-500/45 hover:border-violet-400/75 hover:bg-violet-500/18',
+                              selected: 'bg-violet-500/28 text-violet-900 dark:text-violet-100 border-violet-400/80',
+                            },
+                            planBase: {
+                              idle: 'bg-muted/50 text-muted-foreground border-input/50 hover:border-emerald-500/55',
+                              selected: 'bg-emerald-700/25 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 border-emerald-700/70 dark:border-emerald-400/60',
+                            },
+                            free: {
+                              idle: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border-cyan-500/45 hover:border-cyan-400/75 hover:bg-cyan-500/18',
+                              selected: 'bg-cyan-500/28 text-cyan-900 dark:text-cyan-100 border-cyan-400/80',
+                            },
+                          };
+
+                          const baseClass = isSelected
+                            ? toneClasses[tone].selected
+                            : 'bg-muted/50 text-muted-foreground border-input/50 hover:border-gray-500/50';
+
+                          return (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleMealSelection(item, currentDate);
+                              }}
+                              className={cn(
+                                'flex items-center gap-1.5 p-4 rounded-full text-xs transition-all duration-200 border',
+                                baseClass
+                              )}
+                              title={isSelected ? "Desmarcar como comida" : "Marcar como comida"}
+                            >
+                              <Utensils className="w-4 h-4 text-current" />
+                              <span>{selectionCount}</span>
+                            </button>
+                          );
+                        })()
+                      );
+
+                      const adjustmentsForThisCard = getAdjustmentsForRecipe(
+                        dailyIngredientAdjustments,
+                        equivalenceAdjustments,
+                        item.id,
+                        userDayMealId,
+                        logDate,
+                        isPrivateRecipe
+                      );
+
+                      if (isRecipeNode(item)) {
+                        return (
                           <RecipeCard
                             recipe={item}
                             user={user}
@@ -537,20 +450,140 @@ const ListView = ({
                             selectionIndicator={selectionIndicator}
                             searchQuery={searchQueries[mealId] || ''}
                           />
-                        ) : (
-                          <FreeRecipeCard
-                            freeMeal={item}
-                            allFoods={allFoods}
-                            handleCardClick={handleFreeMealClick}
-                            handleRemove={() => handleRemoveFreeMeal(item.occurrence_id)}
-                            isListView={true}
-                            selectionIndicator={selectionIndicator}
-                            searchQuery={searchQueries[mealId] || ''}
-                          />
-                        )}
-                      </div>
-                    )
-                  })}
+                        );
+                      }
+
+                      return (
+                        <FreeRecipeCard
+                          freeMeal={item}
+                          allFoods={allFoods}
+                          handleCardClick={handleFreeMealClick}
+                          handleRemove={() => handleRemoveFreeMeal(item.occurrence_id)}
+                          isListView={true}
+                          selectionIndicator={selectionIndicator}
+                          searchQuery={searchQueries[mealId] || ''}
+                        />
+                      );
+                    };
+
+                    const recipeItems = filteredItems.filter(isRecipeNode);
+                    const nonRecipeItems = filteredItems.filter((item) => !isRecipeNode(item));
+
+                    const recipeByKey = new Map(recipeItems.map((item) => [getNodeKey(item), item]));
+                    const childrenByParent = new Map();
+
+                    recipeItems.forEach((item) => {
+                      const parentKey = getParentKey(item);
+                      const itemKey = getNodeKey(item);
+                      if (!parentKey || !recipeByKey.has(parentKey)) return;
+                      if (!childrenByParent.has(parentKey)) childrenByParent.set(parentKey, []);
+                      childrenByParent.get(parentKey).push(itemKey);
+                    });
+                    childrenByParent.forEach((childKeys) => {
+                      childKeys.sort((a, b) => {
+                        const aIdx = itemOrder.get(recipeByKey.get(a)?.dnd_id) ?? 9999;
+                        const bIdx = itemOrder.get(recipeByKey.get(b)?.dnd_id) ?? 9999;
+                        return aIdx - bIdx;
+                      });
+                    });
+
+                    const resolveRootKey = (startKey) => {
+                      let current = startKey;
+                      const seen = new Set([startKey]);
+
+                      while (true) {
+                        const currentItem = recipeByKey.get(current);
+                        const parentKey = getParentKey(currentItem);
+                        if (!parentKey || !recipeByKey.has(parentKey) || seen.has(parentKey)) return current;
+                        seen.add(parentKey);
+                        current = parentKey;
+                      }
+                    };
+
+                    const groupKeysByRoot = new Map();
+                    recipeItems.forEach((item) => {
+                      const itemKey = getNodeKey(item);
+                      const rootKey = resolveRootKey(itemKey);
+                      if (!groupKeysByRoot.has(rootKey)) groupKeysByRoot.set(rootKey, []);
+                      groupKeysByRoot.get(rootKey).push(itemKey);
+                    });
+
+                    const recipeGroupEntries = Array.from(groupKeysByRoot.entries()).map(([rootKey, keys]) => {
+                      const visited = new Set();
+                      const flattened = [];
+
+                      const walk = (nodeKey, depth) => {
+                        if (!nodeKey || visited.has(nodeKey) || !recipeByKey.has(nodeKey)) return;
+                        visited.add(nodeKey);
+                        flattened.push({ nodeKey, item: recipeByKey.get(nodeKey), depth });
+                        (childrenByParent.get(nodeKey) || []).forEach((childKey) => walk(childKey, depth + 1));
+                      };
+
+                      walk(rootKey, 0);
+                      keys.forEach((nodeKey) => walk(nodeKey, 0));
+
+                      const rankedNodes = flattened
+                        .map((node) => ({
+                          ...node,
+                          rank: itemOrder.get(node.item.dnd_id) ?? 9999,
+                        }))
+                        .sort((a, b) => a.rank - b.rank);
+
+                      const promotedDepth = rankedNodes[0]?.depth ?? 0;
+                      const flattenedForDisplay = rankedNodes.map((node, idx) => ({
+                        ...node,
+                        depth: idx === 0 ? 0 : Math.max(0, node.depth - promotedDepth),
+                      }));
+                      const minIndex = rankedNodes[0]?.rank ?? 9999;
+
+                      return {
+                        kind: 'recipe_group',
+                        rootKey,
+                        flattened: flattenedForDisplay,
+                        index: Number.isFinite(minIndex) ? minIndex : 9999,
+                      };
+                    });
+
+                    const singleEntries = nonRecipeItems.map((item) => ({
+                      kind: 'single',
+                      item,
+                      index: itemOrder.get(item.dnd_id || `snack-${item.occurrence_id}`) ?? 9999,
+                    }));
+
+                    const displayEntries = [...recipeGroupEntries, ...singleEntries].sort((a, b) => a.index - b.index);
+
+                    return displayEntries.map((entry) => {
+                      if (entry.kind === 'single') {
+                        const item = entry.item;
+                        const key = item.dnd_id || `snack-${item.occurrence_id}`;
+                        return <div key={key} className="h-full">{renderCardContent(item)}</div>;
+                      }
+
+                      const hasHierarchy = entry.flattened.length > 1;
+                      if (!hasHierarchy) {
+                        const onlyItem = entry.flattened[0]?.item;
+                        if (!onlyItem) return null;
+                        return <div key={`group-${entry.rootKey}`} className="h-full">{renderCardContent(onlyItem)}</div>;
+                      }
+
+                      return (
+                        <div key={`group-${entry.rootKey}`} className="h-full">
+                          <div className="h-full space-y-2">
+                            {entry.flattened.map(({ item, depth }) => (
+                              <div
+                                key={item.dnd_id}
+                                className={cn(
+                                  depth > 0 && 'ml-3'
+                                )}
+                              >
+                                {renderCardContent(item)}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
                   {filteredItems.length === 0 && (
                       <div className="md:col-span-3">
                           <p className="text-sm text-muted-foreground text-center italic py-4 bg-card/40 rounded-lg">

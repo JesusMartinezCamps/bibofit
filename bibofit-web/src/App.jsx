@@ -18,7 +18,6 @@ import CreateExercisePage from '@/pages/admin/CreateExercisePage';
 import CreateRoutinePage from '@/pages/admin/CreateRoutinePage';
 import ClientProfilePage from '@/pages/ClientProfilePage';
 import TrainingManagementPage from '@/pages/admin/TrainingManagementPage';
-import DietPlanPage from '@/pages/DietPlanPage';
 import TrainingPlanPage from '@/pages/TrainingPlanPage';
 import UserCreatedFoodsPage from '@/pages/admin/UserCreatedFoodsPage';
 import FreeMealRequestsPage from '@/pages/admin/FreeMealRequestsPage';
@@ -49,6 +48,11 @@ import MyFoodsPage from '@/pages/MyFoodsPage';
 import CreateFreeRecipePage from '@/pages/CreateFreeRecipePage';
 import CreateSnackPage from '@/pages/CreateSnackPage';
 import WeightHistoryPage from '@/pages/WeightHistoryPage';
+import WeightLogPage from '@/pages/WeightLogPage';
+import RepeatRecipePage from '@/pages/RepeatRecipePage';
+import RecipeViewPage from '@/pages/RecipeViewPage';
+import DietPlanLayout from '@/pages/DietPlanLayout';
+import VariantTreePage from '@/pages/VariantTreePage';
 import PricingPage from '@/pages/PricingPage';
 import AssignDietPlanPage from '@/pages/AssignDietPlanPage';
 import PWAInstallPrompt from '@/components/PWAInstallPrompt';
@@ -145,10 +149,23 @@ const AppRoutes = () => (
       {/* Plan */}
       <Route path="/planner" element={<ProtectedRoute><WeeklyPlannerPage /></ProtectedRoute>} />
       <Route path="/planner/:userId" element={<ProtectedRoute><WeeklyPlannerPage /></ProtectedRoute>} />
+      <Route path="/planner/ver-receta" element={<ProtectedRoute><RecipeViewPage /></ProtectedRoute>} />
+      <Route path="/planner/:userId/ver-receta" element={<ProtectedRoute><RecipeViewPage /></ProtectedRoute>} />
       <Route path="/plan" element={<ProtectedRoute><PlanPage /></ProtectedRoute>} />
       <Route path="/plan/dieta" element={<ProtectedRoute><Navigate to={`/plan/dieta/${format(new Date(), 'yyyy-MM-dd')}`} replace /></ProtectedRoute>} />
-      <Route path="/plan/dieta/:date" element={<ProtectedRoute><DietPlanPage /></ProtectedRoute>} />
-      <Route path="/plan/dieta/:userId/:date" element={<ProtectedRoute><DietPlanPage /></ProtectedRoute>} />
+      <Route path="/plan/dieta/:date" element={<ProtectedRoute><DietPlanLayout /></ProtectedRoute>}>
+        <Route path="ver-receta" element={<RecipeViewPage />} />
+        <Route path="repetir-receta" element={<RepeatRecipePage />} />
+        <Route path="variantes-recetas" element={<VariantTreePage />} />
+        <Route path="arbol-variantes" element={<Navigate to="../variantes-recetas" replace />} />
+      </Route>
+      <Route path="/plan/dieta/:userId/:date" element={<ProtectedRoute><DietPlanLayout /></ProtectedRoute>}>
+        <Route path="ver-receta" element={<RecipeViewPage />} />
+        <Route path="repetir-receta" element={<RepeatRecipePage />} />
+        <Route path="variantes-recetas" element={<VariantTreePage />} />
+        <Route path="arbol-variantes" element={<Navigate to="../variantes-recetas" replace />} />
+      </Route>
+      <Route path="/registro-peso" element={<ProtectedRoute><WeightLogPage /></ProtectedRoute>} />
       <Route path="/plan/entreno" element={<ProtectedRoute><TrainingPlanPage /></ProtectedRoute>} />
       <Route path="/create-free-recipe/:date/:mealId" element={<ProtectedRoute><CreateFreeRecipePage /></ProtectedRoute>} />
       <Route path="/create-snack/:date/:mealId" element={<ProtectedRoute><CreateSnackPage /></ProtectedRoute>} />
@@ -161,6 +178,9 @@ const AppRoutes = () => (
       <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
       <Route path="/profile/data" element={<ProtectedRoute><ProfileDataPage /></ProtectedRoute>} />
       <Route path="/profile/my-free-recipes" element={<ProtectedRoute><MyFreeRecipesPage /></ProtectedRoute>} />
+      <Route path="/profile/variantes-recetas" element={<ProtectedRoute><VariantTreePage /></ProtectedRoute>} />
+      <Route path="/profile/arbol-variantes" element={<ProtectedRoute><Navigate to="/profile/variantes-recetas" replace /></ProtectedRoute>} />
+      <Route path="/profile/ver-receta" element={<ProtectedRoute><RecipeViewPage /></ProtectedRoute>} />
       <Route path="/profile/my-foods" element={<ProtectedRoute><MyFoodsPage /></ProtectedRoute>} />
       <Route path="/profile/weight-history" element={<ProtectedRoute><WeightHistoryPage /></ProtectedRoute>} />
       <Route path="/my-plan" element={<ProtectedRoute><ClientPlanDetailPage /></ProtectedRoute>} />

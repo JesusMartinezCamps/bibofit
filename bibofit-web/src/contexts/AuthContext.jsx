@@ -1,5 +1,9 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '@/lib/customSupabaseClient';
+import {
+  getAuthConfirmedRedirectUrl,
+  getDashboardRedirectUrl,
+} from '@/lib/authRedirects';
 
 export const AuthContext = createContext();
 
@@ -33,7 +37,17 @@ export const AuthProvider = ({ children }) => {
       
       const userRole = roleData?.roles?.role || 'free';
       const cleanProfile = profile ? { ...profile } : {};
-      
+
+      // Fallback: si el perfil no tiene first_name/last_name, usar auth metadata
+      // (cubre casos donde el trigger DB aún no los guardó)
+      const userMeta = sessionUser.user_metadata || {};
+      if (!cleanProfile.first_name && userMeta.first_name) {
+        cleanProfile.first_name = userMeta.first_name;
+      }
+      if (!cleanProfile.last_name && userMeta.last_name) {
+        cleanProfile.last_name = userMeta.last_name;
+      }
+
       const fullUser = {
         ...sessionUser,
         ...cleanProfile,
@@ -125,15 +139,19 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const signup = async (email, password, fullName) => {
+  const signup = async (email, password, firstName, lastName, phone) => {
     try {
-      const confirmationRedirectUrl = `${window.location.origin}/auth/confirmed`;
+      const confirmationRedirectUrl = getAuthConfirmedRedirectUrl();
+      const fullName = [firstName, lastName].filter(Boolean).join(' ');
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            full_name: fullName,
+            first_name: firstName || null,
+            last_name: lastName || null,
+            full_name: fullName || null,
+            phone: phone || null,
           },
           emailRedirectTo: confirmationRedirectUrl,
         },
@@ -157,7 +175,7 @@ export const AuthProvider = ({ children }) => {
 
   const resendSignupConfirmation = async (email) => {
     try {
-      const confirmationRedirectUrl = `${window.location.origin}/auth/confirmed`;
+      const confirmationRedirectUrl = getAuthConfirmedRedirectUrl();
       const { error } = await supabase.auth.resend({
         type: 'signup',
         email,
@@ -179,7 +197,7 @@ export const AuthProvider = ({ children }) => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: provider,
         options: {
-          redirectTo: window.location.origin + '/dashboard',
+          redirectTo: getDashboardRedirectUrl(),
         }
       });
       if (error) return { success: false, error: error.message };

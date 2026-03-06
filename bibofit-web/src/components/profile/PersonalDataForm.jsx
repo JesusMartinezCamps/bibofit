@@ -1,26 +1,43 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
-import { Loader2, User, Ruler } from 'lucide-react';
+import { Loader2, User, Ruler, ImagePlus, X } from 'lucide-react';
 import ProfileSectionCard from '@/components/profile/ProfileSectionCard.jsx';
 import FormRow from '@/components/profile/FormRow.jsx';
 import { calculateAndSaveMetabolism, getActivityLevels } from '@/lib/metabolismCalculator';
 import { format } from 'date-fns';
 import FormBlock from '@/components/profile/FormBlock';
+import { isValidProfileImage, optimizeProfileImage } from '@/lib/profileImageUtils';
+
+const splitFullName = (fullName = '') => {
+  const cleanedName = fullName.trim().replace(/\s+/g, ' ');
+  if (!cleanedName) {
+    return { firstName: '', lastName: '' };
+  }
+  const [firstName, ...rest] = cleanedName.split(' ');
+  return { firstName, lastName: rest.join(' ') };
+};
 
 const PersonalDataForm = ({ className, onSave, userId: propUserId }) => {
-  const { user: authUser } = useAuth();
+  const { user: authUser, refreshUser } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isImageProcessing, setIsImageProcessing] = useState(false);
   const [activityLevels, setActivityLevels] = useState([]);
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState('');
+  const avatarInputRef = useRef(null);
   
-  const userId = propUserId || authUser.id;
+  const userId = propUserId || authUser?.id;
 
   const [formData, setFormData] = useState({
+    first_name: '',
+    last_name: '',
     full_name: '',
+    avatar_url: '',
     email: '',
     sex: '',
     birth_date: '',
@@ -64,8 +81,11 @@ const PersonalDataForm = ({ className, onSave, userId: propUserId }) => {
       
       if (data) {
         const mappedData = {
+          first_name: data.first_name || splitFullName(data.full_name || '').firstName,
+          last_name: data.last_name || splitFullName(data.full_name || '').lastName,
           full_name: data.full_name || '',
-          email: data.email || authUser.email,
+          avatar_url: data.avatar_url || '',
+          email: data.email || authUser?.email || '',
           sex: data.sex || '',
           birth_date: data.birth_date || '',
           height_cm: data.height_cm ? data.height_cm.toString() : '',
@@ -77,10 +97,26 @@ const PersonalDataForm = ({ className, onSave, userId: propUserId }) => {
         };
         setFormData(mappedData);
         setInitialFormData(mappedData);
+        setAvatarFile(null);
       } else {
-        const defaultData = { ...formData, email: authUser.email };
+        const defaultData = {
+          first_name: '',
+          last_name: '',
+          full_name: '',
+          avatar_url: '',
+          email: authUser?.email || '',
+          sex: '',
+          birth_date: '',
+          height_cm: '',
+          current_weight_kg: '',
+          goal_weight_kg: '',
+          activity_level_id: '',
+          phone: '',
+          city: ''
+        };
         setFormData(defaultData);
         setInitialFormData(defaultData);
+        setAvatarFile(null);
       }
     } catch (error) {
       console.error('Error fetching profile data:', error);
@@ -88,14 +124,56 @@ const PersonalDataForm = ({ className, onSave, userId: propUserId }) => {
     } finally {
       setLoading(false);
     }
-  }, [userId, toast, fetchActivityLevels, authUser.email]);
+  }, [userId, toast, fetchActivityLevels, authUser?.email]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
+  useEffect(() => {
+    if (avatarFile instanceof File) {
+      const objectUrl = URL.createObjectURL(avatarFile);
+      setAvatarPreview(objectUrl);
+      return () => URL.revokeObjectURL(objectUrl);
+    }
+    setAvatarPreview(formData.avatar_url || '');
+    return undefined;
+  }, [avatarFile, formData.avatar_url]);
+
   const handleChange = (id, value) => {
     setFormData(prev => ({ ...prev, [id]: value }));
+  };
+
+  const handleAvatarChange = async (event) => {
+    const selectedFile = event.target.files?.[0];
+    event.target.value = '';
+
+    if (!selectedFile) return;
+
+    const validationError = isValidProfileImage(selectedFile);
+    if (validationError) {
+      toast({ title: 'Archivo inválido', description: validationError, variant: 'destructive' });
+      return;
+    }
+
+    setIsImageProcessing(true);
+    try {
+      const optimizedImage = await optimizeProfileImage(selectedFile);
+      setAvatarFile(optimizedImage);
+    } catch (error) {
+      toast({
+        title: 'Error de imagen',
+        description: error?.message || 'No se pudo procesar la foto de perfil.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsImageProcessing(false);
+    }
+  };
+
+  const handleRemoveAvatar = () => {
+    setAvatarFile(null);
+    setFormData((prev) => ({ ...prev, avatar_url: '' }));
   };
 
   /**
@@ -153,13 +231,42 @@ const PersonalDataForm = ({ className, onSave, userId: propUserId }) => {
     setIsSubmitting(true);
     try {
       const heightCm = normalizeHeight(formData.height_cm);
+      const firstName = formData.first_name.trim();
+      const lastName = formData.last_name.trim();
+      const fullName = `${firstName} ${lastName}`.trim();
+
+      let avatarUrl = formData.avatar_url || null;
+      if (avatarFile instanceof File) {
+        const avatarPath = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.webp`;
+        const { error: uploadError } = await supabase.storage
+          .from('profile-images')
+          .upload(avatarPath, avatarFile, {
+            contentType: 'image/webp',
+            upsert: false
+          });
+        if (uploadError) {
+          throw new Error(`No se pudo subir la foto de perfil: ${uploadError.message}`);
+        }
+        const { data: { publicUrl } } = supabase.storage
+          .from('profile-images')
+          .getPublicUrl(avatarPath);
+        avatarUrl = publicUrl;
+      }
 
       const profileData = {
-        ...formData,
+        first_name: firstName || null,
+        last_name: lastName || null,
+        full_name: fullName || formData.full_name || null,
+        avatar_url: avatarUrl,
+        email: formData.email || null,
+        sex: formData.sex || null,
+        birth_date: formData.birth_date || null,
         height_cm: heightCm,
         current_weight_kg: formData.current_weight_kg ? parseFloat(formData.current_weight_kg) : null,
         goal_weight_kg: formData.goal_weight_kg ? parseFloat(formData.goal_weight_kg) : null,
-        activity_level_id: formData.activity_level_id ? parseInt(formData.activity_level_id) : null
+        activity_level_id: formData.activity_level_id ? parseInt(formData.activity_level_id, 10) : null,
+        phone: formData.phone || null,
+        city: formData.city || null
       };
 
       // Use update instead of upsert because the profile is guaranteed to exist for any valid user
@@ -259,6 +366,10 @@ const PersonalDataForm = ({ className, onSave, userId: propUserId }) => {
       // Update initial form data to reflect saved state, including normalized height
       const updatedFormData = { 
         ...formData, 
+        first_name: refreshedProfile.first_name || firstName,
+        last_name: refreshedProfile.last_name || lastName,
+        full_name: refreshedProfile.full_name || fullName,
+        avatar_url: refreshedProfile.avatar_url || avatarUrl || '',
         height_cm: heightCm ? heightCm.toString() : '',
         current_weight_kg: refreshedProfile.current_weight_kg ? refreshedProfile.current_weight_kg.toString() : '',
         activity_level_id: refreshedProfile.activity_level_id ? refreshedProfile.activity_level_id.toString() : '',
@@ -266,6 +377,7 @@ const PersonalDataForm = ({ className, onSave, userId: propUserId }) => {
       };
       setFormData(updatedFormData);
       setInitialFormData(updatedFormData);
+      setAvatarFile(null);
 
       // Show appropriate toast message
       if (shouldRecalculateMetabolism && metabolismResult?.success) {
@@ -305,9 +417,17 @@ const PersonalDataForm = ({ className, onSave, userId: propUserId }) => {
       if (onSave) {
         onSave();
       }
+
+      if (authUser?.id && authUser.id === userId) {
+        await refreshUser();
+      }
     } catch (error) {
       console.error('Error saving profile:', error);
-      toast({ title: 'Error', description: 'No se pudieron guardar los datos.', variant: 'destructive' });
+      toast({
+        title: 'Error',
+        description: error?.message || 'No se pudieron guardar los datos.',
+        variant: 'destructive'
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -330,8 +450,67 @@ const PersonalDataForm = ({ className, onSave, userId: propUserId }) => {
     <ProfileSectionCard title="Datos Personales" icon={User} color="purple" className={className}>
       <form onSubmit={handleSubmit} className="space-y-8">
         <FormBlock title="Información de Contacto" icon={User} color="purple">
+            <div className="rounded-xl border border-border/60 bg-muted/25 p-4">
+              <p className="mb-3 text-sm font-medium text-muted-foreground">Foto de perfil</p>
+              <div className="flex items-center gap-4">
+                <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-muted">
+                  {avatarPreview ? (
+                    <img src={avatarPreview} alt="Vista previa de perfil" className="h-full w-full object-cover" />
+                  ) : (
+                    <User className="h-8 w-8 text-muted-foreground" />
+                  )}
+                </div>
+                <div className="flex flex-col gap-2">
+                  <input
+                    ref={avatarInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                    className="hidden"
+                  />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="border-border bg-background hover:bg-muted"
+                      onClick={() => avatarInputRef.current?.click()}
+                      disabled={isImageProcessing || isSubmitting}
+                    >
+                      {isImageProcessing ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Procesando...
+                        </>
+                      ) : (
+                        <>
+                          <ImagePlus className="mr-2 h-4 w-4" />
+                          Subir foto
+                        </>
+                      )}
+                    </Button>
+                    {(avatarPreview || formData.avatar_url) && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="text-muted-foreground hover:text-foreground"
+                        onClick={handleRemoveAvatar}
+                        disabled={isSubmitting}
+                      >
+                        <X className="mr-1 h-4 w-4" />
+                        Quitar
+                      </Button>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Se redimensiona automáticamente a formato cuadrado pequeño (WebP) para optimizar carga.
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormRow id="full_name" label="Nombre Completo" value={formData.full_name} onChange={handleChange} />
+                <FormRow id="first_name" label="Nombre" value={formData.first_name} onChange={handleChange} />
+                <FormRow id="last_name" label="Apellidos" value={formData.last_name} onChange={handleChange} />
                 <FormRow id="email" label="Correo Electrónico" type="email" value={formData.email} onChange={handleChange} />
                 <FormRow id="phone" label="Teléfono" value={formData.phone} onChange={handleChange} />
                 <FormRow id="city" label="Ciudad" value={formData.city} onChange={handleChange} />
@@ -372,7 +551,7 @@ const PersonalDataForm = ({ className, onSave, userId: propUserId }) => {
             </div>
         </FormBlock>
 
-        <Button type="submit" className="w-full text-lg font-semibold py-6 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 transition-all duration-300" disabled={isSubmitting}>
+        <Button type="submit" className="w-full text-lg font-semibold py-6 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 transition-all duration-300" disabled={isSubmitting || isImageProcessing}>
           {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Guardando...</> : 'Guardar Datos Personales'}
         </Button>
       </form>

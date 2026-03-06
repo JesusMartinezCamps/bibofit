@@ -8,6 +8,7 @@ import RecipeView from '@/components/shared/RecipeView';
 import IngredientSearch from '@/components/plans/IngredientSearch';
 import { useRecipeImageUpload } from './hooks/useRecipeImageUpload';
 import { useAuth } from '@/contexts/AuthContext';
+import { parseRecipeStyleId } from '@/lib/recipeStyles';
 
 const EMPTY_RESTRICTIONS = {
   sensitivities: [],
@@ -46,10 +47,12 @@ const RecipeFormContainer = ({ selectedRecipe, onSave, resetSignal = 0 }) => {
   const [allVitamins, setAllVitamins] = useState([]);
   const [allMinerals, setAllMinerals] = useState([]);
   const [allFoodGroups, setAllFoodGroups] = useState([]);
+  const [recipeStyles, setRecipeStyles] = useState([]);
   const [recipeData, setRecipeData] = useState({
     name: '',
     prep_time_min: '',
     difficulty: 'Fácil',
+    recipe_style_id: '',
     instructions: '',
     image_url: null,
   });
@@ -61,7 +64,7 @@ const RecipeFormContainer = ({ selectedRecipe, onSave, resetSignal = 0 }) => {
   const fetchInitialData = useCallback(async () => {
     setIsLoadingData(true);
     try {
-      const [foodsRes, vitaminsRes, mineralsRes, foodGroupsRes] = await Promise.all([
+      const [foodsRes, vitaminsRes, mineralsRes, foodGroupsRes, recipeStylesRes] = await Promise.all([
         supabase
           .from('food')
           .select('*, food_sensitivities(*, sensitivities(id, name)), food_medical_conditions(condition_id, relation_type), food_to_food_groups(food_group_id, food_group:food_groups(id, name)), food_vitamins(vitamin_id, vitamins(id, name)), food_minerals(mineral_id, minerals(id, name))')
@@ -69,17 +72,20 @@ const RecipeFormContainer = ({ selectedRecipe, onSave, resetSignal = 0 }) => {
         supabase.from('vitamins').select('id, name'),
         supabase.from('minerals').select('id, name'),
         supabase.from('food_groups').select('id, name'),
+        supabase.from('recipe_styles').select('id, name').eq('is_active', true).order('display_order').order('name'),
       ]);
 
       if (foodsRes.error) throw foodsRes.error;
       if (vitaminsRes.error) throw vitaminsRes.error;
       if (mineralsRes.error) throw mineralsRes.error;
       if (foodGroupsRes.error) throw foodGroupsRes.error;
+      if (recipeStylesRes.error) throw recipeStylesRes.error;
 
       setAllFoods(foodsRes.data || []);
       setAllVitamins(vitaminsRes.data || []);
       setAllMinerals(mineralsRes.data || []);
       setAllFoodGroups(foodGroupsRes.data || []);
+      setRecipeStyles(recipeStylesRes.data || []);
     } catch (error) {
       toast({
         title: 'Error',
@@ -102,6 +108,7 @@ const RecipeFormContainer = ({ selectedRecipe, onSave, resetSignal = 0 }) => {
         name: selectedRecipe.name || '',
         prep_time_min: selectedRecipe.prep_time_min ?? '',
         difficulty: selectedRecipe.difficulty || 'Fácil',
+        recipe_style_id: selectedRecipe.recipe_style_id ? String(selectedRecipe.recipe_style_id) : '',
         instructions: selectedRecipe.instructions || '',
         image_url: selectedRecipe.image_url || null,
       });
@@ -114,6 +121,7 @@ const RecipeFormContainer = ({ selectedRecipe, onSave, resetSignal = 0 }) => {
       name: '',
       prep_time_min: '',
       difficulty: 'Fácil',
+      recipe_style_id: '',
       instructions: '',
       image_url: null,
     });
@@ -214,6 +222,7 @@ const RecipeFormContainer = ({ selectedRecipe, onSave, resetSignal = 0 }) => {
             ? null
             : Number(recipeData.prep_time_min),
         difficulty: recipeData.difficulty || null,
+        recipe_style_id: parseRecipeStyleId(recipeData.recipe_style_id),
         instructions: recipeData.instructions || null,
       };
 
@@ -352,6 +361,7 @@ const RecipeFormContainer = ({ selectedRecipe, onSave, resetSignal = 0 }) => {
         allFoodGroups={allFoodGroups}
         macros={macros}
         userRestrictions={EMPTY_RESTRICTIONS}
+        recipeStyles={recipeStyles}
         isEditing={true}
         onFormChange={handleFormChange}
         onIngredientsChange={handleIngredientsChange}

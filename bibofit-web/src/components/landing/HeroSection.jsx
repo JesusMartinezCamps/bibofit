@@ -115,7 +115,7 @@ const Tap = ({
       }}
       className={`transition-[box-shadow,filter] ${
         hintPulse
-          ? 'ring-1 ring-emerald-700/55 dark:ring-slate-200/45 border-emerald-800/70 dark:border-slate-200/45 shadow-[0_0_12px_rgba(6,95,70,0.34)] dark:shadow-[0_0_12px_rgba(226,232,240,0.22)]'
+          ? 'ring-2 ring-emerald-400/80 dark:ring-slate-200/45 border-emerald-400/90 dark:border-slate-200/45 shadow-[0_0_14px_rgba(74,222,128,0.42)] dark:shadow-[0_0_12px_rgba(226,232,240,0.22)]'
           : ''
       } ${className} ${flash ? flashClassName : ''}`}
       {...rest}
@@ -355,7 +355,7 @@ const BibofitMock = () => {
   }, [totals, targets]);
 
   const clickableHintClass = hintPulse
-    ? 'ring-1 ring-emerald-700/55 dark:ring-slate-200/45 border-emerald-800/70 dark:border-slate-200/45 shadow-[0_0_12px_rgba(6,95,70,0.34)] dark:shadow-[0_0_12px_rgba(226,232,240,0.22)]'
+    ? 'ring-2 ring-emerald-400/80 dark:ring-slate-200/45 border-emerald-400/90 dark:border-slate-200/45 shadow-[0_0_14px_rgba(74,222,128,0.42)] dark:shadow-[0_0_12px_rgba(226,232,240,0.22)]'
     : '';
   const clickableHintStyle = {
     transitionProperty: 'box-shadow, filter',
@@ -378,7 +378,7 @@ const BibofitMock = () => {
 
   return (
     <div className="relative rounded-2xl border border-emerald-500/20 bg-white/95 dark:bg-[#0f1722]/90 backdrop-blur-sm shadow-2xl overflow-hidden">
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-background">
+      <div className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-3 border-b border-border bg-background">
         <div className="flex gap-1.5">
           <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50" />
           <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50" />
@@ -393,7 +393,7 @@ const BibofitMock = () => {
         </div>
       </div>
 
-      <div className="p-5 sm:p-6 bg-slate-100 dark:bg-[#0d1620]">
+      <div className="p-3 sm:p-6 bg-slate-100 dark:bg-[#0d1620]">
         <AnimatePresence mode="wait" initial={false}>
           {mockScreen === 'calendar' ? (
             <motion.div
@@ -402,10 +402,10 @@ const BibofitMock = () => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="space-y-4"
+              className="space-y-3 sm:space-y-4"
             >
               <div className="flex items-center justify-between">
-                <h3 className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 to-green-500">
+                <h3 className="text-xl sm:text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 to-green-500">
                   {monthTitle}
                 </h3>
                 <div className="flex items-center gap-2">
@@ -445,7 +445,7 @@ const BibofitMock = () => {
                 ))}
               </div>
 
-              <div ref={calendarGridRef} className="relative grid grid-cols-7 gap-2">
+              <div ref={calendarGridRef} className="relative grid grid-cols-7 gap-1.5 sm:gap-2">
                 {calendarDays.map(({ date, key, isCurrentMonth }) => {
                   const isToday = isSameDay(date, new Date());
                   const isSelected = isSameDay(date, selectedDate);
@@ -454,9 +454,9 @@ const BibofitMock = () => {
 
                   return (
                     <Tap
-                      hintPulse={hintPulse}
+                      hintPulse={isToday && hintPulse}
                       key={key}
-                      className={`min-h-[86px] rounded-2xl border p-2 text-left flex flex-col ${
+                      className={`h-[76px] sm:h-[86px] min-w-0 rounded-2xl border p-1 sm:p-1.5 text-left flex flex-col overflow-hidden ${
                         isCurrentMonth
                           ? 'bg-white border-slate-800/60 hover:border-emerald-500/40 dark:bg-[#12212d] dark:border-[#233645]'
                           : 'bg-slate-100 border-slate-700/50 text-slate-600 hover:border-slate-700 dark:bg-[#101923] dark:border-[#1d2a36] dark:text-white/45 dark:hover:border-[#2a3b4a]'
@@ -481,14 +481,14 @@ const BibofitMock = () => {
                         {isSelected && <div className="h-2 w-2 rounded-full bg-emerald-400" />}
                       </div>
 
-                      <div className="mt-1 space-y-1">
+                      <div className="mt-0.5 min-w-0 max-h-[24px] sm:max-h-[28px] space-y-px overflow-hidden">
                         {chips.map((chip) => (
                           <div
                             key={`${key}-${chip.id}`}
-                            className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${chip.className}`}
+                            className={`inline-flex h-3 sm:h-3.5 w-full min-w-0 items-center gap-0.5 rounded-full border px-1 sm:px-1.5 py-0 text-[8px] sm:text-[9px] font-medium leading-none ${chip.className}`}
                           >
                             {chip.icon}
-                            {chip.text}
+                            <span className="block flex-1 min-w-0 truncate">{chip.text}</span>
                           </div>
                         ))}
                       </div>
@@ -517,7 +517,7 @@ const BibofitMock = () => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="space-y-5"
+              className="space-y-3 sm:space-y-5"
             >
               <div className="flex items-center justify-between">
                 <div className={`flex items-center gap-2 rounded-2xl border p-2 ${panelClass}`}>
@@ -569,7 +569,7 @@ const BibofitMock = () => {
                       const isSelected = isSameDay(x.date, selectedDate);
                       return (
                         <Tap
-                          hintPulse={hintPulse}
+                          hintPulse={false}
                           key={x.key}
                           className={`text-center px-2 py-1 rounded-2xl ${isSelected ? 'bg-emerald-100 border border-emerald-300 dark:bg-white/8 dark:border-white/15' : ''} hover:bg-slate-200/70 dark:hover:bg-white/5`}
                           flashClassName="bg-slate-200/60 dark:bg-white/10"
@@ -578,14 +578,14 @@ const BibofitMock = () => {
                             triggerTooltip(setShowWeekDayTooltip);
                           }}
                         >
-                          <div className="text-xs font-semibold tracking-wide text-slate-500 dark:text-white/55">{x.label}</div>
-                          <div className="text-2xl font-bold text-slate-900 dark:text-white/85">{x.n}</div>
+                          <div className="text-[11px] sm:text-xs font-semibold tracking-wide text-slate-500 dark:text-white/55">{x.label}</div>
+                          <div className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white/85">{x.n}</div>
                         </Tap>
                       );
                     })}
 
                     <Tap
-                      hintPulse={hintPulse}
+                      hintPulse={false}
                       className="w-12 sm:w-16 h-[84px] rounded-3xl bg-emerald-100 border border-emerald-300 dark:bg-[#1d2f3f] dark:border-[#34566c] flex flex-col items-center justify-center hover:bg-emerald-100/80 dark:hover:bg-white/5 dark:hover:border-white/20"
                       flashClassName="bg-slate-200/60 dark:bg-white/10 border-slate-300 dark:border-white/25"
                       onTapAction={() => {
@@ -593,8 +593,8 @@ const BibofitMock = () => {
                         triggerTooltip(setShowWeekDayTooltip);
                       }}
                     >
-                      <div className="text-xs font-bold text-sky-700 dark:text-sky-300 tracking-wide">{selectedDay.label}</div>
-                      <div className="text-2xl font-extrabold text-slate-900 dark:text-white">{selectedDay.n}</div>
+                      <div className="text-[11px] sm:text-xs font-bold text-sky-700 dark:text-sky-300 tracking-wide">{selectedDay.label}</div>
+                      <div className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white">{selectedDay.n}</div>
                       <div className="mt-2 h-2 w-2 rounded-full bg-green-500" />
                     </Tap>
 
@@ -602,7 +602,7 @@ const BibofitMock = () => {
                       const isSelected = isSameDay(x.date, selectedDate);
                       return (
                         <Tap
-                          hintPulse={hintPulse}
+                          hintPulse={false}
                           key={x.key}
                           className={`text-center px-2 py-1 rounded-2xl ${isSelected ? 'bg-emerald-100 border border-emerald-300 dark:bg-white/8 dark:border-white/15' : ''} hover:bg-slate-200/70 dark:hover:bg-white/5`}
                           flashClassName="bg-slate-200/60 dark:bg-white/10"
@@ -611,8 +611,8 @@ const BibofitMock = () => {
                             triggerTooltip(setShowWeekDayTooltip);
                           }}
                         >
-                          <div className="text-xs font-semibold tracking-wide text-slate-500 dark:text-white/55">{x.label}</div>
-                          <div className="text-2xl font-bold text-slate-900 dark:text-white/85">{x.n}</div>
+                          <div className="text-[11px] sm:text-xs font-semibold tracking-wide text-slate-500 dark:text-white/55">{x.label}</div>
+                          <div className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white/85">{x.n}</div>
                         </Tap>
                       );
                     })}
@@ -644,7 +644,7 @@ const BibofitMock = () => {
 
               <Tap
                 hintPulse={hintPulse}
-                className={`w-full rounded-3xl border p-5 text-center hover:bg-slate-200/70 dark:hover:bg-white/5 dark:hover:border-white/20 ${panelClass}`}
+                className={`w-full rounded-3xl border p-4 sm:p-5 text-center hover:bg-slate-200/70 dark:hover:bg-white/5 dark:hover:border-white/20 ${panelClass}`}
                 flashClassName="bg-slate-200/60 dark:bg-white/10 border-slate-300 dark:border-white/25"
                 onTapAction={() => setActiveModal('weight')}
               >
@@ -660,21 +660,21 @@ const BibofitMock = () => {
               <div className="relative">
                 <Tap
                   hintPulse={hintPulse}
-                  className={`w-full rounded-3xl border p-5 text-left hover:bg-slate-200/70 dark:hover:bg-white/5 dark:hover:border-white/20 ${panelClass}`}
+                  className={`w-full rounded-3xl border p-4 sm:p-5 text-left hover:bg-slate-200/70 dark:hover:bg-white/5 dark:hover:border-white/20 ${panelClass}`}
                   flashClassName="bg-slate-200/60 dark:bg-white/10 border-slate-300 dark:border-white/25"
                   onTapAction={() => triggerTooltip(setShowMacroTooltip)}
                 >
-                  <div className="space-y-4">
+                  <div className="space-y-3 sm:space-y-4">
                     <div className="grid grid-cols-3 gap-4">
                       <div>
                         <div className="flex items-center gap-2 text-red-400 font-bold">
                           <Drumstick className="h-5 w-5" />
                           <span>Proteínas</span>
                         </div>
-                        <div className="mt-2 text-xl font-extrabold text-slate-900 dark:text-white">
+                        <div className="mt-2 text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white">
                           <AnimatedNumber value={totals.protein} />
-                          <span className="text-base font-semibold text-slate-600 dark:text-white/55">g</span>
-                          <span className="text-base font-semibold text-slate-400 dark:text-white/35"> / {targets.protein}g</span>
+                          <span className="text-sm sm:text-base font-semibold text-slate-600 dark:text-white/55">g</span>
+                          <span className="text-sm sm:text-base font-semibold text-slate-400 dark:text-white/35"> / {targets.protein}g</span>
                         </div>
                         <MacroPill valuePct={pct.proteinPct} colorClass="bg-red-500" label={`${pct.proteinPct}%`} />
                       </div>
@@ -684,10 +684,10 @@ const BibofitMock = () => {
                           <Wheat className="h-5 w-5" />
                           <span>Carbohidratos</span>
                         </div>
-                        <div className="mt-2 text-xl font-extrabold text-slate-900 dark:text-white">
+                        <div className="mt-2 text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white">
                           <AnimatedNumber value={totals.carbs} />
-                          <span className="text-base font-semibold text-slate-600 dark:text-white/55">g</span>
-                          <span className="text-base font-semibold text-slate-400 dark:text-white/35"> / {targets.carbs}g</span>
+                          <span className="text-sm sm:text-base font-semibold text-slate-600 dark:text-white/55">g</span>
+                          <span className="text-sm sm:text-base font-semibold text-slate-400 dark:text-white/35"> / {targets.carbs}g</span>
                         </div>
                         <MacroPill valuePct={pct.carbsPct} colorClass="bg-yellow-400" label={`${pct.carbsPct}%`} />
                       </div>
@@ -697,10 +697,10 @@ const BibofitMock = () => {
                           <Droplet className="h-5 w-5" />
                           <span>Grasas</span>
                         </div>
-                        <div className="mt-2 text-xl font-extrabold text-slate-900 dark:text-white">
+                        <div className="mt-2 text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white">
                           <AnimatedNumber value={totals.fats} />
-                          <span className="text-base font-semibold text-slate-600 dark:text-white/55">g</span>
-                          <span className="text-base font-semibold text-slate-400 dark:text-white/35"> / {targets.fats}g</span>
+                          <span className="text-sm sm:text-base font-semibold text-slate-600 dark:text-white/55">g</span>
+                          <span className="text-sm sm:text-base font-semibold text-slate-400 dark:text-white/35"> / {targets.fats}g</span>
                         </div>
                         <MacroPill valuePct={pct.fatsPct} colorClass="bg-green-500" label={`${pct.fatsPct}%`} />
                       </div>
@@ -708,13 +708,13 @@ const BibofitMock = () => {
 
                     <div>
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-orange-400 font-bold text-xl">
+                        <div className="flex items-center gap-2 text-orange-400 font-bold text-lg sm:text-xl">
                           <Flame className="h-6 w-6" />
                           <span>Calorías Totales</span>
                         </div>
-                        <div className="text-xl font-extrabold text-slate-900 dark:text-white">
+                        <div className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white">
                           <AnimatedNumber value={totals.calories} />{' '}
-                          <span className="text-lg font-semibold text-slate-500 dark:text-white/45">/ {targets.calories} kcal</span>
+                          <span className="text-base sm:text-lg font-semibold text-slate-500 dark:text-white/45">/ {targets.calories} kcal</span>
                         </div>
                       </div>
                       <LongBar valuePct={pct.caloriesPct} colorClass="bg-orange-500" />
@@ -739,7 +739,7 @@ const BibofitMock = () => {
                 </AnimatePresence>
               </div>
 
-              <div className={`rounded-3xl border p-4 ${panelClass}`}>
+              <div className={`rounded-3xl border p-3 sm:p-4 ${panelClass}`}>
                 <div className="grid grid-cols-2 gap-3 rounded-2xl bg-slate-100 border border-slate-800/70 dark:bg-[#10202d] dark:border-[#233645] p-2">
                   <button
                     type="button"
@@ -771,19 +771,19 @@ const BibofitMock = () => {
               </div>
 
               {planViewMode === 'week' ? (
-                <div className={`relative rounded-3xl border p-5 ${panelClass}`}>
-                  <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white mb-4">Planificador de semana</h3>
+                <div style={clickableHintStyle} className={`relative rounded-3xl border p-4 sm:p-5 ${panelClass} ${clickableHintClass}`}>
+                  <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white mb-3 sm:mb-4">Planificador de semana</h3>
                   <div className="grid grid-cols-7 gap-2">
                     {weekPlannedMeals.map((day) => (
                       <Tap
-                        hintPulse={hintPulse}
+                        hintPulse={false}
                         key={`week-${day.key}`}
                         className={`rounded-2xl border p-2 text-center hover:bg-slate-200/70 dark:hover:bg-white/5 dark:hover:border-white/25 ${tileClass}`}
                         flashClassName="bg-slate-200/60 dark:bg-white/10 border-slate-300 dark:border-white/25"
                         onTapAction={() => triggerTooltip(setShowWeekPlannerTooltip)}
                       >
-                        <div className="text-[11px] font-semibold text-slate-500 dark:text-white/55">{day.label}</div>
-                        <div className="text-2xl font-bold text-slate-900 dark:text-white">{day.n}</div>
+                        <div className="text-[10px] sm:text-[11px] font-semibold text-slate-500 dark:text-white/55">{day.label}</div>
+                        <div className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">{day.n}</div>
                         <div className="text-[10px] text-emerald-700 dark:text-emerald-200/90">{day.plannedMeals} comidas</div>
                       </Tap>
                     ))}
@@ -807,7 +807,7 @@ const BibofitMock = () => {
               ) : (
                 <>
                   <div className="flex items-center justify-between pt-1">
-                    <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white">Comidas del día</h3>
+                    <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white">Comidas del día</h3>
                     <button
                       type="button"
                       style={clickableHintStyle}
@@ -818,10 +818,10 @@ const BibofitMock = () => {
                     </button>
                   </div>
 
-                  <div className={`rounded-3xl border p-6 ${panelClass}`}>
+                  <div className={`rounded-3xl border p-4 sm:p-6 ${panelClass}`}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="text-2xl font-extrabold text-green-700 dark:text-green-300">Desayunos</div>
+                        <div className="text-xl sm:text-2xl font-extrabold text-green-700 dark:text-green-300">Desayunos</div>
                         <ChevronDown className="h-5 w-5 text-slate-600 dark:text-white/55" />
                       </div>
 
@@ -845,7 +845,7 @@ const BibofitMock = () => {
                       </div>
                     </div>
 
-                    <div className="mt-4 flex items-center gap-6 text-lg font-bold">
+                    <div className="mt-4 flex items-center gap-5 sm:gap-6 text-base sm:text-lg font-bold">
                       <div className="flex items-center gap-2 text-orange-400">
                         <Flame className="h-5 w-5" />
                         <span>
@@ -874,12 +874,12 @@ const BibofitMock = () => {
 
                     <Tap
                       hintPulse={hintPulse}
-                      className={`mt-5 w-full rounded-2xl border p-4 text-left hover:bg-slate-200/70 dark:hover:bg-white/5 dark:hover:border-white/25 ${tileClass}`}
+                      className={`mt-3 sm:mt-5 w-full rounded-2xl border p-3 sm:p-4 text-left hover:bg-slate-200/70 dark:hover:bg-white/5 dark:hover:border-white/25 ${tileClass}`}
                       flashClassName="bg-slate-200/60 dark:bg-white/10 border-slate-300 dark:border-white/25"
                       onTapAction={() => setActiveModal('recipeView')}
                     >
-                      <p className="text-lg font-bold text-slate-900 dark:text-white">{recipeMock.name}</p>
-                      <div className="mt-1 flex items-center gap-4 text-sm text-slate-600 dark:text-white/65">
+                      <p className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">{recipeMock.name}</p>
+                      <div className="mt-1 flex items-center gap-4 text-xs sm:text-sm text-slate-600 dark:text-white/65">
                         <span>Dificultad: {recipeMock.difficulty}</span>
                         <span>Tiempo: {recipeMock.time}</span>
                       </div>
@@ -989,7 +989,36 @@ const BibofitMock = () => {
 /* -----------------------------
  HERO
 ------------------------------ */
-const HeroSection = () => {
+const HeroSection = ({ isMobileDemoOpen = false, onMobileDemoOpenChange }) => {
+  const [isMobileViewport, setIsMobileViewport] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth < 640;
+  });
+
+  useEffect(() => {
+    const onResize = () => setIsMobileViewport(window.innerWidth < 640);
+    onResize();
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobileViewport || !isMobileDemoOpen) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isMobileViewport, isMobileDemoOpen]);
+
+  useEffect(() => {
+    if (!isMobileViewport && isMobileDemoOpen) {
+      onMobileDemoOpenChange?.(false);
+    }
+  }, [isMobileViewport, isMobileDemoOpen, onMobileDemoOpenChange]);
+
+  const shouldRenderInlineMock = !isMobileViewport;
+
   return (
     <section className="relative pt-32 pb-0 sm:pb-12 lg:pt-48 lg:pb-12 overflow-hidden">
       {/* Background Gradients */}
@@ -1021,13 +1050,7 @@ const HeroSection = () => {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 mb-8">
-              <Link to="/signup">
-                <Button size="lg" className="w-full sm:w-auto bg-green-500 hover:bg-green-600 text-emerald-950 font-bold h-12 px-8">
-                  Empezar Gratis Ahora
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
-
+              
               <Link to="/login">
                 <Button
                   variant="outline"
@@ -1037,6 +1060,13 @@ const HeroSection = () => {
                   Iniciar Sesión
                 </Button>
               </Link>
+              <Link to="/signup">
+                <Button size="lg" className="w-full sm:w-auto bg-green-500 hover:bg-green-600 text-emerald-950 font-bold h-12 px-8">
+                  Empezar Gratis Ahora
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </Link>
+
             </div>
 
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-8 text-sm text-muted-foreground">
@@ -1060,18 +1090,49 @@ const HeroSection = () => {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="relative w-full sm:mx-auto sm:max-w-[520px] lg:mx-0 lg:max-w-none"
+            className="relative -mx-4 w-[calc(100%+2rem)] sm:mx-auto sm:w-full sm:max-w-[520px] lg:mx-0 lg:max-w-none"
           >
-            <div className="mx-auto w-full flex justify-center">
-              <div className="inline-block origin-top scale-[0.80]">
-                <div className="w-[560px] max-w-[92vw]">
-                  <BibofitMock />
+            {shouldRenderInlineMock && (
+              <div className="mx-auto w-full sm:flex sm:justify-center">
+                <div className="w-full sm:inline-block sm:origin-top sm:scale-[0.80]">
+                  <div className="w-full sm:w-[560px] sm:max-w-[92vw]">
+                    <BibofitMock />
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </motion.div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {isMobileViewport && isMobileDemoOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[70] bg-background sm:hidden"
+          >
+            <div className="flex h-full flex-col">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-background/95 backdrop-blur">
+                <h2 className="text-base font-semibold text-foreground">Prueba gratis interactiva</h2>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-9 px-3"
+                  onClick={() => onMobileDemoOpenChange?.(false)}
+                >
+                  Cerrar
+                </Button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-2">
+                <BibofitMock />
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 };

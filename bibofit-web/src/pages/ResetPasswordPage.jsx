@@ -5,6 +5,7 @@ import { Helmet } from 'react-helmet';
 import { supabase } from '@/lib/supabaseClient';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
+import { getUpdatePasswordRedirectUrl } from '@/lib/authRedirects';
 import { KeyRound, ArrowLeft } from 'lucide-react';
 
 const ResetPasswordPage = () => {
@@ -20,7 +21,7 @@ const ResetPasswordPage = () => {
     
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/update-password`,
+        redirectTo: getUpdatePasswordRedirectUrl(),
       });
 
       if (error) {

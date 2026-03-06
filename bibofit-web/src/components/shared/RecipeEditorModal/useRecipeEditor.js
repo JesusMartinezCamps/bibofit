@@ -3,136 +3,23 @@ import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { calculateMacros } from '@/lib/macroCalculator';
 import { getConflictInfo } from '@/lib/restrictionChecker';
-import { submitChangeRequest, savePrivateRecipe, saveFreeRecipe, saveDietPlanRecipe, updateRecipeDetails, updateDietPlanRecipeCustomization } from './recipeService';
+import {
+    createVariant,
+    saveFreeRecipe,
+    saveDietPlanRecipe,
+    updateRecipeDetails,
+    versionDietPlanRecipe,
+} from './recipeService';
+import {
+    buildDiffSummary,
+    inferVariantLabel,
+    inferVariantNameFromIngredientChanges,
+} from '@/lib/recipeDiffUtils';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/lib/supabaseClient';
 import { findFoodByIdentity, inferIngredientUserCreated, isUserCreatedFood } from '@/lib/foodIdentity';
 
-const TITLE_STOPWORDS = new Set([
-  'de', 'del', 'la', 'las', 'el', 'los', 'con', 'sin', 'y', 'e', 'o', 'u', 'a', 'al', 'en', 'por', 'para'
-]);
-
-const escapeRegExp = (value = '') => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-const extractTerms = (value = '') => {
-  return (value.match(/[A-Za-z0-9ÁÉÍÓÚÜÑáéíóúüñ]+/g) || [])
-    .filter((word) => {
-      const normalized = word.toLowerCase();
-      return normalized.length >= 3 && !TITLE_STOPWORDS.has(normalized);
-    });
-};
-
-const buildReplacementLabel = (foodName = '') => {
-  const terms = extractTerms(foodName);
-  if (terms.length === 0) return foodName.trim();
-  if (terms.length === 1) return terms[0];
-  return `${terms[0]} ${terms[1]}`;
-};
-
-const findIngredientName = (ingredient, foodById = new Map()) => {
-  const directName = ingredient?.food?.name || ingredient?.food_name;
-  if (directName) return directName;
-  const byId = foodById.get(String(ingredient?.food_id));
-  return byId?.name || '';
-};
-
-const pairIngredientReplacements = (originalIngredients = [], currentIngredients = [], foodById = new Map()) => {
-  const pairs = [];
-  const usedOriginal = new Set();
-  const usedCurrent = new Set();
-  const minLength = Math.min(originalIngredients.length, currentIngredients.length);
-
-  for (let i = 0; i < minLength; i += 1) {
-    const before = originalIngredients[i];
-    const after = currentIngredients[i];
-    if (String(before?.food_id) !== String(after?.food_id)) {
-      pairs.push({ oldName: findIngredientName(before, foodById), newName: findIngredientName(after, foodById) });
-      usedOriginal.add(i);
-      usedCurrent.add(i);
-    }
-  }
-
-  const originalCount = new Map();
-  const currentCount = new Map();
-  originalIngredients.forEach((ing, idx) => {
-    if (usedOriginal.has(idx)) return;
-    const key = String(ing?.food_id);
-    originalCount.set(key, (originalCount.get(key) || 0) + 1);
-  });
-  currentIngredients.forEach((ing, idx) => {
-    if (usedCurrent.has(idx)) return;
-    const key = String(ing?.food_id);
-    currentCount.set(key, (currentCount.get(key) || 0) + 1);
-  });
-
-  const removed = [];
-  const added = [];
-
-  originalCount.forEach((count, key) => {
-    const diff = count - (currentCount.get(key) || 0);
-    if (diff > 0) {
-      const sample = originalIngredients.find((ing) => String(ing?.food_id) === key);
-      for (let i = 0; i < diff; i += 1) removed.push(findIngredientName(sample, foodById));
-    }
-  });
-  currentCount.forEach((count, key) => {
-    const diff = count - (originalCount.get(key) || 0);
-    if (diff > 0) {
-      const sample = currentIngredients.find((ing) => String(ing?.food_id) === key);
-      for (let i = 0; i < diff; i += 1) added.push(findIngredientName(sample, foodById));
-    }
-  });
-
-  const total = Math.min(removed.length, added.length);
-  for (let i = 0; i < total; i += 1) {
-    pairs.push({ oldName: removed[i], newName: added[i] });
-  }
-
-  return pairs.filter((pair) => pair.oldName && pair.newName);
-};
-
-const replaceTitleFoodTerm = (title, oldFoodName, newFoodName) => {
-  const oldTerms = extractTerms(oldFoodName).sort((a, b) => b.length - a.length);
-  const replacement = buildReplacementLabel(newFoodName);
-  if (!replacement) return { title, replaced: false };
-
-  for (const term of oldTerms) {
-    const pattern = new RegExp(`\\b${escapeRegExp(term)}(?:es|s)?\\b`, 'i');
-    if (pattern.test(title)) {
-      return {
-        title: title.replace(pattern, replacement),
-        replaced: true
-      };
-    }
-  }
-  return { title, replaced: false };
-};
-
-const inferVariantNameFromIngredientChanges = (baseName, originalIngredients, currentIngredients, foodById = new Map()) => {
-  if (!baseName) return baseName;
-  const replacements = pairIngredientReplacements(originalIngredients, currentIngredients, foodById);
-  if (replacements.length === 0) return baseName;
-
-  let nextName = baseName;
-  let atLeastOneReplacement = false;
-
-  replacements.forEach(({ oldName, newName }) => {
-    const result = replaceTitleFoodTerm(nextName, oldName, newName);
-    nextName = result.title;
-    if (result.replaced) atLeastOneReplacement = true;
-  });
-
-  if (!atLeastOneReplacement) {
-    const fallbackLabel = buildReplacementLabel(replacements[0].newName);
-    if (fallbackLabel) {
-      nextName = `${baseName} (${fallbackLabel})`;
-    }
-  }
-
-  return nextName;
-};
-
-export const useRecipeEditor = ({ recipeToEdit, onSaveSuccess, isAdminView, userId: propUserId, open, planRestrictions: initialPlanRestrictions, isTemporaryEdit = false, initialConflicts = null, allFoods, isTemplate = false }) => {
+export const useRecipeEditor = ({ recipeToEdit, onSaveSuccess, isAdminView, userId: propUserId, open, planRestrictions: initialPlanRestrictions, initialConflicts = null, allFoods, isTemplate = false }) => {
   const { user } = useAuth();
   const { toast } = useToast();
   
@@ -152,7 +39,9 @@ export const useRecipeEditor = ({ recipeToEdit, onSaveSuccess, isAdminView, user
   const [hasInitialConflicts, setHasInitialConflicts] = useState(false);
   const initializedRecipeRef = useRef(null);
 
-  const isClientRequestView = !isAdminView && recipeToEdit?.type !== 'private_recipe' && !recipeToEdit?.is_customized && !recipeToEdit?.is_private_recipe;
+  // En el nuevo modelo: los usuarios nunca auto-guardan al cambiar de modo —
+  // la creación de variante es siempre explícita (botón). Los admins sí auto-guardan.
+  const isClientRequestView = !isAdminView;
 
   const resetState = useCallback(() => {
     setMode('view');
@@ -237,6 +126,12 @@ export const useRecipeEditor = ({ recipeToEdit, onSaveSuccess, isAdminView, user
       instructions: recipeToEdit.custom_instructions || recipeSource.instructions || recipeToEdit.instructions || '',
       prep_time_min: recipeToEdit.custom_prep_time_min ?? recipeSource.prep_time_min ?? recipeToEdit.prep_time_min,
       difficulty: recipeToEdit.custom_difficulty || recipeSource.difficulty || recipeToEdit.difficulty || 'Fácil',
+      recipe_style_id: String(
+        recipeToEdit.custom_recipe_style_id ??
+          recipeSource.recipe_style_id ??
+          recipeToEdit.recipe_style_id ??
+          ''
+      ),
     };
 
     setFormData(initialForm);
@@ -416,14 +311,26 @@ export const useRecipeEditor = ({ recipeToEdit, onSaveSuccess, isAdminView, user
         }
 
         const isSimpleUpdate = !hasIngredientChanges && JSON.stringify(finalFormData) !== JSON.stringify(initialFormData);
+        const isVariantNode =
+            recipeToEdit.type === 'variant' ||
+            recipeToEdit.user_recipe_type === 'variant';
+        const isUserRecipeNode =
+            recipeToEdit.type === 'private_recipe' ||
+            recipeToEdit.type === 'free_recipe' ||
+            recipeToEdit.type === 'variant' ||
+            recipeToEdit.is_private_recipe ||
+            recipeToEdit.is_private ||
+            Boolean(recipeToEdit.user_recipe_type);
 
-        // Standard update for existing recipes that support simple updates (except Templates where we want full control below)
-        if (isSimpleUpdate && recipeToEdit.id && recipeToEdit.type !== 'recipe' && !isTemplate) {
-             let recipeType = 'diet_plan_recipe';
-             if (recipeToEdit.type === 'private_recipe' || recipeToEdit.is_private_recipe) recipeType = 'private_recipe';
-             else if (recipeToEdit.type === 'free_recipe') recipeType = 'free_recipe';
+        // Solo cambios de metadatos: actualizar in-place.
+        // En variantes: NO crear nueva variante si no cambian ingredientes.
+        if (isSimpleUpdate && recipeToEdit.id && !isTemplate && isUserRecipeNode) {
+             let recipeType = 'user_recipe';
+             if (recipeToEdit.type === 'free_recipe') recipeType = 'free_recipe';
+             else if (isVariantNode) recipeType = 'variant';
+             else if (recipeToEdit.type === 'private_recipe' || recipeToEdit.is_private_recipe) recipeType = 'private_recipe';
 
-                 result = await updateRecipeDetails({
+             result = await updateRecipeDetails({
                  recipeId: recipeToEdit.id,
                  recipeType,
                  updates: finalFormData
@@ -437,35 +344,44 @@ export const useRecipeEditor = ({ recipeToEdit, onSaveSuccess, isAdminView, user
              }
         }
 
-        if (recipeToEdit.type === 'private_recipe' || recipeToEdit.is_private_recipe) {
-            result = await savePrivateRecipe({
-                recipeId: recipeToEdit.id,
-                userId: recipeToEdit.user_id,
+        const diffSummary = buildDiffSummary(originalIngredients, sanitizedIngredients, foodsById);
+        const variantLabel = inferVariantLabel(diffSummary);
+
+        if (recipeToEdit.type === 'private_recipe' || recipeToEdit.is_private_recipe || recipeToEdit.type === 'variant') {
+            // En nodos del árbol personal (private/variant), si hay cambios de ingredientes:
+            // crear nueva variante hija para conservar historial.
+            result = await createVariant({
+                parentNodeId: recipeToEdit.id,
+                parentNodeType: 'user_recipe',
+                userId: recipeToEdit.user_id || userId,
                 formData: finalFormData,
                 ingredients: sanitizedIngredients,
-                originalRecipe: recipeToEdit
+                variantLabel,
+                diffSummary,
+                dietPlanId: recipeToEdit.diet_plan_id,
+                dayMealId: recipeToEdit.day_meal_id,
             });
         } else if (recipeToEdit.type === 'free_recipe') {
-             result = await saveFreeRecipe({
+            result = await saveFreeRecipe({
                 recipeId: recipeToEdit.id,
                 userId: recipeToEdit.user_id,
                 formData: finalFormData,
                 ingredients: sanitizedIngredients,
                 originalRecipe: recipeToEdit,
             });
-        } else { // diet_plan_recipe OR global recipe being added/customized
+        } else { // diet_plan_recipe o receta global del catálogo
             if (isAdminView) {
-                // If it is a template and we are editing an existing diet_plan_recipe row, update it in place.
-                // We use isTemplate flag to detect this context.
                 if (isTemplate && recipeToEdit.id) {
-                    result = await updateDietPlanRecipeCustomization({
-                        dietPlanRecipeId: recipeToEdit.id,
+                    // Template: crear nueva versión y archivar la anterior (Principio 4)
+                    result = await versionDietPlanRecipe({
+                        oldDietPlanRecipeId: recipeToEdit.id,
                         formData: finalFormData,
-                        ingredients: sanitizedIngredients
+                        ingredients: sanitizedIngredients,
+                        originalRecipe: recipeToEdit,
                     });
                 } else {
-                    // For client plans or new recipes, we create a variant/copy
-                    const originalToPass = recipeToEdit.type === 'recipe' 
+                    // Plan en vivo (admin): crear variante en diet_plan_recipes
+                    const originalToPass = recipeToEdit.type === 'recipe'
                         ? {
                             ...recipeToEdit,
                             recipe_id: recipeToEdit.recipe_id || recipeToEdit.recipe?.id || recipeToEdit.id,
@@ -475,33 +391,24 @@ export const useRecipeEditor = ({ recipeToEdit, onSaveSuccess, isAdminView, user
                         : recipeToEdit;
 
                     result = await saveDietPlanRecipe({
-                        recipeId: recipeToEdit.id, 
-                        userId,
                         formData: finalFormData,
                         ingredients: sanitizedIngredients,
-                        originalRecipe: originalToPass
+                        originalRecipe: originalToPass,
                     });
                 }
             } else {
-                if (hasIngredientChanges && finalFormData.name.trim() === initialFormData.name.trim()) {
-                     toast({ 
-                         title: "Nombre requerido", 
-                         description: "Por favor, cambia el nombre de la receta para guardar tu versión personalizada.", 
-                         className: "bg-blue-950 border-blue-800 text-blue-100",
-                         duration: 5000
-                     });
-                     setIsSubmitting(false);
-                     return false;
-                }
-
-                result = await submitChangeRequest({ 
-                    actionType: actionType, 
-                    recipeToEdit, 
-                    formData: finalFormData, 
-                    ingredients: sanitizedIngredients, 
-                    originalIngredients, 
+                // Usuario: crear variante personal inmediata — sin solicitud al coach (Principio 5)
+                const parentNodeType = recipeToEdit.id ? 'diet_plan_recipe' : null;
+                result = await createVariant({
+                    parentNodeId: recipeToEdit.id,
+                    parentNodeType,
                     userId,
-                    dietPlanRecipeId: recipeToEdit.id
+                    formData: finalFormData,
+                    ingredients: sanitizedIngredients,
+                    variantLabel,
+                    diffSummary,
+                    dietPlanId: recipeToEdit.diet_plan_id,
+                    dayMealId: recipeToEdit.day_meal_id,
                 });
             }
         }
@@ -525,9 +432,10 @@ export const useRecipeEditor = ({ recipeToEdit, onSaveSuccess, isAdminView, user
 }, [hasChanges, formData, ingredients, originalIngredients, recipeToEdit, userId, onSaveSuccess, toast, isAdminView, initialFormData, hasIngredientChanges, isTemplate, allFoods]);
   
   const isEditable = isAdminView || user?.role === 'admin' || user?.role === 'coach' || (recipeToEdit && (
-      recipeToEdit.is_private || 
-      recipeToEdit.type === 'private_recipe' || 
-      recipeToEdit.type === 'free_recipe'
+      recipeToEdit.is_private ||
+      recipeToEdit.type === 'private_recipe' ||
+      recipeToEdit.type === 'free_recipe' ||
+      recipeToEdit.type === 'variant'
   ));
 
 

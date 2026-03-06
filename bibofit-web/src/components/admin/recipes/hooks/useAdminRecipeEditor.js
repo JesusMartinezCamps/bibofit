@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useToast } from '@/components/ui/use-toast';
 import { calculateMacros } from '@/lib/macroCalculator';
+import { parseRecipeStyleId } from '@/lib/recipeStyles';
 
 const calculateRecipeNutrients = (ingredients, allFoodsData) => {
     const vitaminIds = new Set();
@@ -116,6 +117,7 @@ export const useAdminRecipeEditor = ({ recipeToEdit, onSaveSuccess, userId, plan
                     instructions: recipeToEdit.custom_instructions,
                     prep_time_min: recipeToEdit.custom_prep_time_min,
                     difficulty: recipeToEdit.custom_difficulty,
+                    recipe_style_id: recipeToEdit.custom_recipe_style_id ?? recipeToEdit.recipe?.recipe_style_id ?? '',
                 };
             } else { // Template
                 initialRecipeData = {
@@ -123,6 +125,11 @@ export const useAdminRecipeEditor = ({ recipeToEdit, onSaveSuccess, userId, plan
                     instructions: recipeToEdit.custom_instructions || recipeToEdit.instructions || recipeToEdit.recipe?.instructions,
                     prep_time_min: recipeToEdit.custom_prep_time_min ?? recipeToEdit.prep_time_min ?? recipeToEdit.recipe?.prep_time_min,
                     difficulty: recipeToEdit.custom_difficulty || recipeToEdit.difficulty || recipeToEdit.recipe?.difficulty,
+                    recipe_style_id:
+                        recipeToEdit.custom_recipe_style_id ??
+                        recipeToEdit.recipe_style_id ??
+                        recipeToEdit.recipe?.recipe_style_id ??
+                        '',
                 };
             }
             setRecipeData(initialRecipeData);
@@ -159,6 +166,7 @@ export const useAdminRecipeEditor = ({ recipeToEdit, onSaveSuccess, userId, plan
                     custom_name: recipeData.name,
                     custom_prep_time_min: recipeData.prep_time_min,
                     custom_difficulty: recipeData.difficulty,
+                    custom_recipe_style_id: parseRecipeStyleId(recipeData.recipe_style_id),
                     custom_instructions: recipeData.instructions
                 }).select().single();
 
@@ -208,14 +216,16 @@ export const useAdminRecipeEditor = ({ recipeToEdit, onSaveSuccess, userId, plan
                 instructions: recipeData.instructions,
                 prep_time_min: recipeData.prep_time_min,
                 difficulty: recipeData.difficulty,
-                day_meal_id: recipeData.day_meal_id
+                day_meal_id: recipeData.day_meal_id,
+                recipe_style_id: parseRecipeStyleId(recipeData.recipe_style_id),
             };
         } else {
             recipeDetailsToUpdate = {
                 custom_name: recipeData.name,
                 custom_instructions: recipeData.instructions,
                 custom_prep_time_min: recipeData.prep_time_min,
-                custom_difficulty: recipeData.difficulty
+                custom_difficulty: recipeData.difficulty,
+                custom_recipe_style_id: parseRecipeStyleId(recipeData.recipe_style_id),
             };
         }
 

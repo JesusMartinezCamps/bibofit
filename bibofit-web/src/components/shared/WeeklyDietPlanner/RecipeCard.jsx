@@ -12,6 +12,7 @@ import HighlightedText from '@/components/shared/HighlightedText';
 import { analyzeRecipeConflicts } from '@/lib/recipeConflictAnalyzer';
 import { useTheme } from '@/contexts/ThemeContext';
 import { RecipeCardBackground, RecipeCardPanel } from '@/components/shared/recipe-card/RecipeCardBase';
+import { getIngredientHighlightForQuery } from '@/lib/recipeSearch';
 import {
   getRecipeDifficulty,
   getRecipeDisplayName,
@@ -108,6 +109,12 @@ const RecipeCard = ({
             const unit = food.food_unit === 'unidades' ? 'ud' : 'g';
             text = `${food.name} (${Math.round(ing.quantity || 0)}${unit})`;
         }
+
+        const ingredientHighlight = getIngredientHighlightForQuery({
+          food,
+          query: searchQuery,
+          allowFuzzy: true,
+        });
         
         const isUnsafe = unsafeFoodsSet.has(food.name);
         const isRecommended = recommendedFoodsSet.has(food.name);
@@ -118,7 +125,7 @@ const RecipeCard = ({
         
         return (
             <span key={ing.food_id || index} className={className}>
-                <HighlightedText text={text} highlight={searchQuery} />
+                <HighlightedText text={text} highlight={ingredientHighlight} />
             </span>
         );
     }).filter(Boolean);
@@ -131,10 +138,97 @@ const RecipeCard = ({
     return calculateMacrosFromIngredients(adjustedIngredients, allFoods);
   }, [adjustedIngredients, allFoods]);
 
+  const changeRequest = recipe?.changeRequest;
+  const isPending = changeRequest?.status === 'pending';
+  const lineageMeta = useMemo(() => {
+    const userRecipeType = recipe?.user_recipe_type || null;
+    const isVariantNode = (
+      userRecipeType === 'variant' ||
+      recipe?.type === 'variant' ||
+      Boolean(recipe?.source_diet_plan_recipe_id) ||
+      Boolean(recipe?.parent_user_recipe_id)
+    );
+    const isPlanVersionNode = Boolean(recipe?.parent_diet_plan_recipe_id);
+    const variantHint = recipe?.variant_label?.trim() || null;
+
+    return {
+      isVariantNode,
+      isPlanVersionNode,
+      variantHint,
+    };
+  }, [recipe]);
+
+  const variantIngredientChanges = useMemo(() => {
+    const rows = Array.isArray(recipe?.diff_summary) ? recipe.diff_summary : [];
+    const added = [];
+    const removed = [];
+
+    rows.forEach((row) => {
+      const action = String(row?.action || '').toLowerCase();
+      if (action === 'add' && row?.food) {
+        added.push(row.food);
+        return;
+      }
+      if (action === 'remove' && row?.food) {
+        removed.push(row.food);
+        return;
+      }
+      if (action === 'replace') {
+        if (row?.to_food) added.push(row.to_food);
+        if (row?.from_food) removed.push(row.from_food);
+      }
+    });
+
+    const uniq = (list) => Array.from(new Set((list || []).map((name) => String(name || '').trim()).filter(Boolean)));
+    return {
+      added: uniq(added),
+      removed: uniq(removed),
+    };
+  }, [recipe]);
+
   if (!recipe) return null;
 
-  const changeRequest = recipe.changeRequest;
-  const isPending = changeRequest?.status === 'pending';
+  const renderLineageBadges = ({ compact = false } = {}) => {
+    if (isListView && lineageMeta.isVariantNode) return null;
+    if (!lineageMeta.variantHint) return null;
+
+    return (
+      <div className={cn('flex flex-wrap items-center gap-1.5', compact ? 'mt-1' : 'mt-1.5')}>
+        {lineageMeta.variantHint && (
+          <span className={cn(
+            "inline-flex items-center rounded-full border bg-card/80 px-2 py-0.5 text-[10px] font-medium",
+            lineageMeta.isPlanVersionNode
+              ? "border-amber-500/45 text-amber-700 dark:text-amber-100"
+              : "border-cyan-600/35 text-cyan-700 dark:text-cyan-100"
+          )}>
+            {lineageMeta.variantHint}
+          </span>
+        )}
+      </div>
+    );
+  };
+
+  const renderVariantChangeSections = () => {
+    if (!isListView || !lineageMeta.isVariantNode) return null;
+    const hasAdded = variantIngredientChanges.added.length > 0;
+    const hasRemoved = variantIngredientChanges.removed.length > 0;
+    if (!hasAdded && !hasRemoved) return null;
+
+    return (
+      <div className="space-y-1.5">
+        {hasAdded && (
+          <div className="rounded-md border border-cyan-500/45 bg-cyan-500/12 px-2.5 py-1.5 text-xs text-cyan-900 dark:text-cyan-100">
+            <span className="font-semibold">Con:</span> {variantIngredientChanges.added.join(', ')}
+          </div>
+        )}
+        {hasRemoved && (
+          <div className="rounded-md border border-red-500/45 bg-red-500/12 px-2.5 py-1.5 text-xs text-red-900 dark:text-red-100">
+            <span className="font-semibold">Sin:</span> {variantIngredientChanges.removed.join(', ')}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const macroDisplay = (
     <div className={cn(
@@ -179,6 +273,9 @@ const RecipeCard = ({
       <RecipeCardBackground
         className={cn(
           'relative group h-full rounded-xl overflow-hidden shadow-lg border transition-all',
+          (lineageMeta.isVariantNode || lineageMeta.isPlanVersionNode) && 'ring-1',
+          lineageMeta.isVariantNode && 'ring-cyan-500/45',
+          !lineageMeta.isVariantNode && lineageMeta.isPlanVersionNode && 'ring-amber-500/45',
           isSafe
             ? (isPrivate
               ? 'border-border hover:border-violet-400/50 hover:shadow-violet-500/10'
@@ -199,6 +296,16 @@ const RecipeCard = ({
           isDark && 'bg-[linear-gradient(to_top,rgba(0,0,0,0.48)_0%,rgba(0,0,0,0.38)_40%,rgba(0,0,0,0)_100%)]'
         )}
       >
+        {(lineageMeta.isVariantNode || lineageMeta.isPlanVersionNode) && (
+          <div
+            className={cn(
+              'pointer-events-none absolute left-0 top-0 z-20 h-full w-1.5',
+              lineageMeta.isVariantNode
+                ? 'bg-gradient-to-b from-cyan-300/90 via-cyan-400/80 to-cyan-600/70'
+                : 'bg-gradient-to-b from-amber-200/90 via-amber-400/80 to-amber-600/70'
+            )}
+          />
+        )}
         <button onClick={() => handleRecipeClick && handleRecipeClick({ ...recipe, is_private_recipe: isPrivate }, adjustment)} className="w-full h-full text-left p-4 flex flex-col justify-between">
           <RecipeCardPanel className="p-3 space-y-2">
             <div className="flex items-start justify-between gap-3">
@@ -220,7 +327,7 @@ const RecipeCard = ({
                 <TitleWithTooltip>
                   <div className="flex flex-wrap items-center gap-2">
                     <p className={cn(
-                      'text-xl font-bold line-clamp-2 flex-1 min-w-0',
+                      'text-xl font-bold flex-1 min-w-0 break-words',
                       !isSafe && isAdminView ? 'text-red-400' : (isPending ? 'text-[rgb(159,102,163)]' : 'text-foreground dark:text-white')
                     )}>
                       <HighlightedText text={recipeName} highlight={searchQuery} />
@@ -232,6 +339,7 @@ const RecipeCard = ({
                     )}
                   </div>
                 </TitleWithTooltip>
+                {renderLineageBadges()}
               </div>
               {adjustment && (
                 <TooltipProvider>
@@ -256,11 +364,12 @@ const RecipeCard = ({
                 {recipeDifficulty}
               </span>
             </div>
-            <p className="text-sm line-clamp-3 text-foreground/85 dark:text-gray-200">
+            <p className="text-sm break-words text-foreground/85 dark:text-gray-200">
               {ingredientList.length > 0
                 ? ingredientList.reduce((prev, curr) => [prev, ', ', curr])
                 : 'Sin ingredientes'}
             </p>
+            {renderVariantChangeSections()}
           </RecipeCardPanel>
 
           {!hideMacros && (
@@ -291,6 +400,9 @@ const RecipeCard = ({
     <RecipeCardBackground
       className={cn(
         'relative group flex h-24 overflow-hidden rounded-lg shadow-lg border',
+        (lineageMeta.isVariantNode || lineageMeta.isPlanVersionNode) && 'ring-1',
+        lineageMeta.isVariantNode && 'ring-cyan-500/45',
+        !lineageMeta.isVariantNode && lineageMeta.isPlanVersionNode && 'ring-amber-500/45',
         isSafe ? 'border-border' : 'border-red-500/60'
       )}
       backgroundStyle={bgStyle}
@@ -303,6 +415,16 @@ const RecipeCard = ({
         isDark && 'bg-[linear-gradient(to_top,rgba(0,0,0,0)_0%,rgba(0,0,0,0.29)_40%,rgba(0,0,0,0)_100%)]'
       )}
     >
+      {(lineageMeta.isVariantNode || lineageMeta.isPlanVersionNode) && (
+        <div
+          className={cn(
+            'pointer-events-none absolute left-0 top-0 z-20 h-full w-1',
+            lineageMeta.isVariantNode
+              ? 'bg-gradient-to-b from-cyan-300/90 via-cyan-400/80 to-cyan-600/70'
+              : 'bg-gradient-to-b from-amber-200/90 via-amber-400/80 to-amber-600/70'
+          )}
+        />
+      )}
       <button onClick={() => handleRecipeClick && handleRecipeClick({ ...recipe, is_private_recipe: isPrivate }, adjustment)} className="block w-full h-full text-left p-2.5 pr-12">
         <RecipeCardPanel className="p-2.5 h-full flex flex-col justify-between">
           <div className="flex justify-between items-start flex-wrap gap-x-2">
@@ -325,6 +447,7 @@ const RecipeCard = ({
               )}
             </div>
           </div>
+          {renderLineageBadges({ compact: true })}
           <div className="mt-1 flex items-center gap-3 text-[11px] text-muted-foreground">
             <span className="flex items-center gap-1">
               <Clock className="w-3 h-3" />

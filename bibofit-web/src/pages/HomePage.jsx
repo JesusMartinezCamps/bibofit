@@ -11,6 +11,7 @@ import WhatsAppButton from '@/components/landing/WhatsAppButton';
 
 const HomePage = () => {
     const [landingAudience, setLandingAudience] = useState('user');
+    const [isMobileDemoOpen, setIsMobileDemoOpen] = useState(false);
 
     return (
         <div className="min-h-screen bg-background font-sans selection:bg-green-500/30 text-foreground">
@@ -20,8 +21,8 @@ const HomePage = () => {
             </Helmet>
 
             <main>
-                <HeroSection />
-                <ProblemSolution audience={landingAudience} onAudienceChange={setLandingAudience} />
+                <HeroSection isMobileDemoOpen={isMobileDemoOpen} onMobileDemoOpenChange={setIsMobileDemoOpen} />
+                <ProblemSolution audience={landingAudience} onAudienceChange={setLandingAudience} onOpenMobileDemo={() => setIsMobileDemoOpen(true)} />
                 <FeaturesGrid audience={landingAudience} onAudienceChange={setLandingAudience} />
                 <PricingPreview />
                 <FAQPreview />

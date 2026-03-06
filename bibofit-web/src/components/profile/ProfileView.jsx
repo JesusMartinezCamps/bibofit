@@ -167,7 +167,9 @@ import React, { useEffect, useState } from 'react';
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
           <Card className={cn("w-full mx-auto bg-background border-border text-white shadow-2xl shadow-[#9B4467]/10", className)}>
             <CardHeader className="text-center border-b border-border pb-6">
-              <CardTitle className="text-4xl font-bold text-white">{profile?.full_name}</CardTitle>
+              <CardTitle className="text-4xl font-bold text-white">
+                {[profile?.first_name, profile?.last_name].filter(Boolean).join(' ') || profile?.full_name}
+              </CardTitle>
               <CardDescription className="text-muted-foreground font-small text-md">Toda la información en un único lugar.</CardDescription>
             </CardHeader>
             <CardContent className="p-6 md:p-8">
@@ -189,7 +191,8 @@ import React, { useEffect, useState } from 'react';
                     <SectionTitle colorClass="text-[#9B4467]" Icon={Heart}>Datos Personales</SectionTitle>
                   </div>
                   <CollapsibleContent className="space-y-4 lg:block">
-                    <DetailItem label="Nombre Completo" value={profile?.full_name} />
+                    <DetailItem label="Nombre" value={profile?.first_name || profile?.full_name?.split(' ')[0]} />
+                    <DetailItem label="Apellidos" value={profile?.last_name || profile?.full_name?.split(' ').slice(1).join(' ')} />
                     <DetailItem label="Email" value={profile?.email} />
                     <DetailItem label="Teléfono" value={profile?.phone} />
                     <DetailItem label="Sexo" value={profile?.sex} />

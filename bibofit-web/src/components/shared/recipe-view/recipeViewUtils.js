@@ -56,9 +56,14 @@ export const calculateRecipeConflicts = ({
     }
 
     if (['condition_recommend', 'preferred'].includes(info.type)) {
+      const conditionName = info.type === 'condition_recommend'
+        ? (info.reason || '').replace(/^Recomendado por:\s*/i, '').trim()
+        : null;
       recommendations.push({
         foodId: food.id,
+        type: info.type,
         restrictionName: info.reason,
+        conditionName: conditionName || null,
       });
     }
   });
@@ -76,7 +81,14 @@ export const buildIngredientsWithDetails = ({
 }) => {
   if (!recipe || !Array.isArray(recipe.ingredients) || !Array.isArray(allFoods)) return [];
 
-  return recipe.ingredients
+  // Build diff lookup from variant's diff_summary (if available)
+  const diffSummary = Array.isArray(recipe.diff_summary) ? recipe.diff_summary : [];
+  const addedFoodIds = new Set(
+    diffSummary.filter((d) => d.action === 'add').map((d) => String(d.food_id))
+  );
+  const removedEntries = diffSummary.filter((d) => d.action === 'remove');
+
+  const built = recipe.ingredients
     .map((ing, originalIndex) => {
       let food = ing.food;
       const isUserCreated = inferIngredientUserCreated(ing);
@@ -142,7 +154,8 @@ export const buildIngredientsWithDetails = ({
       if (avoidConflict) {
         conflictType = avoidConflict.type;
       } else if (foodRecommendations.length > 0) {
-        conflictType = 'condition_recommend';
+        const hasConditionRecommendation = foodRecommendations.some((r) => r.type === 'condition_recommend');
+        conflictType = hasConditionRecommendation ? 'condition_recommend' : 'preferred';
       }
 
       return {
@@ -158,12 +171,42 @@ export const buildIngredientsWithDetails = ({
         recommendationDetails: foodRecommendations,
         is_user_created: isUserCreated,
         food_group_id: food.food_to_food_groups?.[0]?.food_group?.id || ing.food_group_id || null,
+        diffAction: addedFoodIds.has(String(ing.food_id)) ? 'add' : null,
       };
     })
-    .filter(Boolean)
-    .sort((a, b) => {
-      const nameA = a.food?.name || '';
-      const nameB = b.food?.name || '';
-      return nameA.localeCompare(nameB, 'es', { sensitivity: 'base' });
-    });
+    .filter(Boolean);
+
+  // Build ghost entries for removed ingredients (in variant diff)
+  const removedGhosts = removedEntries.map((entry) => {
+    const food = allFoods.find((f) => String(f.id) === String(entry.food_id)) || {
+      id: entry.food_id,
+      name: entry.food || `Alimento ${entry.food_id}`,
+      food_unit: 'gramos',
+      food_vitamins: [],
+      food_minerals: [],
+      food_to_food_groups: [],
+    };
+    return {
+      food_id: entry.food_id,
+      food,
+      quantity: 0,
+      macros: { calories: 0, proteins: 0, carbs: 0, fats: 0 },
+      vitamins: [],
+      minerals: [],
+      conflictType: null,
+      conflictDetails: [],
+      recommendationDetails: [],
+      is_ghost: true,
+      diffAction: 'remove',
+    };
+  });
+
+  const byName = (a, b) =>
+    (a.food?.name || '').localeCompare(b.food?.name || '', 'es', { sensitivity: 'base' });
+
+  return [
+    ...built.filter((i) => i.diffAction === 'add').sort(byName),
+    ...built.filter((i) => !i.diffAction).sort(byName),
+    ...removedGhosts.sort(byName),
+  ];
 };

@@ -9,6 +9,7 @@ export const useFreeRecipeDialog = ({ targetUserId, dayMealId, dietPlanId, date,
   const [recipeName, setRecipeName] = useState('');
   const [prepTime, setPrepTime] = useState('');
   const [difficulty, setDifficulty] = useState('Fácil');
+  const [recipeStyleId, setRecipeStyleId] = useState('');
   const [instructions, setInstructions] = useState('');
   const [ingredients, setIngredients] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -35,6 +36,7 @@ export const useFreeRecipeDialog = ({ targetUserId, dayMealId, dietPlanId, date,
             setRecipeName(parsed.recipeName || '');
             setPrepTime(parsed.prepTime || '');
             setDifficulty(parsed.difficulty || 'Fácil');
+            setRecipeStyleId(parsed.recipeStyleId || '');
             setInstructions(parsed.instructions || '');
             setIngredients(parsed.ingredients || []);
             toast({ 
@@ -58,13 +60,14 @@ export const useFreeRecipeDialog = ({ targetUserId, dayMealId, dietPlanId, date,
         
         if (hasData) {
             const draft = { recipeName, prepTime, difficulty, instructions, ingredients };
+            draft.recipeStyleId = recipeStyleId;
             localStorage.setItem(storageKey, JSON.stringify(draft));
             setHasSavedDraft(true);
         }
     }, 1000); // 1 second debounce
 
     return () => clearTimeout(handler);
-  }, [recipeName, prepTime, difficulty, instructions, ingredients, storageKey, isDraftLoaded]);
+  }, [recipeName, prepTime, difficulty, recipeStyleId, instructions, ingredients, storageKey, isDraftLoaded]);
 
   // Manual restore function
   const restoreDraft = useCallback(() => {
@@ -76,6 +79,7 @@ export const useFreeRecipeDialog = ({ targetUserId, dayMealId, dietPlanId, date,
             setRecipeName(parsed.recipeName || '');
             setPrepTime(parsed.prepTime || '');
             setDifficulty(parsed.difficulty || 'Fácil');
+            setRecipeStyleId(parsed.recipeStyleId || '');
             setInstructions(parsed.instructions || '');
             setIngredients(parsed.ingredients || []);
             toast({ title: 'Borrador restaurado', description: 'Datos recuperados correctamente.' });
@@ -155,6 +159,7 @@ export const useFreeRecipeDialog = ({ targetUserId, dayMealId, dietPlanId, date,
           instructions,
           prep_time_min: prepTime || null,
           difficulty,
+          recipe_style_id: recipeStyleId || null,
           status: FREE_RECIPE_STATUS.PENDING,
         },
         ingredients,
@@ -178,6 +183,7 @@ export const useFreeRecipeDialog = ({ targetUserId, dayMealId, dietPlanId, date,
         day_meal_id: dayMealId,
         dnd_id: `free-${occurrence.id}`,
         type: 'free_recipe',
+        recipe_style_id: freeRecipe.recipe_style_id || null,
       };
       
       // Clear draft on success
@@ -198,6 +204,7 @@ export const useFreeRecipeDialog = ({ targetUserId, dayMealId, dietPlanId, date,
     recipeName, setRecipeName,
     prepTime, setPrepTime,
     difficulty, setDifficulty,
+    recipeStyleId, setRecipeStyleId,
     instructions, setInstructions,
     ingredients, setIngredients,
     macros,

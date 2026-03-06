@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabaseClient';
 import { FREE_RECIPE_STATUS } from '@/lib/recipeEntity';
+import { parseRecipeStyleId } from '@/lib/recipeStyles';
 
 const toNumeric = (value) => {
   const parsed = Number(value);
@@ -101,6 +102,7 @@ const upsertFreeRecipeHeader = async ({
     instructions: recipe.instructions || null,
     prep_time_min: Number.isFinite(numericPrepTime) ? numericPrepTime : null,
     difficulty: recipe.difficulty || null,
+    recipe_style_id: parseRecipeStyleId(recipe.recipe_style_id),
     status: recipe.status || defaultStatus,
   };
 
@@ -244,6 +246,7 @@ export const fetchFreeRecipeDetails = async (freeRecipeId) => {
     .select(`
       *,
       day_meal:day_meal_id(id, name, display_order),
+      recipe_style:recipe_style_id(id, name),
       ingredients:recipe_ingredients(
         *,
         food:food_id(

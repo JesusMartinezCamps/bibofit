@@ -88,12 +88,14 @@ const WeekView = ({
                             prep_time_min: getRecipePrepTime(itemForSlot),
                             difficulty: getRecipeDifficulty(itemForSlot),
                         };
-                    } else if (plannedMealForSlot.private_recipe) {
+                    } else if (plannedMealForSlot.user_recipe || plannedMealForSlot.private_recipe) {
+                        const userRecipeNode = plannedMealForSlot.user_recipe || plannedMealForSlot.private_recipe;
                         itemForSlot = {
-                          ...plannedMealForSlot.private_recipe,
+                          ...userRecipeNode,
+                          user_recipe_type: userRecipeNode.type,
                           type: RECIPE_ENTITY_TYPES.PRIVATE,
                           is_private: true,
-                          id: plannedMealForSlot.private_recipe.id,
+                          id: userRecipeNode.id,
                         };
                         recipeObjectForModal = {
                             ...itemForSlot,

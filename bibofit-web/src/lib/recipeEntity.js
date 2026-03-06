@@ -48,7 +48,7 @@ export const inferRecipeEntityType = (item) => {
 
   if (item.snack_ingredients || item.snack_id) return RECIPE_ENTITY_TYPES.SNACK;
   if (item.occurrence_id || item.type === 'free') return RECIPE_ENTITY_TYPES.FREE;
-  if (item.type === 'private' || item.is_private || item.is_private_recipe) return RECIPE_ENTITY_TYPES.PRIVATE;
+  if (item.type === 'private' || item.type === 'variant' || item.is_private || item.is_private_recipe) return RECIPE_ENTITY_TYPES.PRIVATE;
 
   return RECIPE_ENTITY_TYPES.PLAN;
 };

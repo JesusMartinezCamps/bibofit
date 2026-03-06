@@ -2,14 +2,12 @@ import React, { useState, useCallback, useMemo, useEffect, forwardRef, useImpera
 import { supabase } from '@/lib/supabaseClient';
 import { useToast } from '@/components/ui/use-toast';
 import { Loader2 } from 'lucide-react';
-import RecipeEditorModal from '../RecipeEditorModal/RecipeEditorModal';
 import { useAuth } from '@/contexts/AuthContext';
 import WeekView from './WeekView';
 import ListView from './ListView';
 import { format, addDays, parseISO, isValid, isSameDay } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import FreeRecipeSelectorDialog from '@/components/plans/FreeRecipeSelectorDialog';
-import RepeatFreeRecipeDialog from '@/components/plans/RepeatFreeRecipeDialog';
 import SnackSelectorDialog from '@/components/plans/SnackSelectorDialog';
 import RepeatSnackDialog from '@/components/plans/RepeatSnackDialog';
 import SnackCard from '@/components/plans/SnackCard';
@@ -19,6 +17,7 @@ import { calculateMacros } from '@/lib/macroCalculator';
 import { usePlanItems } from './hooks/usePlanItems';
 import { useMealLogging } from './hooks/useMealLogging';
 import { getRecipeIngredients } from '@/lib/recipeEntity';
+import { archiveDietPlanRecipe, archiveUserRecipe } from '@/components/shared/RecipeEditorModal/recipeService';
 
 const getAdjustmentsForRecipe = (dailyIngredientAdjustments, equivalenceAdjustments, recipeId, userDayMealId, logDate, isPrivate) => {
     if (!dailyIngredientAdjustments || !equivalenceAdjustments) return null;
@@ -91,8 +90,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
         freeMeals, 
         setFreeMeals, 
         mealLogs: initialMealLogs, 
-        userDayMeals, 
-        adjustments,
+        userDayMeals,
         setAdjustments,
         fetchAndSetPlanItems, 
         loading: planLoading, 
@@ -106,6 +104,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
         equivalenceAdjustments,
         setEquivalenceAdjustments,
         allAvailableFoods,
+        recipeStyles,
     } = usePlanItems(userId, activePlan, weekDates, setPlannedMeals);
     
     const ingredientCache = useMemo(() => {
@@ -260,12 +259,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
         if (onWeekSummaryChange) onWeekSummaryChange(weekSummaryByDate);
     }, [onWeekSummaryChange, weekSummaryByDate]);
 
-    const [recipeToEdit, setRecipeToEdit] = useState(null);
-    const [recipeAdjustment, setRecipeAdjustment] = useState(null);
-    const [isEditorOpen, setIsEditorOpen] = useState(false);
-    
     const [isFreeMealSelectorOpen, setIsFreeMealSelectorOpen] = useState(false);
-    const [isRepeatFreeRecipeOpen, setIsRepeatFreeRecipeOpen] = useState(false);
     const [preselectedMealInfo, setPreselectedMealInfo] = useState({ mealId: null, date: null });
 
     const [isSnackSelectorOpen, setIsSnackSelectorOpen] = useState(false);
@@ -278,7 +272,8 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
     const [closeSnackEditorOnEquivalence, setCloseSnackEditorOnEquivalence] = useState(false);
 
     useImperativeHandle(ref, () => ({
-        refreshItems: fetchAndSetPlanItems,
+        refreshItems: (options = {}) =>
+            fetchAndSetPlanItems({ force: true, refreshStatic: true, silent: true, ...options }),
         getWeekDates: () => weekDates,
         getIngredientCache: () => ingredientCache,
         scrollToDay(date) {
@@ -322,45 +317,39 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
     }, [setEquivalenceAdjustments, setAdjustments, closeSnackEditorOnEquivalence]);
 
     const handleRecipeClick = useCallback(async (planRecipe, adjustment, date) => {
-        setRecipeToEdit(planRecipe);
-        setRecipeAdjustment(adjustment);
-        setIsEditorOpen(true);
-    }, []);
+        try {
+            sessionStorage.setItem('recipe_view_data', JSON.stringify({
+                recipe: planRecipe,
+                userId,
+                isAdminView,
+                adjustments: adjustment,
+                returnTo: window.location.pathname,
+            }));
+        } catch (e) {
+            console.error('Error saving recipe to sessionStorage:', e);
+        }
+        navigate(`${window.location.pathname}/ver-receta`);
+    }, [userId, isAdminView, navigate]);
 
     const handleFreeMealClick = useCallback(async (freeMeal) => {
         const recipeAdapter = {
             ...freeMeal,
             type: 'free_recipe',
-            is_customized: true, 
+            is_customized: true,
         };
-        setRecipeToEdit(recipeAdapter);
-        setRecipeAdjustment(null);
-        setIsEditorOpen(true);
-    }, []);
-
-    const handleEditorSave = useCallback((updatedRecipe, saveType) => {
-        fetchAndSetPlanItems();
-        setIsEditorOpen(false);
-    }, [fetchAndSetPlanItems]);
-
-    const handleFreeMealUpdate = useCallback((newLog, newFreeMealWithOccurrence) => {
-        setFreeMeals(prev => {
-            const existingIndex = prev.findIndex(fm => fm.occurrence_id === newFreeMealWithOccurrence.occurrence_id);
-            if (existingIndex !== -1) {
-                const updated = [...prev];
-                updated[existingIndex] = newFreeMealWithOccurrence;
-                return updated;
-            }
-            return [...prev, newFreeMealWithOccurrence];
-        });
-
-        const updatedLogs = allMealLogs.filter(log => !(log.log_date === newLog.log_date && log.user_day_meal_id === newLog.user_day_meal_id));
-        updatedLogs.push(newLog);
-        setAllMealLogs(updatedLogs);
-        processMealLogs(updatedLogs);
-
-        if (onPlanUpdate) onPlanUpdate();
-    }, [onPlanUpdate, setFreeMeals, allMealLogs, setAllMealLogs, processMealLogs]);
+        try {
+            sessionStorage.setItem('recipe_view_data', JSON.stringify({
+                recipe: recipeAdapter,
+                userId,
+                isAdminView,
+                adjustments: null,
+                returnTo: window.location.pathname,
+            }));
+        } catch (e) {
+            console.error('Error saving free recipe to sessionStorage:', e);
+        }
+        navigate(`${window.location.pathname}/ver-receta`);
+    }, [userId, isAdminView, navigate]);
 
     const handleRemovePlannedMealOptimistic = useCallback(async (plannedMealId) => {
         const originalPlannedMeals = [...plannedMeals];
@@ -423,54 +412,30 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
         }
     }, [freeMeals, allMealLogs, equivalenceAdjustments, onPlanUpdate, toast, setFreeMeals, setAllMealLogs, processMealLogs, fetchAndSetPlanItems, setEquivalenceAdjustments, setAdjustments, setDailyIngredientAdjustments]);
 
-    const handleRemoveFreeMealPermanently = useCallback(async (freeRecipeId) => {
-        try {
-            const { error } = await supabase.rpc('delete_free_recipe_and_occurrences', { p_free_recipe_id: freeRecipeId });
-            if (error) throw error;
-
-            toast({ title: 'Éxito', description: 'Receta libre eliminada permanentemente.' });
-            
-            setFreeMeals(prev => prev.filter(fm => fm.id !== freeRecipeId));
-            const updatedLogs = allMealLogs.filter(log => {
-                const occurrence = freeMeals.find(fm => fm.id === freeRecipeId && fm.occurrence_id === log.free_recipe_occurrence_id);
-                return !occurrence;
-            });
-            setAllMealLogs(updatedLogs);
-            processMealLogs(updatedLogs);
-
-            if (onPlanUpdate) onPlanUpdate();
-            return true;
-        } catch (error) {
-            toast({ title: 'Error', description: `No se pudo eliminar la receta libre: ${error.message}`, variant: 'destructive' });
-            return false;
-        }
-    }, [toast, freeMeals, allMealLogs, setFreeMeals, setAllMealLogs, processMealLogs, onPlanUpdate]);
-
     const handleRemoveRecipe = useCallback(async (recipeId, isPrivate) => {
         try {
             if (isPrivate) {
-                const { error } = await supabase.rpc('delete_private_recipe_cascade', { p_recipe_id: recipeId });
-                if (error) throw error;
+                const result = await archiveUserRecipe(recipeId);
+                if (!result.success) throw new Error(result.message);
 
                 setPlanRecipes(prev => prev.filter(r => !(r.id === recipeId && r.is_private)));
-                toast({ title: 'Éxito', description: 'Receta privada eliminada.' });
+                toast({ title: 'Éxito', description: 'Receta privada archivada.' });
             } else if (isAdminView) {
-                const { error } = await supabase.rpc('delete_diet_plan_recipe_with_dependencies', { p_recipe_id: recipeId });
-                if (error) {
-                    console.error("Error with delete_diet_plan_recipe_with_dependencies:", error);
-                     try {
-                        await supabase.from('diet_change_requests').delete().eq('diet_plan_recipe_id', recipeId);
-                        await supabase.from('daily_meal_logs').delete().eq('diet_plan_recipe_id', recipeId);
-                        await supabase.from('recipe_ingredients').delete().eq('diet_plan_recipe_id', recipeId);
-                        await supabase.from('recipe_macros').delete().eq('diet_plan_recipe_id', recipeId);
-                        await supabase.from('diet_plan_recipes').delete().eq('id', recipeId);
-                    } catch (manualError) {
-                         throw error; 
-                    }
-                }
+                const result = await archiveDietPlanRecipe(recipeId);
+                if (!result.success) throw new Error(result.message);
                 
                 setPlanRecipes(prev => prev.filter(r => !(r.id === recipeId && !r.is_private)));
-                toast({ title: 'Éxito', description: 'Receta del plan eliminada.' });
+                if (result.activeVariantsCount > 0) {
+                    toast({
+                        title: 'Receta del plan archivada',
+                        description: `${result.activeVariantsCount} cliente(s) mantienen variantes personales activas basadas en esta receta.`,
+                        duration: 6000,
+                    });
+                } else {
+                    toast({ title: 'Éxito', description: 'Receta del plan archivada.' });
+                }
+            } else {
+                return;
             }
             
             const updatedLogs = allMealLogs.filter(log => {
@@ -484,8 +449,8 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
             fetchAndSetPlanItems();
 
         } catch (error) {
-            console.error("Error deleting recipe:", error);
-            toast({ title: 'Error', description: `No se pudo eliminar la receta: ${error.message}`, variant: 'destructive' });
+            console.error("Error archiving recipe:", error);
+            toast({ title: 'Error', description: `No se pudo archivar la receta: ${error.message}`, variant: 'destructive' });
         }
     }, [isAdminView, allMealLogs, onPlanUpdate, toast, setPlanRecipes, setAllMealLogs, processMealLogs, fetchAndSetPlanItems]);
 
@@ -756,96 +721,6 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
         navigate(`/create-snack/${dateString}/${mealId}`);
     };
 
-    const handleRepeatFreeRecipeSelect = async (recipeToRepeat) => {
-        const { mealId, date } = preselectedMealInfo;
-        const logDateStr = format(date, 'yyyy-MM-dd');
-        
-        try {
-            const { data: userDayMealsData } = await supabase.from('user_day_meals')
-                .select('id')
-                .eq('user_id', userId)
-                .eq('day_meal_id', mealId)
-                .eq('diet_plan_id', activePlan.id)
-                .limit(1);
-
-            const userDayMeal = userDayMealsData?.[0];
-            
-            if (!userDayMeal) throw new Error("Configuración de comida de usuario no encontrada.");
-    
-            const { error: deleteError } = await supabase.from('daily_meal_logs').delete().match({ user_id: userId, log_date: logDateStr, user_day_meal_id: userDayMeal.id });
-            if (deleteError) throw deleteError;
-    
-            const { data: occurrence, error: occurrenceError } = await supabase
-                .from('free_recipe_occurrences')
-                .insert({
-                    user_recipe_id: recipeToRepeat.id,
-                    user_id: userId,
-                    meal_date: logDateStr,
-                    day_meal_id: mealId
-                })
-                .select()
-                .single();
-            if (occurrenceError) throw occurrenceError;
-    
-            const newLogData = {
-                user_id: userId,
-                log_date: logDateStr,
-                free_recipe_occurrence_id: occurrence.id,
-                user_day_meal_id: userDayMeal.id,
-            };
-    
-            const { data: newLog, error: insertError } = await supabase.from('daily_meal_logs').insert(newLogData).select().single();
-            if (insertError) throw insertError;
-    
-            const rawIngredients = getRecipeIngredients(recipeToRepeat);
-            
-            const unifiedIngredients = rawIngredients.map(ing => {
-                 let foodDetails = ing.food;
-                 
-                 if (!foodDetails) {
-                    foodDetails = allAvailableFoods.find(f => String(f.id) === String(ing.food_id) && !!f.is_user_created === !!ing.is_user_created);
-                 }
-                 
-                 return { 
-                    ...ing, 
-                    food: foodDetails,
-                    user_created_food: foodDetails?.is_user_created ? foodDetails : null,
-                    grams: ing.grams || ing.quantity
-                 };
-            });
-    
-            const newFreeMealWithOccurrence = {
-                ...recipeToRepeat,
-                occurrence_id: occurrence.id,
-                meal_date: logDateStr,
-                day_meal_id: mealId,
-                dnd_id: `free-${occurrence.id}`,
-                type: 'free_recipe',
-                recipe_ingredients: unifiedIngredients,
-                ingredients: unifiedIngredients
-            };
-
-            handleFreeMealUpdate(newLog, newFreeMealWithOccurrence);
-            setIsRepeatFreeRecipeOpen(false);
-
-            let macros = recipeToRepeat.macros;
-            if (!macros || macros.calories === 0) {
-                macros = calculateMacros(unifiedIngredients, allAvailableFoods);
-            }
-
-            handleOpenEquivalence({
-                item: newFreeMealWithOccurrence,
-                type: 'free_recipe',
-                macros: macros,
-                logId: newLog.id
-            });
-    
-            toast({ title: 'Éxito', description: `"${recipeToRepeat.name}" añadida a tu plan.` });
-        } catch (error) {
-            toast({ title: 'Error', description: `No se pudo registrar la receta: ${error.message}`, variant: 'destructive' });
-        }
-    };
-
     const handleRepeatSnackSelect = async (snackToRepeat) => {
         const { mealId, date } = preselectedMealInfo;
         const logDateStr = format(date, 'yyyy-MM-dd');
@@ -944,26 +819,13 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
         userRestrictions: userRestrictions,
         activePlan,
         handleUndoEquivalence,
+        recipeStyles,
     };
 
     return (
         <>
             {viewMode === 'week' ? <WeekView {...sharedProps} weekDates={weekDates} dayElementsRef={dayElementsRef} handleRemovePlannedMeal={handleRemovePlannedMealOptimistic} /> : <ListView {...sharedProps} groupedByMeal={groupedByMeal} logDate={logDate} />}
             
-            {isEditorOpen && (
-                <RecipeEditorModal 
-                    open={isEditorOpen}
-                    onOpenChange={setIsEditorOpen}
-                    recipeToEdit={recipeToEdit}
-                    onSaveSuccess={handleEditorSave}
-                    isAdminView={isAdminView}
-                    userId={userId}
-                    planRestrictions={userRestrictions}
-                    adjustments={recipeAdjustment}
-                    isEditable={true}
-                />
-            )}
-
             {isSnackEditorOpen && (
                 <SnackEditorModal
                     open={isSnackEditorOpen}
@@ -994,19 +856,11 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
                 onOpenChange={setIsFreeMealSelectorOpen}
                 onAddNew={handleOpenFreeMealCreator}
                 onRepeat={() => {
+                    const { mealId, date } = preselectedMealInfo;
+                    const dateStr = format(date, 'yyyy-MM-dd');
                     setIsFreeMealSelectorOpen(false);
-                    setIsRepeatFreeRecipeOpen(true);
+                    navigate(`/plan/dieta/${dateStr}/repetir-receta?dayMealId=${mealId}&planId=${activePlan?.id}&userId=${userId}`);
                 }}
-            />
-            
-            <RepeatFreeRecipeDialog
-                open={isRepeatFreeRecipeOpen}
-                onOpenChange={setIsRepeatFreeRecipeOpen}
-                planId={activePlan?.id}
-                userId={userId}
-                allFoods={allAvailableFoods}
-                onSelectRecipe={handleRepeatFreeRecipeSelect}
-                onDeleteRecipe={handleRemoveFreeMealPermanently}
             />
 
             <SnackSelectorDialog

@@ -297,14 +297,14 @@ const DietPreferencesForm = ({ userId: propUserId, onUpdate }) => {
 
         <FormBlock title="Restricciones Alimentarias" icon={Shield} color="orange-red">
             <div className="space-y-6">
-            <div className="p-4 rounded-lg border border-orange-500/30 bg-[#47330526]">
+            <div className="p-4 rounded-lg border border-orange-500/30 bg-orange-50 dark:bg-[#47330526]">
                     <div className="flex items-center justify-between mb-4">
                          <h4 className="font-semibold text-orange-400 flex items-center gap-2"><Shield size={16}/> Sensibilidades</h4>
                          <Button 
                             type="button" 
                             variant="outline" 
                             size="sm" 
-                            className="border-orange-500/50 text-orange-400 bg-[hsl(36deg_63.96%_15.46%_/_0.65)] hover:bg-[hsl(36deg_63.96%_15.46%_/_0.58)] hover:text-gray-100" 
+                            className="border-orange-500/50 text-orange-700 bg-orange-100 hover:bg-orange-200 hover:text-orange-800 dark:text-orange-400 dark:bg-[hsl(36deg_63.96%_15.46%_/_0.65)] dark:hover:bg-[hsl(36deg_63.96%_15.46%_/_0.58)] dark:hover:text-gray-100"
                             onClick={() => setIsSensitivityModalOpen(true)}
                          >
                             <PlusCircle className="w-4 h-4 mr-2" /> Añadir
@@ -316,7 +316,7 @@ const DietPreferencesForm = ({ userId: propUserId, onUpdate }) => {
                       {selectedSensitivities.map(s => {
                         const details = allSensitivities.find(as => as.id === s.sensitivity_id);
                         return details ? (
-                            <Badge key={s.sensitivity_id} variant="destructive" className="bg-orange-600/20 border border-orange-500/30 text-orange-300">
+                            <Badge key={s.sensitivity_id} variant="destructive" className="bg-orange-100 border border-orange-500/30 text-orange-700 dark:bg-orange-600/20 dark:text-orange-300">
                                 {details.name} ({s.sensitivitie_level})
                                 <button type="button" onClick={() => handleRemoveSensitivity(s.sensitivity_id)} className="ml-2 hover:text-foreground"><X size={14}/></button>
                             </Badge>
@@ -325,14 +325,14 @@ const DietPreferencesForm = ({ userId: propUserId, onUpdate }) => {
                     </div>
                 </div>
 
-                <div className="p-4 rounded-lg border border-red-500/30 bg-[#47050526]">
+                <div className="p-4 rounded-lg border border-red-500/30 bg-red-50 dark:bg-[#47050526]">
                     <div className="flex items-center justify-between mb-4">
                         <h4 className="font-semibold text-red-400 flex items-center gap-2"><HeartPulse size={16}/> Condiciones Médicas</h4>
                         <Button 
                             type="button" 
                             variant="outline" 
                             size="sm" 
-                            className="border-red-500/50 text-red-400 bg-[hsl(0deg_60%_11.41%_/_0.65)] hover:bg-[hsl(0deg_60%_11.41%_/_0.58)] hover:text-gray-100" 
+                            className="border-red-500/50 text-red-700 bg-red-100 hover:bg-red-200 hover:text-red-800 dark:text-red-400 dark:bg-[hsl(0deg_60%_11.41%_/_0.65)] dark:hover:bg-[hsl(0deg_60%_11.41%_/_0.58)] dark:hover:text-gray-100"
                             onClick={() => setIsConditionModalOpen(true)}
                         >
                              <PlusCircle className="w-4 h-4 mr-2" /> Añadir
@@ -343,7 +343,7 @@ const DietPreferencesForm = ({ userId: propUserId, onUpdate }) => {
                       {selectedMedicalConditions.length === 0 && <p className="text-muted-foreground text-sm italic">No hay condiciones seleccionadas.</p>}
                       {selectedMedicalConditions.map(cId => {
                         const details = allMedicalConditions.find(amc => amc.id === cId);
-                        return details ? <Badge key={cId} variant="destructive" className="bg-red-600/20 border border-red-500/30 text-red-300">{details.name} <button type="button" onClick={() => handleRemoveCondition(cId)} className="ml-2 hover:text-foreground"><X size={14}/></button></Badge> : null;
+                        return details ? <Badge key={cId} variant="destructive" className="bg-red-100 border border-red-500/30 text-red-700 dark:bg-red-600/20 dark:text-red-300">{details.name} <button type="button" onClick={() => handleRemoveCondition(cId)} className="ml-2 hover:text-foreground"><X size={14}/></button></Badge> : null;
                       })}
                     </div>
                 </div>

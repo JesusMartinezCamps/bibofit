@@ -47,19 +47,19 @@ export const MacroTargetGrid = ({ targets }) => {
   return (
     <div className="grid grid-cols-4 gap-2 opacity-70">
       <div className="flex flex-col items-center">
-        <span className="text-xs text-muted-foreground">Meta</span>
+        <span className="text-xs text-muted-foreground">Calorias</span>
         <span className="text-sm font-medium text-orange-400">{Math.round(targets.target_calories || 0)}</span>
       </div>
       <div className="flex flex-col items-center">
-        <span className="text-xs text-muted-foreground">Meta</span>
+        <span className="text-xs text-muted-foreground">Proteínas</span>
         <span className="text-sm font-medium text-red-400">{Math.round(targets.target_proteins || 0)}g</span>
       </div>
       <div className="flex flex-col items-center">
-        <span className="text-xs text-muted-foreground">Meta</span>
+        <span className="text-xs text-muted-foreground">Carbs</span>
         <span className="text-sm font-medium text-yellow-400">{Math.round(targets.target_carbs || 0)}g</span>
       </div>
       <div className="flex flex-col items-center">
-        <span className="text-xs text-muted-foreground">Meta</span>
+        <span className="text-xs text-muted-foreground">Grasas</span>
         <span className="text-sm font-medium text-green-400">{Math.round(targets.target_fats || 0)}g</span>
       </div>
     </div>

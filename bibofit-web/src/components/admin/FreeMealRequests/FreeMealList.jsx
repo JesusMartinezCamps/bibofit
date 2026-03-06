@@ -58,6 +58,7 @@ const FreeMealList = ({
                 instructions: data.instructions,
                 prep_time_min: data.prep_time_min,
                 difficulty: data.difficulty,
+                recipe_style_id: data.recipe_style_id,
             };
             const ingredientsData = data.ingredients.map(ing => ({
                 food_id: ing.food_id,
@@ -85,7 +86,8 @@ const FreeMealList = ({
                 name: data.name,
                 instructions: data.instructions,
                 prep_time_min: data.prep_time_min,
-                difficulty: data.difficulty
+                difficulty: data.difficulty,
+                recipe_style_id: data.recipe_style_id,
             };
 
             const { data: rpcData, error } = await supabase.rpc('approve_free_recipe_as_global', {

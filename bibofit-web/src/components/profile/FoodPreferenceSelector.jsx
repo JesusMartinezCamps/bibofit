@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useToast } from '@/components/ui/use-toast';
 import { Label } from "@/components/ui/label";
-import { X, PlusCircle, Check, CircleAlert, CircleCheck } from 'lucide-react';
+import { X, PlusCircle, Check, CircleAlert, CircleCheck, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -53,8 +53,8 @@ const FoodPreferenceSelector = ({
   const labelColor = isPreferred ? 'text-green-400' : 'text-red-400';
   
   // Styling for the chips
-  const chipClassName = isPreferred ? "bg-green-600/20 text-green-400" : "bg-red-600/20 text-red-400";
-  const chipButtonClassName = isPreferred ? "text-green-400 hover:text-foreground" : "text-red-400 hover:text-foreground";
+  const chipClassName = isPreferred ? "bg-green-100 text-green-700 dark:bg-green-600/20 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-600/20 dark:text-red-400";
+  const chipButtonClassName = isPreferred ? "text-green-700 hover:text-foreground dark:text-green-400" : "text-red-700 hover:text-foreground dark:text-red-400";
   const tableName = isPreferred ? 'preferred_foods' : 'non_preferred_foods';
 
   const handleAddFood = async (food) => {
@@ -82,13 +82,41 @@ const FoodPreferenceSelector = ({
     try {
       const { error } = await supabase.from(tableName).delete().eq('user_id', userId).eq('food_id', foodId);
       if (error) throw error;
-      
+
       setSelectedFoods(prev => prev.filter(f => f.id !== foodId));
       toast({ title: 'Éxito', description: 'Alimento eliminado de la lista.' });
       return true;
     } catch (error) {
       toast({ title: 'Error', description: 'No se pudo eliminar el alimento.', variant: 'destructive' });
       return false;
+    }
+  };
+
+  const handleBatchAddFoods = async (foods) => {
+    const newFoods = foods.filter(food => !selectedFoodIds.has(String(food.id)));
+    if (newFoods.length === 0) return;
+    try {
+      const inserts = newFoods.map(food => ({ user_id: userId, food_id: food.id }));
+      const { error } = await supabase.from(tableName).insert(inserts);
+      if (error) throw error;
+      setSelectedFoods(prev => [...prev, ...newFoods]);
+      toast({ title: 'Éxito', description: `${newFoods.length} alimentos añadidos.` });
+    } catch (error) {
+      toast({ title: 'Error', description: 'No se pudieron añadir los alimentos.', variant: 'destructive' });
+    }
+  };
+
+  const handleBatchRemoveFoods = async (foods) => {
+    const toRemove = foods.filter(food => selectedFoodIds.has(String(food.id)));
+    if (toRemove.length === 0) return;
+    const idsToRemove = toRemove.map(f => f.id);
+    try {
+      const { error } = await supabase.from(tableName).delete().eq('user_id', userId).in('food_id', idsToRemove);
+      if (error) throw error;
+      setSelectedFoods(prev => prev.filter(f => !idsToRemove.includes(f.id)));
+      toast({ title: 'Éxito', description: `${toRemove.length} alimentos eliminados.` });
+    } catch (error) {
+      toast({ title: 'Error', description: 'No se pudieron eliminar los alimentos.', variant: 'destructive' });
     }
   };
 
@@ -170,6 +198,38 @@ const FoodPreferenceSelector = ({
     });
   }, [availableItems, searchTerm]);
 
+  const uniqueGroups = useMemo(() => {
+    const groupMap = new Map();
+    availableItems.forEach(food => {
+      (food.food_to_food_groups || []).forEach(fg => {
+        const groupId = fg.food_group_id;
+        const groupName = fg.food_groups?.name;
+        if (groupId && groupName && !groupMap.has(groupId)) {
+          groupMap.set(groupId, { id: groupId, name: groupName });
+        }
+      });
+    });
+    return Array.from(groupMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [availableItems]);
+
+  const filteredGroups = useMemo(() => {
+    if (!searchTerm) return uniqueGroups;
+    const query = normalizeText(searchTerm);
+    return uniqueGroups.filter(g => normalizeText(g.name).includes(query));
+  }, [uniqueGroups, searchTerm]);
+
+  const handleToggleGroup = async (group) => {
+    const groupFoods = availableItems.filter(food =>
+      food.food_to_food_groups?.some(fg => fg.food_group_id === group.id)
+    );
+    const allSelected = groupFoods.length > 0 && groupFoods.every(f => selectedFoodIds.has(String(f.id)));
+    if (allSelected) {
+      await handleBatchRemoveFoods(groupFoods);
+    } else {
+      await handleBatchAddFoods(groupFoods);
+    }
+  };
+
   const handleToggleFood = async (food) => {
     if (!food) return;
     if (selectedFoodIds.has(String(food.id))) {
@@ -181,7 +241,7 @@ const FoodPreferenceSelector = ({
 
 
   return (
-    <div className={`space-y-4 p-4 rounded-lg ${isPreferred ? 'bg-green-900/20 border-green-500/30' : 'bg-[#47050526] border-red-500/30'} border flex flex-col h-full`}>
+    <div className={`space-y-4 p-4 rounded-lg ${isPreferred ? 'bg-green-50 dark:bg-green-900/20 border-green-500/30' : 'bg-red-50 dark:bg-[#47050526] border-red-500/30'} border flex flex-col h-full`}>
       <div className="flex flex-col space-y-3">
         <div className="flex items-center justify-between">
             <Label className={`${labelColor} font-semibold text-base`}>{label}</Label>
@@ -189,7 +249,7 @@ const FoodPreferenceSelector = ({
                 type="button" 
                 variant="outline" 
                 size="sm" 
-                className={isPreferred ? "border-green-500/50 text-green-400 bg-[hsl(119.08deg_69.96%_14.45%_/_0.58)] hover:bg-[hsl(119.08deg_69.96%_14.45%_/_0.58)] hover:text-gray-100" : "border-red-500/50 text-red-400 bg-[hsl(0deg_60%_11.41%_/_0.58)] hover:bg-[hsl(0deg_60%_11.41%_/_0.58)] hover:text-gray-100"}
+                className={isPreferred ? "border-green-500/50 text-green-700 bg-green-100 hover:bg-green-200 hover:text-green-800 dark:text-green-400 dark:bg-[hsl(119.08deg_69.96%_14.45%_/_0.58)] dark:hover:bg-[hsl(119.08deg_69.96%_14.45%_/_0.58)] dark:hover:text-gray-100" : "border-red-500/50 text-red-700 bg-red-100 hover:bg-red-200 hover:text-red-800 dark:text-red-400 dark:bg-[hsl(0deg_60%_11.41%_/_0.58)] dark:hover:bg-[hsl(0deg_60%_11.41%_/_0.58)] dark:hover:text-gray-100"}
                 onClick={() => setIsModalOpen(true)}
             >
                 <PlusCircle className="w-4 h-4 mr-2" /> Añadir
@@ -227,74 +287,141 @@ const FoodPreferenceSelector = ({
                 {isPreferred ? 'Seleccionar Alimentos Preferidos' : 'Seleccionar Alimentos No Deseados'}
               </DialogTitle>
             </DialogHeader>
-            <Input
-              placeholder="Buscar alimento o grupo (ej: verduras)..."
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-              className="bg-muted border-input text-white focus:border-cyan-500"
-            />
+            <div className="relative">
+              <Input
+                placeholder="Buscar alimento o grupo (ej: verduras)..."
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                className="bg-muted border-input text-foreground focus:border-cyan-500 pr-8"
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
           </div>
 
           <ScrollArea className="flex-1 p-2">
             <div className="space-y-1">
-              {filteredItems.length === 0 ? (
+              {filteredGroups.length === 0 && filteredItems.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8 text-sm">No se encontraron resultados.</p>
               ) : (
-                filteredItems.map((food) => {
-                  const isSelected = selectedFoodIds.has(String(food.id));
-                  const foodGroups = getFoodGroupNames(food);
-                  const conditionInfo = getFoodConditionInfo(food);
+                <>
+                  {/* Grupos de alimentos */}
+                  {filteredGroups.length > 0 && (
+                    <>
+                      <p className="px-3 py-1.5 text-xs text-muted-foreground font-semibold uppercase tracking-wider">Grupos</p>
+                      {filteredGroups.map(group => {
+                        const groupFoods = availableItems.filter(food =>
+                          food.food_to_food_groups?.some(fg => fg.food_group_id === group.id)
+                        );
+                        const selectedCount = groupFoods.filter(f => selectedFoodIds.has(String(f.id))).length;
+                        const total = groupFoods.length;
+                        const isFullySelected = total > 0 && selectedCount === total;
+                        const isPartial = selectedCount > 0 && !isFullySelected;
+                        return (
+                          <button
+                            key={`group-${group.id}`}
+                            type="button"
+                            onClick={() => handleToggleGroup(group)}
+                            className={`w-full p-3 rounded-lg transition-colors text-left border ${
+                              isFullySelected
+                                ? (isPreferred ? 'bg-green-900/20 border-green-500/40' : 'bg-red-900/20 border-red-500/40')
+                                : isPartial
+                                ? (isPreferred ? 'bg-green-900/10 border-green-500/20' : 'bg-red-900/10 border-red-500/20')
+                                : 'bg-transparent border-transparent hover:bg-muted/80'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <Layers className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                <p className="text-gray-800 font-medium truncate dark:text-gray-100">{group.name}</p>
+                                <span className="text-xs text-muted-foreground whitespace-nowrap">({selectedCount}/{total})</span>
+                              </div>
+                              <div className={`flex items-center text-xs whitespace-nowrap ${
+                                isFullySelected || isPartial
+                                  ? (isPreferred ? 'text-green-400' : 'text-red-400')
+                                  : 'text-muted-foreground'
+                              }`}>
+                                {isFullySelected ? (
+                                  <><Check className="h-4 w-4 mr-1" /> Completo</>
+                                ) : isPartial ? (
+                                  <><Check className="h-4 w-4 mr-1" /> Parcial</>
+                                ) : 'Añadir grupo'}
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </>
+                  )}
 
-                  return (
-                    <button
-                      key={food.id}
-                      type="button"
-                      onClick={() => handleToggleFood(food)}
-                      className={`w-full p-3 rounded-lg transition-colors text-left border ${
-                        isSelected
-                          ? (isPreferred ? 'bg-green-900/20 border-green-500/40' : 'bg-red-900/20 border-red-500/40')
-                          : 'bg-transparent border-transparent hover:bg-muted/80'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="text-gray-100 font-medium truncate">{food.name}</p>
-                          {foodGroups.length > 0 && (
-                            <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                              Grupo: {foodGroups.join(', ')}
-                            </p>
-                          )}
-                          {conditionInfo && (
-                            <Badge
-                              variant="outline"
-                              className={`mt-2 text-[11px] whitespace-normal text-left h-auto py-1 ${
-                                conditionInfo.variant === 'avoid'
-                                  ? 'border-red-500/50 text-red-300'
-                                  : conditionInfo.variant === 'recommend'
-                                    ? 'border-emerald-500/50 text-emerald-300'
-                                    : 'border-amber-500/50 text-amber-300'
-                              }`}
-                            >
-                              {conditionInfo.variant === 'avoid' && <CircleAlert className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />}
-                              {conditionInfo.variant === 'recommend' && <CircleCheck className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />}
-                              {conditionInfo.variant === 'mixed' && <CircleAlert className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />}
-                              <span className="leading-tight">{conditionInfo.label}</span>
-                            </Badge>
-                          )}
-                        </div>
-                        <div className={`flex items-center text-xs ${isSelected ? (isPreferred ? 'text-green-400' : 'text-red-400') : 'text-muted-foreground'}`}>
-                          {isSelected ? (
-                            <>
-                              <Check className="h-4 w-4 mr-1" /> Activo
-                            </>
-                          ) : (
-                            'Agregar'
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })
+                  {/* Alimentos individuales */}
+                  {filteredItems.length > 0 && (
+                    <>
+                      {filteredGroups.length > 0 && (
+                        <p className="px-3 py-1.5 text-xs text-muted-foreground font-semibold uppercase tracking-wider mt-2">Alimentos</p>
+                      )}
+                      {filteredItems.map((food) => {
+                        const isSelected = selectedFoodIds.has(String(food.id));
+                        const foodGroups = getFoodGroupNames(food);
+                        const conditionInfo = getFoodConditionInfo(food);
+                        return (
+                          <button
+                            key={food.id}
+                            type="button"
+                            onClick={() => handleToggleFood(food)}
+                            className={`w-full p-3 rounded-lg transition-colors text-left border ${
+                              isSelected
+                                ? (isPreferred ? 'bg-green-900/20 border-green-500/40' : 'bg-red-900/20 border-red-500/40')
+                                : 'bg-transparent border-transparent hover:bg-muted/80'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <p className="text-gray-800 font-medium truncate dark:text-gray-100">{food.name}</p>
+                                {foodGroups.length > 0 && (
+                                  <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                                    Grupo: {foodGroups.join(', ')}
+                                  </p>
+                                )}
+                                {conditionInfo && (
+                                  <Badge
+                                    variant="outline"
+                                    className={`mt-2 text-[11px] whitespace-normal text-left h-auto py-1 ${
+                                      conditionInfo.variant === 'avoid'
+                                        ? 'border-red-500/50 text-red-300'
+                                        : conditionInfo.variant === 'recommend'
+                                          ? 'border-emerald-500/50 text-emerald-300'
+                                          : 'border-amber-500/50 text-amber-300'
+                                    }`}
+                                  >
+                                    {conditionInfo.variant === 'avoid' && <CircleAlert className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />}
+                                    {conditionInfo.variant === 'recommend' && <CircleCheck className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />}
+                                    {conditionInfo.variant === 'mixed' && <CircleAlert className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />}
+                                    <span className="leading-tight">{conditionInfo.label}</span>
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className={`flex items-center text-xs ${isSelected ? (isPreferred ? 'text-green-400' : 'text-red-400') : 'text-muted-foreground'}`}>
+                                {isSelected ? (
+                                  <><Check className="h-4 w-4 mr-1" /> Activo</>
+                                ) : (
+                                  'Agregar'
+                                )}
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </>
+                  )}
+                </>
               )}
             </div>
           </ScrollArea>

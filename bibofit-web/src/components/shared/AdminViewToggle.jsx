@@ -6,9 +6,10 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 
-const ViewModeToggle = ({ mode, onModeChange, loading, onClose, className, hasChanges, isClientRequestView = false, showClose = true, switchCheckedColor = 'data-[state=checked]:bg-violet-500', activeIconColor = 'text-violet-500' }) => {
+const ViewModeToggle = ({ mode, onModeChange, loading, onClose, className, hasChanges, isClientRequestView = false, showClose = true, switchCheckedColor = 'data-[state=checked]:bg-violet-500', activeIconColor = 'text-violet-500', leftElement = null, switchDisabled = false, saveLabel = 'Guardar' }) => {
   const isViewMode = mode === 'view';
-  
+  const showSaveHint = !isViewMode && hasChanges;
+
   const SettingsIcon = isClientRequestView ? Pen : Settings;
   const ViewIcon = !isViewMode && hasChanges ? Save : Eye;
 
@@ -24,6 +25,11 @@ const ViewModeToggle = ({ mode, onModeChange, loading, onClose, className, hasCh
         className
       )}
     >
+      {leftElement && (
+        <div className="absolute left-2 top-1/2 -translate-y-1/2">
+          {leftElement}
+        </div>
+      )}
       <div className="flex-1 flex justify-center">
         <div className="flex items-center space-x-3">
           <SettingsIcon className={`h-5 w-5 transition-colors ${!isViewMode ? activeIconColor : 'text-muted-foreground'}`} />
@@ -31,10 +37,17 @@ const ViewModeToggle = ({ mode, onModeChange, loading, onClose, className, hasCh
             checked={isViewMode}
             onCheckedChange={onModeChange}
             id="view-mode-toggle"
-            className={cn(switchCheckedColor, 'data-[state=unchecked]:bg-gray-600')} // Dynamic switch color
-            disabled={loading}
+            className={cn(switchCheckedColor, 'data-[state=unchecked]:bg-gray-600')}
+            disabled={loading || switchDisabled}
           />
-          <ViewIcon className={`h-5 w-5 transition-colors ${isViewMode || (!isViewMode && hasChanges) ? activeIconColor : 'text-muted-foreground'}`} />
+          <div className="flex items-center gap-1.5">
+            <ViewIcon className={`h-5 w-5 transition-colors ${isViewMode || (!isViewMode && hasChanges) ? activeIconColor : 'text-muted-foreground'}`} />
+            {showSaveHint && (
+              <span className={cn('text-sm font-semibold', activeIconColor)}>
+                {saveLabel}
+              </span>
+            )}
+          </div>
         </div>
       </div>
       {showClose && onClose && (

@@ -17,7 +17,7 @@
     --secondary: 258 95% 96%;
     --secondary-foreground: 259 38% 30%;
     --muted: 152 28% 94%;
-    --muted-foreground: 222 14% 38%;
+    --muted-foreground: 222 47% 11%;
     --accent: 35 100% 92%;
     --accent-foreground: 24 60% 30%;
     --destructive: 0 72% 53%;
@@ -68,7 +68,7 @@
     --secondary-foreground: 258 90% 94%;
     --muted: 220 15% 22%;
     --muted-foreground: 220 12% 70%;
-    --accent: 35 90% 50%;
+    --accent: 185 30% 18%;
     --accent-foreground: 32 88% 12%;
     --destructive: 0 60% 44%;
     --destructive-foreground: 0 0% 98%;
@@ -235,7 +235,7 @@ html:not(.dark) .app-main-shell {
 }
 
 .input-field {
-  @apply flex min-h-[48px] w-full items-center rounded-xl border border-input bg-card px-4 py-3 text-foreground placeholder:text-muted-foreground transition-all duration-200 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/35 focus:ring-offset-2 focus:ring-offset-background;
+  @apply flex min-h-[48px] w-full items-center rounded-xl border border-input bg-card px-4 py-3 text-foreground placeholder:text-muted-foreground/50 dark:placeholder:text-muted-foreground transition-all duration-200 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/35 focus:ring-offset-2 focus:ring-offset-background;
 }
 
 .input-field:hover {
@@ -243,7 +243,7 @@ html:not(.dark) .app-main-shell {
 }
 
 .bf-form-control {
-  @apply min-h-[48px] w-full rounded-xl border border-input bg-card px-4 py-3 text-foreground placeholder:text-muted-foreground transition-all duration-200 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/35 focus:ring-offset-2 focus:ring-offset-background;
+  @apply min-h-[48px] w-full rounded-xl border border-input bg-card px-4 py-3 text-foreground placeholder:text-muted-foreground/50 dark:placeholder:text-muted-foreground transition-all duration-200 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/35 focus:ring-offset-2 focus:ring-offset-background;
 }
 
 .bf-form-control:hover {
@@ -266,11 +266,11 @@ html:not(.dark) .app-main-shell {
 }
 
 .bf-date-trigger {
-  @apply flex min-h-[48px] w-full items-center justify-between rounded-xl border border-input bg-card px-4 py-3 text-sm text-foreground transition-all duration-200;
+  @apply flex min-h-[48px] w-full items-center justify-between rounded-xl border border-input bg-background px-4 py-3 text-sm text-foreground transition-all duration-200;
 }
 
 .bf-date-trigger:hover {
-  @apply border-primary/50 bg-card/80;
+  @apply border-primary/50 bg-accent text-foreground;
 }
 
 .bf-date-trigger:focus-visible {
@@ -314,11 +314,15 @@ html:not(.dark) .app-main-shell {
 }
 
 .bf-datepicker__select {
-  @apply h-11 min-w-0 rounded-lg border border-input bg-background px-4 text-base text-foreground focus:border-primary focus:outline-none;
+  @apply h-11 min-w-0 rounded-lg border border-input bg-background px-4 text-base text-foreground transition-colors focus:border-primary focus:outline-none;
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
   background-image: none;
+}
+
+.bf-datepicker__select:hover {
+  @apply border-primary/50 bg-accent text-foreground;
 }
 
 .bf-datepicker__select--month {
@@ -392,37 +396,11 @@ html:not(.dark) .app-main-shell {
 }
 
 .bf-datepicker__nav-btn:hover:not(:disabled) {
-  @apply border-primary/50 bg-accent;
+  @apply border-primary/50 bg-accent text-foreground;
 }
 
 .bf-datepicker__nav-btn:disabled {
   @apply cursor-not-allowed opacity-40;
-}
-
-.bf-datepicker.bf-datepicker--onboarding-dark {
-  background-color: #000 !important;
-  color: #fff !important;
-  border-color: hsl(var(--border)) !important;
-}
-
-.bf-datepicker.bf-datepicker--onboarding-dark .bf-datepicker__select,
-.bf-datepicker.bf-datepicker--onboarding-dark .bf-datepicker__nav-btn,
-.bf-datepicker.bf-datepicker--onboarding-dark .react-datepicker__month-container {
-  background-color: #000 !important;
-  color: #fff !important;
-}
-
-.bf-datepicker.bf-datepicker--onboarding-dark .bf-datepicker__select option {
-  background-color: #000 !important;
-  color: #fff !important;
-}
-
-html:not(.dark) .bf-datepicker.bf-datepicker--onboarding-dark,
-html:not(.dark) .bf-datepicker.bf-datepicker--onboarding-dark .bf-datepicker__select,
-html:not(.dark) .bf-datepicker.bf-datepicker--onboarding-dark .bf-datepicker__nav-btn,
-html:not(.dark) .bf-datepicker.bf-datepicker--onboarding-dark .react-datepicker__month-container {
-  background-color: #000 !important;
-  color: #fff !important;
 }
 
 @keyframes bfDateMonthIn {
@@ -438,8 +416,13 @@ html:not(.dark) .bf-datepicker.bf-datepicker--onboarding-dark .react-datepicker_
 
 @media (max-width: 640px) {
   .bf-datepicker {
+    @apply rounded-2xl border p-3;
+    min-height: auto;
+  }
+
+  .react-datepicker__portal .bf-datepicker {
     @apply rounded-none border-0 p-4;
-    min-height: 100vh;
+    min-height: 100dvh;
   }
 
   .bf-datepicker .react-datepicker__day {
@@ -730,52 +713,25 @@ html:not(.dark) .bf-datepicker__select option {
   color: hsl(var(--foreground));
 }
 
-/* Light mode: enforce opaque gradient palettes on interactive buttons */
-html:not(.dark) :is(button, a, [role="button"], .calendar-dialog-button)[class*="bg-gradient-to-"] {
-  --bf-btn-grad-from: hsl(211 72% 52%);
-  --bf-btn-grad-to: hsl(152 54% 42%);
-  background-image: linear-gradient(135deg, var(--bf-btn-grad-from), var(--bf-btn-grad-to)) !important;
+html.dark .bf-datepicker,
+html.dark .bf-datepicker__select,
+html.dark .bf-datepicker__nav-btn {
+  background-color: hsl(var(--card)) !important;
+  color: hsl(var(--foreground)) !important;
+  border-color: hsl(var(--border)) !important;
 }
 
-html:not(.dark) :is(button, a, [role="button"], .calendar-dialog-button)[class*="bg-gradient-to-"]:hover {
-  filter: brightness(0.94) saturate(1.05);
+html.dark .bf-datepicker__select option {
+  background-color: hsl(var(--card)) !important;
+  color: hsl(var(--foreground)) !important;
 }
 
-html:not(.dark) :is(button, a, [role="button"], .calendar-dialog-button)[class*="bg-gradient-to-"][class*="green-"],
-html:not(.dark) :is(button, a, [role="button"], .calendar-dialog-button)[class*="bg-gradient-to-"][class*="emerald-"],
-html:not(.dark) :is(button, a, [role="button"], .calendar-dialog-button)[class*="bg-gradient-to-"][class*="teal-"],
-html:not(.dark) :is(button, a, [role="button"], .calendar-dialog-button)[class*="bg-gradient-to-"][class*="52_143_85"] {
-  --bf-btn-grad-from: hsl(148 58% 45%);
-  --bf-btn-grad-to: hsl(165 58% 35%);
+html.dark .bf-datepicker .react-datepicker__day,
+html.dark .bf-datepicker .react-datepicker__day-name {
+  color: hsl(var(--foreground)) !important;
 }
 
-html:not(.dark) :is(button, a, [role="button"], .calendar-dialog-button)[class*="bg-gradient-to-"][class*="blue-"],
-html:not(.dark) :is(button, a, [role="button"], .calendar-dialog-button)[class*="bg-gradient-to-"][class*="sky-"],
-html:not(.dark) :is(button, a, [role="button"], .calendar-dialog-button)[class*="bg-gradient-to-"][class*="cyan-"],
-html:not(.dark) :is(button, a, [role="button"], .calendar-dialog-button)[class*="bg-gradient-to-"][class*="indigo-"],
-html:not(.dark) :is(button, a, [role="button"], .calendar-dialog-button)[class*="bg-gradient-to-"][class*="211,51.05%"],
-html:not(.dark) :is(button, a, [role="button"], .calendar-dialog-button)[class*="bg-gradient-to-"][class*="211,65%"] {
-  --bf-btn-grad-from: hsl(212 74% 54%);
-  --bf-btn-grad-to: hsl(196 71% 43%);
-}
-
-html:not(.dark) :is(button, a, [role="button"], .calendar-dialog-button)[class*="bg-gradient-to-"][class*="violet-"],
-html:not(.dark) :is(button, a, [role="button"], .calendar-dialog-button)[class*="bg-gradient-to-"][class*="purple-"],
-html:not(.dark) :is(button, a, [role="button"], .calendar-dialog-button)[class*="bg-gradient-to-"][class*="fuchsia-"],
-html:not(.dark) :is(button, a, [role="button"], .calendar-dialog-button)[class*="bg-gradient-to-"][class*="66_52_143"] {
-  --bf-btn-grad-from: hsl(267 68% 55%);
-  --bf-btn-grad-to: hsl(236 62% 47%);
-}
-
-html:not(.dark) :is(button, a, [role="button"], .calendar-dialog-button)[class*="bg-gradient-to-"][class*="red-"],
-html:not(.dark) :is(button, a, [role="button"], .calendar-dialog-button)[class*="bg-gradient-to-"][class*="rose-"],
-html:not(.dark) :is(button, a, [role="button"], .calendar-dialog-button)[class*="bg-gradient-to-"][class*="orange-"] {
-  --bf-btn-grad-from: hsl(5 77% 55%);
-  --bf-btn-grad-to: hsl(20 82% 48%);
-}
-
-html:not(.dark) :is(button, a, [role="button"], .calendar-dialog-button)[class*="bg-gradient-to-"][class*="amber-"],
-html:not(.dark) :is(button, a, [role="button"], .calendar-dialog-button)[class*="bg-gradient-to-"][class*="yellow-"] {
-  --bf-btn-grad-from: hsl(41 93% 57%);
-  --bf-btn-grad-to: hsl(33 88% 50%);
+html.dark .bf-datepicker .react-datepicker__day:hover {
+  background-color: hsl(var(--accent)) !important;
+  color: hsl(var(--foreground)) !important;
 }
