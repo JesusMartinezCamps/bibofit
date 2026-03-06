@@ -245,6 +245,16 @@ const VariantTreePage = () => {
       .sort(byCreatedAtAsc);
   }, [userById, userRecipes]);
 
+  const hasVariantsInPlanBranch = useCallback((planNodeId) => {
+    if ((userRootsBySourceMap.get(planNodeId) || []).length > 0) return true;
+    const childNodes = planChildrenMap.get(planNodeId) || [];
+    return childNodes.some((child) => hasVariantsInPlanBranch(child.id));
+  }, [planChildrenMap, userRootsBySourceMap]);
+
+  const visibleRootPlanNodes = useMemo(() => {
+    return rootPlanNodes.filter((node) => hasVariantsInPlanBranch(node.id));
+  }, [hasVariantsInPlanBranch, rootPlanNodes]);
+
   const stats = useMemo(() => {
     const archivedPlan = planRecipes.filter((node) => node.is_archived).length;
     const archivedVariants = userRecipes.filter((node) => node.is_archived).length;
@@ -338,12 +348,12 @@ const VariantTreePage = () => {
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="mb-1 flex flex-wrap items-center gap-1.5">
-                <Badge className="bg-cyan-500/20 text-cyan-200 border border-cyan-500/40">
+                <Badge className="border border-cyan-500/45 bg-cyan-500/15 text-cyan-800 dark:text-cyan-200">
                   <GitBranch className="mr-1 h-3 w-3" />
                   Variante
                 </Badge>
                 {node.is_archived && (
-                  <Badge variant="outline" className="border-amber-500/40 text-amber-200">
+                  <Badge variant="outline" className="border-amber-500/50 text-amber-800 dark:text-amber-200">
                     <Archive className="mr-1 h-3 w-3" />
                     Archivada
                   </Badge>
@@ -351,7 +361,7 @@ const VariantTreePage = () => {
               </div>
               <p className="truncate text-sm font-semibold text-foreground">{getVariantNodeName(node)}</p>
               {node.variant_label && (
-                <p className="mt-1 text-xs text-cyan-200/90">{node.variant_label}</p>
+                <p className="mt-1 text-xs text-cyan-800 dark:text-cyan-200/90">{node.variant_label}</p>
               )}
             </div>
             <div className="flex items-center gap-2">
@@ -360,7 +370,7 @@ const VariantTreePage = () => {
                   type="button"
                   onClick={() => handleDeleteVariant(node)}
                   disabled={isDeleting}
-                  className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-red-500/50 bg-red-500/12 text-red-200 transition-colors hover:bg-red-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-red-600/60 bg-red-500/15 text-red-700 transition-colors hover:bg-red-500/30 hover:text-red-800 dark:border-red-500/55 dark:text-red-200 dark:hover:text-red-100 disabled:cursor-not-allowed disabled:opacity-50"
                   title="Eliminar variante"
                 >
                   {isDeleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
@@ -385,7 +395,7 @@ const VariantTreePage = () => {
   }, [canDeleteVariantNode, deletingVariantId, handleDeleteVariant, userChildrenMap]);
 
   const renderPlanNode = useCallback((node, depth = 0) => {
-    const childVersions = planChildrenMap.get(node.id) || [];
+    const childVersions = (planChildrenMap.get(node.id) || []).filter((child) => hasVariantsInPlanBranch(child.id));
     const linkedVariants = userRootsBySourceMap.get(node.id) || [];
     const createdLabel = formatDateTime(node.created_at);
     const archivedLabel = formatDateTime(node.archived_at);
@@ -393,23 +403,23 @@ const VariantTreePage = () => {
     return (
       <div
         key={`plan-${node.id}`}
-        className={cn('space-y-3', depth > 0 && 'ml-5 border-l border-emerald-500/30 pl-4')}
+        className={cn('space-y-3', depth > 0 && 'ml-5 border-l border-amber-500/30 pl-4')}
       >
         <div className={cn(
           'rounded-2xl border p-4',
           node.is_archived
-            ? 'border-amber-500/35 bg-gradient-to-r from-amber-500/8 via-amber-500/5 to-transparent'
-            : 'border-emerald-500/35 bg-gradient-to-r from-emerald-500/12 via-emerald-500/7 to-transparent'
+            ? 'border-orange-500/40 bg-gradient-to-r from-orange-500/10 via-orange-500/6 to-transparent'
+            : 'border-amber-500/40 bg-gradient-to-r from-amber-500/14 via-amber-500/8 to-transparent'
         )}>
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="mb-1 flex flex-wrap items-center gap-1.5">
-                <Badge className="bg-emerald-500/20 text-emerald-200 border border-emerald-500/40">
+                <Badge className="border border-amber-500/50 bg-amber-500/18 text-amber-900 dark:text-amber-200">
                   <GitCommit className="mr-1 h-3 w-3" />
-                  {node.parent_diet_plan_recipe_id ? 'Versión' : 'Base'}
+                  Original
                 </Badge>
                 {node.is_archived && (
-                  <Badge variant="outline" className="border-amber-500/40 text-amber-200">
+                  <Badge variant="outline" className="border-orange-500/55 text-orange-900 dark:text-orange-200">
                     <Archive className="mr-1 h-3 w-3" />
                     Archivada
                   </Badge>
@@ -430,7 +440,7 @@ const VariantTreePage = () => {
 
         {linkedVariants.length > 0 && (
           <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/8 p-3">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-cyan-200">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-cyan-800 dark:text-cyan-200">
               Variantes vinculadas ({linkedVariants.length})
             </p>
             <div className="space-y-2">
@@ -446,7 +456,7 @@ const VariantTreePage = () => {
         )}
       </div>
     );
-  }, [planChildrenMap, renderVariantNode, userRootsBySourceMap]);
+  }, [hasVariantsInPlanBranch, planChildrenMap, renderVariantNode, userRootsBySourceMap]);
 
   return (
     <div className="relative min-h-full">
@@ -461,7 +471,7 @@ const VariantTreePage = () => {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <CardTitle className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-cyan-400" />
+                  <Sparkles className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
                   Árbol de variantes
                 </CardTitle>
                 <CardDescription>
@@ -475,8 +485,8 @@ const VariantTreePage = () => {
             </div>
 
             <div className="flex flex-wrap gap-2">
-              <Badge variant="secondary">Nodos plan: {stats.planNodes}</Badge>
-              <Badge variant="secondary">Nodos variante: {stats.variantNodes}</Badge>
+              <Badge variant="secondary">Recetas del plan: {stats.planNodes}</Badge>
+              <Badge variant="secondary">Recetas variante: {stats.variantNodes}</Badge>
               <Badge variant="secondary">Archivados: {stats.archivedNodes}</Badge>
               {planInfo?.id ? <Badge variant="outline">Plan #{planInfo.id}</Badge> : null}
             </div>
@@ -490,14 +500,14 @@ const VariantTreePage = () => {
         )}
 
         {!loading && error && (
-          <Card className="border-red-500/35 bg-red-500/10">
-            <CardContent className="py-6 text-sm text-red-200">{error}</CardContent>
+            <Card className="border-red-500/35 bg-red-500/10">
+            <CardContent className="py-6 text-sm text-red-800 dark:text-red-200">{error}</CardContent>
           </Card>
         )}
 
         {!loading && !error && !planInfo && (
-          <Card className="border-amber-500/35 bg-amber-500/10">
-            <CardContent className="py-6 text-sm text-amber-100">
+            <Card className="border-amber-500/35 bg-amber-500/10">
+            <CardContent className="py-6 text-sm text-amber-900 dark:text-amber-100">
               No se encontró un plan de dieta para mostrar el árbol en esta fecha.
             </CardContent>
           </Card>
@@ -505,9 +515,9 @@ const VariantTreePage = () => {
 
         {!loading && !error && planInfo && (
           <div className="space-y-5">
-            {rootPlanNodes.length > 0 ? (
+            {visibleRootPlanNodes.length > 0 ? (
               <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                {rootPlanNodes.map((rootNode) => (
+                {visibleRootPlanNodes.map((rootNode) => (
                   <Card key={`root-${rootNode.id}`} className="border-border/70 bg-card/80">
                     <CardContent className="space-y-3 p-4">
                       {renderPlanNode(rootNode)}
@@ -518,7 +528,7 @@ const VariantTreePage = () => {
             ) : (
               <Card className="border-border/70 bg-card/80">
                 <CardContent className="py-6 text-sm text-muted-foreground">
-                  Este plan no tiene recetas base registradas.
+                  Este plan no tiene recetas base con variantes vinculadas.
                 </CardContent>
               </Card>
             )}
@@ -528,7 +538,7 @@ const VariantTreePage = () => {
                 <CardHeader>
                   <CardTitle className="text-base">Variantes sin nodo fuente</CardTitle>
                   <CardDescription>
-                    Variantes antiguas o migradas sin `source_diet_plan_recipe_id`.
+                    Variantes antiguas o migradas sin Receta fuente.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-2">

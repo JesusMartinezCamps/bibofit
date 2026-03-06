@@ -8,7 +8,6 @@ import {
   Minus,
   PlusCircle,
   Plus,
-  ThumbsUp,
   UtensilsCrossed,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -400,7 +399,6 @@ const RecipeView = ({
     toast({ title: 'Ingrediente reemplazado', description: `Se ha sustituido por ${newFoodData.food_name}.` });
   };
 
-  const greenCount = recommendations.length;
   const redCount = conflicts.length;
   const hasIngredients = (recipe?.ingredients || []).length > 0;
   const canManageIngredientsInView = !!onIngredientsChange && !!onRemoveIngredient;
@@ -477,11 +475,6 @@ const RecipeView = ({
               {recipe.name}
             </h2>
             <div className="flex justify-center gap-3 mt-2">
-              {greenCount > 0 && (
-                <span className="flex items-center text-sm text-green-400 gap-1.5 bg-green-900/20 px-2 py-1 rounded-full border border-green-500/30">
-                  <ThumbsUp className="w-4 h-4" /> {greenCount} Recomendados
-                </span>
-              )}
               {redCount > 0 && (
                 <span className="flex items-center text-sm text-red-400 gap-1.5 bg-red-900/20 px-2 py-1 rounded-full border border-red-500/30">
                   <AlertTriangle className="w-4 h-4" /> {redCount} Conflictos

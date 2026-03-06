@@ -15,9 +15,9 @@ import { useToast } from '@/components/ui/use-toast';
 import { Link } from 'react-router-dom';
 import { isUserCreatedFood } from '@/lib/foodIdentity';
 
-const SimpleHeader = ({ title, className }) => (
+const SimpleHeader = ({ title, className, titleClassName }) => (
   <div className={cn("flex items-center justify-between p-4 border-b border-border", className || "bg-muted/65")}>
-    <h3 className="text-lg font-semibold text-white">{title}</h3>
+    <h3 className={cn("text-lg font-semibold", titleClassName || "text-foreground")}>{title}</h3>
   </div>
 );
 
@@ -273,10 +273,66 @@ const RecipeEditorModal = ({
   const isEditingMode = mode === 'settings' && isEditable && !readOnly;
   const totalLoading = loading || localLoading;
 
-  const isFreeRecipe = enrichedRecipe?.type === 'free_recipe';
-  const headerBgClass = isFreeRecipe ? "bg-sky-900/30" : "bg-green-900/20";
-  const toggleSwitchColor = isFreeRecipe ? "data-[state=checked]:bg-sky-400" : "data-[state=checked]:bg-green-400";
-  const activeIconColor = isFreeRecipe ? "text-sky-400" : "text-green-400";
+  const recipeVisualTone = useMemo(() => {
+    const isVariantRecipe = (
+      enrichedRecipe?.user_recipe_type === 'variant' ||
+      enrichedRecipe?.type === 'variant' ||
+      Boolean(enrichedRecipe?.parent_user_recipe_id) ||
+      Boolean(enrichedRecipe?.source_diet_plan_recipe_id)
+    );
+    const isPrivateRecipe = (
+      !isVariantRecipe && (
+        enrichedRecipe?.is_private ||
+        enrichedRecipe?.is_private_recipe ||
+        enrichedRecipe?.type === 'private_recipe' ||
+        enrichedRecipe?.user_recipe_type === 'private'
+      )
+    );
+    const isFreeRecipe = enrichedRecipe?.type === 'free_recipe';
+
+    if (isVariantRecipe) return 'variant';
+    if (isPrivateRecipe) return 'private';
+    if (isFreeRecipe) return 'free';
+    return 'original';
+  }, [enrichedRecipe]);
+
+  const visualToneClasses = useMemo(() => {
+    const toneMap = {
+      original: {
+        headerBgClass: 'bg-amber-500/15 border-b border-amber-500/35',
+        titleClassName: 'text-amber-100',
+        toggleSwitchColor: 'data-[state=checked]:bg-amber-500',
+        activeIconColor: 'text-amber-300',
+      },
+      variant: {
+        headerBgClass: 'bg-cyan-500/15 border-b border-cyan-500/35',
+        titleClassName: 'text-cyan-100',
+        toggleSwitchColor: 'data-[state=checked]:bg-cyan-500',
+        activeIconColor: 'text-cyan-300',
+      },
+      private: {
+        headerBgClass: 'bg-violet-500/15 border-b border-violet-500/35',
+        titleClassName: 'text-violet-100',
+        toggleSwitchColor: 'data-[state=checked]:bg-violet-500',
+        activeIconColor: 'text-violet-300',
+      },
+      free: {
+        headerBgClass: 'bg-sky-500/15 border-b border-sky-500/35',
+        titleClassName: 'text-sky-100',
+        toggleSwitchColor: 'data-[state=checked]:bg-sky-500',
+        activeIconColor: 'text-sky-300',
+      },
+    };
+
+    return toneMap[recipeVisualTone] || toneMap.original;
+  }, [recipeVisualTone]);
+
+  const {
+    headerBgClass,
+    titleClassName,
+    toggleSwitchColor,
+    activeIconColor,
+  } = visualToneClasses;
   
   const criticalConflicts = conflicts?.filter(c => ['condition_avoid', 'sensitivity', 'non-preferred', 'individual_restriction'].includes(c.type)) || [];
   const hasCriticalConflicts = criticalConflicts.length > 0;
@@ -345,7 +401,7 @@ const RecipeEditorModal = ({
             ) : null}
           />
         ) : (
-          <SimpleHeader title={formData.name} className={headerBgClass} />
+          <SimpleHeader title={formData.name} className={headerBgClass} titleClassName={titleClassName} />
         )
       )}
 
@@ -401,7 +457,7 @@ const RecipeEditorModal = ({
                       className={cn(
                         "bg-gradient-to-r from-[#550d4f] to-[#2f0596] hover:from-[#6b1062] hover:to-[#3b06bb] text-white font-bold transition-all duration-300",
                         "disabled:opacity-80 disabled:cursor-not-allowed disabled:from-[#533750] disabled:to-[#443a5d]",
-                        (hasChanges && !hasCriticalConflicts && (hasInitialConflicts || hasIngredientChanges)) && "from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 border border-green-400/50 shadow-[0_0_15px_rgba(34,197,94,0.3)]"
+                        (hasChanges && !hasCriticalConflicts && (hasInitialConflicts || hasIngredientChanges)) && "from-cyan-600 to-blue-700 hover:from-cyan-500 hover:to-blue-600 border border-cyan-400/55 shadow-[0_0_15px_rgba(6,182,212,0.35)]"
                       )}
                     >
                       {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

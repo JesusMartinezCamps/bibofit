@@ -8,6 +8,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 
 const ViewModeToggle = ({ mode, onModeChange, loading, onClose, className, hasChanges, isClientRequestView = false, showClose = true, switchCheckedColor = 'data-[state=checked]:bg-violet-500', activeIconColor = 'text-violet-500', leftElement = null, switchDisabled = false }) => {
   const isViewMode = mode === 'view';
+  const showSaveHint = !isViewMode && hasChanges;
   
   const SettingsIcon = isClientRequestView ? Pen : Settings;
   const ViewIcon = !isViewMode && hasChanges ? Save : Eye;
@@ -39,7 +40,14 @@ const ViewModeToggle = ({ mode, onModeChange, loading, onClose, className, hasCh
             className={cn(switchCheckedColor, 'data-[state=unchecked]:bg-gray-600')}
             disabled={loading || switchDisabled}
           />
-          <ViewIcon className={`h-5 w-5 transition-colors ${isViewMode || (!isViewMode && hasChanges) ? activeIconColor : 'text-muted-foreground'}`} />
+          <div className="flex items-center gap-1.5">
+            <ViewIcon className={`h-5 w-5 transition-colors ${isViewMode || (!isViewMode && hasChanges) ? activeIconColor : 'text-muted-foreground'}`} />
+            {showSaveHint && (
+              <span className={cn('text-sm font-semibold', activeIconColor)}>
+                Guardar
+              </span>
+            )}
+          </div>
         </div>
       </div>
       {showClose && onClose && (
