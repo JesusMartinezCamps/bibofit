@@ -1,10 +1,9 @@
-import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef, useContext } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Loader2, Calendar, List, ArrowLeft, ArrowRight, AlertTriangle, ShoppingCart, HeartPulse, ShieldAlert, Weight, StickyNote } from 'lucide-react';
-import WeightLogDialog from '@/components/shared/WeightLogDialog';
 import { useAuth } from '@/contexts/AuthContext';
 import WeeklyDietPlanner from '@/components/shared/WeeklyDietPlanner/WeeklyDietPlanner';
 import { format, addDays, subDays, isValid, parseISO, isToday, isSameDay, isBefore, isAfter, startOfDay, differenceInCalendarDays } from 'date-fns';
@@ -24,6 +23,7 @@ import { motion } from 'framer-motion';
 import { useDietTimelineEvents } from './hooks/useDietTimelineEvents';
 import { useDietPlanHeaderData } from './hooks/useDietPlanHeaderData';
 import { useDietMacros } from './hooks/useDietMacros';
+import { DietPlanRefreshContext } from '@/contexts/DietPlanContext';
 
 const DateTimeline = ({ currentDate, setCurrentDate, navigate, isAdminView, userId, refreshTrigger, activePlanId }) => {
     const weekDates = useMemo(() => {
@@ -108,7 +108,6 @@ const DietPlanComponent = () => {
   };
 
   const [currentDate, setCurrentDate] = useState(getInitialDate());
-  const [isWeightLogOpen, setIsWeightLogOpen] = useState(false);
   const [viewMode, setViewMode] = useState('list');
   const [isAddRecipeOpen, setIsAddRecipeOpen] = useState(false);
   const [mealToAddTo, setMealToAddTo] = useState(null);
@@ -126,6 +125,9 @@ const DietPlanComponent = () => {
   const isAdminView = authUser?.id !== userId;
   const logDate = format(currentDate, 'yyyy-MM-dd');
   const plannerRef = useRef(null);
+  const { registerPlannerRef } = useContext(DietPlanRefreshContext);
+  useEffect(() => { registerPlannerRef(plannerRef); }, [registerPlannerRef]);
+
   const visualizerWeekDates = useMemo(
     () => Array.from({ length: 7 }, (_, i) => addDays(currentDate, i)),
     [currentDate]
@@ -457,8 +459,8 @@ const combinedPlanRestrictions = useMemo(() => {
                   <Button
                     asChild
                     size="sm"
-                    variant="outline-profile"
-                    className="calendar-dialog-button bg-gradient-to-br from-[rgb(66_52_143_/50%)] to-emerald-300/0 w-full sm:w-auto"
+                    variant="outline"
+                    className="calendar-dialog-button w-full sm:w-auto"
                   >
                     <div onClick={() => navigate(`/admin/manage-diet/${userId}`)} className="!text-xs sm:!text-s text-center cursor-pointer">
                       Gestor de planes de dieta
@@ -482,7 +484,7 @@ const combinedPlanRestrictions = useMemo(() => {
             <CardContent className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-4 pt-0">
               <div className="flex flex-col space-y-4">
                   <div 
-                      onClick={() => setIsWeightLogOpen(true)} 
+                      onClick={() => navigate(`/registro-peso?date=${format(currentDate, 'yyyy-MM-dd')}${userId ? `&userId=${userId}` : ''}`)}
                       className={cn(
                           "p-3 rounded-lg border shadow-lg text-center cursor-pointer h-auto flex flex-col justify-center w-full transition-transform hover:scale-[1.02]",
                           weightForDay
@@ -611,7 +613,7 @@ const combinedPlanRestrictions = useMemo(() => {
                           {viewMode === 'week' && <CardDescription className="text-muted-foreground">Planifica tu semana y revisa la Compra Inteligente</CardDescription>}
                       </div>
                       <div className="flex items-center gap-4">
-                          <Button variant="outline" size="icon" className="bg-transparent border-[rgb(59_154_167)] text-[rgb(59_154_167)] hover:bg-[rgb(28_53_61)] hover:text-[rgb(59_154_167)]" onClick={handleShoppingListClick}>
+                          <Button variant="outline" size="icon" className="bg-transparent border-[rgb(59_154_167)] text-[rgb(59_154_167)] hover:bg-sky-100 hover:text-[rgb(59_154_167)] dark:hover:bg-[rgb(28_53_61)]" onClick={handleShoppingListClick}>
                               <ShoppingCart className="w-5 h-5" />
                           </Button>
                       </div>
@@ -654,13 +656,6 @@ const combinedPlanRestrictions = useMemo(() => {
           </Card>
         </motion.div>
 
-      <WeightLogDialog 
-        open={isWeightLogOpen} 
-        onOpenChange={setIsWeightLogOpen} 
-        onLogAdded={onWeightLogAdded}
-        userId={userId}
-        initialDate={currentDate}
-      />
       <AddRecipeToPlanDialog
           open={isAddRecipeOpen}
           onOpenChange={setIsAddRecipeOpen}
