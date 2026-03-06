@@ -442,7 +442,7 @@ const ListView = ({
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {filteredItems.map(item => {
                     if (item.type === 'snack') {
                         return <div key={item.occurrence_id} className="h-full">{item.itemContent}</div>;
