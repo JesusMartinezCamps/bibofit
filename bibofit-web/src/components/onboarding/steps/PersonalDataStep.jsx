@@ -28,7 +28,6 @@ const PersonalDataStep = ({ onNext, isLoading }) => {
       onNext({
         first_name: firstName,
         last_name: lastName,
-        full_name: [firstName, lastName].filter(Boolean).join(' '),
         phone: formData.phone
       });
     }
