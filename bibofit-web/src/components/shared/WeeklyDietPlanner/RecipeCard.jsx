@@ -1,6 +1,6 @@
 
 import React, { useMemo } from 'react';
-import { X, Scale, Hourglass, AlertTriangle, Clock, ChefHat, GitBranch, Link2 } from 'lucide-react';
+import { X, Scale, Hourglass, AlertTriangle, Clock, ChefHat } from 'lucide-react';
 import CaloriesIcon from '@/components/icons/CaloriesIcon';
 import ProteinIcon from '@/components/icons/ProteinIcon';
 import CarbsIcon from '@/components/icons/CarbsIcon';
@@ -151,48 +151,28 @@ const RecipeCard = ({
     const isPlanVersionNode = Boolean(recipe?.parent_diet_plan_recipe_id);
     const variantHint = recipe?.variant_label?.trim() || null;
 
-    let variantSubtitle = null;
-    if (isVariantNode) {
-      if (recipe?.parent_user_recipe_id) variantSubtitle = 'Deriva de otra variante';
-      else if (recipe?.source_diet_plan_recipe_id) variantSubtitle = 'Vinculada a receta base del plan';
-      else variantSubtitle = 'Vinculada dentro del árbol personal';
-    }
-
     return {
       isVariantNode,
       isPlanVersionNode,
       variantHint,
-      variantSubtitle,
     };
   }, [recipe]);
 
   if (!recipe) return null;
 
   const renderLineageBadges = ({ compact = false } = {}) => {
-    if (!lineageMeta.isVariantNode && !lineageMeta.isPlanVersionNode && !lineageMeta.variantHint) return null;
+    if (!lineageMeta.variantHint) return null;
 
     return (
       <div className={cn('flex flex-wrap items-center gap-1.5', compact ? 'mt-1' : 'mt-1.5')}>
-        {lineageMeta.isVariantNode && (
-          <span className="inline-flex items-center rounded-full border border-cyan-500/40 bg-cyan-500/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-cyan-700 dark:text-cyan-200">
-            <GitBranch className="mr-1 h-3 w-3" />
-            Variante vinculada
-          </span>
-        )}
-        {lineageMeta.isPlanVersionNode && (
-          <span className="inline-flex items-center rounded-full border border-amber-500/45 bg-amber-500/12 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-700 dark:text-amber-200">
-            <Link2 className="mr-1 h-3 w-3" />
-            Versión del plan
-          </span>
-        )}
         {lineageMeta.variantHint && (
-          <span className="inline-flex items-center rounded-full border border-cyan-600/35 bg-card/80 px-2 py-0.5 text-[10px] font-medium text-cyan-700 dark:text-cyan-100">
+          <span className={cn(
+            "inline-flex items-center rounded-full border bg-card/80 px-2 py-0.5 text-[10px] font-medium",
+            lineageMeta.isPlanVersionNode
+              ? "border-amber-500/45 text-amber-700 dark:text-amber-100"
+              : "border-cyan-600/35 text-cyan-700 dark:text-cyan-100"
+          )}>
             {lineageMeta.variantHint}
-          </span>
-        )}
-        {lineageMeta.isVariantNode && lineageMeta.variantSubtitle && !compact && (
-          <span className="text-[11px] text-cyan-800/80 dark:text-cyan-200/80">
-            {lineageMeta.variantSubtitle}
           </span>
         )}
       </div>
@@ -296,7 +276,7 @@ const RecipeCard = ({
                 <TitleWithTooltip>
                   <div className="flex flex-wrap items-center gap-2">
                     <p className={cn(
-                      'text-xl font-bold line-clamp-2 flex-1 min-w-0',
+                      'text-xl font-bold flex-1 min-w-0 break-words',
                       !isSafe && isAdminView ? 'text-red-400' : (isPending ? 'text-[rgb(159,102,163)]' : 'text-foreground dark:text-white')
                     )}>
                       <HighlightedText text={recipeName} highlight={searchQuery} />
@@ -333,7 +313,7 @@ const RecipeCard = ({
                 {recipeDifficulty}
               </span>
             </div>
-            <p className="text-sm line-clamp-3 text-foreground/85 dark:text-gray-200">
+            <p className="text-sm break-words text-foreground/85 dark:text-gray-200">
               {ingredientList.length > 0
                 ? ingredientList.reduce((prev, curr) => [prev, ', ', curr])
                 : 'Sin ingredientes'}

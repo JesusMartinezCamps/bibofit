@@ -67,6 +67,96 @@ const buildLatestRequestMap = (requests = [], keyName) => {
   return map;
 };
 
+const getRecipeImageUrl = (recipeLike) => {
+  if (!recipeLike) return null;
+  return recipeLike.img_url || recipeLike.image_url || recipeLike.recipe?.img_url || recipeLike.recipe?.image_url || null;
+};
+
+const isVariantRecipe = (recipeLike) => (
+  recipeLike?.user_recipe_type === 'variant'
+  || recipeLike?.type === 'variant'
+  || Boolean(recipeLike?.parent_user_recipe_id)
+  || Boolean(recipeLike?.source_diet_plan_recipe_id)
+);
+
+const inheritVariantImages = (dietPlanRecipes = [], privateRecipes = []) => {
+  const dietById = new Map((dietPlanRecipes || []).map((recipe) => [recipe.id, recipe]));
+  const privateById = new Map((privateRecipes || []).map((recipe) => [recipe.id, recipe]));
+
+  const dietImageCache = new Map();
+  const privateImageCache = new Map();
+
+  const resolveDietImage = (dietPlanRecipeId, visited = new Set()) => {
+    if (dietPlanRecipeId == null) return null;
+    if (dietImageCache.has(dietPlanRecipeId)) return dietImageCache.get(dietPlanRecipeId);
+
+    const recipe = dietById.get(dietPlanRecipeId);
+    if (!recipe) {
+      dietImageCache.set(dietPlanRecipeId, null);
+      return null;
+    }
+
+    const ownImage = getRecipeImageUrl(recipe);
+    if (ownImage) {
+      dietImageCache.set(dietPlanRecipeId, ownImage);
+      return ownImage;
+    }
+
+    if (visited.has(dietPlanRecipeId)) return null;
+    visited.add(dietPlanRecipeId);
+    const inheritedImage = resolveDietImage(recipe.parent_diet_plan_recipe_id, visited);
+    visited.delete(dietPlanRecipeId);
+
+    dietImageCache.set(dietPlanRecipeId, inheritedImage || null);
+    return inheritedImage || null;
+  };
+
+  const resolvePrivateImage = (privateRecipeId, visited = new Set()) => {
+    if (privateRecipeId == null) return null;
+    if (privateImageCache.has(privateRecipeId)) return privateImageCache.get(privateRecipeId);
+
+    const recipe = privateById.get(privateRecipeId);
+    if (!recipe) {
+      privateImageCache.set(privateRecipeId, null);
+      return null;
+    }
+
+    const ownImage = getRecipeImageUrl(recipe);
+    if (ownImage) {
+      privateImageCache.set(privateRecipeId, ownImage);
+      return ownImage;
+    }
+
+    if (visited.has(privateRecipeId)) return null;
+    visited.add(privateRecipeId);
+
+    let inheritedImage = null;
+    if (recipe.parent_user_recipe_id != null) {
+      inheritedImage = resolvePrivateImage(recipe.parent_user_recipe_id, visited);
+    }
+    if (!inheritedImage && recipe.source_diet_plan_recipe_id != null) {
+      inheritedImage = resolveDietImage(recipe.source_diet_plan_recipe_id);
+    }
+
+    visited.delete(privateRecipeId);
+    privateImageCache.set(privateRecipeId, inheritedImage || null);
+    return inheritedImage || null;
+  };
+
+  return (privateRecipes || []).map((recipe) => {
+    if (!isVariantRecipe(recipe) || getRecipeImageUrl(recipe)) return recipe;
+
+    const inheritedImage = resolvePrivateImage(recipe.id);
+    if (!inheritedImage) return recipe;
+
+    return {
+      ...recipe,
+      img_url: inheritedImage,
+      image_url: inheritedImage,
+    };
+  });
+};
+
 export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => {
   const [planRecipes, setPlanRecipes] = useState([]);
   const [freeMeals, setFreeMeals] = useState([]);
@@ -243,10 +333,15 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
           };
         });
 
+        const privateRecipesWithInheritedImages = inheritVariantImages(
+          processedDietPlanRecipes,
+          processedPrivateRecipes
+        );
+
         staticData = {
           allFoods,
           recipeStyles: recipeStylesRes.data || [],
-          planRecipes: [...processedDietPlanRecipes, ...processedPrivateRecipes],
+          planRecipes: [...processedDietPlanRecipes, ...privateRecipesWithInheritedImages],
           userDayMeals: userDayMealsRes.data || [],
         };
 

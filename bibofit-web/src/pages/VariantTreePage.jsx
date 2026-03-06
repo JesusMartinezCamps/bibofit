@@ -2,13 +2,14 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { format, isValid, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ArrowLeft, Archive, GitBranch, GitCommit, Loader2, Sparkles } from 'lucide-react';
+import { ArrowLeft, Archive, GitBranch, GitCommit, Loader2, Sparkles, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabaseClient';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/components/ui/use-toast';
 
 const formatDateTime = (value) => {
   if (!value) return null;
@@ -31,6 +32,7 @@ const getVariantNodeName = (node) => node?.name || `Variante #${node?.id ?? 'N/A
 
 const VariantTreePage = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const navigate = useNavigate();
   const { userId: paramUserId, date: paramDate } = useParams();
   const [searchParams] = useSearchParams();
@@ -40,6 +42,8 @@ const VariantTreePage = () => {
   const [planInfo, setPlanInfo] = useState(null);
   const [planRecipes, setPlanRecipes] = useState([]);
   const [userRecipes, setUserRecipes] = useState([]);
+  const [mealLinkedVariantIds, setMealLinkedVariantIds] = useState(new Set());
+  const [deletingVariantId, setDeletingVariantId] = useState(null);
 
   const targetUserId = paramUserId || user?.id;
   const dateKey = useMemo(() => {
@@ -100,11 +104,12 @@ const VariantTreePage = () => {
         setPlanInfo(null);
         setPlanRecipes([]);
         setUserRecipes([]);
+        setMealLinkedVariantIds(new Set());
         setLoading(false);
         return;
       }
 
-      const [planRecipesRes, userRecipesRes] = await Promise.all([
+      const [planRecipesRes, userRecipesRes, plannedMealsRes, mealLogsRes, freeOccurrencesRes] = await Promise.all([
         supabase
           .from('diet_plan_recipes')
           .select(`
@@ -139,14 +144,38 @@ const VariantTreePage = () => {
           `)
           .eq('diet_plan_id', plan.id)
           .in('type', ['private', 'variant']),
+        supabase
+          .from('planned_meals')
+          .select('user_recipe_id')
+          .eq('user_id', targetUserId)
+          .not('user_recipe_id', 'is', null),
+        supabase
+          .from('daily_meal_logs')
+          .select('user_recipe_id')
+          .eq('user_id', targetUserId)
+          .not('user_recipe_id', 'is', null),
+        supabase
+          .from('free_recipe_occurrences')
+          .select('user_recipe_id')
+          .eq('user_id', targetUserId)
+          .not('user_recipe_id', 'is', null),
       ]);
 
       if (planRecipesRes.error) throw planRecipesRes.error;
       if (userRecipesRes.error) throw userRecipesRes.error;
+      if (plannedMealsRes.error) throw plannedMealsRes.error;
+      if (mealLogsRes.error) throw mealLogsRes.error;
+      if (freeOccurrencesRes.error) throw freeOccurrencesRes.error;
 
       setPlanInfo(plan);
       setPlanRecipes((planRecipesRes.data || []).sort(byCreatedAtAsc));
       setUserRecipes((userRecipesRes.data || []).sort(byCreatedAtAsc));
+      const linkedIds = new Set([
+        ...(plannedMealsRes.data || []).map((row) => row.user_recipe_id).filter(Boolean),
+        ...(mealLogsRes.data || []).map((row) => row.user_recipe_id).filter(Boolean),
+        ...(freeOccurrencesRes.data || []).map((row) => row.user_recipe_id).filter(Boolean),
+      ]);
+      setMealLinkedVariantIds(linkedIds);
     } catch (err) {
       setError(err.message || 'No se pudo cargar el árbol de variantes.');
     } finally {
@@ -226,8 +255,80 @@ const VariantTreePage = () => {
     };
   }, [planRecipes, userRecipes]);
 
+  const getSiblingVariants = useCallback((node) => {
+    if (!node) return [];
+
+    if (node.parent_user_recipe_id) {
+      return (userChildrenMap.get(node.parent_user_recipe_id) || [])
+        .filter((candidate) => candidate.type === 'variant' && !candidate.is_archived)
+        .sort(byCreatedAtAsc);
+    }
+
+    if (node.source_diet_plan_recipe_id) {
+      return (userRootsBySourceMap.get(node.source_diet_plan_recipe_id) || [])
+        .filter((candidate) => candidate.type === 'variant' && !candidate.is_archived)
+        .sort(byCreatedAtAsc);
+    }
+
+    return userRecipes
+      .filter((candidate) =>
+        candidate.type === 'variant' &&
+        !candidate.is_archived &&
+        !candidate.parent_user_recipe_id &&
+        !candidate.source_diet_plan_recipe_id
+      )
+      .sort(byCreatedAtAsc);
+  }, [userChildrenMap, userRecipes, userRootsBySourceMap]);
+
+  const canDeleteVariantNode = useCallback((node) => {
+    if (!node || node.type !== 'variant' || node.is_archived) return false;
+
+    const isOwnerOrAdmin = user?.role === 'admin' || user?.id === node.user_id;
+    if (!isOwnerOrAdmin) return false;
+
+    if (mealLinkedVariantIds.has(node.id)) return false;
+
+    const hasActiveChildren = (userChildrenMap.get(node.id) || []).some((child) => !child.is_archived);
+    if (hasActiveChildren) return false;
+
+    const siblings = getSiblingVariants(node);
+    const latestSibling = siblings[siblings.length - 1];
+
+    return Boolean(latestSibling && latestSibling.id === node.id);
+  }, [getSiblingVariants, mealLinkedVariantIds, user, userChildrenMap]);
+
+  const handleDeleteVariant = useCallback(async (node) => {
+    if (!canDeleteVariantNode(node) || deletingVariantId) return;
+
+    setDeletingVariantId(node.id);
+    try {
+      const { error: deleteError } = await supabase.rpc('delete_user_recipe_variant_if_unused', { p_recipe_id: node.id });
+      if (deleteError) throw deleteError;
+
+      setUserRecipes((prev) => prev.filter((candidate) => candidate.id !== node.id));
+      setMealLinkedVariantIds((prev) => {
+        const next = new Set(prev);
+        next.delete(node.id);
+        return next;
+      });
+
+      toast({ title: 'Variante eliminada' });
+    } catch (err) {
+      toast({
+        title: 'No se pudo eliminar',
+        description: err.message || 'La variante no cumple las condiciones de eliminación.',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeletingVariantId(null);
+    }
+  }, [canDeleteVariantNode, deletingVariantId, toast]);
+
   const renderVariantNode = useCallback((node, depth = 0) => {
     const children = userChildrenMap.get(node.id) || [];
+    const canDelete = canDeleteVariantNode(node);
+    const isDeleting = deletingVariantId === node.id;
+
     return (
       <div
         key={`variant-${node.id}`}
@@ -253,7 +354,20 @@ const VariantTreePage = () => {
                 <p className="mt-1 text-xs text-cyan-200/90">{node.variant_label}</p>
               )}
             </div>
-            <span className="text-[11px] text-muted-foreground">#{node.id}</span>
+            <div className="flex items-center gap-2">
+              {canDelete && (
+                <button
+                  type="button"
+                  onClick={() => handleDeleteVariant(node)}
+                  disabled={isDeleting}
+                  className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-red-500/50 bg-red-500/12 text-red-200 transition-colors hover:bg-red-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+                  title="Eliminar variante"
+                >
+                  {isDeleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
+                </button>
+              )}
+              <span className="text-[11px] text-muted-foreground">#{node.id}</span>
+            </div>
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
             {node.day_meal?.name ? <span>{node.day_meal.name}</span> : null}
@@ -268,7 +382,7 @@ const VariantTreePage = () => {
         )}
       </div>
     );
-  }, [userChildrenMap]);
+  }, [canDeleteVariantNode, deletingVariantId, handleDeleteVariant, userChildrenMap]);
 
   const renderPlanNode = useCallback((node, depth = 0) => {
     const childVersions = planChildrenMap.get(node.id) || [];
