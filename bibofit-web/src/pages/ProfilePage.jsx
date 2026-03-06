@@ -40,7 +40,7 @@ const ProfilePage = () => {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const { isDark, toggleTheme } = useTheme();
   const [isNotificationsOpen, setIsNotificationsOpen] = React.useState(false);
-  const profileName = user?.full_name?.trim();
+  const profileName = (`${user?.first_name || ''} ${user?.last_name || ''}`).trim() || user?.full_name?.trim();
   const profileTitle = profileName ? profileName : 'Mi Perfil';
 
   const handleLogout = async () => {
@@ -81,7 +81,7 @@ const ProfilePage = () => {
       label: 'Mis Recetas Libres',
       href: '/profile/my-free-recipes',
       icon: Utensils,
-      color: 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400',
+      color: 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-amber-400 hover:to-orange-400',
     },
      {
       label: 'Mi Dieta',
@@ -129,8 +129,8 @@ const ProfilePage = () => {
                   className="border-border bg-card text-foreground hover:bg-accent"
                   onClick={toggleTheme}
                 >
-                  {isDark ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
-                  {isDark ? 'Claro' : 'Oscuro'}
+                  {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                  
                 </Button>
               </div>
             </div>

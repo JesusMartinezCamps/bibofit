@@ -148,7 +148,7 @@ const OnboardingWizard = ({ isOpen: propIsOpen }) => {
           )}
 
           {!isFirstStep && !isLastStep && (
-              <span className="font-semibold text-sm md:text-base text-gray-200">
+              <span className="font-semibold text-sm md:text-base text-foreground">
                   Paso {currentStepIndex} de {totalSteps - 2}
               </span>
           )}

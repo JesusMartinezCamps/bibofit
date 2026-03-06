@@ -11,7 +11,8 @@ import { GoogleLogo } from '@/pages/LoginPage';
 const SignUpPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { signup, signInWithProvider, ensureDefaultTemplate } = useAuth(); // Using new function
   const { toast } = useToast();
@@ -22,7 +23,7 @@ const SignUpPage = () => {
     setIsLoading(true);
 
     try {
-      const result = await signup(email, password, fullName);
+      const result = await signup(email, password, firstName, lastName);
       if (!result.success) {
         toast({
           title: "Error de registro",
@@ -113,14 +114,24 @@ const SignUpPage = () => {
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-2">Nombre Completo</label>
-                  <input 
-                    type="text" 
-                    value={fullName} 
-                    onChange={(e) => setFullName(e.target.value)} 
-                    className="input-field w-full" 
-                    placeholder="Juan Pérez" 
-                    required 
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">Nombre</label>
+                  <input
+                    type="text"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    className="input-field w-full"
+                    placeholder="Juan"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">Apellidos</label>
+                  <input
+                    type="text"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    className="input-field w-full"
+                    placeholder="Pérez García"
                   />
                 </div>
                 <div>

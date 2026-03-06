@@ -129,15 +129,18 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const signup = async (email, password, fullName) => {
+  const signup = async (email, password, firstName, lastName) => {
     try {
       const confirmationRedirectUrl = getAuthConfirmedRedirectUrl();
+      const fullName = [firstName, lastName].filter(Boolean).join(' ');
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            full_name: fullName,
+            first_name: firstName || null,
+            last_name: lastName || null,
+            full_name: fullName || null,
           },
           emailRedirectTo: confirmationRedirectUrl,
         },

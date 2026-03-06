@@ -146,7 +146,7 @@ export const OnboardingProvider = ({ children }) => {
     ] = await Promise.all([
       supabase
         .from('profiles')
-        .select('full_name, phone, birth_date, sex, height_cm, current_weight_kg, activity_level_id, tdee_kcal, onboarding_step_id')
+        .select('first_name, last_name, full_name, phone, birth_date, sex, height_cm, current_weight_kg, activity_level_id, tdee_kcal, onboarding_step_id')
         .eq('user_id', user.id)
         .maybeSingle(),
       supabase
@@ -232,6 +232,8 @@ export const OnboardingProvider = ({ children }) => {
       const { error } = await supabase
         .from('profiles')
         .update({
+          first_name: profile.first_name ?? null,
+          last_name: profile.last_name ?? null,
           full_name: profile.full_name ?? '',
           phone: profile.phone ?? null,
           birth_date: profile.birth_date ?? null,

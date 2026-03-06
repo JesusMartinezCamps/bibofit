@@ -24,11 +24,11 @@ const ClientProfilePage = () => {
     const fetchClientName = async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('full_name')
+        .select('first_name, last_name, full_name')
         .eq('user_id', userId)
         .single();
       if (data) {
-        setClientName(data.full_name);
+        setClientName((`${data.first_name || ''} ${data.last_name || ''}`).trim() || data.full_name);
       }
     };
     fetchClientName();

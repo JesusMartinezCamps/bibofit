@@ -14,7 +14,7 @@ export const ONBOARDING_STEPS = [
     type: 'form',
     title: 'Datos Personales',
     description: 'Cuéntanos un poco sobre ti.',
-    fieldKeys: ['full_name', 'phone'],
+    fieldKeys: ['first_name', 'last_name', 'full_name', 'phone'],
     nextStepId: 'physical-data',
     tableName: 'profiles',
     showModal: false,

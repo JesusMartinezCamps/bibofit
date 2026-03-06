@@ -239,7 +239,7 @@ const MealAdjustmentStep = ({ onNext, isLoading: isStepLoading }) => {
       let isSuccess = false;
 
       try {
-        const clientName = user?.full_name?.trim();
+        const clientName = (`${user?.first_name || ''} ${user?.last_name || ''}`).trim() || user?.full_name?.trim();
         const planName = clientName ? `Dieta de ${clientName}` : 'Dieta de Cliente';
 
         const result = await assignDietFromOnboarding(user.id, {
