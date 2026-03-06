@@ -7,7 +7,6 @@ import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '@/comp
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/customSupabaseClient';
-import WeightLogDialog from '@/components/shared/WeightLogDialog';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
 import { format, isSameDay, startOfWeek, endOfWeek, eachDayOfInterval, addDays, isWithinInterval, parseISO, add, sub } from 'date-fns';
@@ -26,8 +25,6 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isWeightLogOpen, setIsWeightLogOpen] = useState(false);
-  const [selectedWeightDate, setSelectedWeightDate] = useState(null);
   const [events, setEvents] = useState({});
   const [reminders, setReminders] = useState([]);
   const [totalMealSlots, setTotalMealSlots] = useState(0);
@@ -391,8 +388,7 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
                     if (typeof window !== 'undefined' && window.innerWidth < 640) return;
                     e.stopPropagation();
                     if (event.type === 'weight') {
-                      setSelectedWeightDate(day);
-                      setIsWeightLogOpen(true);
+                      navigate(`/registro-peso?date=${dateString}&userId=${userId}`);
                       return;
                     }
                     if (event.type === 'diet_log') {
@@ -453,8 +449,7 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
       <Button
         onClick={() => {
           setIsModalOpen(false);
-          setSelectedWeightDate(selectedDate);
-          setIsWeightLogOpen(true);
+          navigate(`/registro-peso?date=${format(selectedDate, 'yyyy-MM-dd')}&userId=${userId}`);
         }}
         variant="outline-weight"
         className="bg-purple-900/15 dark:bg-purple-800/20 dark:text-purple-400"
@@ -475,13 +470,6 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
   </DialogContent>
 </Dialog>
 
-<WeightLogDialog
-  open={isWeightLogOpen}
-  onOpenChange={setIsWeightLogOpen}
-  onLogAdded={fetchEventsAndReminders}
-  initialDate={selectedWeightDate}
-  userId={userId}
-/>
 
 {isManagerView && (
   <ReminderFormDialog
