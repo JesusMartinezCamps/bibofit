@@ -436,7 +436,7 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
               : `/plan/dieta/${userId}/${format(selectedDate, 'yyyy-MM-dd')}`
           )}
           variant="outline-diet"
-          className="flex-grow bg-green-900/15 dark:bg-green-800/20 btn-standard"
+          className="flex-grow bg-green-900/15 dark:bg-green-800/20 dark:text-green-400 btn-standard"
         >
           <Apple className="w-6 h-6 mr-2" />Plan de Dieta
         </Button>
@@ -444,7 +444,7 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
         <Button
           onClick={() => navigate(!isClientView ? `/admin/manage-training/${userId}` : '/plan/entreno')}
           variant="outline-training"
-          className="flex-grow bg-red-900/15 dark:bg-red-800/20"
+          className="flex-grow bg-red-900/15 dark:bg-red-800/20 dark:text-red-400"
         >
           <Dumbbell className="w-6 h-6 mr-2" />Plan de Entreno
         </Button>
@@ -457,7 +457,7 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
           setIsWeightLogOpen(true);
         }}
         variant="outline-weight"
-        className="bg-purple-900/15 dark:bg-purple-800/20"
+        className="bg-purple-900/15 dark:bg-purple-800/20 dark:text-purple-400"
       >
         {!isClientView ? 'Añadirle un Registro de Peso' : 'Añadir Registro de Peso'}
       </Button>
@@ -466,7 +466,7 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
         <Button
           onClick={handleOpenNewReminder}
           variant="outline-reminder"
-          className="bg-orange-900/15 dark:bg-orange-800/20"
+          className="bg-orange-900/15 dark:bg-orange-800/20 dark:text-amber-400"
         >
           <PlusCircle className="w-6 h-6 mr-2" />Añadir Recordatorio
         </Button>

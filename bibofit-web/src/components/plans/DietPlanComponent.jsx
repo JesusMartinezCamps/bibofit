@@ -613,7 +613,7 @@ const combinedPlanRestrictions = useMemo(() => {
                           {viewMode === 'week' && <CardDescription className="text-muted-foreground">Planifica tu semana y revisa la Compra Inteligente</CardDescription>}
                       </div>
                       <div className="flex items-center gap-4">
-                          <Button variant="outline" size="icon" className="bg-transparent border-[rgb(59_154_167)] text-[rgb(59_154_167)] hover:bg-sky-100 hover:text-[rgb(59_154_167)] dark:hover:bg-[rgb(28_53_61)]" onClick={handleShoppingListClick}>
+                          <Button variant="outline" size="icon" className="bg-transparent border-[rgb(59_154_167)] text-[rgb(59_154_167)] dark:text-[rgb(59_154_167)] hover:bg-sky-100 hover:text-[rgb(59_154_167)] dark:hover:text-[rgb(59_154_167)] dark:hover:bg-[rgb(28_53_61)]" onClick={handleShoppingListClick}>
                               <ShoppingCart className="w-5 h-5" />
                           </Button>
                       </div>
