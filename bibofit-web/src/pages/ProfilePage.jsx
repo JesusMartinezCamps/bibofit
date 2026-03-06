@@ -42,6 +42,7 @@ const ProfilePage = () => {
   const [isNotificationsOpen, setIsNotificationsOpen] = React.useState(false);
   const profileName = (`${user?.first_name || ''} ${user?.last_name || ''}`).trim() || user?.full_name?.trim();
   const profileTitle = profileName ? profileName : 'Mi Perfil';
+  const hasUnreadNotifications = unreadCount > 0;
 
   const handleLogout = async () => {
     await signOut();
@@ -81,7 +82,7 @@ const ProfilePage = () => {
       label: 'Mis Recetas Libres',
       href: '/profile/my-free-recipes',
       icon: Utensils,
-      color: 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-amber-400 hover:to-orange-400',
+      color: 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-cyan-400',
     },
      {
       label: 'Mi Dieta',
@@ -106,8 +107,40 @@ const ProfilePage = () => {
           className="max-w-2xl mx-auto"
         >
           <div className="mb-10">
-            <div className="flex items-start justify-between gap-3">
-              <h1 className="text-4xl md:text-5xl font-bold text-foreground">{profileTitle}</h1>
+            <div className="flex items-center justify-end gap-2 md:hidden -mt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="relative border-border bg-card text-foreground hover:bg-accent"
+                onClick={() => setIsNotificationsOpen(true)}
+                aria-label="Abrir notificaciones"
+              >
+                <Bell className="h-4 w-4" />
+                {hasUnreadNotifications && (
+                  <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-500 px-1 text-xs font-semibold text-white">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="border-border bg-card text-foreground hover:bg-accent"
+                onClick={toggleTheme}
+                aria-label="Cambiar tema"
+              >
+                {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </Button>
+            </div>
+
+            <div className="mt-3 text-center md:hidden">
+              <h1 className="text-4xl font-bold text-foreground">{profileTitle}</h1>
+            </div>
+
+            <div className="hidden items-start justify-between gap-3 md:flex">
+              <h1 className="text-5xl font-bold text-foreground">{profileTitle}</h1>
               <div className="flex items-center gap-2">
                 <Button
                   type="button"
@@ -117,7 +150,7 @@ const ProfilePage = () => {
                 >
                   <Bell className="mr-2 h-4 w-4" />
                   Notificaciones
-                  {unreadCount > 0 && (
+                  {hasUnreadNotifications && (
                     <span className="ml-2 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-500 px-1 text-xs font-semibold text-white">
                       {unreadCount > 99 ? '99+' : unreadCount}
                     </span>
@@ -130,11 +163,12 @@ const ProfilePage = () => {
                   onClick={toggleTheme}
                 >
                   {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                  
                 </Button>
               </div>
             </div>
-            <ProfileTypeSubtitle role={user?.role} />
+            <div className="mt-2 flex justify-center md:justify-start">
+              <ProfileTypeSubtitle role={user?.role} />
+            </div>
             <div className="flex flex-col items-center justify-center gap-2 mt-4">
               <Button 
                   variant="link" 
