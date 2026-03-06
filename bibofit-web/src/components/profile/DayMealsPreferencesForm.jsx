@@ -323,7 +323,7 @@ const DayMealsPreferencesForm = ({ userId }) => {
       </div>
 
       <div className="flex justify-end items-center pt-4">
-        <Button type="button" variant="outline" onClick={handleAddMeal} className="border-dashed border-yellow-500 text-yellow-300 bg-yellow-900/20 hover:bg-yellow-500/20 hover:text-yellow-300">
+        <Button type="button" variant="outline" onClick={handleAddMeal} className="border-dashed border-yellow-500 text-yellow-700 bg-yellow-100 hover:bg-yellow-200 hover:text-yellow-800 dark:text-yellow-300 dark:bg-yellow-900/20 dark:hover:bg-yellow-500/20 dark:hover:text-yellow-300">
           <PlusCircle className="mr-2 h-4 w-4" /> Añadir Momento del día
         </Button>
       </div>

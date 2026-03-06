@@ -156,12 +156,14 @@ const AppRoutes = () => (
       <Route path="/plan/dieta/:date" element={<ProtectedRoute><DietPlanLayout /></ProtectedRoute>}>
         <Route path="ver-receta" element={<RecipeViewPage />} />
         <Route path="repetir-receta" element={<RepeatRecipePage />} />
-        <Route path="arbol-variantes" element={<VariantTreePage />} />
+        <Route path="variantes-recetas" element={<VariantTreePage />} />
+        <Route path="arbol-variantes" element={<Navigate to="../variantes-recetas" replace />} />
       </Route>
       <Route path="/plan/dieta/:userId/:date" element={<ProtectedRoute><DietPlanLayout /></ProtectedRoute>}>
         <Route path="ver-receta" element={<RecipeViewPage />} />
         <Route path="repetir-receta" element={<RepeatRecipePage />} />
-        <Route path="arbol-variantes" element={<VariantTreePage />} />
+        <Route path="variantes-recetas" element={<VariantTreePage />} />
+        <Route path="arbol-variantes" element={<Navigate to="../variantes-recetas" replace />} />
       </Route>
       <Route path="/registro-peso" element={<ProtectedRoute><WeightLogPage /></ProtectedRoute>} />
       <Route path="/plan/entreno" element={<ProtectedRoute><TrainingPlanPage /></ProtectedRoute>} />
@@ -177,6 +179,7 @@ const AppRoutes = () => (
       <Route path="/profile/data" element={<ProtectedRoute><ProfileDataPage /></ProtectedRoute>} />
       <Route path="/profile/my-free-recipes" element={<ProtectedRoute><MyFreeRecipesPage /></ProtectedRoute>} />
       <Route path="/profile/variantes-recetas" element={<ProtectedRoute><VariantTreePage /></ProtectedRoute>} />
+      <Route path="/profile/arbol-variantes" element={<ProtectedRoute><Navigate to="/profile/variantes-recetas" replace /></ProtectedRoute>} />
       <Route path="/profile/ver-receta" element={<ProtectedRoute><RecipeViewPage /></ProtectedRoute>} />
       <Route path="/profile/my-foods" element={<ProtectedRoute><MyFoodsPage /></ProtectedRoute>} />
       <Route path="/profile/weight-history" element={<ProtectedRoute><WeightHistoryPage /></ProtectedRoute>} />

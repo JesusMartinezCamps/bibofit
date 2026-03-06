@@ -128,6 +128,20 @@ const DietPlanComponent = () => {
   const { registerPlannerRef } = useContext(DietPlanRefreshContext);
   useEffect(() => { registerPlannerRef(plannerRef); }, [registerPlannerRef]);
 
+  // Scroll restoration: save on unmount, restore on mount
+  const SCROLL_KEY = `diet-plan-scroll-${userId}`;
+  useEffect(() => {
+    const savedY = sessionStorage.getItem(SCROLL_KEY);
+    if (savedY) {
+      requestAnimationFrame(() => window.scrollTo({ top: parseInt(savedY, 10), behavior: 'instant' }));
+      sessionStorage.removeItem(SCROLL_KEY);
+    }
+    return () => {
+      sessionStorage.setItem(SCROLL_KEY, String(Math.round(window.scrollY)));
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const visualizerWeekDates = useMemo(
     () => Array.from({ length: 7 }, (_, i) => addDays(currentDate, i)),
     [currentDate]
@@ -264,8 +278,8 @@ const DietPlanComponent = () => {
   const handleOpenVariantTree = useCallback(() => {
     const targetDate = format(currentDate, 'yyyy-MM-dd');
     const basePath = isAdminView
-      ? `/plan/dieta/${userId}/${targetDate}/arbol-variantes`
-      : `/plan/dieta/${targetDate}/arbol-variantes`;
+      ? `/plan/dieta/${userId}/${targetDate}/variantes-recetas`
+      : `/plan/dieta/${targetDate}/variantes-recetas`;
     const query = activePlan?.id ? `?planId=${activePlan.id}` : '';
     navigate(`${basePath}${query}`);
   }, [activePlan?.id, currentDate, isAdminView, navigate, userId]);
@@ -629,8 +643,8 @@ const combinedPlanRestrictions = useMemo(() => {
                             disabled={!activePlan}
                           >
                               <GitBranch className="w-4 h-4 mr-2" />
-                              <span className="hidden sm:inline">Árbol de variantes</span>
-                              <span className="sm:hidden">Árbol</span>
+                              <span className="hidden sm:inline">Variantes de recetas</span>
+                              <span className="sm:hidden">Recetas</span>
                           </Button>
                           <Button variant="outline" size="icon" className="bg-transparent border-[rgb(59_154_167)] text-[rgb(59_154_167)] dark:text-[rgb(59_154_167)] hover:bg-sky-100 hover:text-[rgb(59_154_167)] dark:hover:text-[rgb(59_154_167)] dark:hover:bg-[rgb(28_53_61)]" onClick={handleShoppingListClick}>
                               <ShoppingCart className="w-5 h-5" />

@@ -41,7 +41,7 @@ const SearchSelectionModal = ({
                             placeholder={searchPlaceholder} 
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="bg-muted border-input text-white focus:border-cyan-500"
+                            className="bg-muted border-input text-foreground focus:border-cyan-500"
                         />
                         {headerContent}
                     </div>
@@ -57,7 +57,7 @@ const SearchSelectionModal = ({
                                     onClick={() => handleSelect(item)}
                                     className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted/80 transition-colors group text-left"
                                 >
-                                    <span className="text-gray-200 font-medium">{item[displayKey]}</span>
+                                    <span className="text-gray-800 font-medium dark:text-gray-200">{item[displayKey]}</span>
                                     <Plus className="h-4 w-4 text-muted-foreground group-hover:text-green-400 transition-colors" />
                                 </button>
                             ))

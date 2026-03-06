@@ -69,7 +69,7 @@ const ProblemSolution = ({ audience = 'user', onAudienceChange, onOpenMobileDemo
               onClick={onOpenMobileDemo}
               className="h-12 px-6 bg-blue-600 text-blue-50 hover:bg-blue-700 dark:bg-blue-500 dark:text-slate-950 dark:hover:bg-blue-400 border border-blue-700/40 dark:border-blue-300/40 shadow-sm"
             >
-              Descubre de qué va la app
+              Descubre como se ve la app
             </Button>
           </div>
           <p className="text-muted-foreground text-lg mb-6">

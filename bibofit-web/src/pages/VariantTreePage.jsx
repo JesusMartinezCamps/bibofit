@@ -478,7 +478,7 @@ const VariantTreePage = () => {
     return (
       <div
         key={`variant-${node.id}`}
-        className={cn('space-y-2', depth > 0 && 'ml-4 border-l border-cyan-500/30 pl-4')}
+        className={cn('space-y-2', depth > 0 && 'ml-4 border-l border-cyan-300/40 dark:border-cyan-500/30 pl-4')}
       >
         <div
           role="button"
@@ -491,15 +491,15 @@ const VariantTreePage = () => {
             }
           }}
           className={cn(
-            "rounded-xl border border-cyan-500/35 bg-gradient-to-r from-cyan-500/8 via-cyan-500/5 to-transparent p-3 transition-colors",
-            "cursor-pointer hover:bg-cyan-500/12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/50",
+            "rounded-xl border border-cyan-300/45 dark:border-cyan-500/35 bg-gradient-to-r from-cyan-500/30 via-cyan-400/30 to-cyan-300/30 dark:from-cyan-500/8 dark:via-cyan-500/5 dark:to-transparent p-3 transition-colors",
+            "cursor-pointer hover:from-cyan-500/40 hover:via-cyan-400/40 hover:to-cyan-300/40 dark:hover:bg-cyan-500/12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/45 dark:focus-visible:ring-cyan-500/50",
             isOpening && "opacity-80"
           )}
         >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="mb-1 flex flex-wrap items-center gap-1.5">
-                <Badge className="border border-cyan-500/45 bg-cyan-500/15 text-cyan-800 dark:text-cyan-200">
+                <Badge className="border border-cyan-300/55 dark:border-cyan-500/45 bg-cyan-100/80 dark:bg-cyan-500/15 text-cyan-900 dark:text-cyan-200">
                   <GitBranch className="mr-1 h-3 w-3" />
                   Variante
                 </Badge>
@@ -559,7 +559,7 @@ const VariantTreePage = () => {
     return (
       <div
         key={`plan-${node.id}`}
-        className={cn('space-y-3', depth > 0 && 'ml-5 border-l border-amber-500/30 pl-4')}
+        className={cn('space-y-3', depth > 0 && 'ml-5 border-l border-amber-300/45 dark:border-amber-500/30 pl-4')}
       >
         <div
           role="button"
@@ -572,17 +572,17 @@ const VariantTreePage = () => {
             }
           }}
           className={cn(
-            'rounded-2xl border p-4 transition-colors cursor-pointer hover:bg-amber-500/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/45',
+            'rounded-2xl border p-4 transition-colors cursor-pointer hover:from-amber-500/40 hover:via-amber-400/40 hover:to-amber-300/40 dark:hover:bg-amber-500/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/45 dark:focus-visible:ring-amber-500/45',
             node.is_archived
-              ? 'border-orange-500/40 bg-gradient-to-r from-orange-500/10 via-orange-500/6 to-transparent'
-              : 'border-amber-500/40 bg-gradient-to-r from-amber-500/14 via-amber-500/8 to-transparent',
+              ? 'border-orange-300/50 dark:border-orange-500/40 bg-gradient-to-r from-orange-500/30 via-orange-400/30 to-orange-300/30 dark:from-orange-500/10 dark:via-orange-500/6 dark:to-transparent'
+              : 'border-amber-300/50 dark:border-amber-500/40 bg-gradient-to-r from-amber-500/30 via-amber-400/30 to-amber-300/30 dark:from-amber-500/14 dark:via-amber-500/8 dark:to-transparent',
             isOpening && 'opacity-80'
           )}
         >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="mb-1 flex flex-wrap items-center gap-1.5">
-                <Badge className="border border-amber-500/50 bg-amber-500/18 text-amber-900 dark:text-amber-200">
+                <Badge className="border border-amber-300/55 dark:border-amber-500/50 bg-orange-600/30 dark:bg-amber-500/18 text-amber-900 dark:text-amber-200">
                   <GitCommit className="mr-1 h-3 w-3" />
                   Original
                 </Badge>
@@ -608,7 +608,7 @@ const VariantTreePage = () => {
         </div>
 
         {linkedVariants.length > 0 && (
-          <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/8 p-3">
+          <div className="rounded-xl border border-cyan-300/40 dark:border-cyan-500/30 bg-gradient-to-r from-cyan-100/85 via-cyan-50/85 to-white/85 dark:from-cyan-500/10 dark:via-cyan-500/8 dark:to-transparent p-3">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-cyan-800 dark:text-cyan-200">
               Variantes vinculadas ({linkedVariants.length})
             </p>
@@ -635,7 +635,7 @@ const VariantTreePage = () => {
       </div>
 
       <div className="relative mx-auto w-full max-w-6xl space-y-5 px-3 py-4 sm:px-6">
-        <Card className="border-border/70 bg-card/85 backdrop-blur-sm">
+        <Card className="border-border/70 bg-white/65 bg-gradient-to-br from-emerald-100/35 via-cyan-100/30 to-amber-100/25 dark:bg-none dark:bg-card/85 backdrop-blur-sm">
           <CardHeader className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
@@ -668,13 +668,13 @@ const VariantTreePage = () => {
         )}
 
         {!loading && error && (
-            <Card className="border-red-500/35 bg-red-500/10">
+            <Card className="border-red-500/35 bg-red-100/45 bg-gradient-to-r from-red-300/40 via-red-200/30 to-red-100/24 dark:from-red-500/20 dark:via-red-500/12 dark:to-transparent">
             <CardContent className="py-6 text-sm text-red-800 dark:text-red-200">{error}</CardContent>
           </Card>
         )}
 
         {!loading && !error && !planInfo && !isProfileMode && (
-            <Card className="border-amber-500/35 bg-amber-500/10">
+            <Card className="border-amber-500/35 bg-amber-100/45 bg-gradient-to-r from-amber-300/40 via-amber-200/30 to-amber-100/24 dark:from-amber-500/20 dark:via-amber-500/12 dark:to-transparent">
             <CardContent className="py-6 text-sm text-amber-900 dark:text-amber-100">
               No se encontró un plan de dieta para mostrar el árbol en esta fecha.
             </CardContent>
@@ -686,7 +686,7 @@ const VariantTreePage = () => {
             {visibleRootPlanNodes.length > 0 ? (
               <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                 {visibleRootPlanNodes.map((rootNode) => (
-                  <Card key={`root-${rootNode.id}`} className="border-border/70 bg-card/80">
+                  <Card key={`root-${rootNode.id}`} className="border-border/70 bg-gradient-to-br from-white/85 via-cyan-50/85 to-emerald-50/85 dark:bg-none dark:bg-card/80">
                     <CardContent className="space-y-3 p-4">
                       {renderPlanNode(rootNode)}
                     </CardContent>
@@ -694,7 +694,7 @@ const VariantTreePage = () => {
                 ))}
               </div>
             ) : !isProfileMode ? (
-              <Card className="border-border/70 bg-card/80">
+              <Card className="border-border/70 bg-gradient-to-br from-white/85 via-cyan-50/85 to-emerald-50/85 dark:bg-none dark:bg-card/80">
                 <CardContent className="py-6 text-sm text-muted-foreground">
                   Este plan no tiene recetas base con variantes vinculadas.
                 </CardContent>
@@ -702,7 +702,7 @@ const VariantTreePage = () => {
             ) : null}
 
             {isProfileMode && visibleRootPlanNodes.length === 0 && unlinkedVariantRoots.length === 0 && (
-              <Card className="border-border/70 bg-card/80">
+              <Card className="border-border/70 bg-gradient-to-br from-white/85 via-cyan-50/85 to-emerald-50/85 dark:bg-none dark:bg-card/80">
                 <CardContent className="py-6 text-sm text-muted-foreground">
                   Aún no tienes variantes de recetas creadas.
                 </CardContent>
@@ -710,7 +710,7 @@ const VariantTreePage = () => {
             )}
 
             {unlinkedVariantRoots.length > 0 && (
-              <Card className="border-cyan-500/30 bg-cyan-500/8">
+              <Card className="border-cyan-300/40 dark:border-cyan-500/30 bg-gradient-to-r from-cyan-100/85 via-cyan-50/85 to-white/85 dark:from-cyan-500/10 dark:via-cyan-500/8 dark:to-transparent">
                 <CardHeader>
                   <CardTitle className="text-base">Variantes sin nodo fuente</CardTitle>
                   <CardDescription>

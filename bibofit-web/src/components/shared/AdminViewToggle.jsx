@@ -6,10 +6,10 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 
-const ViewModeToggle = ({ mode, onModeChange, loading, onClose, className, hasChanges, isClientRequestView = false, showClose = true, switchCheckedColor = 'data-[state=checked]:bg-violet-500', activeIconColor = 'text-violet-500', leftElement = null, switchDisabled = false }) => {
+const ViewModeToggle = ({ mode, onModeChange, loading, onClose, className, hasChanges, isClientRequestView = false, showClose = true, switchCheckedColor = 'data-[state=checked]:bg-violet-500', activeIconColor = 'text-violet-500', leftElement = null, switchDisabled = false, saveLabel = 'Guardar' }) => {
   const isViewMode = mode === 'view';
   const showSaveHint = !isViewMode && hasChanges;
-  
+
   const SettingsIcon = isClientRequestView ? Pen : Settings;
   const ViewIcon = !isViewMode && hasChanges ? Save : Eye;
 
@@ -44,7 +44,7 @@ const ViewModeToggle = ({ mode, onModeChange, loading, onClose, className, hasCh
             <ViewIcon className={`h-5 w-5 transition-colors ${isViewMode || (!isViewMode && hasChanges) ? activeIconColor : 'text-muted-foreground'}`} />
             {showSaveHint && (
               <span className={cn('text-sm font-semibold', activeIconColor)}>
-                Guardar
+                {saveLabel}
               </span>
             )}
           </div>

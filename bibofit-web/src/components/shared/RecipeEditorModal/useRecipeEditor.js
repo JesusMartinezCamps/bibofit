@@ -311,14 +311,26 @@ export const useRecipeEditor = ({ recipeToEdit, onSaveSuccess, isAdminView, user
         }
 
         const isSimpleUpdate = !hasIngredientChanges && JSON.stringify(finalFormData) !== JSON.stringify(initialFormData);
+        const isVariantNode =
+            recipeToEdit.type === 'variant' ||
+            recipeToEdit.user_recipe_type === 'variant';
+        const isUserRecipeNode =
+            recipeToEdit.type === 'private_recipe' ||
+            recipeToEdit.type === 'free_recipe' ||
+            recipeToEdit.type === 'variant' ||
+            recipeToEdit.is_private_recipe ||
+            recipeToEdit.is_private ||
+            Boolean(recipeToEdit.user_recipe_type);
 
-        // Standard update for existing recipes that support simple updates (except Templates where we want full control below)
-        if (isSimpleUpdate && recipeToEdit.id && recipeToEdit.type !== 'recipe' && !isTemplate) {
-             let recipeType = 'diet_plan_recipe';
-             if (recipeToEdit.type === 'private_recipe' || recipeToEdit.is_private_recipe) recipeType = 'private_recipe';
-             else if (recipeToEdit.type === 'free_recipe') recipeType = 'free_recipe';
+        // Solo cambios de metadatos: actualizar in-place.
+        // En variantes: NO crear nueva variante si no cambian ingredientes.
+        if (isSimpleUpdate && recipeToEdit.id && !isTemplate && isUserRecipeNode) {
+             let recipeType = 'user_recipe';
+             if (recipeToEdit.type === 'free_recipe') recipeType = 'free_recipe';
+             else if (isVariantNode) recipeType = 'variant';
+             else if (recipeToEdit.type === 'private_recipe' || recipeToEdit.is_private_recipe) recipeType = 'private_recipe';
 
-                 result = await updateRecipeDetails({
+             result = await updateRecipeDetails({
                  recipeId: recipeToEdit.id,
                  recipeType,
                  updates: finalFormData
@@ -336,7 +348,8 @@ export const useRecipeEditor = ({ recipeToEdit, onSaveSuccess, isAdminView, user
         const variantLabel = inferVariantLabel(diffSummary);
 
         if (recipeToEdit.type === 'private_recipe' || recipeToEdit.is_private_recipe || recipeToEdit.type === 'variant') {
-            // Editar un nodo propio del árbol siempre crea un hijo — nunca modifica in-place (Principio 3)
+            // En nodos del árbol personal (private/variant), si hay cambios de ingredientes:
+            // crear nueva variante hija para conservar historial.
             result = await createVariant({
                 parentNodeId: recipeToEdit.id,
                 parentNodeType: 'user_recipe',

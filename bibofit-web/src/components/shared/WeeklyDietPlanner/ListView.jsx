@@ -522,14 +522,24 @@ const ListView = ({
                       walk(rootKey, 0);
                       keys.forEach((nodeKey) => walk(nodeKey, 0));
 
-                      const minIndex = Math.min(
-                        ...flattened.map(({ item }) => itemOrder.get(item.dnd_id) ?? 9999)
-                      );
+                      const rankedNodes = flattened
+                        .map((node) => ({
+                          ...node,
+                          rank: itemOrder.get(node.item.dnd_id) ?? 9999,
+                        }))
+                        .sort((a, b) => a.rank - b.rank);
+
+                      const promotedDepth = rankedNodes[0]?.depth ?? 0;
+                      const flattenedForDisplay = rankedNodes.map((node, idx) => ({
+                        ...node,
+                        depth: idx === 0 ? 0 : Math.max(0, node.depth - promotedDepth),
+                      }));
+                      const minIndex = rankedNodes[0]?.rank ?? 9999;
 
                       return {
                         kind: 'recipe_group',
                         rootKey,
-                        flattened,
+                        flattened: flattenedForDisplay,
                         index: Number.isFinite(minIndex) ? minIndex : 9999,
                       };
                     });

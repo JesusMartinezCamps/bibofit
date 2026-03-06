@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bibofit-cache-v2';
+const CACHE_NAME = 'bibofit-cache-v3';
 
 const STATIC_ASSETS = [
   '/',
@@ -37,6 +37,32 @@ self.addEventListener('fetch', (event) => {
 
   // Don't intercept API calls or Supabase requests
   if (event.request.url.includes('/api/') || event.request.url.includes('supabase.co')) {
+    return;
+  }
+
+  const requestUrl = new URL(event.request.url);
+  const isBuildAsset =
+    requestUrl.pathname.startsWith('/assets/') ||
+    requestUrl.pathname.endsWith('.js') ||
+    requestUrl.pathname.endsWith('.css');
+
+  // Always try network first for JS/CSS build assets to avoid stale UI after deploys.
+  if (isBuildAsset) {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
+          }
+          return networkResponse;
+        })
+        .catch(async () => {
+          return caches.match(event.request);
+        })
+    );
     return;
   }
 

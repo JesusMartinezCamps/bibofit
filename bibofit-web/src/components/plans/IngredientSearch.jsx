@@ -16,9 +16,9 @@ const ConflictBadge = ({ conflict }) => {
 
   const config = {
     'non-preferred': { icon: <ThumbsDown size={14} />, color: 'bg-orange-500/15 text-orange-700 dark:text-orange-300 border-orange-500/35' },
-    'preferred': { icon: <ThumbsUp size={14} />, color: 'bg-green-500/15 text-green-700 dark:text-green-300 border-green-500/35' },
+    'preferred': { icon: <ThumbsUp size={14} />, color: 'bg-green-500/15 text-green-900 dark:text-green-300 border-green-500/35' },
     'condition_avoid': { icon: <AlertTriangle size={14} />, color: 'bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/35' },
-    'condition_recommend': { icon: <ThumbsUp size={14} />, color: 'bg-green-500/15 text-green-700 dark:text-green-300 border-green-500/35' },
+    'condition_recommend': { icon: <ThumbsUp size={14} />, color: 'bg-green-500/15 text-green-900 dark:text-green-300 border-green-500/35' },
     'sensitivity': { icon: <AlertTriangle size={14} />, color: 'bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/35' },
   };
 

@@ -1050,13 +1050,7 @@ const HeroSection = ({ isMobileDemoOpen = false, onMobileDemoOpenChange }) => {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 mb-8">
-              <Link to="/signup">
-                <Button size="lg" className="w-full sm:w-auto bg-green-500 hover:bg-green-600 text-emerald-950 font-bold h-12 px-8">
-                  Empezar Gratis Ahora
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
-
+              
               <Link to="/login">
                 <Button
                   variant="outline"
@@ -1066,6 +1060,13 @@ const HeroSection = ({ isMobileDemoOpen = false, onMobileDemoOpenChange }) => {
                   Iniciar Sesión
                 </Button>
               </Link>
+              <Link to="/signup">
+                <Button size="lg" className="w-full sm:w-auto bg-green-500 hover:bg-green-600 text-emerald-950 font-bold h-12 px-8">
+                  Empezar Gratis Ahora
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </Link>
+
             </div>
 
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-8 text-sm text-muted-foreground">

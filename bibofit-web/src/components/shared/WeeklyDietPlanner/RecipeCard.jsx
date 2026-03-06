@@ -158,9 +158,38 @@ const RecipeCard = ({
     };
   }, [recipe]);
 
+  const variantIngredientChanges = useMemo(() => {
+    const rows = Array.isArray(recipe?.diff_summary) ? recipe.diff_summary : [];
+    const added = [];
+    const removed = [];
+
+    rows.forEach((row) => {
+      const action = String(row?.action || '').toLowerCase();
+      if (action === 'add' && row?.food) {
+        added.push(row.food);
+        return;
+      }
+      if (action === 'remove' && row?.food) {
+        removed.push(row.food);
+        return;
+      }
+      if (action === 'replace') {
+        if (row?.to_food) added.push(row.to_food);
+        if (row?.from_food) removed.push(row.from_food);
+      }
+    });
+
+    const uniq = (list) => Array.from(new Set((list || []).map((name) => String(name || '').trim()).filter(Boolean)));
+    return {
+      added: uniq(added),
+      removed: uniq(removed),
+    };
+  }, [recipe]);
+
   if (!recipe) return null;
 
   const renderLineageBadges = ({ compact = false } = {}) => {
+    if (isListView && lineageMeta.isVariantNode) return null;
     if (!lineageMeta.variantHint) return null;
 
     return (
@@ -174,6 +203,28 @@ const RecipeCard = ({
           )}>
             {lineageMeta.variantHint}
           </span>
+        )}
+      </div>
+    );
+  };
+
+  const renderVariantChangeSections = () => {
+    if (!isListView || !lineageMeta.isVariantNode) return null;
+    const hasAdded = variantIngredientChanges.added.length > 0;
+    const hasRemoved = variantIngredientChanges.removed.length > 0;
+    if (!hasAdded && !hasRemoved) return null;
+
+    return (
+      <div className="space-y-1.5">
+        {hasAdded && (
+          <div className="rounded-md border border-cyan-500/45 bg-cyan-500/12 px-2.5 py-1.5 text-xs text-cyan-900 dark:text-cyan-100">
+            <span className="font-semibold">Con:</span> {variantIngredientChanges.added.join(', ')}
+          </div>
+        )}
+        {hasRemoved && (
+          <div className="rounded-md border border-red-500/45 bg-red-500/12 px-2.5 py-1.5 text-xs text-red-900 dark:text-red-100">
+            <span className="font-semibold">Sin:</span> {variantIngredientChanges.removed.join(', ')}
+          </div>
         )}
       </div>
     );
@@ -318,6 +369,7 @@ const RecipeCard = ({
                 ? ingredientList.reduce((prev, curr) => [prev, ', ', curr])
                 : 'Sin ingredientes'}
             </p>
+            {renderVariantChangeSections()}
           </RecipeCardPanel>
 
           {!hideMacros && (

@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowRightLeft } from 'lucide-react';
+import { ArrowRightLeft, AlertTriangle, ThumbsUp } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import IngredientSearch from '@/components/plans/IngredientSearch';
 import { calculateMacros } from '@/lib/macroCalculator';
+import { cn } from '@/lib/utils';
 
 const IngredientQuickEditDialog = ({
   open,
@@ -203,6 +204,74 @@ const IngredientQuickEditDialog = ({
               </div>
             </div>
           )}
+
+          {(() => {
+            const conflictType = ingredient.conflictType;
+            const conflictDetails = ingredient.conflictDetails || [];
+            const recommendationDetails = ingredient.recommendationDetails || [];
+            const isConflict = ['condition_avoid', 'sensitivity', 'non-preferred'].includes(conflictType);
+            const isRecommended = ['condition_recommend', 'preferred'].includes(conflictType);
+            if (!isConflict && !isRecommended) return null;
+
+            const conditionNames = recommendationDetails
+              .map((r) => {
+                if (r?.conditionName) return String(r.conditionName).trim();
+                const raw = String(r?.restrictionName || '').trim();
+                if (/^Recomendado por:\s*/i.test(raw)) {
+                  return raw.replace(/^Recomendado por:\s*/i, '').trim();
+                }
+                return null;
+              })
+              .filter(Boolean);
+            const uniqueConditionNames = [...new Set(conditionNames)];
+
+            const typeLabel = (() => {
+              switch (conflictType) {
+                case 'sensitivity':
+                  return 'Sensibilidad';
+                case 'condition_avoid':
+                  return 'Condición médica (evitar)';
+                case 'non-preferred':
+                  return 'No preferido';
+                case 'condition_recommend':
+                  return uniqueConditionNames.length > 0
+                    ? `Recomendado (${uniqueConditionNames.join(', ')})`
+                    : 'Recomendado';
+                case 'preferred':
+                  return 'Recomendado';
+                default:
+                  return conflictType;
+              }
+            })();
+
+            const names = isConflict
+              ? conflictDetails.map((c) => c.restrictionName).filter(Boolean)
+              : (conflictType === 'preferred' ? ['Alimento preferido'] : []);
+
+            return (
+              <div className={cn(
+                'rounded-lg border p-3 flex items-start gap-2',
+                isConflict
+                  ? 'border-red-500/40 bg-red-500/10'
+                  : 'border-green-500/40 bg-green-500/10'
+              )}>
+                {isConflict
+                  ? <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                  : <ThumbsUp className="w-4 h-4 text-green-700 dark:text-green-400 shrink-0 mt-0.5" />
+                }
+                <div>
+                  <p className={cn('text-xs font-semibold', isConflict ? 'text-red-400' : 'text-green-800 dark:text-green-300')}>
+                    {typeLabel}
+                  </p>
+                  {names.length > 0 && (
+                    <p className={cn('text-xs mt-0.5', isConflict ? 'text-red-300/80' : 'text-green-700/90 dark:text-green-300/80')}>
+                      {names.join(', ')}
+                    </p>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           <Button
             type="button"

@@ -206,9 +206,12 @@ const RecipeEditorModal = ({
   const handleModeChange = async (checked) => {
     if (readOnly) return;
     const newMode = checked ? 'view' : 'settings';
-    if (mode === 'settings' && newMode === 'view' && hasChanges && !isClientRequestView) {
+    // Auto-save when switching to view if there are any changes (admin or client).
+    // For clients: metadata-only → update in-place; ingredient changes → creates variant.
+    const shouldAutoSave = mode === 'settings' && newMode === 'view' && hasChanges;
+    if (shouldAutoSave) {
       const success = await handleSubmit('replace');
-      if (!success) return; 
+      if (!success) return;
     }
     setMode(newMode);
   };
@@ -224,7 +227,10 @@ const RecipeEditorModal = ({
   };
   
   const handleLocalAddIngredient = (newIngredientData) => {
-    handleAddIngredient(newIngredientData);
+    const addedIngredient = handleAddIngredient(newIngredientData);
+    if (addedIngredient?.local_id || addedIngredient?.id) {
+      setQuickEditIngredientKey(addedIngredient.local_id || addedIngredient.id);
+    }
     setIsSearching(false);
     setScrollToFoodId(newIngredientData.food_id);
   }
@@ -340,14 +346,12 @@ const RecipeEditorModal = ({
   const effectiveIsTemplate = isTemplate || isTemplatePlan;
 
   const saveButtonText = useMemo(() => {
-      // If actively blocked by conflicts:
       if (hasCriticalConflicts) return "Resolver conflictos";
-      
       if (!hasChanges) return "Sin cambios";
-
       if (effectiveIsTemplate) return "Guardar cambios";
-      return "Crear variante";
-  }, [hasCriticalConflicts, hasChanges, effectiveIsTemplate]);
+      if (hasIngredientChanges) return "Crear variante";
+      return "Guardar";
+  }, [hasCriticalConflicts, hasChanges, effectiveIsTemplate, hasIngredientChanges]);
 
   // Button is disabled if:
   // 1. Submitting
@@ -391,6 +395,7 @@ const RecipeEditorModal = ({
             isClientRequestView={isClientRequestView}
             switchCheckedColor={toggleSwitchColor}
             activeIconColor={activeIconColor}
+            saveLabel={hasIngredientChanges ? "Crear variante" : "Guardar"}
             leftElement={asPage ? (
               <button
                 onClick={handleClose}
@@ -489,7 +494,7 @@ const RecipeEditorModal = ({
         </div>
         <Dialog open={isLeaveConfirmOpen} onOpenChange={setIsLeaveConfirmOpen}>
           <DialogContent className="max-w-sm">
-            <DialogTitle>¿Guardar cambios?</DialogTitle>
+            <DialogTitle>{hasIngredientChanges ? "¿Crear variante?" : "¿Guardar cambios?"}</DialogTitle>
             <DialogDescription>
               Tienes cambios sin guardar en la receta.
             </DialogDescription>
@@ -498,7 +503,7 @@ const RecipeEditorModal = ({
                 onClick={handleSaveAndLeave}
                 className="w-full bg-green-600 hover:bg-green-700 text-white"
               >
-                Salir y guardar
+                {hasIngredientChanges ? "Salir y Crear variante" : "Salir y guardar"}
               </Button>
               <Button
                 variant="ghost"
