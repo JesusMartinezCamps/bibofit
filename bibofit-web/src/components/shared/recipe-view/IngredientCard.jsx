@@ -13,14 +13,20 @@ import ProteinIcon from '@/components/icons/ProteinIcon';
 import CarbsIcon from '@/components/icons/CarbsIcon';
 import FatsIcon from '@/components/icons/FatsIcon';
 
-const NutrientBadge = ({ nutrient }) => (
-  <Badge
-    variant="outline"
-    className="text-[10px] px-1.5 py-0 h-5 bg-muted/65 border-border text-muted-foreground"
-  >
-    {nutrient.name}
-  </Badge>
-);
+const NutrientBadge = ({ nutrient, type = 'vitamin' }) => {
+  const toneClasses = type === 'mineral'
+    ? 'bg-sky-500/12 dark:bg-sky-900/20 border-sky-500/35 dark:border-sky-500/40 text-sky-700 dark:text-sky-300'
+    : 'bg-emerald-500/12 dark:bg-emerald-900/20 border-emerald-500/35 dark:border-emerald-500/40 text-emerald-700 dark:text-emerald-300';
+
+  return (
+    <Badge
+      variant="outline"
+      className={cn('text-[10px] px-1.5 py-0 h-5', toneClasses)}
+    >
+      {nutrient.name}
+    </Badge>
+  );
+};
 
 const renderMacros = ({
   macros,
@@ -382,10 +388,10 @@ const IngredientCard = ({
             )}
           >
             {vitamins.map((v) => (
-              <NutrientBadge key={`v-${v.id}`} nutrient={v} />
+              <NutrientBadge key={`v-${v.id}`} nutrient={v} type="vitamin" />
             ))}
             {minerals.map((m) => (
-              <NutrientBadge key={`m-${m.id}`} nutrient={m} />
+              <NutrientBadge key={`m-${m.id}`} nutrient={m} type="mineral" />
             ))}
           </div>
         )}

@@ -173,7 +173,7 @@ const IngredientQuickEditDialog = ({
                 <p className="text-green-700 dark:text-green-300">Grasas: {Math.round(originalMacros.fats || 0)}g</p>
               </div>
             </div>
-            <div className="rounded-lg border border-cyan-700/60 bg-cyan-900/20 p-3">
+            <div className="rounded-lg border border-cyan-500/35 dark:border-cyan-700/60 bg-cyan-500/12 dark:bg-cyan-900/20 p-3">
               <p className="text-xs text-cyan-700 dark:text-cyan-300 mb-1">Macros actualizadas</p>
               <div className="space-y-1 text-sm">
                 <p className="text-orange-700 dark:text-orange-300">Kcal: {Math.round(updatedMacros.calories || 0)}</p>
@@ -189,13 +189,13 @@ const IngredientQuickEditDialog = ({
               <p className="text-xs text-muted-foreground mb-2">Vitaminas y Minerales</p>
               <div className="flex flex-wrap gap-2">
                 {selectedVitamins.map((v) => (
-                  <Badge key={`qv-${v.id}`} variant="outline" className="border-emerald-500/40 text-emerald-700 dark:text-emerald-300 bg-emerald-900/20">
+                  <Badge key={`qv-${v.id}`} variant="outline" className="border-emerald-500/40 text-emerald-700 dark:text-emerald-300 bg-emerald-500/12 dark:bg-emerald-900/20">
                     {v.name}
                     {typeof v.mg_per_100g === 'number' ? ` (${v.mg_per_100g} mg/100g)` : ''}
                   </Badge>
                 ))}
                 {selectedMinerals.map((m) => (
-                  <Badge key={`qm-${m.id}`} variant="outline" className="border-sky-500/40 text-sky-700 dark:text-sky-300 bg-sky-900/20">
+                  <Badge key={`qm-${m.id}`} variant="outline" className="border-sky-500/40 text-sky-700 dark:text-sky-300 bg-sky-500/12 dark:bg-sky-900/20">
                     {m.name}
                     {typeof m.mg_per_100g === 'number' ? ` (${m.mg_per_100g} mg/100g)` : ''}
                   </Badge>
