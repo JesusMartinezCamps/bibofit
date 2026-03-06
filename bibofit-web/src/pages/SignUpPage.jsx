@@ -7,22 +7,39 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { UserPlus } from 'lucide-react';
 import { GoogleLogo } from '@/pages/LoginPage';
+import { PHONE_PREFIXES, validatePhone, buildE164 } from '@/lib/phonePrefixes';
 
 const SignUpPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [phonePrefix, setPhonePrefix] = useState('+34');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [phoneError, setPhoneError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { signup, signInWithProvider, ensureDefaultTemplate } = useAuth(); // Using new function
+  const { signup, signInWithProvider, ensureDefaultTemplate } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  const handlePhoneNumberChange = (e) => {
+    const digits = e.target.value.replace(/\D/g, '');
+    setPhoneNumber(digits);
+    if (phoneError) setPhoneError(validatePhone(phonePrefix, digits) || '');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
 
+    const phoneValidationError = validatePhone(phonePrefix, phoneNumber);
+    if (phoneValidationError) {
+      setPhoneError(phoneValidationError);
+      return;
+    }
+
+    const phone = buildE164(phonePrefix, phoneNumber);
+
+    setIsLoading(true);
     try {
       const result = await signup(email, password, firstName, lastName, phone);
       if (!result.success) {
@@ -121,7 +138,7 @@ const SignUpPage = () => {
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     className="input-field w-full"
-                    placeholder="Juan"
+                    placeholder="Nombre"
                     required
                   />
                 </div>
@@ -132,18 +149,39 @@ const SignUpPage = () => {
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                     className="input-field w-full"
-                    placeholder="Pérez García"
+                    placeholder="Apellidos"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-2">Teléfono <span className="text-muted-foreground/60">(Opcional)</span></label>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="input-field w-full"
-                    placeholder="+34 600 000 000"
-                  />
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">
+                    Teléfono <span className="text-muted-foreground/60">(Opcional)</span>
+                  </label>
+                  <div className="flex gap-2">
+                    <select
+                      value={phonePrefix}
+                      onChange={(e) => {
+                        setPhonePrefix(e.target.value);
+                        if (phoneError) setPhoneError(validatePhone(e.target.value, phoneNumber) || '');
+                      }}
+                      className="input-field !w-[7.5rem] shrink-0"
+                      title={PHONE_PREFIXES.find(p => p.code === phonePrefix)?.name}
+                    >
+                      {PHONE_PREFIXES.map(({ code, flag, name }) => (
+                        <option key={`${code}-${name}`} value={code}>
+                          {flag} {code} — {name}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="tel"
+                      value={phoneNumber}
+                      onChange={handlePhoneNumberChange}
+                      className="input-field flex-1 min-w-0"
+                      placeholder="600000000"
+                      inputMode="numeric"
+                    />
+                  </div>
+                  {phoneError && <p className="text-red-400 text-xs mt-1">{phoneError}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-muted-foreground mb-2">Email</label>

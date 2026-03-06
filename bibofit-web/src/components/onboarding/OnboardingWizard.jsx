@@ -95,7 +95,6 @@ const OnboardingWizard = ({ isOpen: propIsOpen }) => {
 
   const StepComponent = {
     'intro': IntroStep,
-    'personal-data': PersonalDataStep,
     'physical-data': PhysicalDataStep,
     'diet_objective_history': DietObjectiveStep,
     'diet_meals_preferences': DietMealsStep, 

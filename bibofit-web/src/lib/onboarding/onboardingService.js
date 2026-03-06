@@ -34,7 +34,7 @@ export const onboardingService = {
     return data;
   },
 
-  async saveStepData(userId, stepId, data, tableName = 'profiles') {
+  async saveStepData(userId, stepId, data) {
     console.group(`🛠️ [onboardingService] saveStepData (${stepId})`);
     console.log('User ID:', userId);
     console.log('Data payload:', data);
@@ -62,18 +62,16 @@ export const onboardingService = {
         console.log('ℹ️ No data payload to save.');
     } else {
         try {
-            if (stepId === 'personal-data' || stepId === 'physical-data') {
+            if (stepId === 'physical-data') {
               console.log('💾 Saving to profiles table...');
               const { error } = await supabase
                 .from('profiles')
                 .update(data)
                 .eq('user_id', userId);
               if (error) throw error;
-              
-              if (stepId === 'physical-data') {
-                  console.log('🔄 Triggering metabolism calculation...');
-                  await calculateAndSaveMetabolism(userId);
-              }
+
+              console.log('🔄 Triggering metabolism calculation...');
+              await calculateAndSaveMetabolism(userId);
             } 
             else if (stepId === 'diet_objective_history') {
                console.log('💾 Saving to diet_preferences (upsert)...', data);
