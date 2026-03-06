@@ -11,7 +11,12 @@ import RecipeEditorModal from '@/components/shared/RecipeEditorModal/RecipeEdito
 import { useAuth } from '@/contexts/AuthContext';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from '@/lib/utils';
-import { normalizeText, getRecipeSearchScore } from '@/lib/textSearch';
+import { normalizeText } from '@/lib/textSearch';
+import {
+    filterRecipesByQuery,
+    RECIPE_SEARCH_MATCH_TYPE_LABELS,
+    RECIPE_SEARCH_MATCH_TYPE_ORDER,
+} from '@/lib/recipeSearch';
 import { analyzeRecipeConflicts } from '@/lib/recipeConflictAnalyzer';
 import {
     getRecipeIngredients,
@@ -104,6 +109,7 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
     const [searchTerm, setSearchTerm] = useState('');
     const [planRecipes, setPlanRecipes] = useState([]);
     const [allFoods, setAllFoods] = useState([]);
+    const [recipeStyles, setRecipeStyles] = useState([]);
     const [planRestrictions, setPlanRestrictions] = useState(null);
     const [allSensitivities, setAllSensitivities] = useState([]);
     const [allConditions, setAllConditions] = useState([]);
@@ -188,44 +194,47 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
                     .from('diet_plan_recipes')
                     .select(`
                         *, 
-                        recipe:recipe_id(*, recipe_ingredients(*, food(*, food_sensitivities(*, sensitivities(id,name)), food_medical_conditions(*, medical_conditions(id, name)))), recipe_sensitivities(*, sensitivities(id, name)), recipe_medical_conditions(*, medical_conditions(id, name)), recipe_macros(*)),
-                        custom_ingredients:recipe_ingredients(*, food(*, food_sensitivities(*, sensitivities(id,name)), food_medical_conditions(*, medical_conditions(id, name))))
+                        recipe:recipe_id(*, recipe_style:recipe_style_id(id, name), recipe_ingredients(*, food(*, food_to_food_groups(food_group:food_groups(*)), food_sensitivities(*, sensitivities(id,name)), food_medical_conditions(*, medical_conditions(id, name)))), recipe_sensitivities(*, sensitivities(id, name)), recipe_medical_conditions(*, medical_conditions(id, name)), recipe_macros(*)),
+                        custom_ingredients:recipe_ingredients(*, food(*, food_to_food_groups(food_group:food_groups(*)), food_sensitivities(*, sensitivities(id,name)), food_medical_conditions(*, medical_conditions(id, name))))
                     `)
                     .eq('diet_plan_id', dietPlanId)
                     .eq('day_meal_id', currentMealId);
                 
                 privateRecipesQuery = supabase
                     .from('user_recipes')
-                    .select('*, recipe_ingredients(*, food(*, food_sensitivities(*, sensitivities(id,name)), food_medical_conditions(*, medical_conditions(id, name))))')
+                    .select('*, recipe_style:recipe_style_id(id, name), recipe_ingredients(*, food(*, food_to_food_groups(food_group:food_groups(*)), food_sensitivities(*, sensitivities(id,name)), food_medical_conditions(*, medical_conditions(id, name))))')
                     .eq('type', 'private')
                     .eq('diet_plan_id', dietPlanId)
                     .eq('day_meal_id', currentMealId);
 
             } else {
                  recipesQuery = supabase.from('recipes')
-                    .select('*, recipe_ingredients(*, food(*, food_sensitivities(*, sensitivities(id,name)), food_medical_conditions(*, medical_conditions(id, name)))), recipe_sensitivities(*, sensitivities(id, name)), recipe_medical_conditions(*, medical_conditions(id, name)), recipe_macros(*)');
+                    .select('*, recipe_style:recipe_style_id(id, name), recipe_ingredients(*, food(*, food_to_food_groups(food_group:food_groups(*)), food_sensitivities(*, sensitivities(id,name)), food_medical_conditions(*, medical_conditions(id, name)))), recipe_sensitivities(*, sensitivities(id, name)), recipe_medical_conditions(*, medical_conditions(id, name)), recipe_macros(*)');
 
                  privateRecipesQuery = (!isTemplate && userId)
                     ? supabase.from('user_recipes')
-                        .select('*, recipe_ingredients(*, food(*, food_sensitivities(*, sensitivities(id,name)), food_medical_conditions(*, medical_conditions(id, name))))')
+                        .select('*, recipe_style:recipe_style_id(id, name), recipe_ingredients(*, food(*, food_to_food_groups(food_group:food_groups(*)), food_sensitivities(*, sensitivities(id,name)), food_medical_conditions(*, medical_conditions(id, name))))')
                         .eq('user_id', userId)
                         .eq('type', 'private')
                     : Promise.resolve({ data: [], error: null });
             }
 
-            const [recipesRes, privateRecipesRes, existingPlanRecipesRes, foodsRes] = await Promise.all([
+            const [recipesRes, privateRecipesRes, existingPlanRecipesRes, foodsRes, recipeStylesRes] = await Promise.all([
                 recipesQuery,
                 privateRecipesQuery,
                 supabase.from('diet_plan_recipes').select('recipe_id, day_meal_id').eq('diet_plan_id', dietPlanId),
-                supabase.from('food').select('*, food_sensitivities(*, sensitivities(id,name)), food_medical_conditions(*, medical_conditions(id, name))')
+                supabase.from('food').select('*, food_to_food_groups(food_group:food_groups(*)), food_sensitivities(*, sensitivities(id,name)), food_medical_conditions(*, medical_conditions(id, name))'),
+                supabase.from('recipe_styles').select('id, name').order('display_order').order('name'),
             ]);
             
             if (recipesRes.error) throw recipesRes.error;
             if (privateRecipesRes.error) throw privateRecipesRes.error;
             if (existingPlanRecipesRes.error) throw existingPlanRecipesRes.error;
             if (foodsRes.error) throw foodsRes.error;
+            if (recipeStylesRes.error) throw recipeStylesRes.error;
 
             setAllFoods(foodsRes.data || []);
+            setRecipeStyles(recipeStylesRes.data || []);
             setPlanRecipes(existingPlanRecipesRes.data || []);
 
             const processRecipe = (recipe, isPrivate = false, isFromPlan = false) => {
@@ -350,7 +359,7 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
     }, [propPlanRestrictions, planRestrictions, allSensitivities, allConditions]);
 
     // Grouping and Filtering Logic
-    const groupedRecipes = useMemo(() => {
+    const groupedRecipeData = useMemo(() => {
         const getPriority = (recipe) => {
             if (recipe.is_private) return 0; // Highest priority
             if (recipe.conflicts.conditions.length > 0) return 4;
@@ -358,8 +367,7 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
             if (recipe.recommendations.conditions.length > 0) return 1;
             return 2; // No conflicts, no recommendations
         };
-        
-        const term = normalizeText(searchTerm);
+        const hasSearch = normalizeText(searchTerm).trim().length > 0;
 
         let recipesInCurrentMeal = new Set();
         if (mode !== 'plan_only') {
@@ -408,54 +416,103 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
 
              const parentId = getRecipeParentId(r);
              if (parentId) {
-                 if (groups.has(parentId)) {
-                     groups.get(parentId).variants.push(r);
-                 } else {
-                     // Parent missing in fetched set? treat as independent group for now
-                     const group = { root: null, variants: [r] };
-                     // We push to allItems only if not already pushed (orphan case)
-                     allItems.push(group);
-                 }
+                if (groups.has(parentId)) {
+                    groups.get(parentId).variants.push(r);
+                } else {
+                    // Parent missing in fetched set? treat as independent group for now
+                    const group = { root: null, variants: [r] };
+                    // We push to allItems only if not already pushed (orphan case)
+                    allItems.push(group);
+                }
              }
         });
 
-        if (!term) return allItems;
+        if (!hasSearch) {
+            return { groups: allItems, matchTypes: [], hasFuzzyMatch: false };
+        }
 
-        // 2. Filter + enrich groups with score-based ordering.
-        return allItems
-            .map(group => {
-                const rootSearch = group.root ? getRecipeSearchScore(group.root, term) : { matched: false, score: 0 };
-                const variantsWithSearch = group.variants.map(variant => ({
-                    variant,
-                    search: getRecipeSearchScore(variant, term),
-                }));
-                const matchedVariants = variantsWithSearch.filter(v => v.search.matched);
-                const hasMatch = rootSearch.matched || matchedVariants.length > 0;
-                const bestVariantScore = variantsWithSearch.reduce((max, v) => Math.max(max, v.search.score), 0);
-                const bestScore = Math.max(rootSearch.score, bestVariantScore);
+        const matchedTypes = new Set();
+        let hasFuzzyMatch = false;
 
+        const matchedGroups = allItems
+            .map((group) => {
+                const rootSearch = group.root
+                    ? filterRecipesByQuery({
+                        items: [group.root],
+                        query: searchTerm,
+                        recipeStyles,
+                        allFoods,
+                        allowFuzzy: true,
+                    })
+                    : { items: [], matchTypes: [], hasFuzzyMatch: false };
+
+                const variantsSearch = group.variants.length > 0
+                    ? filterRecipesByQuery({
+                        items: group.variants,
+                        query: searchTerm,
+                        recipeStyles,
+                        allFoods,
+                        allowFuzzy: true,
+                    })
+                    : { items: [], matchTypes: [], hasFuzzyMatch: false };
+
+                const rootMatched = !!group.root && rootSearch.items.length > 0;
+                const matchedVariants = variantsSearch.items || [];
+                const hasMatch = rootMatched || matchedVariants.length > 0;
                 if (!hasMatch) return null;
 
-                // If root does not match, keep only matching variants to reduce noise while preserving grouping.
-                const displayedVariants = rootSearch.matched
-                    ? variantsWithSearch
-                        .sort((a, b) => b.search.score - a.search.score)
-                        .map(v => v.variant)
-                    : matchedVariants
-                        .sort((a, b) => b.search.score - a.search.score)
-                        .map(v => v.variant);
+                rootSearch.matchTypes.forEach((type) => matchedTypes.add(type));
+                variantsSearch.matchTypes.forEach((type) => matchedTypes.add(type));
+                if (rootSearch.hasFuzzyMatch || variantsSearch.hasFuzzyMatch) hasFuzzyMatch = true;
+
+                const combinedMatchTypes = RECIPE_SEARCH_MATCH_TYPE_ORDER.filter(
+                    (type) => rootSearch.matchTypes.includes(type) || variantsSearch.matchTypes.includes(type)
+                );
+                const firstMatchType = combinedMatchTypes[0] || null;
+                const matchTypeRank = firstMatchType
+                    ? RECIPE_SEARCH_MATCH_TYPE_ORDER.indexOf(firstMatchType)
+                    : 999;
+
+                const representative = group.root || matchedVariants[0] || group.variants[0] || null;
+                const priorityRank = representative ? getPriority(representative) : 999;
 
                 return {
                     ...group,
-                    variants: displayedVariants,
-                    _bestScore: bestScore,
+                    variants: rootMatched ? group.variants : matchedVariants,
+                    _searchMeta: {
+                        rootMatched,
+                        matchTypeRank,
+                        fuzzy: rootSearch.hasFuzzyMatch || variantsSearch.hasFuzzyMatch,
+                        priorityRank,
+                        name: representative?.name || '',
+                    },
                 };
             })
             .filter(Boolean)
-            .sort((a, b) => b._bestScore - a._bestScore)
-            .map(({ _bestScore, ...group }) => group);
+            .sort((a, b) => {
+                if (a._searchMeta.rootMatched !== b._searchMeta.rootMatched) {
+                    return a._searchMeta.rootMatched ? -1 : 1;
+                }
+                if (a._searchMeta.matchTypeRank !== b._searchMeta.matchTypeRank) {
+                    return a._searchMeta.matchTypeRank - b._searchMeta.matchTypeRank;
+                }
+                if (a._searchMeta.fuzzy !== b._searchMeta.fuzzy) {
+                    return a._searchMeta.fuzzy ? 1 : -1;
+                }
+                if (a._searchMeta.priorityRank !== b._searchMeta.priorityRank) {
+                    return a._searchMeta.priorityRank - b._searchMeta.priorityRank;
+                }
+                return a._searchMeta.name.localeCompare(b._searchMeta.name, 'es', { sensitivity: 'base' });
+            })
+            .map(({ _searchMeta, ...group }) => group);
 
-    }, [allRecipes, planRecipes, searchTerm, currentMealId, mode]);
+        return {
+            groups: matchedGroups,
+            matchTypes: RECIPE_SEARCH_MATCH_TYPE_ORDER.filter((type) => matchedTypes.has(type)),
+            hasFuzzyMatch,
+        };
+
+    }, [allRecipes, allFoods, planRecipes, recipeStyles, searchTerm, currentMealId, mode]);
 
     const capitalize = (s) => {
         if (typeof s !== 'string') return ''
@@ -479,6 +536,12 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
         );
     }, [preselectedMeal, mealDate, isConstructor]);
 
+    const hasActiveSearch = normalizeText(searchTerm).trim().length > 0;
+    const showSearchLegend = hasActiveSearch && groupedRecipeData.groups.length > 0 && groupedRecipeData.matchTypes.length > 0;
+    const searchLegendText = groupedRecipeData.matchTypes
+        .map((type) => RECIPE_SEARCH_MATCH_TYPE_LABELS[type])
+        .join(' · ');
+
     return (
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
@@ -492,7 +555,7 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
                     <div className="relative mt-4 flex-shrink-0">
                         <Input 
                             type="text" 
-                            placeholder="Buscar recetas por nombre, ingrediente o dificultad..." 
+                            placeholder="Buscar receta, ingrediente, grupo, estilo o dificultad..." 
                             value={searchTerm} 
                             onChange={(e) => setSearchTerm(e.target.value)} 
                             className="input-field pr-10" 
@@ -506,12 +569,18 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
                             </button>
                         )}
                     </div>
+                    {showSearchLegend && (
+                        <div className="mt-3 rounded-md border border-border/60 bg-card/55 px-3 py-1.5 text-[11px] text-muted-foreground">
+                            Coincidencia por: <span className="text-foreground/90">{searchLegendText}</span>
+                            {groupedRecipeData.hasFuzzyMatch ? <span className="ml-1 text-foreground/75">(incluye typo)</span> : null}
+                        </div>
+                    )}
                     <div className="flex-grow overflow-y-auto pr-2 styled-scrollbar-sky mt-4">
                         {loading ? (
                             <div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin text-sky-500" /></div>
-                        ) : groupedRecipes.length > 0 ? (
+                        ) : groupedRecipeData.groups.length > 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-min pb-6">
-                                {groupedRecipes.map((group, idx) => (
+                                {groupedRecipeData.groups.map((group, idx) => (
                                     <RecipeGroup
                                         key={group.root ? group.root.id : `orphan-${idx}`}
                                         group={group}

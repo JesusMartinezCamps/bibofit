@@ -12,6 +12,7 @@ import HighlightedText from '@/components/shared/HighlightedText';
 import { analyzeRecipeConflicts } from '@/lib/recipeConflictAnalyzer';
 import { RecipeCardBackground, RecipeCardPanel } from '@/components/shared/recipe-card/RecipeCardBase';
 import { useTheme } from '@/contexts/ThemeContext';
+import { getIngredientHighlightForQuery } from '@/lib/recipeSearch';
 
 const RecipeCard = ({ 
   recipe, 
@@ -176,10 +177,15 @@ const RecipeCard = ({
                   conflictIcon = <ThumbsUp className="w-3 h-3 inline ml-1 text-green-500" />;
                 }
               }
+              const ingredientHighlight = getIngredientHighlightForQuery({
+                food: ing.food,
+                query: highlight,
+                allowFuzzy: true,
+              });
 
               return (
                 <li key={i} className={cn('text-xs truncate flex items-center', ingredientColorClass)}>
-                  <span>• <HighlightedText text={ing.food?.name || 'Ingrediente desconocido'} highlight={highlight} /></span>
+                  <span>• <HighlightedText text={ing.food?.name || 'Ingrediente desconocido'} highlight={ingredientHighlight} /></span>
                   {conflictIcon}
                 </li>
               );
