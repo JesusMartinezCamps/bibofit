@@ -127,6 +127,7 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOn
                     recipe_macros(*)
                 `)
                 .eq('diet_plan_id', plan.id)
+                .eq('is_archived', false)
                 .not('day_meal_id', 'is', null);
 
             if (planRecipesError) {
@@ -145,7 +146,8 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOn
                     day_meal:day_meal_id!inner(id,name,display_order)
                 `)
                 .eq('diet_plan_id', plan.id)
-                .eq('type', 'private');
+                .in('type', ['private', 'variant'])
+                .eq('is_archived', false);
 
             if (privateRecipesError) {
                 console.warn("Error fetching private recipes:", privateRecipesError);

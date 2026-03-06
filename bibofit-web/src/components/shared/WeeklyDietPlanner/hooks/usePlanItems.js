@@ -165,12 +165,12 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
             recipe:recipe_id(*, template_ingredients:recipe_ingredients(*)),
             custom_ingredients:recipe_ingredients(*),
             day_meal:day_meal_id!inner(id,name,display_order)
-          `).eq('diet_plan_id', activePlan.id),
+          `).eq('diet_plan_id', activePlan.id).eq('is_archived', false),
           supabase.from('user_recipes').select(`
             *,
             recipe_ingredients(*),
             day_meal:day_meal_id!inner(id,name,display_order)
-          `).eq('diet_plan_id', activePlan.id).eq('type', 'private'),
+          `).eq('diet_plan_id', activePlan.id).in('type', ['private', 'variant']).eq('is_archived', false),
           supabase.from('user_day_meals')
             .select('*, day_meal:day_meals(*)')
             .eq('user_id', userId)
@@ -234,6 +234,7 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
 
           return {
             ...r,
+            user_recipe_type: r.type,
             recipe_ingredients: recipeIngredients,
             dnd_id: `private-${r.id}`,
             type: RECIPE_ENTITY_TYPES.PRIVATE,
@@ -305,8 +306,9 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
         if (nextPm.user_recipe) {
           nextPm.user_recipe = {
             ...nextPm.user_recipe,
+            user_recipe_type: nextPm.user_recipe.type,
             recipe_ingredients: enrichIngredients(nextPm.user_recipe.recipe_ingredients || []),
-            is_private: nextPm.user_recipe.type === 'private',
+            is_private: ['private', 'variant'].includes(nextPm.user_recipe.type),
           };
         }
 

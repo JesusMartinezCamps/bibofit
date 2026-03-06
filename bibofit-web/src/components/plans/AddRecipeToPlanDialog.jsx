@@ -198,14 +198,16 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
                         custom_ingredients:recipe_ingredients(*, food(*, food_to_food_groups(food_group:food_groups(*)), food_sensitivities(*, sensitivities(id,name)), food_medical_conditions(*, medical_conditions(id, name))))
                     `)
                     .eq('diet_plan_id', dietPlanId)
-                    .eq('day_meal_id', currentMealId);
+                    .eq('day_meal_id', currentMealId)
+                    .eq('is_archived', false);
                 
                 privateRecipesQuery = supabase
                     .from('user_recipes')
                     .select('*, recipe_style:recipe_style_id(id, name), recipe_ingredients(*, food(*, food_to_food_groups(food_group:food_groups(*)), food_sensitivities(*, sensitivities(id,name)), food_medical_conditions(*, medical_conditions(id, name))))')
-                    .eq('type', 'private')
+                    .in('type', ['private', 'variant'])
                     .eq('diet_plan_id', dietPlanId)
-                    .eq('day_meal_id', currentMealId);
+                    .eq('day_meal_id', currentMealId)
+                    .eq('is_archived', false);
 
             } else {
                  recipesQuery = supabase.from('recipes')
@@ -215,14 +217,15 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
                     ? supabase.from('user_recipes')
                         .select('*, recipe_style:recipe_style_id(id, name), recipe_ingredients(*, food(*, food_to_food_groups(food_group:food_groups(*)), food_sensitivities(*, sensitivities(id,name)), food_medical_conditions(*, medical_conditions(id, name))))')
                         .eq('user_id', userId)
-                        .eq('type', 'private')
+                        .in('type', ['private', 'variant'])
+                        .eq('is_archived', false)
                     : Promise.resolve({ data: [], error: null });
             }
 
             const [recipesRes, privateRecipesRes, existingPlanRecipesRes, foodsRes, recipeStylesRes] = await Promise.all([
                 recipesQuery,
                 privateRecipesQuery,
-                supabase.from('diet_plan_recipes').select('recipe_id, day_meal_id').eq('diet_plan_id', dietPlanId),
+                supabase.from('diet_plan_recipes').select('recipe_id, day_meal_id').eq('diet_plan_id', dietPlanId).eq('is_archived', false),
                 supabase.from('food').select('*, food_to_food_groups(food_group:food_groups(*)), food_sensitivities(*, sensitivities(id,name)), food_medical_conditions(*, medical_conditions(id, name))'),
                 supabase.from('recipe_styles').select('id, name').order('display_order').order('name'),
             ]);

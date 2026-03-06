@@ -52,6 +52,7 @@ import WeightLogPage from '@/pages/WeightLogPage';
 import RepeatRecipePage from '@/pages/RepeatRecipePage';
 import RecipeViewPage from '@/pages/RecipeViewPage';
 import DietPlanLayout from '@/pages/DietPlanLayout';
+import VariantTreePage from '@/pages/VariantTreePage';
 import PricingPage from '@/pages/PricingPage';
 import AssignDietPlanPage from '@/pages/AssignDietPlanPage';
 import PWAInstallPrompt from '@/components/PWAInstallPrompt';
@@ -155,10 +156,12 @@ const AppRoutes = () => (
       <Route path="/plan/dieta/:date" element={<ProtectedRoute><DietPlanLayout /></ProtectedRoute>}>
         <Route path="ver-receta" element={<RecipeViewPage />} />
         <Route path="repetir-receta" element={<RepeatRecipePage />} />
+        <Route path="arbol-variantes" element={<VariantTreePage />} />
       </Route>
       <Route path="/plan/dieta/:userId/:date" element={<ProtectedRoute><DietPlanLayout /></ProtectedRoute>}>
         <Route path="ver-receta" element={<RecipeViewPage />} />
         <Route path="repetir-receta" element={<RepeatRecipePage />} />
+        <Route path="arbol-variantes" element={<VariantTreePage />} />
       </Route>
       <Route path="/registro-peso" element={<ProtectedRoute><WeightLogPage /></ProtectedRoute>} />
       <Route path="/plan/entreno" element={<ProtectedRoute><TrainingPlanPage /></ProtectedRoute>} />

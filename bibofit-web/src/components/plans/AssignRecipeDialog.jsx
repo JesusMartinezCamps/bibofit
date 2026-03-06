@@ -122,7 +122,10 @@ import React, { useState, useEffect, useCallback } from 'react';
         const handleAssign = async () => {
             setLoading(true);
 
-            const isPrivate = recipe.type === 'private' || recipe.is_private;
+            const isPrivate =
+                ['private', 'variant', 'private_recipe'].includes(recipe.type) ||
+                recipe.is_private ||
+                recipe.is_private_recipe;
             const recipeId = recipe.id;
             const recipeIdColumn = isPrivate ? 'user_recipe_id' : 'diet_plan_recipe_id';
             const otherRecipeIdColumn = isPrivate ? 'diet_plan_recipe_id' : 'user_recipe_id';

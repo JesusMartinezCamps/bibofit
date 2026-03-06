@@ -17,6 +17,7 @@ import { calculateMacros } from '@/lib/macroCalculator';
 import { usePlanItems } from './hooks/usePlanItems';
 import { useMealLogging } from './hooks/useMealLogging';
 import { getRecipeIngredients } from '@/lib/recipeEntity';
+import { archiveDietPlanRecipe, archiveUserRecipe } from '@/components/shared/RecipeEditorModal/recipeService';
 
 const getAdjustmentsForRecipe = (dailyIngredientAdjustments, equivalenceAdjustments, recipeId, userDayMealId, logDate, isPrivate) => {
     if (!dailyIngredientAdjustments || !equivalenceAdjustments) return null;
@@ -414,28 +415,27 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
     const handleRemoveRecipe = useCallback(async (recipeId, isPrivate) => {
         try {
             if (isPrivate) {
-                const { error } = await supabase.rpc('delete_private_recipe_cascade', { p_recipe_id: recipeId });
-                if (error) throw error;
+                const result = await archiveUserRecipe(recipeId);
+                if (!result.success) throw new Error(result.message);
 
                 setPlanRecipes(prev => prev.filter(r => !(r.id === recipeId && r.is_private)));
-                toast({ title: 'Éxito', description: 'Receta privada eliminada.' });
+                toast({ title: 'Éxito', description: 'Receta privada archivada.' });
             } else if (isAdminView) {
-                const { error } = await supabase.rpc('delete_diet_plan_recipe_with_dependencies', { p_recipe_id: recipeId });
-                if (error) {
-                    console.error("Error with delete_diet_plan_recipe_with_dependencies:", error);
-                     try {
-                        await supabase.from('diet_change_requests').delete().eq('diet_plan_recipe_id', recipeId);
-                        await supabase.from('daily_meal_logs').delete().eq('diet_plan_recipe_id', recipeId);
-                        await supabase.from('recipe_ingredients').delete().eq('diet_plan_recipe_id', recipeId);
-                        await supabase.from('recipe_macros').delete().eq('diet_plan_recipe_id', recipeId);
-                        await supabase.from('diet_plan_recipes').delete().eq('id', recipeId);
-                    } catch (manualError) {
-                         throw error; 
-                    }
-                }
+                const result = await archiveDietPlanRecipe(recipeId);
+                if (!result.success) throw new Error(result.message);
                 
                 setPlanRecipes(prev => prev.filter(r => !(r.id === recipeId && !r.is_private)));
-                toast({ title: 'Éxito', description: 'Receta del plan eliminada.' });
+                if (result.activeVariantsCount > 0) {
+                    toast({
+                        title: 'Receta del plan archivada',
+                        description: `${result.activeVariantsCount} cliente(s) mantienen variantes personales activas basadas en esta receta.`,
+                        duration: 6000,
+                    });
+                } else {
+                    toast({ title: 'Éxito', description: 'Receta del plan archivada.' });
+                }
+            } else {
+                return;
             }
             
             const updatedLogs = allMealLogs.filter(log => {
@@ -449,8 +449,8 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
             fetchAndSetPlanItems();
 
         } catch (error) {
-            console.error("Error deleting recipe:", error);
-            toast({ title: 'Error', description: `No se pudo eliminar la receta: ${error.message}`, variant: 'destructive' });
+            console.error("Error archiving recipe:", error);
+            toast({ title: 'Error', description: `No se pudo archivar la receta: ${error.message}`, variant: 'destructive' });
         }
     }, [isAdminView, allMealLogs, onPlanUpdate, toast, setPlanRecipes, setAllMealLogs, processMealLogs, fetchAndSetPlanItems]);
 

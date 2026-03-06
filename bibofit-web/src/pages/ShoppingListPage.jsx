@@ -539,11 +539,13 @@ const ShoppingListPage = () => {
                     const [planRecipes, privateRecipes] = await Promise.all([
                         supabase.from('diet_plan_recipes')
                             .select('id, custom_name, is_customized, custom_ingredients:recipe_ingredients(food_id, grams), recipe:recipes(name, recipe_ingredients(food_id, grams))')
-                            .eq('diet_plan_id', activePlan.id),
+                            .eq('diet_plan_id', activePlan.id)
+                            .eq('is_archived', false),
                         supabase.from('user_recipes')
                             .select('id, name, recipe_ingredients(food_id, grams)')
                             .eq('diet_plan_id', activePlan.id)
-                            .eq('type', 'private')
+                            .in('type', ['private', 'variant'])
+                            .eq('is_archived', false)
                     ]);
 
                     if (planRecipes.error) throw new Error(`Error loading plan recipes: ${planRecipes.error.message}`);

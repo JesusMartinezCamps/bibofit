@@ -3,7 +3,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, Calendar, List, ArrowLeft, ArrowRight, AlertTriangle, ShoppingCart, HeartPulse, ShieldAlert, Weight, StickyNote } from 'lucide-react';
+import { Loader2, Calendar, List, ArrowLeft, ArrowRight, AlertTriangle, ShoppingCart, HeartPulse, ShieldAlert, Weight, StickyNote, GitBranch } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import WeeklyDietPlanner from '@/components/shared/WeeklyDietPlanner/WeeklyDietPlanner';
 import { format, addDays, subDays, isValid, parseISO, isToday, isSameDay, isBefore, isAfter, startOfDay, differenceInCalendarDays } from 'date-fns';
@@ -260,6 +260,15 @@ const DietPlanComponent = () => {
       }
     });
   };
+
+  const handleOpenVariantTree = useCallback(() => {
+    const targetDate = format(currentDate, 'yyyy-MM-dd');
+    const basePath = isAdminView
+      ? `/plan/dieta/${userId}/${targetDate}/arbol-variantes`
+      : `/plan/dieta/${targetDate}/arbol-variantes`;
+    const query = activePlan?.id ? `?planId=${activePlan.id}` : '';
+    navigate(`${basePath}${query}`);
+  }, [activePlan?.id, currentDate, isAdminView, navigate, userId]);
 
     const handlePlanUpdate = useCallback((updatePayload) => {
         if (updatePayload?.macroDelta && viewMode === 'list') {
@@ -607,12 +616,22 @@ const combinedPlanRestrictions = useMemo(() => {
                   />
               </div>
               <CardHeader>
-                  <div className="flex justify-between items-center">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                           <CardTitle>{viewMode === 'list' ? 'Comidas del día' : 'Planificación de semana'}</CardTitle>
                           {viewMode === 'week' && <CardDescription className="text-muted-foreground">Planifica tu semana y revisa la Compra Inteligente</CardDescription>}
                       </div>
-                      <div className="flex items-center gap-4">
+                      <div className="ml-auto flex items-center gap-2 sm:gap-4">
+                          <Button
+                            variant="outline"
+                            className="bg-transparent border-cyan-600/70 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-500/10 hover:text-cyan-800 dark:hover:text-cyan-200"
+                            onClick={handleOpenVariantTree}
+                            disabled={!activePlan}
+                          >
+                              <GitBranch className="w-4 h-4 mr-2" />
+                              <span className="hidden sm:inline">Árbol de variantes</span>
+                              <span className="sm:hidden">Árbol</span>
+                          </Button>
                           <Button variant="outline" size="icon" className="bg-transparent border-[rgb(59_154_167)] text-[rgb(59_154_167)] dark:text-[rgb(59_154_167)] hover:bg-sky-100 hover:text-[rgb(59_154_167)] dark:hover:text-[rgb(59_154_167)] dark:hover:bg-[rgb(28_53_61)]" onClick={handleShoppingListClick}>
                               <ShoppingCart className="w-5 h-5" />
                           </Button>
