@@ -271,7 +271,8 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
     const [closeSnackEditorOnEquivalence, setCloseSnackEditorOnEquivalence] = useState(false);
 
     useImperativeHandle(ref, () => ({
-        refreshItems: fetchAndSetPlanItems,
+        refreshItems: (options = {}) =>
+            fetchAndSetPlanItems({ force: true, refreshStatic: true, silent: true, ...options }),
         getWeekDates: () => weekDates,
         getIngredientCache: () => ingredientCache,
         scrollToDay(date) {

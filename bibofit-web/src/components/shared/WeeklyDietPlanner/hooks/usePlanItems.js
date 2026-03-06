@@ -44,6 +44,29 @@ const buildIngredientEnricher = (foods = []) => {
   };
 };
 
+const getRequestTimestamp = (request) => {
+  const raw = request?.requested_at || request?.created_at;
+  const parsed = raw ? Date.parse(raw) : NaN;
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const buildLatestRequestMap = (requests = [], keyName) => {
+  const map = new Map();
+
+  requests.forEach((request) => {
+    const key = request?.[keyName];
+    if (key == null) return;
+
+    const mapKey = String(key);
+    const current = map.get(mapKey);
+    if (!current || getRequestTimestamp(request) > getRequestTimestamp(current)) {
+      map.set(mapKey, request);
+    }
+  });
+
+  return map;
+};
+
 export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => {
   const [planRecipes, setPlanRecipes] = useState([]);
   const [freeMeals, setFreeMeals] = useState([]);
@@ -180,11 +203,19 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
         ];
         const enrichIngredients = buildIngredientEnricher(allFoods);
         const changeRequests = changeRequestsRes.data || [];
+        const latestChangeRequestByPlanRecipeId = buildLatestRequestMap(
+          changeRequests.filter((request) => !request.requested_changes_user_recipe_id),
+          'diet_plan_recipe_id'
+        );
+        const latestChangeRequestByRequestedUserRecipeId = buildLatestRequestMap(
+          changeRequests,
+          'requested_changes_user_recipe_id'
+        );
 
         const processedDietPlanRecipes = (dietPlanRecipesRes.data || []).map((r) => {
           const recipeIngredients = enrichIngredients(r.recipe?.template_ingredients || []);
           const customIngredients = enrichIngredients(r.custom_ingredients || []);
-          const request = changeRequests.find((cr) => cr.diet_plan_recipe_id === r.id && !cr.requested_changes_user_recipe_id);
+          const request = latestChangeRequestByPlanRecipeId.get(String(r.id));
 
           return {
             ...r,
@@ -199,7 +230,7 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
 
         const processedPrivateRecipes = (privateRecipesRes.data || []).map((r) => {
           const recipeIngredients = enrichIngredients(r.recipe_ingredients || []);
-          const request = changeRequests.find((cr) => cr.requested_changes_user_recipe_id === r.id);
+          const request = latestChangeRequestByRequestedUserRecipeId.get(String(r.id));
 
           return {
             ...r,
