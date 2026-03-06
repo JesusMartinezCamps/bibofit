@@ -3,13 +3,143 @@ import { supabase } from '@/lib/supabaseClient';
 import { useToast } from '@/components/ui/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Loader2 } from 'lucide-react';
+import { Plus, Loader2, History, ChevronDown, ChevronUp, Archive } from 'lucide-react';
 import AddRecipeToPlanDialog from '@/components/plans/AddRecipeToPlanDialog';
 import RecipeEditorModal from '@/components/shared/RecipeEditorModal/RecipeEditorModal';
 import RecipeCard from '@/components/shared/WeeklyDietPlanner/RecipeCard';
 import { useAuth } from '@/contexts/AuthContext';
+import { archiveDietPlanRecipe } from '@/components/shared/RecipeEditorModal/recipeService';
+import { cn } from '@/lib/utils';
+import { format, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
 
-const MealSection = ({ meal, recipes, onAdd, onEdit, onDelete, allFoods, planRestrictions, user, readOnly }) => (
+// Panel colapsable con las versiones anteriores (archivadas) de una receta base
+const RecipeVersionHistory = ({ currentRecipeId, planId, planRestrictions }) => {
+    const [open, setOpen] = useState(false);
+    const [versions, setVersions] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [viewingVersion, setViewingVersion] = useState(null);
+
+    const fetchVersions = useCallback(async () => {
+        if (!open || versions.length > 0) return;
+        setLoading(true);
+        try {
+            // Recorrer la cadena de parent_diet_plan_recipe_id hacia atrás
+            const { data, error } = await supabase
+                .from('diet_plan_recipes')
+                .select('*, recipe:recipe_id(name, recipe_ingredients(*, food(*))), custom_ingredients:recipe_ingredients(*, food(*))')
+                .eq('diet_plan_id', planId)
+                .eq('is_archived', true)
+                .order('archived_at', { ascending: false });
+
+            if (error) throw error;
+
+            // Filtrar solo los antecesores del nodo actual recorriendo parent_diet_plan_recipe_id
+            const ancestors = [];
+            let parentId = currentRecipeId;
+            const byId = new Map((data || []).map(r => [r.id, r]));
+
+            // Buscar el registro actual para obtener su parent
+            const { data: current } = await supabase
+                .from('diet_plan_recipes')
+                .select('parent_diet_plan_recipe_id')
+                .eq('id', currentRecipeId)
+                .single();
+
+            parentId = current?.parent_diet_plan_recipe_id;
+            while (parentId && byId.has(parentId)) {
+                const ancestor = byId.get(parentId);
+                ancestors.push(ancestor);
+                parentId = ancestor.parent_diet_plan_recipe_id;
+            }
+
+            setVersions(ancestors);
+        } catch (err) {
+            console.error('Error fetching recipe versions:', err);
+        } finally {
+            setLoading(false);
+        }
+    }, [open, currentRecipeId, planId, versions.length]);
+
+    useEffect(() => {
+        fetchVersions();
+    }, [fetchVersions]);
+
+    if (!open) {
+        return (
+            <button
+                onClick={() => setOpen(true)}
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors py-1 px-2"
+            >
+                <History className="w-3 h-3" />
+                Ver historial
+                <ChevronDown className="w-3 h-3" />
+            </button>
+        );
+    }
+
+    return (
+        <div className="border-t border-border/50 mt-2 pt-2">
+            <button
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors py-1 px-2 mb-2"
+            >
+                <History className="w-3 h-3" />
+                Ocultar historial
+                <ChevronUp className="w-3 h-3" />
+            </button>
+
+            {loading && <div className="flex justify-center py-2"><Loader2 className="w-4 h-4 animate-spin text-muted-foreground" /></div>}
+
+            {!loading && versions.length === 0 && (
+                <p className="text-xs text-muted-foreground italic px-2 py-1">No hay versiones anteriores.</p>
+            )}
+
+            {versions.map((version) => {
+                const name = version.custom_name || version.recipe?.name || 'Versión anterior';
+                const archivedDate = version.archived_at
+                    ? format(parseISO(version.archived_at), "d MMM yyyy 'a las' HH:mm", { locale: es })
+                    : null;
+                return (
+                    <div
+                        key={version.id}
+                        className="flex items-center justify-between gap-2 px-2 py-1.5 rounded-md hover:bg-muted/40 transition-colors"
+                    >
+                        <div className="flex items-center gap-2 min-w-0">
+                            <Archive className="w-3 h-3 flex-shrink-0 text-muted-foreground/60" />
+                            <div className="min-w-0">
+                                <p className="text-xs font-medium text-muted-foreground truncate">{name}</p>
+                                {archivedDate && (
+                                    <p className="text-[10px] text-muted-foreground/60">Archivada {archivedDate}</p>
+                                )}
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => setViewingVersion(version)}
+                            className="text-[10px] text-muted-foreground hover:text-foreground underline underline-offset-2 flex-shrink-0"
+                        >
+                            Ver
+                        </button>
+                    </div>
+                );
+            })}
+
+            {viewingVersion && (
+                <RecipeEditorModal
+                    open={!!viewingVersion}
+                    onOpenChange={(o) => { if (!o) setViewingVersion(null); }}
+                    recipeToEdit={viewingVersion}
+                    planRestrictions={planRestrictions}
+                    onSaveSuccess={() => setViewingVersion(null)}
+                    isAdminView={true}
+                    readOnly={true}
+                />
+            )}
+        </div>
+    );
+};
+
+const MealSection = ({ meal, recipes, onAdd, onEdit, onArchive, allFoods, planRestrictions, user, readOnly, planId }) => (
     <div key={meal.id} className="bg-card/75 rounded-lg border border-border overflow-hidden">
         <div className="flex items-center justify-between gap-3 p-3 border-b border-border bg-card/90">
             <h3 className="text-lg font-bold text-foreground dark:text-white">{meal.name}</h3>
@@ -22,20 +152,28 @@ const MealSection = ({ meal, recipes, onAdd, onEdit, onDelete, allFoods, planRes
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-y-3 gap-x-0 md:gap-4 p-0 md:p-4">
             {recipes.length > 0 ? (
                 recipes.map(pr => (
-                    <RecipeCard
-                        key={pr.id}
-                        recipe={pr}
-                        user={user}
-                        allFoods={allFoods}
-                        handleRecipeClick={onEdit}
-                        handleRemoveRecipe={readOnly ? undefined : onDelete}
-                        isListView={true}
-                        userRestrictions={planRestrictions}
-                        isAdminView={true}
-                        hideQuantities={true}
-                        hideMacros={true}
-                        readOnly={readOnly}
-                    />
+                    <div key={pr.id} className="flex flex-col">
+                        <RecipeCard
+                            recipe={pr}
+                            user={user}
+                            allFoods={allFoods}
+                            handleRecipeClick={onEdit}
+                            handleRemoveRecipe={readOnly ? undefined : onArchive}
+                            isListView={true}
+                            userRestrictions={planRestrictions}
+                            isAdminView={true}
+                            hideQuantities={true}
+                            hideMacros={true}
+                            readOnly={readOnly}
+                        />
+                        {!readOnly && (
+                            <RecipeVersionHistory
+                                currentRecipeId={pr.id}
+                                planId={planId}
+                                planRestrictions={planRestrictions}
+                            />
+                        )}
+                    </div>
                 ))
             ) : (
                 <div className="md:col-span-2 lg:col-span-3 xl:col-span-4 p-4">
@@ -46,7 +184,7 @@ const MealSection = ({ meal, recipes, onAdd, onEdit, onDelete, allFoods, planRes
     </div>
 );
 
-const PlanRecipesView = ({ plan, onUpdate, readOnly = false, clientRestrictions }) => {
+const PlanRecipesView = ({ plan, readOnly = false, clientRestrictions }) => {
     const { toast } = useToast();
     const { user } = useAuth();
     const [recipes, setRecipes] = useState([]);
@@ -54,10 +192,10 @@ const PlanRecipesView = ({ plan, onUpdate, readOnly = false, clientRestrictions 
     const [allFoods, setAllFoods] = useState([]);
     const [loading, setLoading] = useState(true);
     const [planRestrictions, setPlanRestrictions] = useState({ sensitivities: [], conditions: [] });
-    
+
     const [isAddRecipeOpen, setIsAddRecipeOpen] = useState(false);
     const [mealToAddTo, setMealToAddTo] = useState(null);
-    
+
     const [isRecipeEditorOpen, setIsRecipeEditorOpen] = useState(false);
     const [recipeToView, setRecipeToView] = useState(null);
     const [isAddingRecipe, setIsAddingRecipe] = useState(false);
@@ -69,6 +207,7 @@ const PlanRecipesView = ({ plan, onUpdate, readOnly = false, clientRestrictions 
                 supabase.from('diet_plan_recipes')
                     .select('*, recipe:recipe_id(*, recipe_ingredients(*, food(*, food_sensitivities(*), food_medical_conditions(*)))), custom_ingredients:recipe_ingredients(*, food(*, food_sensitivities(*), food_medical_conditions(*)))')
                     .eq('diet_plan_id', plan.id)
+                    .eq('is_archived', false)
                     .not('day_meal_id', 'is', null),
                 supabase.from('day_meals').select('*').order('display_order'),
                 supabase.from('food').select('*, food_sensitivities(*), food_medical_conditions(*)'),
@@ -83,19 +222,16 @@ const PlanRecipesView = ({ plan, onUpdate, readOnly = false, clientRestrictions 
             if (planSensitivitiesRes.error) throw planSensitivitiesRes.error;
             if (planConditionsRes.error) throw planConditionsRes.error;
             if (allConditionsRes.error) throw allConditionsRes.error;
-            
-            // If clientRestrictions are provided (in preview mode), use them. 
-            // Otherwise, use the plan's own restrictions.
+
             let restrictions;
             if (clientRestrictions) {
-                // Combine plan restrictions with client specific restrictions for conflict checking
-                 restrictions = {
+                restrictions = {
                     sensitivities: [...new Set([...clientRestrictions.sensitivities, ...planSensitivitiesRes.data.map(s => s.sensitivity_id)])],
                     conditions: [...new Set([...clientRestrictions.conditions, ...planConditionsRes.data.map(c => c.condition_id)])],
                     allMedicalConditions: allConditionsRes.data || [],
                 };
             } else {
-                 restrictions = {
+                restrictions = {
                     sensitivities: planSensitivitiesRes.data.map(s => s.sensitivity_id),
                     conditions: planConditionsRes.data.map(c => c.condition_id),
                     allMedicalConditions: allConditionsRes.data || [],
@@ -103,7 +239,6 @@ const PlanRecipesView = ({ plan, onUpdate, readOnly = false, clientRestrictions 
             }
 
             setPlanRestrictions(restrictions);
-
             setRecipes(recipesRes.data || []);
             setDayMeals(mealsRes.data || []);
             setAllFoods(foodsRes.data || []);
@@ -113,19 +248,31 @@ const PlanRecipesView = ({ plan, onUpdate, readOnly = false, clientRestrictions 
             setLoading(false);
         }
     }, [plan, toast, clientRestrictions]);
-    
+
     useEffect(() => {
         if (plan) fetchData();
     }, [plan, fetchData]);
 
-    const handleDeleteRecipe = async (recipeId) => {
+    const handleArchiveRecipe = async (recipeId) => {
         if (readOnly) return;
-        const { error } = await supabase.from('diet_plan_recipes').delete().eq('id', recipeId);
-        if (error) {
-            toast({ title: 'Error al eliminar', description: error.message, variant: 'destructive' });
+
+        const result = await archiveDietPlanRecipe(recipeId);
+
+        if (!result.success) {
+            toast({ title: 'Error al archivar', description: result.message, variant: 'destructive' });
+            return;
+        }
+
+        setRecipes(prev => prev.filter(r => r.id !== recipeId));
+
+        if (result.activeVariantsCount > 0) {
+            toast({
+                title: 'Receta archivada',
+                description: `${result.activeVariantsCount} cliente(s) tienen variantes personales basadas en esta receta. Siguen disponibles como nodos históricos.`,
+                duration: 6000,
+            });
         } else {
-            toast({ title: 'Receta eliminada' });
-            setRecipes(prev => prev.filter(r => r.id !== recipeId));
+            toast({ title: 'Receta archivada' });
         }
     };
 
@@ -134,7 +281,7 @@ const PlanRecipesView = ({ plan, onUpdate, readOnly = false, clientRestrictions 
         setMealToAddTo(meal);
         setIsAddRecipeOpen(true);
     };
-    
+
     const handleViewRecipe = (planRecipe) => {
         setRecipeToView(planRecipe);
         setIsAddingRecipe(false);
@@ -143,7 +290,7 @@ const PlanRecipesView = ({ plan, onUpdate, readOnly = false, clientRestrictions 
 
     const handleRecipeAdded = useCallback(async (recipe) => {
         if (!mealToAddTo) return;
-        
+
         try {
             const { data: newPlanRecipe, error } = await supabase
                 .from('diet_plan_recipes')
@@ -199,34 +346,35 @@ const PlanRecipesView = ({ plan, onUpdate, readOnly = false, clientRestrictions 
 
     const handleEditorSaveSuccess = async (resultData, action) => {
         setIsRecipeEditorOpen(false);
-        
-        if (action === 'variant_created' && resultData) {
+
+        if ((action === 'variant_created' || action === 'version_created') && resultData) {
             try {
                  const { data: fullRecord, error: fetchError } = await supabase
                      .from('diet_plan_recipes')
                      .select('*, recipe:recipe_id(*, recipe_ingredients(*, food(*, food_sensitivities(*), food_medical_conditions(*)))), custom_ingredients:recipe_ingredients(*, food(*, food_sensitivities(*), food_medical_conditions(*)))')
                      .eq('id', resultData.id)
                      .single();
-                 
+
                  if (fetchError) throw fetchError;
-                 
+
                  setRecipes(prev => {
                      if (isAddingRecipe) {
                         return [...prev, fullRecord];
                      } else {
+                        // Reemplaza la versión anterior por la nueva en la lista activa
                         const filtered = prev.filter(r => r.id !== recipeToView.id);
                         return [...filtered, fullRecord];
                      }
                  });
 
             } catch (err) {
-                 console.error("Error fetching new variant:", err);
+                 console.error('Error fetching new version:', err);
                  fetchData();
             }
         } else {
             fetchData();
         }
-        
+
         toast({ title: 'Éxito', description: 'La operación se completó correctamente.' });
     };
 
@@ -240,10 +388,10 @@ const PlanRecipesView = ({ plan, onUpdate, readOnly = false, clientRestrictions 
                 {!readOnly && (
                     <CardHeader>
                         <CardTitle>Recetas en la Plantilla</CardTitle>
-                        <CardDescription>Estas son las recetas base para este plan, organizadas por momento del día.</CardDescription>
+                        <CardDescription>Recetas base del plan. Editar una versión crea una nueva y archiva la anterior.</CardDescription>
                     </CardHeader>
                 )}
-                <CardContent className={readOnly ? "pt-6" : ""}>
+                <CardContent className={cn(readOnly ? "pt-6" : "")}>
                     <div className="space-y-6">
                         {dayMeals.map(meal => (
                             <MealSection
@@ -253,10 +401,11 @@ const PlanRecipesView = ({ plan, onUpdate, readOnly = false, clientRestrictions 
                                 allFoods={allFoods}
                                 onAdd={handleAddRecipe}
                                 onEdit={handleViewRecipe}
-                                onDelete={handleDeleteRecipe}
+                                onArchive={handleArchiveRecipe}
                                 planRestrictions={planRestrictions}
                                 user={user}
                                 readOnly={readOnly}
+                                planId={plan.id}
                             />
                         ))}
                     </div>
@@ -276,7 +425,7 @@ const PlanRecipesView = ({ plan, onUpdate, readOnly = false, clientRestrictions 
                 planRestrictions={planRestrictions}
                 onEditConflict={handleOpenEditorForConflict}
             />
-            
+
             <RecipeEditorModal
                 open={isRecipeEditorOpen}
                 onOpenChange={setIsRecipeEditorOpen}
