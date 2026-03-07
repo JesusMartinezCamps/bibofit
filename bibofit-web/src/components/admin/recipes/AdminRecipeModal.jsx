@@ -576,6 +576,7 @@ const AdminRecipeModal = ({
                                             allFoodGroups={allFoodGroups}
                                             macros={macros}
                                             userRestrictions={fullUserRestrictions}
+                                            targetUserId={userId}
                                             isEditing={!isReadOnly}
                                             onFormChange={(e) => !isReadOnly && setRecipeData(prev => ({ ...prev, [e.target.name]: e.target.value }))}
                                             onIngredientsChange={handleIngredientsChange}

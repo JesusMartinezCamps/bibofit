@@ -329,13 +329,15 @@ const RecipeView = ({
 
   const handleAutoBalance = async () => {
     const activeTargets = normalizedProvidedTargets || fetchedTargets;
+    const targetValues = [
+      Number(activeTargets?.target_proteins),
+      Number(activeTargets?.target_carbs),
+      Number(activeTargets?.target_fats),
+    ];
+    const hasMissingTargets = targetValues.some((value) => !Number.isFinite(value));
+    const hasAnyPositiveTarget = targetValues.some((value) => value > 0);
 
-    if (
-      !activeTargets ||
-      [activeTargets.target_proteins, activeTargets.target_carbs, activeTargets.target_fats].some(
-        (t) => t === 0 || t === null || t === undefined
-      )
-    ) {
+    if (!activeTargets || hasMissingTargets || !hasAnyPositiveTarget) {
       toast({
         title: 'Objetivos no definidos',
         description: 'No se encontraron objetivos de macros validos.',
