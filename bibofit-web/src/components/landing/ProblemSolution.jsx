@@ -52,7 +52,7 @@ const ProblemSolution = ({ audience = 'user', onAudienceChange, onOpenMobileDemo
     <section id="problem" className="pb-20 bg-card/60">
       <div className="container mx-auto px-4 md:px-6">
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
+          <h2 className="text-3xl pt-12 md:text-4xl font-bold text-foreground mb-6">
             Prueba cómo sería si tu{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-500 to-emerald-600 dark:from-green-300 dark:to-emerald-400">
               Dietista
@@ -62,7 +62,15 @@ const ProblemSolution = ({ audience = 'user', onAudienceChange, onOpenMobileDemo
               Software
             </span>
           </h2>
-          <div className="mb-4 sm:hidden">
+          
+          <p className="text-muted-foreground text-lg mb-6">
+            Bibofit es una app desarrollada por una{' '}
+            <span className="text-green-400 font-semibold">única persona</span>, con el objetivo de{' '}
+            <span className="text-green-400 font-semibold">facilitar</span> lo máximo posible a las personas que puedan llevar una{' '}
+            <span className="text-green-400 font-semibold">dieta saludable</span>. Mira lo que ofrece.
+          </p>
+
+          <div className="mb-12 mt-6 sm:hidden">
             <Button
               type="button"
               size="lg"
@@ -72,13 +80,6 @@ const ProblemSolution = ({ audience = 'user', onAudienceChange, onOpenMobileDemo
               Descubre como se ve la app
             </Button>
           </div>
-          <p className="text-muted-foreground text-lg mb-6">
-            Bibofit es una app desarrollada por una{' '}
-            <span className="text-green-400 font-semibold">única persona</span>, con el objetivo de{' '}
-            <span className="text-green-400 font-semibold">facilitar</span> lo máximo posible a las personas que puedan llevar una{' '}
-            <span className="text-green-400 font-semibold">dieta saludable</span>. Mira lo que ofrece.
-          </p>
-
           <RoleToggle value={audience} onChange={handleAudienceChange} />
         </div>
 
