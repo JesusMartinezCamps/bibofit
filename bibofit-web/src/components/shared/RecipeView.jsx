@@ -809,7 +809,7 @@ const RecipeView = ({
                 }}
                 disabled={isBalancing || (disableAutoBalance && !onAutoBalanceBlocked)}
                 variant="outline"
-                className="w-full bg-muted border-cyan-500 text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300 mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-muted border-cyan-500 bg-cyan-400/10 text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300 mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isBalancing ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />

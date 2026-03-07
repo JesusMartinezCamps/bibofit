@@ -192,16 +192,80 @@ const RecipeEditorModal = ({
   const [isLeaveConfirmOpen, setIsLeaveConfirmOpen] = useState(false);
   const [quickEditIngredientKey, setQuickEditIngredientKey] = useState(null);
   const ingredientsContainerRef = useRef(null);
+  const searchScrollSnapshotRef = useRef({
+    innerScrollTop: 0,
+    appShellScrollTop: 0,
+    windowScrollTop: 0,
+  });
+  const shouldRestoreSearchScrollRef = useRef(false);
+  const shouldForceBottomScrollRef = useRef(false);
 
   useEffect(() => {
     if (scrollToFoodId && ingredientsContainerRef.current) {
-      const ingredientCard = ingredientsContainerRef.current.querySelector(`[data-ingredient-food-id='${scrollToFoodId}']`);
+      const cards = ingredientsContainerRef.current.querySelectorAll('[data-ingredient-food-id]');
+      const ingredientCard = Array.from(cards).find(
+        (card) => card.getAttribute('data-ingredient-food-id') === String(scrollToFoodId)
+      );
       if (ingredientCard) {
-        ingredientCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        setScrollToFoodId(null); 
+        ingredientCard.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      } else {
+        ingredientsContainerRef.current.scrollTop = ingredientsContainerRef.current.scrollHeight;
       }
+      setScrollToFoodId(null);
     }
   }, [ingredients, scrollToFoodId, mode]);
+
+  useEffect(() => {
+    if (isSearching || !shouldRestoreSearchScrollRef.current) return;
+
+    const forceBottom = shouldForceBottomScrollRef.current;
+    const snapshot = { ...searchScrollSnapshotRef.current };
+
+    shouldRestoreSearchScrollRef.current = false;
+    shouldForceBottomScrollRef.current = false;
+
+    const restoreScroll = () => {
+      if (ingredientsContainerRef.current) {
+        ingredientsContainerRef.current.scrollTop = forceBottom
+          ? ingredientsContainerRef.current.scrollHeight
+          : snapshot.innerScrollTop;
+      }
+
+      if (!asPage) return;
+
+      const appShell = document.querySelector('.app-main-shell');
+      if (appShell) {
+        appShell.scrollTop = forceBottom ? appShell.scrollHeight : snapshot.appShellScrollTop;
+      }
+
+      window.scrollTo({
+        top: forceBottom ? document.body.scrollHeight : snapshot.windowScrollTop,
+        left: 0,
+        behavior: 'auto',
+      });
+    };
+
+    requestAnimationFrame(() => {
+      restoreScroll();
+      requestAnimationFrame(restoreScroll);
+    });
+  }, [asPage, isSearching]);
+
+  const openIngredientSearch = () => {
+    const appShell = document.querySelector('.app-main-shell');
+    searchScrollSnapshotRef.current = {
+      innerScrollTop: ingredientsContainerRef.current?.scrollTop || 0,
+      appShellScrollTop: appShell?.scrollTop || 0,
+      windowScrollTop: window.scrollY || document.documentElement.scrollTop || 0,
+    };
+    setIsSearching(true);
+  };
+
+  const closeIngredientSearch = ({ scrollToBottom = false } = {}) => {
+    shouldRestoreSearchScrollRef.current = true;
+    shouldForceBottomScrollRef.current = scrollToBottom;
+    setIsSearching(false);
+  };
 
   const handleModeChange = async (checked) => {
     if (readOnly) return;
@@ -231,7 +295,7 @@ const RecipeEditorModal = ({
     if (addedIngredient?.local_id || addedIngredient?.id) {
       setQuickEditIngredientKey(addedIngredient.local_id || addedIngredient.id);
     }
-    setIsSearching(false);
+    closeIngredientSearch({ scrollToBottom: true });
     setScrollToFoodId(newIngredientData.food_id);
   }
 
@@ -420,7 +484,7 @@ const RecipeEditorModal = ({
               userRestrictions={userRestrictions}
               onFoodCreated={handleInlineFoodCreated}
               createFoodUserId={userId || user?.id}
-              onBack={() => setIsSearching(false)}
+              onBack={() => closeIngredientSearch()}
             />
           </div>
         ) : (
@@ -439,7 +503,7 @@ const RecipeEditorModal = ({
             onFormChange={handleFormChange}
             onIngredientsChange={isEditable && !readOnly ? handleIngredientsChange : undefined}
             onRemoveIngredient={isEditable && !readOnly ? handleRemoveIngredient : undefined}
-            onAddIngredientClick={isEditable && !readOnly ? () => setIsSearching(true) : undefined}
+            onAddIngredientClick={isEditable && !readOnly ? openIngredientSearch : undefined}
             disableAutoBalance={shouldDisableAutoBalance}
             onAutoBalanceBlocked={!canUseAutoFrame ? handleBlockedFeature : undefined}
             enableStickyMacros={true}
