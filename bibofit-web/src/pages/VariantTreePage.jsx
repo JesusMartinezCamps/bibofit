@@ -637,7 +637,16 @@ const VariantTreePage = () => {
       <div className="relative mx-auto w-full max-w-6xl space-y-5 px-3 py-4 sm:px-6">
         <Card className="border-border/70 bg-white/65 bg-gradient-to-br from-emerald-100/35 via-cyan-100/30 to-amber-100/25 dark:bg-none dark:bg-card/85 backdrop-blur-sm">
           <CardHeader className="space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate(backPath)}
+                className="shrink-0 hover:bg-muted text-muted-foreground hover:text-foreground"
+              >
+                <ArrowLeft className="h-5 w-5" />
+                <span className="sr-only">{isProfileMode ? 'Volver al perfil' : 'Volver al plan'}</span>
+              </Button>
               <div>
                 <CardTitle className="flex items-center gap-2">
                   <Sparkles className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
@@ -647,10 +656,6 @@ const VariantTreePage = () => {
                   Relación entre recetas base del plan, sus versiones y variantes personales.
                 </CardDescription>
               </div>
-              <Button variant="outline" onClick={() => navigate(backPath)}>
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                {isProfileMode ? 'Volver al perfil' : 'Volver al plan'}
-              </Button>
             </div>
 
             <div className="flex flex-wrap gap-2">
