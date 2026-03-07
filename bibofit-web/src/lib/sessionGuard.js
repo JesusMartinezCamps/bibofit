@@ -34,6 +34,10 @@ export function guardSupabaseSession() {
   }
 }
 
+export function clearSupabaseAuthKeys() {
+  _clearSupabaseKeys();
+}
+
 function _clearSupabaseKeys() {
   try {
     Object.keys(localStorage)
