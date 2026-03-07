@@ -431,6 +431,7 @@ const RecipeEditorModal = ({
             allMinerals={allMinerals}
             allFoodGroups={allFoodGroups}
             macros={macros}
+            targetUserId={userId}
             conflicts={conflicts}
             recommendations={recommendations}
             userRestrictions={userRestrictions}
@@ -461,7 +462,7 @@ const RecipeEditorModal = ({
                       disabled={isButtonDisabled}
                       className={cn(
                         "bg-gradient-to-r from-[#550d4f] to-[#2f0596] hover:from-[#6b1062] hover:to-[#3b06bb] text-white font-bold transition-all duration-300",
-                        "disabled:opacity-80 disabled:cursor-not-allowed disabled:from-[#533750] disabled:to-[#443a5d]",
+                        "disabled:opacity-80 disabled:cursor-not-allowed disabled:from-blue-700/50 disabled:to-blue-800/70",
                         (hasChanges && !hasCriticalConflicts && (hasInitialConflicts || hasIngredientChanges)) && "from-cyan-600 to-blue-700 hover:from-cyan-500 hover:to-blue-600 border border-cyan-400/55 shadow-[0_0_15px_rgba(6,182,212,0.35)]"
                       )}
                     >

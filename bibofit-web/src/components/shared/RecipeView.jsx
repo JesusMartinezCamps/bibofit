@@ -47,6 +47,51 @@ const scaleMacrosByMultiplier = (macros, multiplier) => {
   };
 };
 
+const toNumberOrNull = (value) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const normalizeTargets = (rawTargets) => {
+  if (!rawTargets) return null;
+
+  const proteins = toNumberOrNull(rawTargets.target_proteins ?? rawTargets.proteins);
+  const carbs = toNumberOrNull(rawTargets.target_carbs ?? rawTargets.carbs);
+  const fats = toNumberOrNull(rawTargets.target_fats ?? rawTargets.fats);
+  const calories =
+    toNumberOrNull(rawTargets.target_calories ?? rawTargets.calories) ??
+    ((proteins || 0) * 4 + (carbs || 0) * 4 + (fats || 0) * 9);
+
+  if (proteins === null && carbs === null && fats === null && calories === null) {
+    return null;
+  }
+
+  return {
+    target_calories: calories ?? 0,
+    target_proteins: proteins ?? 0,
+    target_carbs: carbs ?? 0,
+    target_fats: fats ?? 0,
+  };
+};
+
+const pickBestTargetsRow = (rows, expectedDietPlanId) => {
+  if (!Array.isArray(rows) || rows.length === 0) return null;
+
+  if (expectedDietPlanId != null) {
+    const exact = rows.find((row) => String(row?.diet_plan_id) === String(expectedDietPlanId));
+    if (exact) return exact;
+  }
+
+  const scoreRow = (row) => {
+    const p = toNumberOrNull(row?.target_proteins) || 0;
+    const c = toNumberOrNull(row?.target_carbs) || 0;
+    const f = toNumberOrNull(row?.target_fats) || 0;
+    return p + c + f;
+  };
+
+  return [...rows].sort((a, b) => scoreRow(b) - scoreRow(a))[0] || null;
+};
+
 const RecipeView = ({
   recipe,
   allFoods,
@@ -65,6 +110,7 @@ const RecipeView = ({
   onAddIngredientClick,
   actionButton,
   mealTargetMacros,
+  targetUserId,
   disableAutoBalance = false,
   onAutoBalanceBlocked,
   enableStickyMacros = true,
@@ -110,6 +156,10 @@ const RecipeView = ({
   );
 
   const recipeImageUrl = useMemo(() => resolveRecipeImageUrl(recipe), [recipe]);
+  const normalizedProvidedTargets = useMemo(() => normalizeTargets(mealTargetMacros), [mealTargetMacros]);
+  const resolvedTargetUserId = targetUserId || recipe?.user_id || user?.id || null;
+  const resolvedDayMealId = recipe?.day_meal_id ?? recipe?.day_meal?.id ?? null;
+  const resolvedDietPlanId = recipe?.diet_plan_id ?? recipe?.diet_plan?.id ?? null;
   const scaledTotalMacros = useMemo(
     () => scaleMacrosByMultiplier(totalMacros, servingMultiplier),
     [totalMacros, servingMultiplier]
@@ -151,22 +201,26 @@ const RecipeView = ({
   }, [recipeStyles]);
 
   useEffect(() => {
-    if (mealTargetMacros || !user || !recipe?.day_meal_id || isTemplate) return;
+    if (normalizedProvidedTargets || !resolvedTargetUserId || !resolvedDayMealId || isTemplate) return;
 
     const fetchTargets = async () => {
       try {
         const { data, error } = await supabase
           .from('user_day_meals')
-          .select('target_calories, target_proteins, target_carbs, target_fats')
-          .eq('user_id', user.id)
-          .eq('day_meal_id', recipe.day_meal_id)
-          .limit(1)
-          .maybeSingle();
+          .select('diet_plan_id, target_calories, target_proteins, target_carbs, target_fats')
+          .eq('user_id', resolvedTargetUserId)
+          .eq('day_meal_id', resolvedDayMealId);
 
-        if (error && error.code !== 'PGRST116') {
+        if (error) {
           console.error('Error fetching meal targets:', error);
-        } else if (data) {
-          setFetchedTargets(data);
+          return;
+        }
+
+        const picked = pickBestTargetsRow(data || [], resolvedDietPlanId);
+        if (picked) {
+          setFetchedTargets(normalizeTargets(picked));
+        } else {
+          setFetchedTargets(null);
         }
       } catch (err) {
         console.error('Error fetching targets:', err);
@@ -174,7 +228,7 @@ const RecipeView = ({
     };
 
     fetchTargets();
-  }, [mealTargetMacros, user, recipe, isTemplate]);
+  }, [normalizedProvidedTargets, resolvedTargetUserId, resolvedDayMealId, resolvedDietPlanId, isTemplate]);
 
   useEffect(() => {
     if (propConflicts || propUserRestrictions || !user) return;
@@ -274,7 +328,7 @@ const RecipeView = ({
   };
 
   const handleAutoBalance = async () => {
-    const activeTargets = mealTargetMacros || fetchedTargets;
+    const activeTargets = normalizedProvidedTargets || fetchedTargets;
 
     if (
       !activeTargets ||
@@ -402,9 +456,10 @@ const RecipeView = ({
   const redCount = conflicts.length;
   const hasIngredients = (recipe?.ingredients || []).length > 0;
   const canManageIngredientsInView = !!onIngredientsChange && !!onRemoveIngredient;
+  const resolvedTargets = normalizedProvidedTargets || fetchedTargets;
   const showAutoBalance =
     hasIngredients &&
-    !!(mealTargetMacros || fetchedTargets || recipe?.day_meal_id) &&
+    !!(resolvedTargets || resolvedDayMealId) &&
     (isEditing || canManageIngredientsInView);
   const canRenderNativeImageUpload = showImageUpload && typeof onImageUploadChange === 'function';
   const isMultiplierActive = servingMultiplier !== 1;
@@ -654,12 +709,12 @@ const RecipeView = ({
           Macros Totales
         </h3>
         <MacroSummaryGrid macros={scaledTotalMacros} />
-        {isEditing && (mealTargetMacros || fetchedTargets) && !isTemplate && (
+        {isEditing && resolvedTargets && !isTemplate && (
           <div className="mt-4">
             <h4 className="text-sm font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
               Macros Objetivo
             </h4>
-            <MacroTargetGrid targets={mealTargetMacros || fetchedTargets} />
+            <MacroTargetGrid targets={resolvedTargets} />
           </div>
         )}
       </div>
@@ -739,7 +794,7 @@ const RecipeView = ({
             </ul>
           )}
 
-          {showAutoBalance && (mealTargetMacros || fetchedTargets) && (
+          {showAutoBalance && resolvedTargets && (
             <div className="mt-4 pt-2 border-t border-border">
               <Button
                 type="button"
