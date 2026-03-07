@@ -55,9 +55,9 @@ const PhysicalDataStep = ({ onNext, isLoading }) => {
         <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
                 <Label htmlFor="sex" className="text-muted-foreground">Sexo</Label>
-                <Select 
-                    value={formData.sex} 
-                    onValueChange={(v) => setFormData(prev => ({...prev, sex: v}))}
+                <Select
+                    value={formData.sex}
+                    onValueChange={(v) => { setFormData(prev => ({...prev, sex: v})); setErrors(prev => ({...prev, sex: undefined})); }}
                 >
                     <SelectTrigger id="sex" type="button" className="w-full">
                         <SelectValue placeholder="Seleccionar" />
@@ -76,10 +76,7 @@ const PhysicalDataStep = ({ onNext, isLoading }) => {
                     <UnifiedDatePicker
                         id="birth_date"
                         selected={formData.birth_date ? new Date(`${formData.birth_date}T00:00:00`) : null}
-                        onChange={(date) => setFormData((prev) => ({
-                          ...prev,
-                          birth_date: date ? format(date, 'yyyy-MM-dd') : '',
-                        }))}
+                        onChange={(date) => { setFormData((prev) => ({ ...prev, birth_date: date ? format(date, 'yyyy-MM-dd') : '' })); setErrors(prev => ({...prev, birth_date: undefined})); }}
                         placeholder="Selecciona tu fecha"
                         maxDate={new Date()}
                         minYear={1920}
@@ -99,7 +96,7 @@ const PhysicalDataStep = ({ onNext, isLoading }) => {
                         type="number"
                         unit="cm"
                         value={formData.height_cm}
-                        onChange={(e) => setFormData({...formData, height_cm: e.target.value})}
+                        onChange={(e) => { setFormData({...formData, height_cm: e.target.value}); setErrors(prev => ({...prev, height_cm: undefined})); }}
                         className="pl-12 bf-form-control"
                         placeholder="175"
                     />
@@ -116,7 +113,7 @@ const PhysicalDataStep = ({ onNext, isLoading }) => {
                         unit="kg"
                         step="0.1"
                         value={formData.current_weight_kg}
-                        onChange={(e) => setFormData({...formData, current_weight_kg: e.target.value})}
+                        onChange={(e) => { setFormData({...formData, current_weight_kg: e.target.value}); setErrors(prev => ({...prev, current_weight_kg: undefined})); }}
                         className="pl-12 bf-form-control"
                         placeholder="70.5"
                     />
@@ -129,7 +126,7 @@ const PhysicalDataStep = ({ onNext, isLoading }) => {
             <Label htmlFor="activity" className="text-muted-foreground">Nivel de Actividad</Label>
             <Select 
                 value={String(formData.activity_level_id)} 
-                onValueChange={(v) => setFormData(prev => ({...prev, activity_level_id: v}))}
+                onValueChange={(v) => { setFormData(prev => ({...prev, activity_level_id: v})); setErrors(prev => ({...prev, activity_level_id: undefined})); }}
             >
                 <SelectTrigger id="activity" type="button" className="h-auto py-3 w-full">
                     <SelectValue placeholder="Selecciona tu actividad" />
