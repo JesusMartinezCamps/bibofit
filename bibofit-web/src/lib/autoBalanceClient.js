@@ -86,7 +86,7 @@ export const invokeAutoBalanceBatch = async ({ moment_id, recipe_ids, user_id, d
 };
 
 export const invokeAutoBalanceDietPlans = async ({ user_id, tdee, macro_distribution, meals, template_id, start_date, end_date }) => {
-  return invokeAutoBalanceFunction('auto-balance-macros-dietPlans', {
+  return invokeAutoBalanceFunction('auto-balance-macros-dietplans', {
     user_id,
     tdee,
     macro_distribution,

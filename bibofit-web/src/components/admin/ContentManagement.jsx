@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Utensils, Egg, Wheat, Leaf, Droplets, Dna, Bot, Store, BookCopy, LayoutGrid, Dumbbell, Activity, ShieldAlert, UtensilsCrossed, Users, Building, ArrowLeftRight, CreditCard } from 'lucide-react';
+import { Utensils, Egg, Wheat, Leaf, Droplets, Dna, Bot, Store, BookCopy, LayoutGrid, Dumbbell, Activity, ShieldAlert, UtensilsCrossed, Users, Building, ArrowLeftRight, CreditCard, Link2 } from 'lucide-react';
 import { useNotifications } from '@/contexts/NotificationsContext';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -115,6 +115,7 @@ const ContentManagement = () => {
                         <ContentButton icon={Building} title="Gestión de Centros" to="/admin-panel/content/centers" />
                         <ContentButton icon={Users} title="Gestor de Usuarios" to="/admin-panel/content/users-manager" />
                         <ContentButton icon={CreditCard} title="Planes y Suscripciones" to="/admin-panel/content/pricing" />
+                        <ContentButton icon={Link2} title="Generar Link de Invitación" to="/admin-panel/content/invitation-links" />
                         </ContentSection>
 
                         <ContentSection title="Seguridad">

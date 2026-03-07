@@ -38,6 +38,7 @@ import RemindersManagerPage from '@/pages/admin/RemindersManagerPage';
 import UsersManagerPage from '@/pages/admin/UsersManagerPage';
 import CentersManagementPage from '@/pages/admin/CentersManagementPage';
 import PricingManagementPage from '@/pages/admin/PricingManagementPage';
+import InvitationLinksPage from '@/pages/admin/InvitationLinksPage';
 import PlanPage from '@/pages/PlanPage';
 import { format } from 'date-fns';
 import { NotificationsProvider } from '@/contexts/NotificationsContext';
@@ -222,6 +223,7 @@ const AppRoutes = () => (
       <Route path="/admin-panel/content/users-manager" element={<ProtectedRoute adminOnly><UsersManagerPage /></ProtectedRoute>} />
       <Route path="/admin-panel/content/centers" element={<ProtectedRoute adminOnly><CentersManagementPage /></ProtectedRoute>} />
       <Route path="/admin-panel/content/pricing" element={<ProtectedRoute adminOnly><PricingManagementPage /></ProtectedRoute>} />
+      <Route path="/admin-panel/content/invitation-links" element={<ProtectedRoute adminOnly><InvitationLinksPage /></ProtectedRoute>} />
       <Route path="/admin-panel/reminders" element={<ProtectedRoute adminOnly><RemindersManagerPage /></ProtectedRoute>} />
       <Route path="/admin-panel/reminders/:userId" element={<ProtectedRoute adminOnly><RemindersManagerPage /></ProtectedRoute>} />
     </Route>

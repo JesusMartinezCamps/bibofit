@@ -209,7 +209,7 @@ export const buildMacroBalancingParams = ({
  * Invokes the Edge Function with logging and error handling.
  */
 export const callMacroBalancingEdgeFunction = async (payload) => {
-  const FUNCTION_NAME = 'auto-balance-macros-dietPlans';
+  const FUNCTION_NAME = 'auto-balance-macros-dietplans';
 
   if (DEBUG_MODE) {
       console.log(`🚀 Preparing to call ${FUNCTION_NAME}`);

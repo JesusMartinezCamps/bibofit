@@ -353,6 +353,24 @@ authorization_url_path = "/oauth/consent"
 # Allow dynamic client registration
 allow_dynamic_registration = false
 
+# JWT verification is disabled locally so dev sessions (incl. production-origin
+# tokens cached in the browser) don't block edge function calls during testing.
+# This file is only read by the Supabase CLI — Supabase Cloud ignores it.
+[functions.auto-balance-macros]
+verify_jwt = false
+
+[functions.auto-balance-macros-batch]
+verify_jwt = false
+
+[functions.auto-balance-macros-dietplans]
+verify_jwt = false
+
+[functions.auto-balance-equivalence]
+verify_jwt = false
+
+[functions.get-substitutions-for-food]
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.
