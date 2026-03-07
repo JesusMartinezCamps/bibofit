@@ -105,11 +105,25 @@ const RoleProtected = ({ allowedRoles, children }) => {
   return children;
 };
 
+const SmartLayout = () => {
+  const { user, loading } = useAuth();
+  if (loading) return (
+    <div className="flex h-full w-full bg-background items-center justify-center">
+      <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
+    </div>
+  );
+  return user ? <AppLayout /> : <PublicLayout />;
+};
+
 const AppRoutes = () => (
   <Routes>
     {/* Landing / marketing pages — full navbar */}
     <Route element={<PublicLayout />}>
       <Route path="/home" element={<HomePage />} />
+    </Route>
+
+    {/* Hybrid pages — app header if logged in, landing navbar if not */}
+    <Route element={<SmartLayout />}>
       <Route path="/pricing" element={<PricingPage />} />
     </Route>
 

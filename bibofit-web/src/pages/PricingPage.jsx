@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import LandingFooter from '@/components/landing/LandingFooter';
+import { useAuth } from '@/contexts/AuthContext';
 import PricingComponent from '@/components/shared/PricingComponent';
 import {
   Accordion,
@@ -12,6 +13,7 @@ import { Check, X, Loader2 } from 'lucide-react';
 import { buildFeatureMatrix, getPricingPlans, subscribePricingChanges } from '@/lib/pricingService';
 
 const PricingPage = () => {
+  const { user } = useAuth();
   const [plans, setPlans] = useState([]);
   const [loadingComparison, setLoadingComparison] = useState(true);
   const [comparisonError, setComparisonError] = useState('');
@@ -102,7 +104,7 @@ const PricingPage = () => {
         <meta name="description" content="Elige el plan perfecto para tus objetivos de fitness y nutrición." />
       </Helmet>
 
-      <main className="pt-28 md:pt-32 pb-20 flex-grow">
+      <main className={`${!user ? 'pt-28 md:pt-32' : 'pt-8'} pb-20 flex-grow`}>
         <div className="container mx-auto px-4 md:px-6">
           <div className="text-center mb-12 max-w-3xl mx-auto">
             <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-700 via-emerald-500 to-teal-400 dark:from-white dark:via-green-200 dark:to-emerald-400 mb-6">
@@ -182,7 +184,7 @@ const PricingPage = () => {
         </div>
       </main>
 
-      <LandingFooter />
+      {!user && <LandingFooter />}
     </div>
   );
 };
