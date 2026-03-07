@@ -4,9 +4,6 @@ import App from '@/App.jsx';
 import '@/index.css';
 import 'react-datepicker/dist/react-datepicker.css';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { guardSupabaseSession } from '@/lib/sessionGuard';
-
-guardSupabaseSession();
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <App />

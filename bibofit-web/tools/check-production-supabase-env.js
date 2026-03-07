@@ -48,12 +48,13 @@ for (const relPath of ENV_FILES_BY_PRECEDENCE) {
 Object.assign(mergedEnv, process.env);
 
 const supabaseUrl = mergedEnv.VITE_SUPABASE_URL;
-const supabaseAnonKey = mergedEnv.VITE_SUPABASE_ANON_KEY;
+const supabasePublicKey =
+  mergedEnv.VITE_SUPABASE_PUBLISHABLE_KEY || mergedEnv.VITE_SUPABASE_ANON_KEY;
 const appUrl = mergedEnv.VITE_APP_URL;
 
-if (!supabaseUrl || !supabaseAnonKey) {
+if (!supabaseUrl || !supabasePublicKey) {
   console.error(
-    "[build-check] Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY for production build."
+    "[build-check] Missing VITE_SUPABASE_URL and one of VITE_SUPABASE_PUBLISHABLE_KEY or VITE_SUPABASE_ANON_KEY for production build."
   );
   process.exit(1);
 }

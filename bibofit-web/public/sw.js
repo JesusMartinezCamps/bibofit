@@ -35,12 +35,23 @@ self.addEventListener('fetch', (event) => {
   // Only intercept GET requests
   if (event.request.method !== 'GET') return;
 
-  // Don't intercept API calls or Supabase requests
-  if (event.request.url.includes('/api/') || event.request.url.includes('supabase.co')) {
+  const requestUrl = new URL(event.request.url);
+
+  // Ignore all cross-origin requests to avoid caching auth/data APIs by mistake.
+  if (requestUrl.origin !== self.location.origin) {
     return;
   }
 
-  const requestUrl = new URL(event.request.url);
+  // Don't intercept API calls or Supabase requests
+  if (
+    event.request.url.includes('/api/') ||
+    event.request.url.includes('supabase.co') ||
+    requestUrl.hostname === 'localhost' ||
+    requestUrl.hostname === '127.0.0.1' ||
+    requestUrl.port === '54321'
+  ) {
+    return;
+  }
   const isBuildAsset =
     requestUrl.pathname.startsWith('/assets/') ||
     requestUrl.pathname.endsWith('.js') ||

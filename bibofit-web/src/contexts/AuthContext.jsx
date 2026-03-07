@@ -123,14 +123,30 @@ export const AuthProvider = ({ children }) => {
 
     fetchUserSession();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const handleAuthEvent = async (event, session) => {
+      if (!mounted) return;
+
       if (event === 'SIGNED_IN' && session) {
         await fetchUserProfile(session.user);
-      } else if (event === 'SIGNED_OUT') {
-        if (mounted) setUser(null);
-      } else if (event === 'USER_UPDATED' && session) {
+        return;
+      }
+
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
+        return;
+      }
+
+      if (event === 'USER_UPDATED' && session) {
         await fetchUserProfile(session.user);
       }
+    };
+
+    // Avoid awaiting Supabase calls inside the raw auth callback to prevent
+    // auth lock contention inside auth-js (can cause stuck sessions on reload).
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      setTimeout(() => {
+        void handleAuthEvent(event, session);
+      }, 0);
     });
 
     return () => {

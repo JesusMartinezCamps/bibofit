@@ -1,10 +1,16 @@
 import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAuthStorageKey, guardSupabaseSession } from "./sessionGuard";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabasePublishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseKey = supabasePublishableKey || supabaseAnonKey;
+const authStorageKey = getSupabaseAuthStorageKey(supabaseUrl);
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error("Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY");
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error(
+    "Missing VITE_SUPABASE_URL and one of VITE_SUPABASE_PUBLISHABLE_KEY or VITE_SUPABASE_ANON_KEY"
+  );
 }
 
 const isLikelyLocalSupabaseUrl = (url) => {
@@ -36,7 +42,7 @@ const AUTH_TIMEOUT_MS = 10000;
 
 const fetchWithAuthTimeout = (input, init) => {
   const url = input instanceof Request ? input.url : String(input);
-  if (!url.includes('/auth/v1/token')) {
+  if (!url.includes('/auth/v1/')) {
     return fetch(input, init);
   }
 
@@ -48,6 +54,20 @@ const fetchWithAuthTimeout = (input, init) => {
   return fetch(input, options).finally(() => clearTimeout(timeoutId));
 };
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+// Important: this must run before createClient() so auth-js never boots with a
+// malformed persisted session in memory.
+guardSupabaseSession({
+  storageKey: authStorageKey,
+  supabaseUrl,
+  migrateLegacyKey: true,
+});
+
+export const supabase = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    storageKey: authStorageKey,
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+  },
   global: { fetch: fetchWithAuthTimeout },
 });

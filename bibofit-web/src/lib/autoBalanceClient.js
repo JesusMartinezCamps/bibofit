@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabaseClient';
 
 const AUTO_BALANCE_SCHEMA_VERSION = 'v1';
+const INVALID_JWT_PATTERN = /invalid jwt/i;
 
 const normalizeError = async (error) => {
   if (!error) return null;
@@ -24,14 +25,31 @@ const ensureSuccess = async ({ data, error }) => {
   return data;
 };
 
-const invokeAutoBalanceFunction = async (fnName, body) => {
-  const response = await supabase.functions.invoke(fnName, {
+const invokeRaw = (fnName, body) =>
+  supabase.functions.invoke(fnName, {
     body: {
       schema_version: AUTO_BALANCE_SCHEMA_VERSION,
       ...body,
     },
   });
-  return ensureSuccess(response);
+
+const invokeAutoBalanceFunction = async (fnName, body) => {
+  const firstResponse = await invokeRaw(fnName, body);
+  if (!firstResponse.error) return ensureSuccess(firstResponse);
+
+  const firstError = await normalizeError(firstResponse.error);
+  if (!INVALID_JWT_PATTERN.test(firstError.message || '')) {
+    throw firstError;
+  }
+
+  const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+  if (refreshError || !refreshData?.session?.access_token) {
+    await supabase.auth.signOut();
+    throw new Error('Sesion invalida o expirada. Inicia sesion de nuevo.');
+  }
+
+  const retryResponse = await invokeRaw(fnName, body);
+  return ensureSuccess(retryResponse);
 };
 
 const normalizeBalancedIngredients = (data) => {
