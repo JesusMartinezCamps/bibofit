@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { User, Shield, Calendar, BookOpen, StickyNote, ShoppingCart } from 'lucide-react';
+import { User, Shield, Calendar, StickyNote, ShoppingCart } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Tooltip,
@@ -107,7 +107,7 @@ const Header = () => {
 
             <div className="ml-2 flex items-center gap-2 sm:gap-3">
               <div className="flex items-center space-x-2">
-                {isStaff ? (
+                {isStaff && (
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -126,19 +126,6 @@ const Header = () => {
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>Calendario</p>
-                    </TooltipContent>
-                  </Tooltip>
-                ) : (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                      <Button asChild variant="ghost" size="icon" className={cn("text-muted-foreground hover:bg-accent hover:text-accent-foreground", location.pathname.includes('/plan') && 'bg-secondary text-secondary-foreground')}>
-                        <Link to="/plan">
-                          <BookOpen className="w-5 h-5" />
-                        </Link>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Mi Plan</p>
                     </TooltipContent>
                   </Tooltip>
                 )}

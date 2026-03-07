@@ -173,6 +173,10 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
   };
 
   const handleDateClick = (day) => {
+    if (isClientView) {
+      navigate(`/plan?date=${format(day, 'yyyy-MM-dd')}`);
+      return;
+    }
     setSelectedDate(new Date(day));
     setIsModalOpen(true);
   };
