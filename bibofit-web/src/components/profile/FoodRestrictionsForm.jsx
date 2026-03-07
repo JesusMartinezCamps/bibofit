@@ -127,7 +127,7 @@ const FoodRestrictionsForm = ({ userId, onSaveStatusChange }) => {
                     type="button" 
                     variant="outline" 
                     size="sm" 
-                    className="border-orange-500/50 text-orange-400 bg-[hsl(36deg_63.96%_15.46%_/_0.65)] hover:bg-[hsl(36deg_63.96%_15.46%_/_0.58)] hover:text-gray-100" 
+                    className="border-orange-500/50 text-orange-600 bg-orange-400/10 hover:bg-orange-400/80 hover:text-gray-100" 
                     onClick={() => setIsSensitivityModalOpen(true)}
                  >
                     <PlusCircle className="w-4 h-4 mr-2" /> Añadir
@@ -139,7 +139,7 @@ const FoodRestrictionsForm = ({ userId, onSaveStatusChange }) => {
               {selectedSensitivities.map(s => {
                 const details = allSensitivities.find(as => as.id === s.sensitivity_id);
                 return details ? (
-                    <Badge key={s.sensitivity_id} variant="destructive" className="bg-orange-600/20 border border-orange-500/30 text-orange-300">
+                    <Badge key={s.sensitivity_id} variant="destructive" className="bg-orange-600/10 border border-orange-500/30 text-orange-600">
                         {details.name} ({s.sensitivitie_level})
                         <button type="button" onClick={() => handleRemoveSensitivity(s.sensitivity_id)} className="ml-2 hover:text-foreground"><X size={14}/></button>
                     </Badge>
@@ -155,7 +155,7 @@ const FoodRestrictionsForm = ({ userId, onSaveStatusChange }) => {
                     type="button" 
                     variant="outline" 
                     size="sm" 
-                    className="border-red-500/50 text-red-400 bg-[hsl(0deg_60%_11.41%_/_0.65)] hover:bg-[hsl(0deg_60%_11.41%_/_0.58)] hover:text-gray-100" 
+                    className="border-red-500/50 text-red-600 bg-red-400/10 hover:bg-red-400/80 hover:text-gray-100" 
                     onClick={() => setIsConditionModalOpen(true)}
                 >
                      <PlusCircle className="w-4 h-4 mr-2" /> Añadir
@@ -166,7 +166,7 @@ const FoodRestrictionsForm = ({ userId, onSaveStatusChange }) => {
               {selectedMedicalConditions.length === 0 && <p className="text-muted-foreground text-sm italic">No hay condiciones seleccionadas.</p>}
               {selectedMedicalConditions.map(cId => {
                 const details = allMedicalConditions.find(amc => amc.id === cId);
-                return details ? <Badge key={cId} variant="destructive" className="bg-red-600/20 border border-red-500/30 text-red-300">{details.name} <button type="button" onClick={() => handleRemoveCondition(cId)} className="ml-2 hover:text-foreground"><X size={14}/></button></Badge> : null;
+                return details ? <Badge key={cId} variant="destructive" className="bg-red-600/10 border border-red-500/30 text-red-600">{details.name} <button type="button" onClick={() => handleRemoveCondition(cId)} className="ml-2 hover:text-foreground"><X size={14}/></button></Badge> : null;
               })}
             </div>
         </div>

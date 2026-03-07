@@ -240,12 +240,16 @@ const CalorieAdjustment = ({
     // -------------------------------------------------------------------------
     // STYLES & RENDER
     // -------------------------------------------------------------------------
-    const targetAccent = isSystemTarget ? 'purple' : 'green';
     const targetBorderColor = isSystemTarget ? 'border-l-purple-500' : 'border-l-green-500';
-    const targetTextColor = isSystemTarget ? 'text-purple-400' : 'text-green-400';
+    const targetTextColor = isSystemTarget ? 'text-violet-700 dark:text-purple-400' : 'text-emerald-700 dark:text-green-400';
+    const targetValueColor = isSystemTarget ? 'text-violet-700 dark:text-white' : 'text-emerald-700 dark:text-white';
+    const targetUnitColor = isSystemTarget ? 'text-violet-700 dark:text-muted-foreground' : 'text-emerald-700 dark:text-muted-foreground';
     const targetBadgeClass = isSystemTarget
-        ? 'bg-purple-500/10 text-purple-300 border-purple-500/30'
-        : 'bg-green-500/10 text-green-300 border-green-500/30';
+        ? 'bg-violet-500/15 text-violet-800 border-violet-500/30 dark:bg-purple-500/10 dark:text-purple-300 dark:border-purple-500/30'
+        : 'bg-green-500/15 text-green-800 border-green-500/30 dark:bg-green-500/10 dark:text-green-300 dark:border-green-500/30';
+    const targetGradientClass = isSystemTarget
+        ? 'from-violet-100 to-purple-200 dark:from-purple-950/20 dark:to-gray-900'
+        : 'from-green-100 to-emerald-200 dark:from-green-950/20 dark:to-gray-900';
     const hasInputValue = manualCalories && !isNaN(parseInt(manualCalories, 10)) && parseInt(manualCalories, 10) > 0;
 
     return (
@@ -255,7 +259,7 @@ const CalorieAdjustment = ({
                 {/* Active Target Display */}
                 <div className={cn(
                     "p-5 bg-gradient-to-r border-l-4 rounded-lg shadow-lg relative overflow-hidden transition-colors duration-300",
-                    targetAccent === 'purple' ? 'from-purple-950/20 to-gray-900' : 'from-green-950/20 to-gray-900',
+                    targetGradientClass,
                     targetBorderColor
                 )}>
                      <div className="absolute top-0 right-0 p-4 opacity-5">
@@ -273,10 +277,10 @@ const CalorieAdjustment = ({
                         </div>
                         
                         <div className="flex items-baseline gap-2">
-                            <span className="text-4xl font-bold text-white font-numeric tracking-tight">
+                            <span className={cn("text-4xl font-bold font-numeric tracking-tight", targetValueColor)}>
                                 {effectiveTdee}
                             </span>
-                            <span className="text-lg text-muted-foreground font-medium">kcal/día</span>
+                            <span className={cn("text-lg font-medium", targetUnitColor)}>kcal/día</span>
                         </div>
 
                         {activeOverride && activeOverride.created_at && (
@@ -291,7 +295,7 @@ const CalorieAdjustment = ({
                 </div>
                 
                 {/* Source Cards */}
-                <div className="grid grid-cols-1 gap-3 bg-violet-700/10">
+                <div className="grid grid-cols-1 gap-3 bg-violet-700/20">
                     <button
                         type="button"
                         onClick={() => setActiveSelection({ type: 'system' })}
@@ -302,7 +306,7 @@ const CalorieAdjustment = ({
                                 : "border-border hover:border-purple-500/30"
                         )}
                     >
-                        <h3 className="text-muted-foreground text-sm font-medium flex items-center gap-2">
+                        <h3 className="text-violet-800 dark:text-violet-200  text-sm  font-medium flex items-center gap-2">
                             <Calculator className="w-4 h-4" />
                             TDEE Calculado por Bibofit
 
@@ -314,7 +318,7 @@ const CalorieAdjustment = ({
                         </h3>
                         
                         <div className="mt-2 flex items-baseline gap-2">
-                            <span className="text-2xl font-bold text-white font-numeric">{calculatedTdee}</span>
+                            <span className="text-2xl font-bold text-violet-800 dark:text-white font-numeric">{calculatedTdee}</span>
                             <span className="text-xs text-muted-foreground">kcal</span>
                         </div>
                     </button>

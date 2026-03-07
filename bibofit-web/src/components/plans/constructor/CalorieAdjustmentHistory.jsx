@@ -119,7 +119,7 @@ const CalorieAdjustmentHistory = ({
                                 </div>
                                 <div>
                                     <div className="flex items-center gap-2 flex-wrap">
-                                        <span className="text-lg font-bold text-white font-numeric">
+                                        <span className="text-lg font-bold text-green-600 dark:text-white font-numeric">
                                             {override.manual_calories} <span className="text-xs font-normal text-muted-foreground">kcal</span>
                                         </span>
                                         {isActive && (
