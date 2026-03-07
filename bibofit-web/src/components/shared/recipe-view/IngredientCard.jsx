@@ -77,10 +77,10 @@ const getStatusColorClasses = (type) => {
     case 'condition_avoid':
     case 'sensitivity':
     case 'non-preferred':
-      return 'bg-red-500/5 border-red-500/30 text-red-400';
+      return 'bg-red-500/5 dark:bg-muted/65 border-red-500/30 text-red-400';
     case 'condition_recommend':
     case 'preferred':
-      return 'bg-green-500/5 border-green-500/30 text-green-400';
+      return 'bg-green-500/5 dark:bg-muted/65 border-green-500/30 text-green-400';
     default:
       return 'bg-muted/65 border-border/50 text-foreground';
   }
@@ -300,7 +300,12 @@ const IngredientCard = ({
         'p-3 rounded-lg border transition-all duration-300',
         statusColorClasses
           .split(' ')
-          .filter((c) => c.startsWith('bg-') || c.startsWith('border-'))
+          .filter((c) => (
+            c.startsWith('bg-')
+            || c.startsWith('border-')
+            || c.startsWith('dark:bg-')
+            || c.startsWith('dark:border-')
+          ))
       )}
     >
       <div
