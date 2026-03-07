@@ -53,12 +53,17 @@ const MealHeader = React.memo(({ mealName, mealId, name, items, isAnyRecipeSelec
 
             {/* Name and Chevron - z-0 (under trigger) */}
             <div className="flex items-center gap-3 group">
-                <h3 className={cn(
+                <h3
+                  data-meal-title-id={String(mealId)}
+                  className={cn(
                     "text-xl font-bold", 
                     isAnyRecipeSelectedInMeal 
                         ? (isFreeRecipeSelected ? "text-cyan-700 dark:text-cyan-300" : "text-emerald-700 dark:text-emerald-300")
                         : "text-foreground"
-                )}>{pluralize(mealName)}</h3>
+                  )}
+                >
+                  {pluralize(mealName)}
+                </h3>
                 <ChevronDown className={cn(
                     "h-5 w-5 transition-transform duration-300 group-data-[state=open]:rotate-180", 
                     isAnyRecipeSelectedInMeal 
@@ -133,6 +138,7 @@ const ListView = ({
   handleAddSnack,
   handleUndoEquivalence,
   recipeStyles = [],
+  onMealExpand,
 }) => {
   const [searchQueries, setSearchQueries] = useState({});
   const foodById = useMemo(() => {
@@ -253,7 +259,14 @@ const ListView = ({
         const hasSnacks = mealHasSnacks(items);
 
         return (
-          <Collapsible key={mealId} className="p-3 rounded-lg bg-muted/70 border border-border/70 space-y-4 group">
+          <Collapsible
+            key={mealId}
+            className="p-3 rounded-lg bg-muted/70 border border-border/70 space-y-4 group"
+            data-meal-section-id={String(mealId)}
+            onOpenChange={(isOpen) => {
+              if (isOpen && onMealExpand) onMealExpand(mealId);
+            }}
+          >
              <MealHeader 
                 mealName={mealName}
                 mealId={mealId}

@@ -316,6 +316,44 @@ const handleDayClickInVisualizer = (date) => {
     }
 };
 
+const handleMealExpand = useCallback((mealId) => {
+    requestAnimationFrame(() => {
+      const mealTitle = document.querySelector(`[data-meal-title-id="${String(mealId)}"]`);
+      if (!mealTitle) return;
+
+      const appShell = document.querySelector('.app-main-shell');
+      const appShellStyles = appShell ? window.getComputedStyle(appShell) : null;
+      const isAppShellScrollable = Boolean(
+        appShell &&
+        appShell.scrollHeight > appShell.clientHeight + 1 &&
+        ['auto', 'scroll', 'overlay'].includes(appShellStyles?.overflowY)
+      );
+
+      const header = document.querySelector('header.sticky.top-0');
+      const stickyVisualizer = document.querySelector('[data-diet-sticky-visualizer="true"]');
+
+      const headerHeight = !isAppShellScrollable && header ? header.getBoundingClientRect().height : 0;
+      const visualizerHeight =
+        stickyVisualizer && stickyVisualizer.getBoundingClientRect().height > 0
+          ? stickyVisualizer.getBoundingClientRect().height
+          : 0;
+      const topOffset = headerHeight + visualizerHeight + 8;
+
+      if (isAppShellScrollable && appShell) {
+        const shellRect = appShell.getBoundingClientRect();
+        const titleRect = mealTitle.getBoundingClientRect();
+        const targetTop = appShell.scrollTop + (titleRect.top - shellRect.top) - topOffset;
+        appShell.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+        return;
+      }
+
+      const titleRect = mealTitle.getBoundingClientRect();
+      const currentScroll = window.scrollY || document.documentElement.scrollTop || 0;
+      const targetTop = currentScroll + titleRect.top - topOffset;
+      window.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+    });
+}, []);
+
 const combinedPlanRestrictions = useMemo(() => {
     if (!data?.profile && !activePlan) return null;
 
@@ -613,7 +651,10 @@ const combinedPlanRestrictions = useMemo(() => {
           </Card>
 
           <div className="lg:hidden contents">
-              <div className="lg:hidden sticky !top-0 z-30 bg-card/95 backdrop-blur-sm -mx-1 sm:mx-0 px-1 sm:px-0 py-2 rounded-b-xl shadow-[0_8px_15px_-5px_rgba(0,0,0,0.3)]">
+              <div
+                data-diet-sticky-visualizer="true"
+                className="lg:hidden sticky !top-0 z-30 bg-card/95 backdrop-blur-sm -mx-1 sm:mx-0 px-1 sm:px-0 py-2 rounded-b-xl shadow-[0_8px_15px_-5px_rgba(0,0,0,0.3)]"
+              >
                 {renderVisualizer(true)}
               </div>
           </div>
@@ -683,6 +724,7 @@ const combinedPlanRestrictions = useMemo(() => {
                       setPlannedMeals={setPlannedMeals}
                       userRestrictions={combinedPlanRestrictions}
                       onWeekSummaryChange={setWeekSummaryByDate}
+                      onMealExpand={handleMealExpand}
                   />
                   )}
               </CardContent>
