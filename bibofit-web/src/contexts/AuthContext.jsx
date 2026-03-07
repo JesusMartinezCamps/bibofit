@@ -84,6 +84,15 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     let mounted = true;
 
+    // Safety net: if session resolution hangs (slow network, expired token refresh),
+    // force loading=false after 8s so the app renders instead of staying blank.
+    const loadingTimeout = setTimeout(() => {
+      if (mounted) {
+        console.warn('[AuthContext] Session fetch timed out, proceeding without session.');
+        setLoading(false);
+      }
+    }, 8000);
+
     const fetchUserSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
@@ -92,7 +101,7 @@ export const AuthProvider = ({ children }) => {
           if (mounted) setLoading(false);
           return;
         }
-        
+
         if (session) {
           await fetchUserProfile(session.user);
         } else {
@@ -101,6 +110,8 @@ export const AuthProvider = ({ children }) => {
       } catch (err) {
         console.error("Unexpected error during session fetch:", err);
         if (mounted) setLoading(false);
+      } finally {
+        clearTimeout(loadingTimeout);
       }
     };
 
@@ -118,6 +129,7 @@ export const AuthProvider = ({ children }) => {
 
     return () => {
       mounted = false;
+      clearTimeout(loadingTimeout);
       authListener?.subscription?.unsubscribe();
     };
   }, []);
