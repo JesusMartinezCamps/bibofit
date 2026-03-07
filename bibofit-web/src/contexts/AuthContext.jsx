@@ -84,6 +84,17 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     let mounted = true;
 
+    // Backstop: if the auth fetch timeout fires but the SDK doesn't propagate
+    // the error fast enough, force-unblock loading. The fetch timeout in
+    // customSupabaseClient (10s) normally fires first and cancels this timer
+    // via the finally block below.
+    const loadingTimeout = setTimeout(() => {
+      if (mounted) {
+        console.warn('[AuthContext] Session fetch timed out (backstop).');
+        setLoading(false);
+      }
+    }, 12000);
+
     const fetchUserSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
@@ -92,15 +103,21 @@ export const AuthProvider = ({ children }) => {
           if (mounted) setLoading(false);
           return;
         }
-        
+
         if (session) {
           await fetchUserProfile(session.user);
         } else {
           if (mounted) setLoading(false);
         }
       } catch (err) {
+        // The auth fetch timeout (fetchWithAuthTimeout) fired an AbortError.
+        // The Supabase SDK handles the AbortError internally: it clears its
+        // in-memory session and unblocks its request queue, so the next login
+        // attempt will go through normally. We just need to unblock loading.
         console.error("Unexpected error during session fetch:", err);
         if (mounted) setLoading(false);
+      } finally {
+        clearTimeout(loadingTimeout);
       }
     };
 
@@ -118,6 +135,7 @@ export const AuthProvider = ({ children }) => {
 
     return () => {
       mounted = false;
+      clearTimeout(loadingTimeout);
       authListener?.subscription?.unsubscribe();
     };
   }, []);

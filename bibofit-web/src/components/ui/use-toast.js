@@ -57,7 +57,7 @@ export const toast = ({ ...props }) => {
   toastStore.setState((state) => ({
     ...state,
     toasts: [
-      { ...props, id, dismiss: dismissToast },
+      { ...props, id },
       ...state.toasts,
     ].slice(0, TOAST_LIMIT),
   }))
@@ -89,7 +89,7 @@ export function useToast() {
       }
 
       const timeout = setTimeout(() => {
-        toast.dismiss()
+        dismiss(toast.id)
       }, toast.duration || 5000)
 
       timeouts.push(timeout)

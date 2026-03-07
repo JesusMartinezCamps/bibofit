@@ -6,6 +6,7 @@ import AppIcon from '@/components/icons/AppIcon';
 import { useTheme } from '@/contexts/ThemeContext';
 import {
   ArrowRight,
+  Bot,
   CheckCircle2,
   CalendarDays,
   ShoppingCart,
@@ -23,6 +24,7 @@ import {
   UtensilsCrossed,
   ChevronDown,
   ListOrdered,
+  GitBranch,
   Moon,
   Sun,
 } from 'lucide-react';
@@ -214,12 +216,16 @@ const BibofitMock = () => {
   const tooltipTimeoutRef = useRef(null);
 
   const [showWeekDayTooltip, setShowWeekDayTooltip] = useState(false);
-  const [showMacroTooltip, setShowMacroTooltip] = useState(false);
-  const [showWeekPlannerTooltip, setShowWeekPlannerTooltip] = useState(false);
+  const [showAutoBalanceTooltip, setShowAutoBalanceTooltip] = useState(false);
   const [trainingTooltip, setTrainingTooltip] = useState({ visible: false, x: 0, y: 0 });
 
   const [activeModal, setActiveModal] = useState(null);
   const [hintPulse, setHintPulse] = useState(false);
+
+  const closeActiveModal = useCallback(() => {
+    setActiveModal(null);
+    setShowAutoBalanceTooltip(false);
+  }, []);
 
   const triggerTooltip = useCallback((setter, duration = TOOLTIP_DURATION_MS) => {
     setter(true);
@@ -296,6 +302,12 @@ const BibofitMock = () => {
       if (tooltipTimeoutRef.current) window.clearTimeout(tooltipTimeoutRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (activeModal !== 'recipeView') {
+      setShowAutoBalanceTooltip(false);
+    }
+  }, [activeModal]);
 
   const calendarDays = useMemo(() => buildCalendarGrid(calendarMonth), [calendarMonth]);
 
@@ -504,7 +516,7 @@ const BibofitMock = () => {
                       style={{ left: `${trainingTooltip.x}px`, top: `${trainingTooltip.y}px` }}
                       className="absolute z-30 w-[220px] rounded-xl border border-amber-500/40 bg-[#3c2d0f]/95 px-3 py-2 text-base font-medium leading-relaxed text-amber-100 shadow-lg"
                     >
-                      Próximamente...
+                      Plan de entreno se implementará próximamente, pulsa en otro día.
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -662,7 +674,7 @@ const BibofitMock = () => {
                   hintPulse={hintPulse}
                   className={`w-full rounded-3xl border p-4 sm:p-5 text-left hover:bg-slate-200/70 dark:hover:bg-white/5 dark:hover:border-white/20 ${panelClass}`}
                   flashClassName="bg-slate-200/60 dark:bg-white/10 border-slate-300 dark:border-white/25"
-                  onTapAction={() => triggerTooltip(setShowMacroTooltip)}
+                  onTapAction={() => setActiveModal('macro')}
                 >
                   <div className="space-y-3 sm:space-y-4">
                     <div className="grid grid-cols-3 gap-4">
@@ -722,21 +734,6 @@ const BibofitMock = () => {
                   </div>
                 </Tap>
 
-                <AnimatePresence>
-                  {showMacroTooltip && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 6 }}
-                      className="absolute left-5 right-5 bottom-3 z-20 rounded-xl border border-amber-500/40 bg-[#3c2d0f]/95 px-4 py-3 text-base leading-relaxed text-center font-semibold text-amber-100"
-                    >
-                      Se lleva un registro de tus calorías para
-                      {' '}equilibrarte la dieta y mantener
-                      {' '}
-                      tu plan siempre compensado.
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               </div>
 
               <div className={`rounded-3xl border p-3 sm:p-4 ${panelClass}`}>
@@ -771,7 +768,11 @@ const BibofitMock = () => {
               </div>
 
               {planViewMode === 'week' ? (
-                <div style={clickableHintStyle} className={`relative rounded-3xl border p-4 sm:p-5 ${panelClass} ${clickableHintClass}`}>
+                <div
+                  style={clickableHintStyle}
+                  onClick={() => setActiveModal('weekPlanner')}
+                  className={`relative rounded-3xl border p-4 sm:p-5 cursor-pointer ${panelClass} ${clickableHintClass}`}
+                >
                   <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white mb-3 sm:mb-4">Planificador de semana</h3>
                   <div className="grid grid-cols-7 gap-2">
                     {weekPlannedMeals.map((day) => (
@@ -780,7 +781,7 @@ const BibofitMock = () => {
                         key={`week-${day.key}`}
                         className={`rounded-2xl border p-2 text-center hover:bg-slate-200/70 dark:hover:bg-white/5 dark:hover:border-white/25 ${tileClass}`}
                         flashClassName="bg-slate-200/60 dark:bg-white/10 border-slate-300 dark:border-white/25"
-                        onTapAction={() => triggerTooltip(setShowWeekPlannerTooltip)}
+                        onTapAction={() => setActiveModal('weekPlanner')}
                       >
                         <div className="text-[10px] sm:text-[11px] font-semibold text-slate-500 dark:text-white/55">{day.label}</div>
                         <div className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">{day.n}</div>
@@ -788,34 +789,32 @@ const BibofitMock = () => {
                       </Tap>
                     ))}
                   </div>
-                  <AnimatePresence>
-                    {showWeekPlannerTooltip && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 6 }}
-                      className="absolute left-4 right-4 bottom-3 z-20 rounded-xl border border-emerald-500/35 bg-[#123326]/95 px-4 py-3 text-base leading-relaxed text-center font-semibold text-emerald-100"
-                    >
-                        Planifica tus próximas comidas. Bibofit se encarga de
-                        {' '}hacerte la vida más fácil para actualizar
-                        {' '}
-                        tu Lista de la Compra.
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
                 </div>
               ) : (
                 <>
-                  <div className="flex items-center justify-between pt-1">
+                  <div className="flex items-center pt-1">
                     <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white">Comidas del día</h3>
-                    <button
-                      type="button"
-                      style={clickableHintStyle}
-                      className={`h-12 w-12 rounded-2xl border flex items-center justify-center ${panelClass} ${clickableHintClass}`}
-                      onClick={() => setActiveModal('shopping')}
-                    >
-                      <ShoppingCart className="h-6 w-6 text-sky-700 dark:text-sky-300" />
-                    </button>
+                    <div className="ml-auto flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setActiveModal('variants')}
+                        style={clickableHintStyle}
+                        className={`h-12 w-12 rounded-2xl mr-2 border border-cyan-600/70 bg-transparent text-cyan-700 dark:text-cyan-300 hover:bg-cyan-500/10 hover:text-cyan-800 dark:hover:text-cyan-200 flex items-center justify-center ${clickableHintClass}`}
+                        title="Variantes"
+                      >
+                        <GitBranch className="h-5 w-5" />
+                        <span className="sr-only">Variantes</span>
+                      </button>
+                      <button
+                        type="button"
+                        style={clickableHintStyle}
+                        className={`h-12 w-12 rounded-2xl border flex items-center justify-center ${panelClass} ${clickableHintClass}`}
+                        onClick={() => setActiveModal('shopping')}
+                        title="Lista de la compra"
+                      >
+                        <ShoppingCart className="h-6 w-6 text-sky-700 dark:text-sky-300" />
+                      </button>
+                    </div>
                   </div>
 
                   <div className={`rounded-3xl border p-4 sm:p-6 ${panelClass}`}>
@@ -898,7 +897,7 @@ const BibofitMock = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setActiveModal(null)}
+            onClick={closeActiveModal}
             className="absolute inset-0 z-30 bg-slate-900/45 dark:bg-[#071018]/80 backdrop-blur-[2px] flex items-center justify-center p-4"
           >
             <motion.div
@@ -908,36 +907,48 @@ const BibofitMock = () => {
               onClick={(e) => e.stopPropagation()}
               className="w-full max-w-md rounded-2xl border border-slate-800/70 dark:border-[#2f4658] bg-white dark:bg-[#12212d] p-6 space-y-5"
             >
-              <div className="flex items-center justify-between">
-                <div>
-                  {activeModal === 'weight' && (
-                    <>
-                      <h4 className="text-2xl font-bold text-slate-900 dark:text-white">Registro de Peso</h4>
-                      <p className="text-lg font-medium text-slate-600 dark:text-white/75">
-                        {selectedDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
-                      </p>
-                    </>
-                  )}
-                  {activeModal === 'shopping' && (
-                    <>
-                      <h4 className="text-2xl font-bold text-slate-900 dark:text-white">Lista de la Compra</h4>
-                      <p className="text-lg font-medium text-slate-600 dark:text-white/75">
-                        Una potente lista de la compra, que te hace un recuento de las cantidades de los alimentos y te permite modificarla de forma privada con lo que necesites.
-                      </p>
-                    </>
-                  )}
-                  {activeModal === 'snack' && <h4 className="text-2xl font-bold text-slate-900 dark:text-white">Añadir Picoteos</h4>}
-                  {activeModal === 'recipes' && <h4 className="text-2xl font-bold text-slate-900 dark:text-white">Añadir Recetas</h4>}
-                  {activeModal === 'recipeView' && <h4 className="text-2xl font-bold text-slate-900 dark:text-white">Receta</h4>}
+              <div className="space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    {activeModal === 'weight' && <Scale className="h-6 w-6 text-violet-400 shrink-0" />}
+                    {activeModal === 'shopping' && <ShoppingCart className="h-6 w-6 text-sky-500 shrink-0" />}
+                    {activeModal === 'snack' && <Apple className="h-6 w-6 text-orange-500 shrink-0" />}
+                    {activeModal === 'recipes' && <UtensilsCrossed className="h-6 w-6 text-sky-500 shrink-0" />}
+                    {activeModal === 'recipeView' && <UtensilsCrossed className="h-6 w-6 text-emerald-500 shrink-0" />}
+                    {activeModal === 'variants' && <GitBranch className="h-6 w-6 text-cyan-500 shrink-0" />}
+                    {activeModal === 'macro' && <Flame className="h-6 w-6 text-orange-500 shrink-0" />}
+                    {activeModal === 'weekPlanner' && <CalendarDays className="h-6 w-6 text-emerald-500 shrink-0" />}
+                    <h4 className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
+                      {activeModal === 'weight' && 'Registro de Peso'}
+                      {activeModal === 'shopping' && 'Lista de la Compra'}
+                      {activeModal === 'snack' && 'Añadir Picoteos'}
+                      {activeModal === 'recipes' && 'Receta Libre'}
+                      {activeModal === 'recipeView' && 'Receta'}
+                      {activeModal === 'variants' && 'Variantes de Recetas'}
+                      {activeModal === 'macro' && 'Visualizar de Macros'}
+                      {activeModal === 'weekPlanner' && 'Planificador de semana'}
+                    </h4>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={closeActiveModal}
+                    style={clickableHintStyle}
+                    className={`h-9 w-9 rounded-xl border border-slate-800/70 dark:border-[#2f4658] bg-slate-100 dark:bg-[#1a2b38] text-slate-700 dark:text-white/70 flex items-center justify-center hover:bg-slate-200/70 dark:hover:bg-white/5 shrink-0 ${clickableHintClass}`}
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setActiveModal(null)}
-                  style={clickableHintStyle}
-                  className={`h-9 w-9 rounded-xl border border-slate-800/70 dark:border-[#2f4658] bg-slate-100 dark:bg-[#1a2b38] text-slate-700 dark:text-white/70 flex items-center justify-center hover:bg-slate-200/70 dark:hover:bg-white/5 ${clickableHintClass}`}
-                >
-                  <X className="h-4 w-4" />
-                </button>
+
+                {activeModal === 'weight' && (
+                  <p className="text-lg font-medium text-slate-600 dark:text-white/75">
+                    {selectedDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                  </p>
+                )}
+                {activeModal === 'shopping' && (
+                  <p className="text-base leading-relaxed text-slate-600 dark:text-white/75">
+                    Compra inteligente con recuento automático y edición privada para añadir lo que necesites.
+                  </p>
+                )}
               </div>
 
               {activeModal === 'weight' && (
@@ -954,28 +965,69 @@ const BibofitMock = () => {
 
               {activeModal === 'shopping' && (
                 <div className="rounded-xl border border-slate-800/70 dark:border-[#2f4658] bg-slate-50 dark:bg-[#0f1b26] p-6 text-center">
-                  <p className="text-xl leading-relaxed text-slate-800 dark:text-white/90">
-                    Una potente lista de la compra, que te hace un recuento de las cantidades de los alimentos y te permite modificarla de forma privada con lo que necesites.
+                  <p className="text-lg leading-relaxed text-slate-800 dark:text-white/90">
+                    Cuenta con flexible lista de la compra que agrupa todos tus alimento y además te permite personalizarla de forma privada. La usarás cada día.
                   </p>
                 </div>
               )}
 
               {activeModal === 'snack' && (
                 <div className="rounded-xl border border-slate-800/70 dark:border-[#2f4658] bg-slate-50 dark:bg-[#0f1b26] p-5 text-lg text-slate-800 dark:text-white/90 leading-relaxed">
-                  Añade lo que has picoteado entre horas y dile a Bibofit que te ajuste alguna próxima comida, no te castiga por salirte del plan sino que te ayuda a que siempre puedas volver.
+                  Añade lo que has picoteado entre horas y deja que Bibofit compense el resto del día para mantenerte en rumbo sin dietas rígidas.
                 </div>
               )}
 
               {activeModal === 'recipes' && (
                 <div className="rounded-xl border border-slate-800/70 dark:border-[#2f4658] bg-slate-50 dark:bg-[#0f1b26] p-5 text-lg text-slate-800 dark:text-white/90 leading-relaxed">
-                  Añade tus recetas favoritas, Bibofit se encargará de ajustar las cantidades para que se ajusten a tus necesidades.
+                  Crea recetas libres a tu gusto y deja que Bibofit adapte sus cantidades para que encajen con tus objetivos diarios.
                 </div>
               )}
 
               {activeModal === 'recipeView' && (
+                <div className="space-y-4">
+                  <div className="rounded-xl border border-slate-800/70 dark:border-[#2f4658] bg-slate-50 dark:bg-[#0f1b26] p-5 text-lg text-slate-800 dark:text-white/90 leading-relaxed">
+                    Aquí no solo ves tus recetas: puedes editarlas libremente y, con el botón de
+                    {' '}<strong>Autocuadre Bibofit</strong>, las cantidades se ajustan automáticamente a tus necesidades.
+                    Aunque hagas cambios manuales, Bibofit vuelve a calcular por ti para mantenerte enfocado en tu objetivo.
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => triggerTooltip(setShowAutoBalanceTooltip)}
+                    className="w-full rounded-xl border border-cyan-500 bg-slate-100 dark:bg-[#1a2b38] px-4 py-3 text-base font-semibold text-cyan-700 dark:text-cyan-300 hover:bg-cyan-500/10 hover:text-cyan-800 dark:hover:text-cyan-200 flex items-center justify-center gap-2"
+                  >
+                    <Bot className="h-4 w-4" />
+                    Autocuadre Bibofit
+                  </button>
+                  <AnimatePresence>
+                    {showAutoBalanceTooltip && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 6 }}
+                        className="rounded-xl border border-cyan-500/45 bg-cyan-900/85 px-4 py-3 text-sm leading-relaxed text-cyan-100"
+                      >
+                        Gracias a este botón se acabó seguir dietas rígidas: haz los cambios que quieras y mantente siempre enfocado hacia tu objetivo.
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
+
+              {activeModal === 'variants' && (
                 <div className="rounded-xl border border-slate-800/70 dark:border-[#2f4658] bg-slate-50 dark:bg-[#0f1b26] p-5 text-lg text-slate-800 dark:text-white/90 leading-relaxed">
-                  Aquí puedes ver la preparación, alimentos y cantidades de cada receta y modificarlos a tu estilo.
-                  ¡Todo lo puedes personalizar a tu gusto en la cocina!
+                  Puedes crear variantes a tu gusto y tendrás siempre todas tus versiones. ¡Es la opción perfecta para varias tus recetas!
+                </div>
+              )}
+
+              {activeModal === 'macro' && (
+                <div className="rounded-xl border border-slate-800/70 dark:border-[#2f4658] bg-slate-50 dark:bg-[#0f1b26] p-5 text-lg text-slate-800 dark:text-white/90 leading-relaxed">
+                  Con el Visualizador de Macros registran tus calorías y macros en tiempo real para que puedas ajustar tu día y mantener el plan siempre compensado.
+                </div>
+              )}
+
+              {activeModal === 'weekPlanner' && (
+                <div className="rounded-xl border border-slate-800/70 dark:border-[#2f4658] bg-slate-50 dark:bg-[#0f1b26] p-5 text-lg text-slate-800 dark:text-white/90 leading-relaxed">
+                  Planifica tus próximas comidas con libertad y deja que Bibofit convierta tu semana en una compra inteligente fácil de seguir.
                 </div>
               )}
             </motion.div>

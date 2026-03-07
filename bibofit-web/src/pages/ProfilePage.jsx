@@ -107,40 +107,58 @@ const ProfilePage = () => {
           className="max-w-2xl mx-auto"
         >
           <div className="mb-10">
-            <div className="flex items-center justify-end gap-2 md:hidden -mt-2">
+            <div className="flex items-center justify-between gap-2 md:hidden -mt-2">
               <Button
                 type="button"
                 variant="outline"
-                size="icon"
-                className="relative border-border bg-card text-foreground hover:bg-accent"
-                onClick={() => setIsNotificationsOpen(true)}
-                aria-label="Abrir notificaciones"
-              >
-                <Bell className="h-4 w-4" />
-                {hasUnreadNotifications && (
-                  <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-500 px-1 text-xs font-semibold text-white">
-                    {unreadCount > 99 ? '99+' : unreadCount}
-                  </span>
-                )}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
                 className="border-border bg-card text-foreground hover:bg-accent"
-                onClick={toggleTheme}
-                aria-label="Cambiar tema"
+                onClick={openGuide}
               >
-                {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                <PlayCircle className="mr-2 h-4 w-4" /> Repetir Guía Rápida
               </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="relative border-border bg-card text-foreground hover:bg-accent"
+                  onClick={() => setIsNotificationsOpen(true)}
+                  aria-label="Abrir notificaciones"
+                >
+                  <Bell className="h-4 w-4" />
+                  {hasUnreadNotifications && (
+                    <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-500 px-1 text-xs font-semibold text-white">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="border-border bg-card text-foreground hover:bg-accent"
+                  onClick={toggleTheme}
+                  aria-label="Cambiar tema"
+                >
+                  {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                </Button>
+              </div>
             </div>
 
             <div className="mt-3 text-center md:hidden">
               <h1 className="text-4xl font-bold text-foreground">{profileTitle}</h1>
             </div>
+            <h1 className="hidden text-5xl font-bold text-foreground md:block">{profileTitle}</h1>
 
-            <div className="hidden items-start justify-between gap-3 md:flex">
-              <h1 className="text-5xl font-bold text-foreground">{profileTitle}</h1>
+            <div className="mt-3 hidden items-center justify-between gap-3 md:flex">
+              <Button
+                type="button"
+                variant="outline"
+                className="border-border bg-card text-foreground hover:bg-accent"
+                onClick={openGuide}
+              >
+                <PlayCircle className="mr-2 h-4 w-4" /> Repetir Guía Rápida
+              </Button>
               <div className="flex items-center gap-2">
                 <Button
                   type="button"
@@ -176,13 +194,6 @@ const ProfilePage = () => {
                   onClick={handleResetOnboarding}
               >
                   <RotateCcw className="w-3 h-3 mr-1" /> Repetir Onboarding
-              </Button>
-              <Button 
-                  variant="link" 
-                  className="h-auto py-1 text-xs text-muted-foreground hover:text-primary" 
-                  onClick={openGuide}
-              >
-                  <PlayCircle className="w-3 h-3 mr-1" /> Repetir Guía Rápida
               </Button>
             </div>
           </div>

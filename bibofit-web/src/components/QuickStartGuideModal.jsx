@@ -1,69 +1,58 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronRight, SlidersHorizontal, ChevronLeft, CheckCircle, Search, Calendar, ShoppingCart, ListTodo, Apple, Wand2, ArrowRightLeft, Lightbulb } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, CheckCircle, Search, Calendar, ShoppingCart, ListTodo, Apple, GitBranch, Utensils } from 'lucide-react';
 import { useQuickStartGuide } from '@/contexts/QuickStartGuideContext';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import AppIcon from '@/components/icons/AppIcon';
 
 const steps = [
   {
     title: 'Guía rápida de Usuario!',
     subtitle: 'Siempre puedes volver a esta guía desde tu Perfil',
-    icon: Lightbulb,
-    color: 'text-amber-400',
-    bg: 'bg-amber-400/10',
+    icon: AppIcon,
+    color: 'text-emerald-400',
+    bg: 'bg-emerald-400/10',
     isCover: true
   },
   {
     title: 'Tu Calendario',
     description: 'Desde aquí puedes acceder a tu Plan de dieta, además de ver un histórico de tus Registros de Peso y de tu tus comidas Marcadas como Comidas',
-    icon: ListTodo,
+    icon: Calendar,
     color: 'text-green-400',
     bg: 'bg-green-400/10'
   },
   {
-    title: 'Gestos Rápidos',
-    description: (
-      <>
-        Bibofit permite que edites cualquier receta a tu gusto. <br />
-        La dieta que no se disfruta es imposible de seguir
-      </>
-    ),
-    icon: ArrowRightLeft,
-    color: 'text-fuchsia-400',
-    bg: 'bg-fuchsia-400/10'
+    title: 'Edita cualquier receta',
+    description: 'Bibofit permite que edites cualquier receta a tu gusto. La dieta que no se disfruta es imposible de seguir.',
+    icon: GitBranch,
+    color: 'text-[rgb(59,154,167)]',
+    bg: 'bg-[rgb(59,154,167)]/10'
   },
   {
-    title: 'edita cualquier receta',
-    description: 'Bibofit permite que edites cualquier receta a tu gusto. La dieta que no se disfruta es imposible de seguir',
-    icon: SlidersHorizontal,
-    color: 'text-orange-400',
-    bg: 'bg-orange-400/10'
-  },
-  {
-    title: 'Búsqueda Inteligente',
-    description: 'Para cada momento de comida, encontrarás un Buscador Inteligente que te permite filtrar por nombre, alimento, dificultad de receta...',
+    title: 'Buscadores Inteligentes',
+    description: 'Bibofit busca simplicidad, si buscas una receta puedes buscar por su Nombre, un Alimento que contenga, por una Familia de Alimento (por ejemplo, frutas o lácteos...), por la Dificultad... Disfruta de la máxima flexibilidad.',
     icon: Search,
     color: 'text-teal-400',
     bg: 'bg-teal-400/10'
   },
   {
-    title: 'Marcar como Comida',
-    description: 'Cuando elijas qué receta quieres comer, usa el botón "Marcar como Comida" para llevar un registro de tu progreso diario y mantener tu adherencia al plan.',
-    icon: CheckCircle,
+    title: 'Marcar Receta como Comida',
+    description: 'Usa el botón "Marcar como Comida" para llevar un registro y mantener tu adherencia al plan.',
+    icon: Utensils,
     color: 'text-emerald-400',
     bg: 'bg-emerald-400/10'
   },
   {
     title: 'Planificación Semanal',
-    description: 'Usa la vista semanal para organizar tus comidas de los próximos días.',
+    description: 'Puedes organizar tu semana, marca qué recetas vas a querer comer y así olvídate de esos momentos incómodos de "bfff qué hambre tengo ahora, pero no sé que me apetece"...',
     icon: Calendar,
     color: 'text-blue-400',
     bg: 'bg-blue-400/10'
   },
   {
     title: 'Lista de la Compra',
-    description: 'Generada automáticamente basada en tu menú semanal. Añade artículos extras a tu lista de la compra privada. Perfecta para esos productos que no están en tu dieta pero necesitas comprar.',
+    description: 'Una lista dinámica que se adapta a ti: añade lo que necesites y organízala a tu manera.',
     icon: ShoppingCart,
     color: 'text-indigo-400',
     bg: 'bg-indigo-400/10'
@@ -78,13 +67,6 @@ const steps = [
   {
     title: 'Picoteo y Equivalencias',
     description: '¿Tienes hambre entre horas? Bibofit sabe que sí. Usa el botón "Picoteo". Así podrás usar el botón mágico de Equivalencia ajustará el resto de tu día para cuadrar tus macros.',
-    icon: Wand2,
-    color: 'text-rose-400',
-    bg: 'bg-rose-400/10'
-  },
-  {
-    title: 'Comidas Libres',
-    description: '¿Tienes recetas que te encantan y las quieres añadir como "Comidas Libres"? Añade tus propias creaciones o elige de las recetas de la app, también tendrás disponible el botón mágico de Equivalencia para que las proporciones cubran tus macros.',
     icon: Apple,
     color: 'text-orange-400',
     bg: 'bg-orange-400/10'
@@ -175,7 +157,7 @@ const QuickStartGuideModal = () => {
                     variants={itemVariants}
                     animate={{ y: [0, -10, 0] }}
                     transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
-                    className={cn("w-24 h-24 rounded-full flex items-center justify-center mb-6 shadow-lg shadow-amber-500/20", step.bg)}
+                    className={cn("w-24 h-24 rounded-full flex items-center justify-center mb-6 shadow-lg shadow-emerald-500/20", step.bg)}
                   >
                     <step.icon className={cn("w-12 h-12", step.color)} />
                   </motion.div>
