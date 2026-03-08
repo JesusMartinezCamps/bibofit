@@ -2,6 +2,7 @@
 import { supabase } from '@/lib/customSupabaseClient';
 import { getStepConfig } from './onboardingConfig';
 import { calculateAndSaveMetabolism } from '@/lib/metabolismCalculator';
+import { format } from 'date-fns';
 
 const fetchDefaultDietTemplate = async () => {
   const { data, error } = await supabase
@@ -17,6 +18,45 @@ const fetchDefaultDietTemplate = async () => {
   }
 
   return data?.[0] || null;
+};
+
+const syncTodaysWeightLog = async (userId, weightKg) => {
+  if (!userId || !Number.isFinite(weightKg) || weightKg <= 0) return;
+
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const description = 'Peso inicial registrado durante onboarding.';
+
+  const { data: existingLog, error: fetchError } = await supabase
+    .from('weight_logs')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('logged_on', today)
+    .order('id', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (fetchError) throw fetchError;
+
+  if (existingLog?.id) {
+    const { error: updateError } = await supabase
+      .from('weight_logs')
+      .update({ weight_kg: weightKg, description })
+      .eq('id', existingLog.id);
+
+    if (updateError) throw updateError;
+    return;
+  }
+
+  const { error: insertError } = await supabase
+    .from('weight_logs')
+    .insert({
+      user_id: userId,
+      logged_on: today,
+      weight_kg: weightKg,
+      description
+    });
+
+  if (insertError) throw insertError;
 };
 
 export const onboardingService = {
@@ -69,6 +109,9 @@ export const onboardingService = {
                 .update(data)
                 .eq('user_id', userId);
               if (error) throw error;
+
+              console.log('⚖️ Syncing weight log for today...');
+              await syncTodaysWeightLog(userId, Number(data.current_weight_kg));
 
               console.log('🔄 Triggering metabolism calculation...');
               await calculateAndSaveMetabolism(userId);

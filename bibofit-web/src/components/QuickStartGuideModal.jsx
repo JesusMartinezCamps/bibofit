@@ -31,7 +31,7 @@ const steps = [
   },
   {
     title: 'Buscadores Inteligentes',
-    description: 'Bibofit busca simplicidad, si buscas una receta puedes buscar por su Nombre, un Alimento que contenga, por una Familia de Alimento (por ejemplo, frutas o lácteos...), por la Dificultad... Disfruta de la máxima flexibilidad.',
+    description: 'Busca como quieras: por nombre, ingredientes, familia de alimentos, dificultad… Bibofit filtra todo para que encuentres cualquier receta en segundos. Aprovéchalos',
     icon: Search,
     color: 'text-teal-400',
     bg: 'bg-teal-400/10'
@@ -45,7 +45,7 @@ const steps = [
   },
   {
     title: 'Planificación Semanal',
-    description: 'Puedes organizar tu semana, marca qué recetas vas a querer comer y así olvídate de esos momentos incómodos de "bfff qué hambre tengo ahora, pero no sé que me apetece"...',
+description: 'Organiza tu semana marcando qué recetas vas a comer y olvídate del típico momento de: “tengo hambre, pero no sé qué me apetece”.',
     icon: Calendar,
     color: 'text-blue-400',
     bg: 'bg-blue-400/10'
@@ -142,7 +142,7 @@ const QuickStartGuideModal = () => {
           </div>
 
           {/* Content */}
-          <div className="p-8 flex flex-col items-center text-center space-y-6 min-h-[300px] justify-center">
+          <div className="p-8 flex flex-col items-center text-center space-y-6 h-[520px] justify-center overflow-y-auto">
             <AnimatePresence mode="wait">
               {step.isCover ? (
                 <motion.div
