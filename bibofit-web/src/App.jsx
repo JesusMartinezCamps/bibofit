@@ -62,6 +62,7 @@ import PWAInstallPrompt from '@/components/PWAInstallPrompt';
 import ClientPlanDetailPage from '@/pages/ClientPlanDetailPage';
 import HomePage from '@/pages/HomePage';
 import ShoppingListPage from '@/pages/ShoppingListPage';
+import CommunicationPage from '@/pages/CommunicationPage';
 
 // Coach Pages
 import CoachDashboard from '@/pages/CoachDashboard';
@@ -145,6 +146,7 @@ const AppRoutes = () => (
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/assign-diet-plan" element={<ProtectedRoute><AssignDietPlanPage /></ProtectedRoute>} />
       <Route path="/shopping-list" element={<ProtectedRoute><ShoppingListPage /></ProtectedRoute>} />
+      <Route path="/communication" element={<ProtectedRoute><CommunicationPage /></ProtectedRoute>} />
 
       {/* Coach */}
       <Route path="/coach-dashboard" element={<ProtectedRoute><CoachDashboard /></ProtectedRoute>} />

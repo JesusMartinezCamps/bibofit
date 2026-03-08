@@ -1,329 +1,411 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Helmet } from 'react-helmet';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabaseClient';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Loader2, Plus, ArrowLeft, RotateCcw, CheckCircle2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Loader2, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import IngredientSearch from '@/components/plans/IngredientSearch';
 import { useFreeRecipeDialog } from '@/components/plans/hooks/useFreeRecipeDialog';
-import MacroDisplay from '@/components/plans/UI/MacroDisplay';
-import IngredientRowConflict from '@/components/plans/UI/IngredientRowConflict';
 import EquivalenceDialog from '@/components/plans/EquivalenceDialog';
 import { calculateMacros } from '@/lib/macroCalculator';
+import RecipeView from '@/components/shared/RecipeView';
+
+const EMPTY_RESTRICTIONS = {
+  sensitivities: [],
+  medical_conditions: [],
+  individual_food_restrictions: [],
+  preferred_foods: [],
+  non_preferred_foods: [],
+};
+
+const toNumberOrNull = (value) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const normalizeMealTargetMacros = (rawTargets) => {
+  if (!rawTargets) return null;
+
+  const proteins = toNumberOrNull(rawTargets.target_proteins ?? rawTargets.proteins);
+  const carbs = toNumberOrNull(rawTargets.target_carbs ?? rawTargets.carbs);
+  const fats = toNumberOrNull(rawTargets.target_fats ?? rawTargets.fats);
+  const calories =
+    toNumberOrNull(rawTargets.target_calories ?? rawTargets.calories) ??
+    ((proteins || 0) * 4 + (carbs || 0) * 4 + (fats || 0) * 9);
+
+  if (proteins === null && carbs === null && fats === null && calories === null) {
+    return null;
+  }
+
+  return {
+    target_calories: calories ?? 0,
+    target_proteins: proteins ?? 0,
+    target_carbs: carbs ?? 0,
+    target_fats: fats ?? 0,
+  };
+};
+
+const pickBestMealTargetRow = (rows, expectedDietPlanId) => {
+  if (!Array.isArray(rows) || rows.length === 0) return null;
+
+  if (expectedDietPlanId != null) {
+    const exact = rows.find((row) => String(row?.diet_plan_id) === String(expectedDietPlanId));
+    if (exact) return exact;
+  }
+
+  const scoreRow = (row) => {
+    const p = toNumberOrNull(row?.target_proteins) || 0;
+    const c = toNumberOrNull(row?.target_carbs) || 0;
+    const f = toNumberOrNull(row?.target_fats) || 0;
+    return p + c + f;
+  };
+
+  return [...rows].sort((a, b) => scoreRow(b) - scoreRow(a))[0] || null;
+};
 
 const CreateFreeRecipePage = () => {
-    const { user } = useAuth();
-    const { toast } = useToast();
-    const navigate = useNavigate();
-    const { date, mealId } = useParams();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { date, mealId } = useParams();
 
-    const [view, setView] = useState('main'); // 'main', 'search'
-    const [loadingInitialData, setLoadingInitialData] = useState(true);
-    const lastIngredientRef = useRef(null);
+  const initialTargetsFromState = useMemo(
+    () => normalizeMealTargetMacros(location.state?.mealTargetMacros),
+    [location.state?.mealTargetMacros]
+  );
 
-    const [isEquivalenceDialogOpen, setIsEquivalenceDialogOpen] = useState(false);
-    const [recipeForEquivalence, setRecipeForEquivalence] = useState(null);
-    const [recipeNameForToast, setRecipeNameForToast] = useState('');
-    const [availableFoods, setAvailableFoods] = useState([]);
-    const [recipeStyles, setRecipeStyles] = useState([]);
-    const [userRestrictions, setUserRestrictions] = useState(null);
-    const [dietPlanId, setDietPlanId] = useState(null);
+  const [view, setView] = useState('main'); // 'main', 'search'
+  const [loadingInitialData, setLoadingInitialData] = useState(true);
 
-    const targetUserId = user.id;
+  const [isEquivalenceDialogOpen, setIsEquivalenceDialogOpen] = useState(false);
+  const [recipeForEquivalence, setRecipeForEquivalence] = useState(null);
+  const [recipeNameForToast, setRecipeNameForToast] = useState('');
+  const [availableFoods, setAvailableFoods] = useState([]);
+  const [allVitamins, setAllVitamins] = useState([]);
+  const [allMinerals, setAllMinerals] = useState([]);
+  const [allFoodGroups, setAllFoodGroups] = useState([]);
+  const [recipeStyles, setRecipeStyles] = useState([]);
+  const [userRestrictions, setUserRestrictions] = useState(EMPTY_RESTRICTIONS);
+  const [dietPlanId, setDietPlanId] = useState(null);
+  const [mealTargetMacros, setMealTargetMacros] = useState(initialTargetsFromState);
 
-    const handleSaveSuccess = (newLog, newFreeMealWithOccurrence) => {
-        setRecipeNameForToast(newFreeMealWithOccurrence.name);
-        const recipeMacros = calculateMacros(newFreeMealWithOccurrence.recipe_ingredients, availableFoods);
+  const targetUserId = user?.id;
 
-        const recipeForDialog = {
-            id: newFreeMealWithOccurrence.id,
-            user_id: newFreeMealWithOccurrence.user_id,
-            meal_date: newFreeMealWithOccurrence.meal_date,
-            day_meal_id: newFreeMealWithOccurrence.day_meal_id,
-            name: newFreeMealWithOccurrence.name,
-            instructions: newFreeMealWithOccurrence.instructions,
-            ingredients: newFreeMealWithOccurrence.recipe_ingredients,
-            occurrence_id: newFreeMealWithOccurrence.occurrence_id, 
-            free_recipe: { id: newFreeMealWithOccurrence.id } 
-        };
+  useEffect(() => {
+    if (initialTargetsFromState) {
+      setMealTargetMacros(initialTargetsFromState);
+    }
+  }, [initialTargetsFromState]);
 
-        setRecipeForEquivalence({
-            item: recipeForDialog,
-            macros: recipeMacros,
-            logId: newLog.id
-        });
-        setIsEquivalenceDialogOpen(true);
+  const handleSaveSuccess = (newLog, newFreeMealWithOccurrence) => {
+    setRecipeNameForToast(newFreeMealWithOccurrence.name);
+    const recipeMacros = calculateMacros(newFreeMealWithOccurrence.recipe_ingredients, availableFoods);
+
+    const recipeForDialog = {
+      id: newFreeMealWithOccurrence.id,
+      user_id: newFreeMealWithOccurrence.user_id,
+      meal_date: newFreeMealWithOccurrence.meal_date,
+      day_meal_id: newFreeMealWithOccurrence.day_meal_id,
+      name: newFreeMealWithOccurrence.name,
+      instructions: newFreeMealWithOccurrence.instructions,
+      ingredients: newFreeMealWithOccurrence.recipe_ingredients,
+      occurrence_id: newFreeMealWithOccurrence.occurrence_id,
+      free_recipe: { id: newFreeMealWithOccurrence.id },
     };
 
-    const {
-        recipeName, setRecipeName,
-        prepTime, setPrepTime,
-        difficulty, setDifficulty,
-        recipeStyleId, setRecipeStyleId,
-        instructions, setInstructions,
-        ingredients, setIngredients,
-        macros,
-        handleIngredientAdded,
-        handleQuantityChange,
-        handleRemoveIngredient,
-        handleSave,
-        isSaving,
-        restoreDraft,
-        hasSavedDraft
-    } = useFreeRecipeDialog({
-        targetUserId,
-        dayMealId: mealId,
-        dietPlanId,
-        date,
-        onSuccess: handleSaveSuccess,
-        availableFoods,
+    setRecipeForEquivalence({
+      item: recipeForDialog,
+      macros: recipeMacros,
+      logId: newLog.id,
     });
-    
-    const handleEquivalenceSuccess = (newAdjustment) => {
-        setIsEquivalenceDialogOpen(false);
-        setRecipeForEquivalence(null);
-        toast({ title: 'Éxito', description: `Receta "${recipeNameForToast}" creada y equivalencia aplicada.` });
-        navigate(`/plan/dieta/${date}`);
-    };
-    
-    const handleEquivalenceDialogClose = (isOpen) => {
-        if (!isOpen && recipeForEquivalence) {
-            setIsEquivalenceDialogOpen(false);
-            setRecipeForEquivalence(null);
-            toast({ title: 'Éxito', description: `Receta "${recipeNameForToast}" creada y añadida al plan.` });
-            navigate(`/plan/dieta/${date}`);
+    setIsEquivalenceDialogOpen(true);
+  };
+
+  const {
+    recipeName,
+    ingredients,
+    recipeForView,
+    macros,
+    handleRecipeFormChange,
+    handleIngredientsChange,
+    handleIngredientAdded,
+    handleRemoveIngredient,
+    handleSave,
+    isSaving,
+    hasSavedDraft,
+  } = useFreeRecipeDialog({
+    targetUserId,
+    dayMealId: mealId,
+    dietPlanId,
+    date,
+    onSuccess: handleSaveSuccess,
+    availableFoods,
+  });
+
+  const handleEquivalenceSuccess = () => {
+    setIsEquivalenceDialogOpen(false);
+    setRecipeForEquivalence(null);
+    toast({ title: 'Éxito', description: `Receta "${recipeNameForToast}" creada y equivalencia aplicada.` });
+    navigate(`/plan/dieta/${date}`);
+  };
+
+  const handleEquivalenceDialogClose = (isOpen) => {
+    if (!isOpen && recipeForEquivalence) {
+      setIsEquivalenceDialogOpen(false);
+      setRecipeForEquivalence(null);
+      toast({ title: 'Éxito', description: `Receta "${recipeNameForToast}" creada y añadida al plan.` });
+      navigate(`/plan/dieta/${date}`);
+    } else {
+      setIsEquivalenceDialogOpen(isOpen);
+    }
+  };
+
+  const fetchInitialData = useCallback(async () => {
+    if (!targetUserId || !date || !mealId) return;
+
+    setLoadingInitialData(true);
+    try {
+      const [
+        foodsRes,
+        userFoodsRes,
+        restrictionsRes,
+        preferredFoodsRes,
+        nonPreferredFoodsRes,
+        recipeStylesRes,
+        vitaminsRes,
+        mineralsRes,
+        foodGroupsRes,
+        planRes,
+      ] = await Promise.all([
+        supabase
+          .from('food')
+          .select('*, food_sensitivities(sensitivity:sensitivities(id, name)), food_medical_conditions(relation_type, condition:medical_conditions(id, name)), food_to_food_groups(food_group_id, food_group:food_groups(id, name)), food_vitamins(vitamin_id, vitamins(id, name)), food_minerals(mineral_id, minerals(id, name))')
+          .is('user_id', null),
+        supabase
+          .from('food')
+          .select('*, food_sensitivities(sensitivity:sensitivities(id, name)), food_medical_conditions(relation_type, condition:medical_conditions(id, name)), food_to_food_groups(food_group_id, food_group:food_groups(id, name)), food_vitamins(vitamin_id, vitamins(id, name)), food_minerals(mineral_id, minerals(id, name))')
+          .eq('user_id', targetUserId)
+          .neq('status', 'rejected'),
+        supabase.rpc('get_user_restrictions', { p_user_id: targetUserId }),
+        supabase.from('preferred_foods').select('food(*)').eq('user_id', targetUserId),
+        supabase.from('non_preferred_foods').select('food(*)').eq('user_id', targetUserId),
+        supabase.from('recipe_styles').select('id, name').eq('is_active', true).order('display_order').order('name'),
+        supabase.from('vitamins').select('id, name'),
+        supabase.from('minerals').select('id, name'),
+        supabase.from('food_groups').select('id, name'),
+        supabase
+          .from('diet_plans')
+          .select('id')
+          .eq('user_id', targetUserId)
+          .lte('start_date', date)
+          .gte('end_date', date)
+          .eq('is_active', true)
+          .maybeSingle(),
+      ]);
+
+      if (
+        foodsRes.error ||
+        userFoodsRes.error ||
+        restrictionsRes.error ||
+        preferredFoodsRes.error ||
+        nonPreferredFoodsRes.error ||
+        recipeStylesRes.error ||
+        vitaminsRes.error ||
+        mineralsRes.error ||
+        foodGroupsRes.error
+      ) {
+        throw new Error(
+          foodsRes.error?.message ||
+            userFoodsRes.error?.message ||
+            restrictionsRes.error?.message ||
+            preferredFoodsRes.error?.message ||
+            nonPreferredFoodsRes.error?.message ||
+            recipeStylesRes.error?.message ||
+            vitaminsRes.error?.message ||
+            mineralsRes.error?.message ||
+            foodGroupsRes.error?.message ||
+            'No se pudo cargar la información inicial.'
+        );
+      }
+
+      if (planRes.error) {
+        console.error('Error fetching active diet plan:', planRes.error);
+      }
+
+      const resolvedDietPlanId = planRes.data?.id || null;
+      setDietPlanId(resolvedDietPlanId);
+
+      if (!initialTargetsFromState) {
+        const { data: mealTargetRows, error: mealTargetsError } = await supabase
+          .from('user_day_meals')
+          .select('diet_plan_id, target_calories, target_proteins, target_carbs, target_fats')
+          .eq('user_id', targetUserId)
+          .eq('day_meal_id', Number(mealId));
+
+        if (mealTargetsError) {
+          console.error('Error fetching meal target macros:', mealTargetsError);
         } else {
-             setIsEquivalenceDialogOpen(isOpen);
+          const pickedTargets = pickBestMealTargetRow(mealTargetRows || [], resolvedDietPlanId);
+          setMealTargetMacros(normalizeMealTargetMacros(pickedTargets));
         }
-    };
+      }
 
-    const fetchInitialData = useCallback(async () => {
-        setLoadingInitialData(true);
-        try {
-            const [foodsRes, userFoodsRes, restrictionsRes, preferredFoodsRes, nonPreferredFoodsRes, recipeStylesRes] = await Promise.all([
-                supabase.from('food').select(`*, food_sensitivities(sensitivities(id, name)), food_medical_conditions(medical_conditions(id, name), relation_type)`).is('user_id', null),
-                supabase.from('food').select(`*, food_sensitivities(sensitivities(id, name)), food_medical_conditions(medical_conditions(id, name), relation_type)`).eq('user_id', targetUserId).neq('status', 'rejected'),
-                supabase.rpc('get_user_restrictions', { p_user_id: targetUserId }),
-                supabase.from('preferred_foods').select('food(*)').eq('user_id', targetUserId),
-                supabase.from('non_preferred_foods').select('food(*)').eq('user_id', targetUserId),
-                supabase.from('recipe_styles').select('id, name').eq('is_active', true).order('display_order').order('name')
-            ]);
-            
-            // Fetch Active Diet Plan ID
-            const { data: planData, error: planError } = await supabase
-                .from('diet_plans')
-                .select('id')
-                .eq('user_id', targetUserId)
-                .lte('start_date', date)
-                .gte('end_date', date)
-                .eq('is_active', true)
-                .maybeSingle();
+      const publicFoods = (foodsRes.data || []).map((food) => ({ ...food, is_user_created: false }));
+      const userFoods = (userFoodsRes.data || []).map((food) => ({ ...food, is_user_created: true }));
 
-            if (planError) {
-                console.error("Error fetching diet plan:", planError);
-            }
-            if (planData) {
-                setDietPlanId(planData.id);
-            }
+      setAvailableFoods([...publicFoods, ...userFoods]);
+      setAllVitamins(vitaminsRes.data || []);
+      setAllMinerals(mineralsRes.data || []);
+      setAllFoodGroups(foodGroupsRes.data || []);
+      setRecipeStyles(recipeStylesRes.data || []);
 
-            if (foodsRes.error || userFoodsRes.error || restrictionsRes.error || preferredFoodsRes.error || nonPreferredFoodsRes.error || recipeStylesRes.error) {
-                throw new Error(foodsRes.error?.message || userFoodsRes.error?.message || restrictionsRes.error?.message || preferredFoodsRes.error?.message || nonPreferredFoodsRes.error?.message || recipeStylesRes.error?.message || "An unknown error occurred while fetching initial data.");
-            }
+      const finalRestrictions = {
+        ...(restrictionsRes.data || {}),
+        preferred_foods: (preferredFoodsRes.data || []).map((item) => item.food).filter(Boolean),
+        non_preferred_foods: (nonPreferredFoodsRes.data || []).map((item) => item.food).filter(Boolean),
+      };
+      setUserRestrictions(finalRestrictions);
+    } catch (error) {
+      console.error('Error fetching initial data for CreateFreeRecipePage:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudieron cargar los datos necesarios para crear la receta.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingInitialData(false);
+    }
+  }, [targetUserId, date, mealId, toast, initialTargetsFromState]);
 
-            const publicFoods = (foodsRes.data || []).map(f => ({ ...f, is_user_created: false }));
-            const userFoods = (userFoodsRes.data || []).map(f => ({ ...f, is_user_created: true }));
-            setAvailableFoods([...publicFoods, ...userFoods]);
-            setRecipeStyles(recipeStylesRes.data || []);
-            
-            const finalRestrictions = {
-                ...(restrictionsRes.data || {}),
-                preferred_foods: (preferredFoodsRes.data || []).map(item => item.food),
-                non_preferred_foods: (nonPreferredFoodsRes.data || []).map(item => item.food),
-            };
-            setUserRestrictions(finalRestrictions);
+  useEffect(() => {
+    fetchInitialData();
+  }, [fetchInitialData]);
 
-        } catch (error) {
-            console.error('Error fetching initial data for FreeRecipePage:', error);
-            toast({ title: 'Error', description: 'No se pudieron cargar los datos necesarios para crear la receta.', variant: 'destructive' });
-        } finally {
-            setLoadingInitialData(false);
-        }
-    }, [targetUserId, toast, date]);
+  useEffect(() => {
+    if (!date || !mealId) {
+      toast({
+        title: 'Error',
+        description: 'Falta información. Vuelve al plan e inténtalo de nuevo.',
+        variant: 'destructive',
+      });
+      navigate('/plan/dieta');
+    }
+  }, [date, mealId, navigate, toast]);
 
-    useEffect(() => {
-        fetchInitialData();
-    }, [fetchInitialData]);
+  const handleLocalIngredientAdded = (newIngredient) => {
+    handleIngredientAdded(newIngredient);
+    setView('main');
+  };
 
-    useEffect(() => {
-        if (!date || !mealId) {
-            toast({ title: 'Error', description: 'Falta información. Vuelve al plan e inténtalo de nuevo.', variant: 'destructive' });
-            navigate('/plan/dieta');
-        }
-    }, [date, mealId, navigate, toast]);
+  const getTitle = () => {
+    if (view === 'search') return 'Añadir Ingrediente';
+    return 'Crear Receta Libre';
+  };
 
-    useEffect(() => {
-        if (lastIngredientRef.current) {
-            lastIngredientRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-    }, [ingredients.length]);
+  const BackButton = () => (
+    <Button variant="ghost" asChild>
+      <Link
+        to={view === 'main' ? `/plan/dieta/${date}` : '#'}
+        onClick={view !== 'main' ? () => setView('main') : undefined}
+        className="flex items-center gap-2 text-muted-foreground hover:text-foreground hover:bg-muted"
+      >
+        <ArrowLeft size={18} />
+        {view === 'main' ? 'Volver al Plan' : 'Volver a la receta'}
+      </Link>
+    </Button>
+  );
 
-    const handleLocalIngredientAdded = (newIngredient) => {
-        handleIngredientAdded(newIngredient);
-        setView('main');
-    };
+  return (
+    <>
+      <Helmet>
+        <title>Crear Receta Libre - Gsus Martz</title>
+        <meta name="description" content="Crea y añade una receta libre a tu plan de dieta." />
+      </Helmet>
 
-    const renderContent = () => {
-        if (loadingInitialData) {
-            return <div className="flex justify-center items-center h-64"><Loader2 className="h-12 w-12 animate-spin text-green-500" /></div>;
-        }
+      <div className="container mx-auto max-w-4xl pt-0 pb-8 px-4 sm:pt-8">
+        <div className="mb-0 sm:mb-6">
+          <BackButton />
+        </div>
 
-        switch (view) {
-            case 'search':
-                return (
-                    <IngredientSearch
-                        selectedIngredients={ingredients}
-                        onIngredientAdded={handleLocalIngredientAdded}
-                        availableFoods={availableFoods}
-                        userRestrictions={userRestrictions}
-                        createFoodUserId={targetUserId}
-                        onBack={() => setView('main')}
-                    />
-                );
-            case 'main':
-            default:
-                return (
-                    <div className="space-y-6">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-xl font-semibold">Detalles de la Receta</h3>
-                            {hasSavedDraft && (
-                                <div className="flex items-center gap-2">
-                                     <span className="text-xs text-green-400 flex items-center gap-1">
-                                        <CheckCircle2 size={12} /> Borrador guardado
-                                     </span>
-                                </div>
-                            )}
-                        </div>
-                        <div className="space-y-1">
-                            <label htmlFor="recipeName" className="block text-sm font-medium text-muted-foreground">Nombre de la Receta</label>
-                            <Input id="recipeName" type="text" placeholder="Ej: Pollo al curry con arroz" value={recipeName} onChange={(e) => setRecipeName(e.target.value)} />
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            <div>
-                                <label htmlFor="prepTime" className="block text-sm font-medium text-muted-foreground">Tiempo (min)</label>
-                                <Input id="prepTime" type="number" placeholder="Ej: 30" value={prepTime} onChange={(e) => setPrepTime(e.target.value)} />
-                            </div>
-                            <div>
-                                <label htmlFor="difficulty" className="block text-sm font-medium text-muted-foreground">Dificultad</label>
-                                <Select value={difficulty} onValueChange={setDifficulty}>
-                                    <SelectTrigger><SelectValue placeholder="Selecciona dificultad" /></SelectTrigger>
-                                    <SelectContent><SelectItem value="Fácil">Fácil</SelectItem><SelectItem value="Media">Media</SelectItem><SelectItem value="Difícil">Difícil</SelectItem></SelectContent>
-                                </Select>
-                            </div>
-                            <div>
-                                <label htmlFor="recipeStyle" className="block text-sm font-medium text-muted-foreground">Estilo</label>
-                                <Select value={recipeStyleId || ''} onValueChange={setRecipeStyleId}>
-                                    <SelectTrigger id="recipeStyle"><SelectValue placeholder="Selecciona estilo" /></SelectTrigger>
-                                    <SelectContent>
-                                        {recipeStyles.map((style) => (
-                                            <SelectItem key={style.id} value={String(style.id)}>
-                                                {style.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-                        <div>
-                            <label htmlFor="instructions" className="block text-sm font-medium text-muted-foreground">Instrucciones</label>
-                            <Textarea id="instructions" placeholder="Describe los pasos..." value={instructions} onChange={(e) => setInstructions(e.target.value)} className="input-field min-h-[120px]" />
-                        </div>
-                        <div className="border-t border-border my-4"></div>
-                        <div className="space-y-4">
-                            <h3 className="text-xl font-semibold">Ingredientes</h3>
-                            <MacroDisplay macros={macros} title="Macros Totales de la Receta" />
-                            <AnimatePresence>
-                                {ingredients.length > 0 && (
-                                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-3">
-                                        {ingredients.map((ing, index) => (
-                                            <motion.div key={ing.food_id ? `${ing.food_id}-${ing.is_user_created}` : `free-${index}`} ref={index === ingredients.length - 1 ? lastIngredientRef : null} layout initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }}>
-                                                <IngredientRowConflict ingredient={ing} index={index} onQuantityChange={handleQuantityChange} onRemove={handleRemoveIngredient} availableFoods={availableFoods} userRestrictions={userRestrictions} />
-                                            </motion.div>
-                                        ))}
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                            <Button onClick={() => setView('search')} variant="outline" className="w-full border-dashed border-emerald-500 text-emerald-300 bg-emerald-900/20 hover:bg-emerald-500/20 hover:text-emerald-200">
-                                <Plus className="mr-2 h-4 w-4 text-emerald-500" /> Añadir Ingrediente
-                            </Button>
-                        </div>
-                    </div>
-                );
-        }
-    };
-    
-    const getTitle = () => {
-        switch (view) {
-          case 'search': return 'Añadir Ingrediente';
-          default: return 'Crear Receta Libre';
-        }
-    };
-
-    const BackButton = () => (
-        <Button variant="ghost" asChild>
-            <Link to={view === 'main' ? `/plan/dieta/${date}` : '#'} onClick={view !== 'main' ? () => setView('main') : undefined} className="flex items-center gap-2 text-muted-foreground hover:text-foreground hover:bg-muted">
-                <ArrowLeft size={18} />
-                {view === 'main' ? 'Volver al Plan' : 'Volver a la receta'}
-            </Link>
-        </Button>
-    );
-
-    return (
-        <>
-            <Helmet>
-                <title>Crear Receta Libre - Gsus Martz</title>
-                <meta name="description" content="Crea y añade una receta libre a tu plan de dieta." />
-            </Helmet>
-            <div className="container mx-auto max-w-4xl pt-0 pb-8 px-4 sm:pt-8">
-                <div className="mb-0 sm:mb-6">
-                    <BackButton />
-                </div>
-                <Card className="bg-card/75 border-border text-white">
-                    <CardHeader>
-                        <CardTitle className="text-3xl font-bold text-green-400">{getTitle()}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {renderContent()}
-                    </CardContent>
-                    {view === 'main' && (
-                        <CardFooter>
-                            <Button onClick={handleSave} disabled={isSaving || !recipeName || ingredients.length === 0} className="w-full bg-green-600 hover:bg-green-700 py-6 text-lg">
-                                {isSaving ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
-                                Guardar Receta
-                            </Button>
-                        </CardFooter>
-                    )}
-                </Card>
-            </div>
-            {recipeForEquivalence && (
-                <EquivalenceDialog
-                    open={isEquivalenceDialogOpen}
-                    onOpenChange={handleEquivalenceDialogClose}
-                    sourceItem={recipeForEquivalence.item}
-                    sourceItemType="free_recipe"
-                    sourceItemMacros={recipeForEquivalence.macros}
-                    sourceLogId={recipeForEquivalence.logId}
-                    onSuccess={handleEquivalenceSuccess}
-                />
+        <Card className="bg-card/75 dark:bg-[#0C101D] border-border text-white">
+          <CardHeader>
+            <CardTitle className="text-3xl font-bold text-green-400">{getTitle()}</CardTitle>
+            {view === 'main' && hasSavedDraft && (
+              <div className="flex items-center gap-2 text-xs text-green-400">
+                <CheckCircle2 size={12} />
+                Borrador guardado
+              </div>
             )}
-        </>
-    );
+          </CardHeader>
+
+          <CardContent>
+            {loadingInitialData ? (
+              <div className="flex justify-center items-center h-64">
+                <Loader2 className="h-12 w-12 animate-spin text-green-500" />
+              </div>
+            ) : view === 'search' ? (
+              <IngredientSearch
+                selectedIngredients={ingredients}
+                onIngredientAdded={handleLocalIngredientAdded}
+                availableFoods={availableFoods}
+                userRestrictions={userRestrictions}
+                createFoodUserId={targetUserId}
+                onBack={() => setView('main')}
+              />
+            ) : (
+              <RecipeView
+                recipe={recipeForView}
+                allFoods={availableFoods}
+                allVitamins={allVitamins}
+                allMinerals={allMinerals}
+                allFoodGroups={allFoodGroups}
+                macros={macros}
+                mealTargetMacros={mealTargetMacros}
+                targetUserId={targetUserId}
+                userRestrictions={userRestrictions || EMPTY_RESTRICTIONS}
+                recipeStyles={recipeStyles}
+                isEditing={true}
+                onFormChange={handleRecipeFormChange}
+                onIngredientsChange={handleIngredientsChange}
+                onRemoveIngredient={handleRemoveIngredient}
+                onAddIngredientClick={() => setView('search')}
+                showImageUpload={false}
+              />
+            )}
+          </CardContent>
+
+          {view === 'main' && (
+            <CardFooter>
+              <Button
+                onClick={handleSave}
+                disabled={isSaving || !recipeName?.trim() || ingredients.length === 0}
+                className="w-full bg-green-600 hover:bg-green-700 py-6 text-lg"
+              >
+                {isSaving ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
+                Guardar Receta
+              </Button>
+            </CardFooter>
+          )}
+        </Card>
+      </div>
+
+      {recipeForEquivalence && (
+        <EquivalenceDialog
+          open={isEquivalenceDialogOpen}
+          onOpenChange={handleEquivalenceDialogClose}
+          sourceItem={recipeForEquivalence.item}
+          sourceItemType="free_recipe"
+          sourceItemMacros={recipeForEquivalence.macros}
+          sourceLogId={recipeForEquivalence.logId}
+          onSuccess={handleEquivalenceSuccess}
+        />
+      )}
+    </>
+  );
 };
 
 export default CreateFreeRecipePage;

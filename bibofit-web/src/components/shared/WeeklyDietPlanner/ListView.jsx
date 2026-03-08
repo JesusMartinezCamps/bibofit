@@ -107,7 +107,7 @@ const MealHeader = React.memo(({ mealName, mealId, name, items, isAnyRecipeSelec
                     <Button size="icon" variant="ghost" className={cn("h-7 w-7 text-orange-400 dark:text-orange-400 hover:bg-orange-500/10 hover:text-orange-300 dark:hover:text-orange-300 border border-orange-400", hasSnacks && "bg-orange-300/25")} style={{borderWidth: 'thin'}} onClick={() => handleAddSnack(mealId, name)}>
                         <Apple className="h-5 w-5" />
                     </Button>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-blue-400 dark:text-blue-400 hover:bg-blue-500/10 hover:text-blue-300 dark:hover:text-blue-300 border border-[#70a3f3]" style={{borderWidth: 'thin'}} onClick={() => handleAddFreeMeal(mealId, name)}>
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-blue-400 dark:text-blue-400 hover:bg-blue-500/10 hover:text-blue-300 dark:hover:text-blue-300 border border-[#70a3f3]" style={{borderWidth: 'thin'}} onClick={() => handleAddFreeMeal(mealId, name, mealTargetData)}>
                         <UtensilsCrossed className="h-5 w-5" />
                     </Button>
                 </div>

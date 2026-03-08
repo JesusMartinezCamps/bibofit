@@ -260,7 +260,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
     }, [onWeekSummaryChange, weekSummaryByDate]);
 
     const [isFreeMealSelectorOpen, setIsFreeMealSelectorOpen] = useState(false);
-    const [preselectedMealInfo, setPreselectedMealInfo] = useState({ mealId: null, date: null });
+    const [preselectedMealInfo, setPreselectedMealInfo] = useState({ mealId: null, date: null, mealTargetMacros: null });
 
     const [isSnackSelectorOpen, setIsSnackSelectorOpen] = useState(false);
     const [isRepeatSnackOpen, setIsRepeatSnackOpen] = useState(false);
@@ -691,11 +691,12 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
         return orderedMealGroups;
     }, [userDayMeals, planRecipes, freeMeals, snacks, mealCounts, logDate, snackLogs, allAvailableFoods, handleRemoveSnackFromLog, handleToggleSnackSelection, handleSnackCardClick, dailyIngredientAdjustments, equivalenceAdjustments]);
 
-    const handleAddFreeMeal = (userDayMealId, mealName) => {
+    const handleAddFreeMeal = (userDayMealId, mealName, mealTargetMacros = null) => {
         const userDayMeal = userDayMeals.find(udm => udm.id === userDayMealId);
         if (userDayMeal) {
             const date = parseISO(logDate);
-            setPreselectedMealInfo({ mealId: userDayMeal.day_meal_id, date });
+            const resolvedTargetMacros = mealTargetMacros || userDayMeal || null;
+            setPreselectedMealInfo({ mealId: userDayMeal.day_meal_id, date, mealTargetMacros: resolvedTargetMacros });
             setIsFreeMealSelectorOpen(true);
         }
     };
@@ -710,9 +711,13 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
     };
 
     const handleOpenFreeMealCreator = () => {
-        const { mealId, date } = preselectedMealInfo;
+        const { mealId, date, mealTargetMacros } = preselectedMealInfo;
         const dateString = format(date, 'yyyy-MM-dd');
-        navigate(`/create-free-recipe/${dateString}/${mealId}`);
+        navigate(`/create-free-recipe/${dateString}/${mealId}`, {
+            state: {
+                mealTargetMacros: mealTargetMacros || null,
+            },
+        });
     };
 
     const handleOpenSnackCreator = () => {

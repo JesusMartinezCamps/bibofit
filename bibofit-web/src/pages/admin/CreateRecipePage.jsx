@@ -62,7 +62,7 @@ const CreateRecipePage = () => {
           </div>
 
           <div className={cn("w-full md:w-[70%]", mobileView === 'search' && 'hidden md:block')}>
-            <div className="h-full flex flex-col bg-card/75 p-6 rounded-lg border border-border">
+            <div className="h-full flex flex-col bg-card/75 dark:bg-[#0C101D] p-6 rounded-lg border border-border">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold text-cyan-400">
                   {selectedRecipe ? `Editando: ${selectedRecipe.name}` : 'Creando Nueva Receta'}

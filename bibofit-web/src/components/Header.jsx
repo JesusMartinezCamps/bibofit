@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { User, Shield, Calendar, StickyNote, ShoppingCart } from 'lucide-react';
+import { User, Shield, Calendar, StickyNote, ShoppingCart, MessageSquare } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Tooltip,
@@ -17,7 +17,7 @@ import AppIcon from '@/components/icons/AppIcon';
 const Header = () => {
   const { user } = useAuth();
   const location = useLocation();
-  const { hasPendingRequests } = useNotifications();
+  const { hasPendingRequests, totalUnread } = useNotifications();
 
   const isAdmin = user?.role === 'admin';
   const isCoach = user?.role === 'coach';
@@ -140,6 +140,32 @@ const Header = () => {
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>Lista de la Compra</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      asChild
+                      variant="ghost"
+                      size="icon"
+                      className={cn(
+                        'relative text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                        location.pathname.startsWith('/communication') && 'bg-secondary text-secondary-foreground'
+                      )}
+                    >
+                      <Link to="/communication">
+                        <MessageSquare className="w-5 h-5" />
+                        {totalUnread > 0 && (
+                          <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                            {totalUnread > 9 ? '9+' : totalUnread}
+                          </span>
+                        )}
+                      </Link>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Centro de Comunicaciones</p>
                   </TooltipContent>
                 </Tooltip>
               </div>

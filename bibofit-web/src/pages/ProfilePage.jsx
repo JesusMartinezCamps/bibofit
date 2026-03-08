@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate, Link } from 'react-router-dom';
-import { User,GitBranch, LogOut, ChevronRight, LineChart, CalendarCheck, RotateCcw, PlayCircle, Bell, Moon, Sun } from 'lucide-react'; 
+import { User, GitBranch, LogOut, ChevronRight, LineChart, CalendarCheck, RotateCcw, PlayCircle, Moon, Sun } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,17 +18,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
 import ProfileTypeSubtitle from '@/components/profile/ProfileTypeSubtitle';
 import { useQuickStartGuide } from '@/contexts/QuickStartGuideContext';
 import { useOnboarding } from '@/hooks/useOnboarding';
-import { useNotifications } from '@/contexts/NotificationsContext';
 import { useTheme } from '@/contexts/ThemeContext';
 
 const ProfilePage = () => {
@@ -37,12 +29,9 @@ const ProfilePage = () => {
   const navigate = useNavigate();
   const { openGuide } = useQuickStartGuide();
   const { startRepeatOnboarding } = useOnboarding();
-  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const { isDark, toggleTheme } = useTheme();
-  const [isNotificationsOpen, setIsNotificationsOpen] = React.useState(false);
   const profileName = (`${user?.first_name || ''} ${user?.last_name || ''}`).trim() || user?.full_name?.trim();
   const profileTitle = profileName ? profileName : 'Mi Perfil';
-  const hasUnreadNotifications = unreadCount > 0;
 
   const handleLogout = async () => {
     await signOut();
@@ -52,7 +41,7 @@ const ProfilePage = () => {
       description: "¡Hasta la próxima! Sigue superándote cada día.",
     });
   };
-  
+
   const handleResetOnboarding = async () => {
       try {
           const started = await startRepeatOnboarding();
@@ -84,12 +73,12 @@ const ProfilePage = () => {
       icon: GitBranch,
       color: 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-cyan-400',
     },
-     {
+    {
       label: 'Mi Dieta',
       href: '/my-plan',
       icon: CalendarCheck,
       color: 'bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400',
-    } 
+    },
   ];
 
   return (
@@ -116,33 +105,16 @@ const ProfilePage = () => {
               >
                 <PlayCircle className="mr-2 h-4 w-4" /> Repetir Guía Rápida
               </Button>
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="relative border-border bg-card text-foreground hover:bg-accent"
-                  onClick={() => setIsNotificationsOpen(true)}
-                  aria-label="Abrir notificaciones"
-                >
-                  <Bell className="h-4 w-4" />
-                  {hasUnreadNotifications && (
-                    <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-500 px-1 text-xs font-semibold text-white">
-                      {unreadCount > 99 ? '99+' : unreadCount}
-                    </span>
-                  )}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="border-border bg-card text-foreground hover:bg-accent"
-                  onClick={toggleTheme}
-                  aria-label="Cambiar tema"
-                >
-                  {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                </Button>
-              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="border-border bg-card text-foreground hover:bg-accent"
+                onClick={toggleTheme}
+                aria-label="Cambiar tema"
+              >
+                {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </Button>
             </div>
 
             <div className="mt-3 text-center md:hidden">
@@ -159,31 +131,16 @@ const ProfilePage = () => {
               >
                 <PlayCircle className="mr-2 h-4 w-4" /> Repetir Guía Rápida
               </Button>
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="relative border-border bg-card text-foreground hover:bg-accent"
-                  onClick={() => setIsNotificationsOpen(true)}
-                >
-                  <Bell className="mr-2 h-4 w-4" />
-                  Notificaciones
-                  {hasUnreadNotifications && (
-                    <span className="ml-2 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-500 px-1 text-xs font-semibold text-white">
-                      {unreadCount > 99 ? '99+' : unreadCount}
-                    </span>
-                  )}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="border-border bg-card text-foreground hover:bg-accent"
-                  onClick={toggleTheme}
-                >
-                  {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                </Button>
-              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="border-border bg-card text-foreground hover:bg-accent"
+                onClick={toggleTheme}
+              >
+                {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </Button>
             </div>
+
             <div className="mt-2 flex justify-center md:justify-start">
               <ProfileTypeSubtitle role={user?.role} />
             </div>
@@ -257,62 +214,6 @@ const ProfilePage = () => {
           </motion.div>
         </motion.div>
       </main>
-
-      <Dialog open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <DialogTitle>Historial de Notificaciones</DialogTitle>
-                <DialogDescription>
-                  Aquí puedes revisar todas tus notificaciones recientes.
-                </DialogDescription>
-              </div>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={markAllAsRead}
-                disabled={!notifications?.some((n) => !n.is_read)}
-                className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
-              >
-                Marcar todas
-              </Button>
-            </div>
-          </DialogHeader>
-
-          <div className="max-h-[55vh] overflow-y-auto pr-1 space-y-2">
-            {!notifications || notifications.length === 0 ? (
-              <div className="py-8 text-center text-sm text-muted-foreground">
-                No tienes notificaciones todavía.
-              </div>
-            ) : (
-              notifications.map((n) => (
-                <button
-                  key={n.id}
-                  type="button"
-                  onClick={() => !n.is_read && markAsRead(n.id)}
-                  className={`w-full text-left rounded-lg border p-3 transition-colors ${
-                    n.is_read
-                      ? 'border-border bg-muted/70'
-                      : 'border-primary/50 bg-primary/10 hover:bg-primary/15'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="text-sm font-semibold text-foreground">{n.title}</p>
-                    {!n.is_read && (
-                      <span className="mt-1 inline-flex h-2.5 w-2.5 rounded-full bg-primary" />
-                    )}
-                  </div>
-                  <p className="mt-1 text-sm text-muted-foreground">{n.message}</p>
-                  <p className="mt-2 text-xs text-muted-foreground/80">
-                    {new Date(n.created_at).toLocaleString('es-ES')}
-                  </p>
-                </button>
-              ))
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   );
 };

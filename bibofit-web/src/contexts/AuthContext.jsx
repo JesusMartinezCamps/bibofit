@@ -11,6 +11,20 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const syncProfileEmail = async (userId, authEmail, profileEmail) => {
+    if (!userId || !authEmail) return;
+    if (authEmail === profileEmail) return;
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({ email: authEmail })
+      .eq('user_id', userId);
+
+    if (error) {
+      console.warn('[AuthContext] Could not sync profile email:', error.message);
+    }
+  };
+
   // Define fetchUserProfile outside useEffect so it can be reused
   const fetchUserProfile = async (sessionUser) => {
     try {
@@ -48,9 +62,14 @@ export const AuthProvider = ({ children }) => {
         cleanProfile.last_name = userMeta.last_name;
       }
 
+      await syncProfileEmail(sessionUser.id, sessionUser.email, cleanProfile.email);
+      if (sessionUser.email) {
+        cleanProfile.email = sessionUser.email;
+      }
+
       const fullUser = {
-        ...sessionUser,
         ...cleanProfile,
+        ...sessionUser,
         role: userRole.toLowerCase(),
       };
 
@@ -73,12 +92,20 @@ export const AuthProvider = ({ children }) => {
 
   // Function to manually refresh user data (used by Onboarding)
   const refreshUser = async () => {
-      if (user?.id) {
-          // We construct a minimal session user object to pass to fetchUserProfile
-          // preserving the ID and email from current state
-          const minimalUser = { id: user.id, email: user.email };
-          await fetchUserProfile(minimalUser);
+      if (!user?.id) return;
+
+      const { data: { user: sessionUser }, error } = await supabase.auth.getUser();
+      if (error) {
+        console.warn('[AuthContext] Could not refresh auth user:', error.message);
       }
+
+      if (sessionUser) {
+        await fetchUserProfile(sessionUser);
+        return;
+      }
+
+      const minimalUser = { id: user.id, email: user.email };
+      await fetchUserProfile(minimalUser);
   };
 
   useEffect(() => {

@@ -526,7 +526,7 @@ const RecipeView = ({
   }
 
   return (
-    <div className="text-foreground dark:text-white space-y-6 p-2 sm:p-4 md:p-6">
+    <div className="text-foreground dark:text-white dark:bg-[#0C101D] space-y-6 p-2 sm:p-4 md:p-6">
       <div className="text-center mt-6 relative z-10">
         {recipeImageUrl && (
           <div className="mb-4 overflow-hidden rounded-xl border border-border/70 bg-card/85">

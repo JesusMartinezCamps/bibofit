@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronRight, ChevronLeft, CheckCircle, Search, Calendar, ShoppingCart, ListTodo, Apple, GitBranch, Utensils } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, CheckCircle, Search, Calendar, ShoppingCart, ListTodo, Apple, GitBranch, Utensils, MessageSquare } from 'lucide-react';
 import { useQuickStartGuide } from '@/contexts/QuickStartGuideContext';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -17,8 +17,8 @@ const steps = [
   },
   {
     title: 'Tu Calendario',
-    description: 'Desde aquí puedes acceder a tu Plan de dieta, además de ver un histórico de tus Registros de Peso y de tu tus comidas Marcadas como Comidas',
-    icon: Calendar,
+    description: 'Pulsando en el icono de Bibofit vuelves al calendario, desde donde podrás acceder a tu plan de dieta, ver tu histórico de registros de peso y revisar tus comidas marcadas. Es el punto neurálgico de la app.',
+    icon: AppIcon,
     color: 'text-green-400',
     bg: 'bg-green-400/10'
   },
@@ -70,6 +70,21 @@ description: 'Organiza tu semana marcando qué recetas vas a comer y olvídate d
     icon: Apple,
     color: 'text-orange-400',
     bg: 'bg-orange-400/10'
+  },
+  {
+    title: 'Centro de Comunicación',
+    description: 'Desde aquí podrás contactar con el Administrador del sitio, con tu coach si lo tienes asignado o con tus amigos.',
+    icon: MessageSquare,
+    color: 'text-cyan-400',
+    bg: 'bg-cyan-400/10'
+  },
+  {
+    title: '¡Comienza Bibofit Beta v1!',
+    description: 'Es la hora de intentar "romper" la aplicación y ver si te resulta útil. Podrás contactar con el Admin para resolver dudas, compartir ideas de usabilidad o reportar bugs.',
+    icon: AppIcon,
+    color: 'text-emerald-400',
+    bg: 'bg-emerald-400/10',
+    animateFlame: true
   }
 ];
 
@@ -180,9 +195,40 @@ const QuickStartGuideModal = () => {
                   transition={{ duration: 0.2 }}
                   className="flex flex-col items-center w-full"
                 >
-                  <div className={cn("w-20 h-20 rounded-full flex items-center justify-center mb-6", step.bg)}>
-                    <step.icon className={cn("w-10 h-10", step.color)} />
-                  </div>
+                  {step.animateFlame ? (
+                    <motion.div
+                      className={cn("relative w-24 h-24 rounded-full flex items-center justify-center mb-6", step.bg)}
+                      animate={{ scale: [1, 1.06, 0.98, 1.08, 1], y: [0, -5, 0, -3, 0] }}
+                      transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+                    >
+                      <motion.div
+                        className="absolute inset-0 rounded-full bg-emerald-400/20"
+                        animate={{ opacity: [0.15, 0.35, 0.2, 0.3, 0.15], scale: [1, 1.14, 1.02, 1.1, 1] }}
+                        transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+                      />
+                      <motion.div
+                        animate={{ rotate: [0, -4, 3, -2, 0], scale: [1, 1.05, 0.97, 1.06, 1] }}
+                        transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+                        style={{ filter: 'drop-shadow(0 0 10px rgba(52, 211, 153, 0.75))' }}
+                      >
+                        <step.icon className={cn("w-12 h-12", step.color)} />
+                      </motion.div>
+                      <motion.div
+                        className="absolute top-1/2 left-1/2 w-2 h-2 rounded-full bg-emerald-300/70"
+                        animate={{ x: [-4, -14, -8, -4], y: [-10, -24, -34, -10], opacity: [0, 0.8, 0.2, 0] }}
+                        transition={{ duration: 1.8, repeat: Infinity, ease: 'easeOut' }}
+                      />
+                      <motion.div
+                        className="absolute top-1/2 left-1/2 w-1.5 h-1.5 rounded-full bg-green-300/70"
+                        animate={{ x: [3, 12, 7, 3], y: [-8, -21, -30, -8], opacity: [0, 0.7, 0.15, 0] }}
+                        transition={{ duration: 1.5, repeat: Infinity, ease: 'easeOut', delay: 0.25 }}
+                      />
+                    </motion.div>
+                  ) : (
+                    <div className={cn("w-20 h-20 rounded-full flex items-center justify-center mb-6", step.bg)}>
+                      <step.icon className={cn("w-10 h-10", step.color)} />
+                    </div>
+                  )}
 
                   <h2 className="text-2xl font-bold text-white mb-3">
                     {step.title}

@@ -10,10 +10,13 @@ export const useNotifications = () => useContext(NotificationsContext);
 export const NotificationsProvider = ({ children }) => {
     const { user } = useAuth();
     const { subscribe, unregister } = useRealtime();
-    
+
     // User notifications (client side)
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
+
+    // Unread count from comm_messages (human messages)
+    const [unreadCommCount, setUnreadCommCount] = useState(0);
 
     // Admin/Coach pending requests counts
     const [pendingFoodCount, setPendingFoodCount] = useState(0);
@@ -71,6 +74,17 @@ export const NotificationsProvider = ({ children }) => {
         }
     };
 
+    // 3. Fetch total unread from Communication Center (server-side aggregation)
+    const fetchUnreadCommCount = async () => {
+        if (!user) { setUnreadCommCount(0); return; }
+        const { data, error } = await supabase.rpc('comm_get_unread_total');
+        if (error) {
+            console.error('Error fetching communication unread count:', error);
+            return;
+        }
+        setUnreadCommCount(data || 0);
+    };
+
     // Refresh function exposed to components
     const refreshPendingRequests = () => {
         fetchPendingCounts();
@@ -78,10 +92,56 @@ export const NotificationsProvider = ({ children }) => {
 
     useEffect(() => {
         fetchNotifications();
+        fetchUnreadCommCount();
         if (isAdminOrCoach) {
             fetchPendingCounts();
         }
     }, [user, isAdminOrCoach]);
+
+    // Keep communication unread count in sync via realtime changes
+    useEffect(() => {
+        if (!user) return;
+
+        const commMsgKey = `comm_unread_messages_${user.id}`;
+        const commPartKey = `comm_unread_participants_${user.id}`;
+        let refreshTimer = null;
+
+        const scheduleUnreadRefresh = () => {
+            if (refreshTimer) clearTimeout(refreshTimer);
+            refreshTimer = setTimeout(() => {
+                fetchUnreadCommCount();
+            }, 150);
+        };
+
+        const handleCommMessageChange = (payload) => {
+            // Messages sent by myself never increase unread
+            if (payload?.eventType === 'INSERT' && payload?.new?.sender_id === user.id) return;
+            scheduleUnreadRefresh();
+        };
+
+        const handleCommParticipantChange = () => {
+            scheduleUnreadRefresh();
+        };
+
+        subscribe(commMsgKey, {
+            event: '*',
+            schema: 'public',
+            table: 'comm_messages',
+        }, handleCommMessageChange);
+
+        subscribe(commPartKey, {
+            event: '*',
+            schema: 'public',
+            table: 'comm_participants',
+            filter: `user_id=eq.${user.id}`,
+        }, handleCommParticipantChange);
+
+        return () => {
+            if (refreshTimer) clearTimeout(refreshTimer);
+            unregister(commMsgKey, handleCommMessageChange);
+            unregister(commPartKey, handleCommParticipantChange);
+        };
+    }, [user, subscribe, unregister]);
 
     // Realtime subscriptions
     useEffect(() => {
@@ -155,18 +215,22 @@ export const NotificationsProvider = ({ children }) => {
     };
 
     const hasPendingRequests = (pendingFoodCount > 0) || (pendingFreeRecipeCount > 0) || (pendingDietChangeCount > 0);
+    const totalUnread = unreadCount + unreadCommCount;
 
     return (
-        <NotificationsContext.Provider value={{ 
-            notifications, 
-            unreadCount, 
-            markAsRead, 
+        <NotificationsContext.Provider value={{
+            notifications,
+            unreadCount,
+            unreadCommCount,
+            totalUnread,
+            markAsRead,
             markAllAsRead,
             pendingFoodCount,
             pendingFreeRecipeCount,
             pendingDietChangeCount,
             hasPendingRequests,
-            refreshPendingRequests
+            refreshPendingRequests,
+            refreshUnreadCommCount: fetchUnreadCommCount,
         }}>
             {children}
         </NotificationsContext.Provider>

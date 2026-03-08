@@ -7,10 +7,12 @@
 - [Actualizar Contraseña - Gsus Martz](/updatepassword): Establece tu nueva contraseña.
 - [Añadir Picoteo - Gsus Martz](/createsnack): Crea y añade un picoteo a tu plan de dieta.
 - [Bibofit | Software para Nutricionistas y Entrenadores](/home): La plataforma todo en uno para gestionar planes de nutrición, rutinas de entrenamiento y seguimiento de clientes. Escala tu negocio fitness con Bibofit.
+- [Centro de Comunicaciones - Bibofit](/communication): No description available
 - [Crear Receta Libre - Gsus Martz](/createfreerecipe): Crea y añade una receta libre a tu plan de dieta.
 - [Cuenta Confirmada - Bibofit](/authconfirmed): Tu cuenta está confirmada. Continúa para empezar con Bibofit.
 - [Dashboard - Bibofit](/dashboard): Tu calendario de entrenamientos y dietas.
 - [Dashboard Entrenador - Gsus Martz](/coachdashboard): No description available
+- [Generar Link de Invitación - Bibofit Admin](/invitationlinks): Genera links de invitación con centro, rol, usos, nota, expiración y QR.
 - [Gestión de Centros - Admin Panel](/centersmanagement): No description available
 - [Gestión de Contenidos - Coach](/coachcontent): No description available
 - [Gestión de Ejercicios - Gsus Martz](/createexercise): Crear y editar ejercicios.

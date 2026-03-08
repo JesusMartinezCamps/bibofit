@@ -3,13 +3,16 @@ import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
-import { Loader2, User, Ruler, ImagePlus, X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Loader2, User, Ruler, ImagePlus, X, Shield } from 'lucide-react';
 import ProfileSectionCard from '@/components/profile/ProfileSectionCard.jsx';
 import FormRow from '@/components/profile/FormRow.jsx';
 import { calculateAndSaveMetabolism, getActivityLevels } from '@/lib/metabolismCalculator';
 import { format } from 'date-fns';
 import FormBlock from '@/components/profile/FormBlock';
 import { isValidProfileImage, optimizeProfileImage } from '@/lib/profileImageUtils';
+import AccountSecurityForm from '@/components/profile/AccountSecurityForm.jsx';
 
 const splitFullName = (fullName = '') => {
   const cleanedName = fullName.trim().replace(/\s+/g, ' ');
@@ -32,6 +35,7 @@ const PersonalDataForm = ({ className, onSave, userId: propUserId }) => {
   const avatarInputRef = useRef(null);
   
   const userId = propUserId || authUser?.id;
+  const isOwnProfile = !propUserId || propUserId === authUser?.id;
 
   const [formData, setFormData] = useState({
     first_name: '',
@@ -85,7 +89,7 @@ const PersonalDataForm = ({ className, onSave, userId: propUserId }) => {
           last_name: data.last_name || splitFullName(data.full_name || '').lastName,
           full_name: data.full_name || '',
           avatar_url: data.avatar_url || '',
-          email: data.email || authUser?.email || '',
+          email: isOwnProfile ? (authUser?.email || data.email || '') : (data.email || authUser?.email || ''),
           sex: data.sex || '',
           birth_date: data.birth_date || '',
           height_cm: data.height_cm ? data.height_cm.toString() : '',
@@ -104,7 +108,7 @@ const PersonalDataForm = ({ className, onSave, userId: propUserId }) => {
           last_name: '',
           full_name: '',
           avatar_url: '',
-          email: authUser?.email || '',
+          email: isOwnProfile ? (authUser?.email || '') : (authUser?.email || ''),
           sex: '',
           birth_date: '',
           height_cm: '',
@@ -124,7 +128,7 @@ const PersonalDataForm = ({ className, onSave, userId: propUserId }) => {
     } finally {
       setLoading(false);
     }
-  }, [userId, toast, fetchActivityLevels, authUser?.email]);
+  }, [userId, toast, fetchActivityLevels, authUser?.email, isOwnProfile]);
 
   useEffect(() => {
     fetchData();
@@ -258,7 +262,6 @@ const PersonalDataForm = ({ className, onSave, userId: propUserId }) => {
         last_name: lastName || null,
         full_name: fullName || formData.full_name || null,
         avatar_url: avatarUrl,
-        email: formData.email || null,
         sex: formData.sex || null,
         birth_date: formData.birth_date || null,
         height_cm: heightCm,
@@ -268,6 +271,9 @@ const PersonalDataForm = ({ className, onSave, userId: propUserId }) => {
         phone: formData.phone || null,
         city: formData.city || null
       };
+      if (!isOwnProfile) {
+        profileData.email = formData.email || null;
+      }
 
       // Use update instead of upsert because the profile is guaranteed to exist for any valid user
       const { error } = await supabase
@@ -370,6 +376,9 @@ const PersonalDataForm = ({ className, onSave, userId: propUserId }) => {
         last_name: refreshedProfile.last_name || lastName,
         full_name: refreshedProfile.full_name || fullName,
         avatar_url: refreshedProfile.avatar_url || avatarUrl || '',
+        email: isOwnProfile
+          ? (authUser?.email || refreshedProfile.email || '')
+          : (refreshedProfile.email || formData.email || ''),
         height_cm: heightCm ? heightCm.toString() : '',
         current_weight_kg: refreshedProfile.current_weight_kg ? refreshedProfile.current_weight_kg.toString() : '',
         activity_level_id: refreshedProfile.activity_level_id ? refreshedProfile.activity_level_id.toString() : '',
@@ -511,7 +520,6 @@ const PersonalDataForm = ({ className, onSave, userId: propUserId }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormRow id="first_name" label="Nombre" value={formData.first_name} onChange={handleChange} />
                 <FormRow id="last_name" label="Apellidos" value={formData.last_name} onChange={handleChange} />
-                <FormRow id="email" label="Correo Electrónico" type="email" value={formData.email} onChange={handleChange} />
                 <FormRow id="phone" label="Teléfono" value={formData.phone} onChange={handleChange} />
                 <FormRow id="city" label="Ciudad" value={formData.city} onChange={handleChange} />
             </div>
@@ -550,6 +558,16 @@ const PersonalDataForm = ({ className, onSave, userId: propUserId }) => {
                 />
             </div>
         </FormBlock>
+
+        {isOwnProfile && (
+          <FormBlock title="Seguridad de la Cuenta" icon={Shield} color="purple">
+            <AccountSecurityForm
+              currentEmail={authUser?.email || formData.email || ''}
+              disabled={isSubmitting || isImageProcessing}
+              onCredentialsUpdated={refreshUser}
+            />
+          </FormBlock>
+        )}
 
         <Button type="submit" className="w-full text-lg font-semibold py-6 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 transition-all duration-300" disabled={isSubmitting || isImageProcessing}>
           {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Guardando...</> : 'Guardar Datos Personales'}

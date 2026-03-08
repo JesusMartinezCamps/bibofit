@@ -4,6 +4,64 @@ import { calculateMacros } from '@/lib/macroCalculator';
 import { persistFreeRecipeOccurrence } from '@/lib/freeRecipePersistence';
 import { FREE_RECIPE_STATUS } from '@/lib/recipeEntity';
 
+const generateLocalId = () => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `tmp-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+};
+
+const toNumericQuantity = (value) => {
+  if (value === '' || value === null || value === undefined) return '';
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : '';
+};
+
+const resolveFoodFromCatalog = (availableFoods = [], foodId) => {
+  if (!foodId && foodId !== 0) return null;
+  return availableFoods.find((food) => String(food.id) === String(foodId)) || null;
+};
+
+const normalizeIngredientForState = (ingredient, availableFoods = []) => {
+  const foodId = ingredient?.food_id ?? ingredient?.food?.id ?? '';
+  const resolvedFood = ingredient?.food || resolveFoodFromCatalog(availableFoods, foodId);
+  const quantity = toNumericQuantity(ingredient?.grams ?? ingredient?.quantity);
+  const normalizedFoodId = foodId === null || foodId === undefined ? '' : String(foodId);
+
+  return {
+    local_id: String(ingredient?.local_id || ingredient?.id || generateLocalId()),
+    id: ingredient?.id,
+    food_id: normalizedFoodId,
+    food_name: ingredient?.food_name || resolvedFood?.name || '',
+    grams: quantity,
+    quantity,
+    food: resolvedFood || null,
+    food_group_id:
+      ingredient?.food_group_id ||
+      resolvedFood?.food_to_food_groups?.[0]?.food_group_id ||
+      null,
+    is_free: ingredient?.is_free ?? !normalizedFoodId,
+    food_unit: ingredient?.food_unit || resolvedFood?.food_unit || 'gramos',
+    is_user_created:
+      ingredient?.is_user_created ?? !!resolvedFood?.is_user_created ?? !!resolvedFood?.user_id,
+    locked: !!ingredient?.locked,
+  };
+};
+
+const serializeIngredientForDraft = (ingredient) => ({
+  local_id: ingredient?.local_id,
+  id: ingredient?.id,
+  food_id: ingredient?.food_id,
+  food_name: ingredient?.food_name,
+  grams: ingredient?.grams ?? ingredient?.quantity,
+  quantity: ingredient?.quantity ?? ingredient?.grams,
+  food_group_id: ingredient?.food_group_id || null,
+  is_free: !!ingredient?.is_free,
+  food_unit: ingredient?.food_unit || 'gramos',
+  is_user_created: !!ingredient?.is_user_created,
+  locked: !!ingredient?.locked,
+});
+
 export const useFreeRecipeDialog = ({ targetUserId, dayMealId, dietPlanId, date, onSuccess, availableFoods }) => {
   const { toast } = useToast();
   const [recipeName, setRecipeName] = useState('');
@@ -38,7 +96,7 @@ export const useFreeRecipeDialog = ({ targetUserId, dayMealId, dietPlanId, date,
             setDifficulty(parsed.difficulty || 'Fácil');
             setRecipeStyleId(parsed.recipeStyleId || '');
             setInstructions(parsed.instructions || '');
-            setIngredients(parsed.ingredients || []);
+            setIngredients((parsed.ingredients || []).map((ing) => normalizeIngredientForState(ing, availableFoods)));
             toast({ 
                 title: 'Borrador recuperado', 
                 description: 'Se han cargado los datos de tu última sesión.',
@@ -49,7 +107,7 @@ export const useFreeRecipeDialog = ({ targetUserId, dayMealId, dietPlanId, date,
       }
     }
     setIsDraftLoaded(true);
-  }, [storageKey, isDraftLoaded, toast]);
+  }, [storageKey, isDraftLoaded, toast, availableFoods]);
 
   // Auto-save to localStorage on changes (Debounced)
   useEffect(() => {
@@ -59,7 +117,13 @@ export const useFreeRecipeDialog = ({ targetUserId, dayMealId, dietPlanId, date,
         const hasData = recipeName || prepTime || instructions || ingredients.length > 0;
         
         if (hasData) {
-            const draft = { recipeName, prepTime, difficulty, instructions, ingredients };
+            const draft = {
+              recipeName,
+              prepTime,
+              difficulty,
+              instructions,
+              ingredients: ingredients.map(serializeIngredientForDraft),
+            };
             draft.recipeStyleId = recipeStyleId;
             localStorage.setItem(storageKey, JSON.stringify(draft));
             setHasSavedDraft(true);
@@ -81,7 +145,7 @@ export const useFreeRecipeDialog = ({ targetUserId, dayMealId, dietPlanId, date,
             setDifficulty(parsed.difficulty || 'Fácil');
             setRecipeStyleId(parsed.recipeStyleId || '');
             setInstructions(parsed.instructions || '');
-            setIngredients(parsed.ingredients || []);
+            setIngredients((parsed.ingredients || []).map((ing) => normalizeIngredientForState(ing, availableFoods)));
             toast({ title: 'Borrador restaurado', description: 'Datos recuperados correctamente.' });
         } catch (e) {
             toast({ title: 'Error', description: 'No se pudo leer el borrador.', variant: 'destructive' });
@@ -89,7 +153,7 @@ export const useFreeRecipeDialog = ({ targetUserId, dayMealId, dietPlanId, date,
     } else {
         toast({ title: 'Sin datos', description: 'No hay ningún borrador guardado para esta comida.', variant: 'outline' });
     }
-  }, [storageKey, toast]);
+  }, [storageKey, toast, availableFoods]);
 
   const clearDraft = useCallback(() => {
       if (storageKey) {
@@ -105,29 +169,115 @@ export const useFreeRecipeDialog = ({ targetUserId, dayMealId, dietPlanId, date,
     return calculateMacros(ingredients, availableFoods);
   }, [ingredients, availableFoods]);
 
+  const handleIngredientsChange = useCallback((newIngredients) => {
+    const normalized = (newIngredients || []).map((ing) => normalizeIngredientForState(ing, availableFoods));
+    setIngredients(normalized);
+  }, [availableFoods]);
+
   const handleIngredientAdded = (ingredient) => {
+    const rawFoodId = ingredient?.food_id ?? ingredient?.id ?? ingredient?.food?.id;
+    const resolvedFood = resolveFoodFromCatalog(availableFoods, rawFoodId);
+    const fallbackQuantity = resolvedFood?.food_unit === 'unidades' ? 1 : 100;
+    const quantity = ingredient.quantity ?? ingredient.grams ?? fallbackQuantity;
+
     const newIngredient = {
-      food_id: ingredient.food_id,
-      food_name: ingredient.food_name,
-      quantity: ingredient.quantity,
+      ...ingredient,
+      local_id: ingredient.local_id || generateLocalId(),
+      food_id: rawFoodId,
+      food_name: ingredient.food_name || resolvedFood?.name,
+      grams: quantity,
+      quantity,
+      food: ingredient.food || resolvedFood || null,
+      food_group_id:
+        ingredient.food_group_id ||
+        resolvedFood?.food_to_food_groups?.[0]?.food_group_id ||
+        null,
       is_free: false,
-      food_unit: ingredient.food_unit || 'gramos',
-      is_user_created: ingredient.is_user_created,
+      food_unit: ingredient.food_unit || resolvedFood?.food_unit || 'gramos',
+      is_user_created: ingredient.is_user_created ?? !!resolvedFood?.is_user_created ?? !!resolvedFood?.user_id,
     };
-    setIngredients(prev => [...prev, newIngredient]);
+    setIngredients((prev) => [...prev, normalizeIngredientForState(newIngredient, availableFoods)]);
   };
 
-  const handleQuantityChange = (index, newQuantity) => {
-    setIngredients(prev =>
-      prev.map((ing, i) =>
-        i === index ? { ...ing, quantity: newQuantity } : ing
+  const handleQuantityChange = (indexOrIngredient, newQuantity) => {
+    const quantity = toNumericQuantity(newQuantity);
+    if (typeof indexOrIngredient === 'number') {
+      setIngredients((prev) =>
+        prev.map((ing, i) =>
+          i === indexOrIngredient ? { ...ing, grams: quantity, quantity } : ing
+        )
+      );
+      return;
+    }
+
+    const identifier =
+      indexOrIngredient?.local_id ||
+      indexOrIngredient?.id ||
+      indexOrIngredient?.food_id ||
+      indexOrIngredient;
+
+    setIngredients((prev) =>
+      prev.map((ing) =>
+        String(ing.local_id || ing.id || ing.food_id) === String(identifier)
+          ? { ...ing, grams: quantity, quantity }
+          : ing
       )
     );
   };
 
-  const handleRemoveIngredient = (index) => {
-    setIngredients(prev => prev.filter((_, i) => i !== index));
+  const handleRemoveIngredient = (indexOrIngredient) => {
+    if (typeof indexOrIngredient === 'number') {
+      setIngredients((prev) => prev.filter((_, i) => i !== indexOrIngredient));
+      return;
+    }
+
+    const identifier =
+      indexOrIngredient?.local_id ||
+      indexOrIngredient?.id ||
+      indexOrIngredient?.food_id ||
+      indexOrIngredient;
+
+    setIngredients((prev) =>
+      prev.filter((ing) => String(ing.local_id || ing.id || ing.food_id) !== String(identifier))
+    );
   };
+
+  const handleRecipeFormChange = useCallback((event) => {
+    const { name, value } = event?.target || {};
+    if (!name) return;
+
+    if (name === 'name') {
+      setRecipeName(value ?? '');
+      return;
+    }
+    if (name === 'prep_time_min') {
+      setPrepTime(value ?? '');
+      return;
+    }
+    if (name === 'difficulty') {
+      setDifficulty(value ?? 'Fácil');
+      return;
+    }
+    if (name === 'recipe_style_id') {
+      setRecipeStyleId(value ?? '');
+      return;
+    }
+    if (name === 'instructions') {
+      setInstructions(value ?? '');
+    }
+  }, []);
+
+  const recipeForView = useMemo(() => ({
+    id: null,
+    user_id: targetUserId,
+    day_meal_id: dayMealId || null,
+    name: recipeName,
+    prep_time_min: prepTime,
+    difficulty,
+    recipe_style_id: recipeStyleId || null,
+    instructions,
+    ingredients,
+  }), [targetUserId, dayMealId, recipeName, prepTime, difficulty, recipeStyleId, instructions, ingredients]);
 
   const handleSave = async () => {
     if (!recipeName.trim()) {
@@ -207,7 +357,10 @@ export const useFreeRecipeDialog = ({ targetUserId, dayMealId, dietPlanId, date,
     recipeStyleId, setRecipeStyleId,
     instructions, setInstructions,
     ingredients, setIngredients,
+    recipeForView,
     macros,
+    handleRecipeFormChange,
+    handleIngredientsChange,
     handleIngredientAdded,
     handleQuantityChange,
     handleRemoveIngredient,
