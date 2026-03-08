@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import QRCode from 'qrcode';
 import { format, parseISO } from 'date-fns';
@@ -18,14 +18,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Copy, Link2, Loader2, QrCode, RefreshCcw } from 'lucide-react';
+import { Ban, Copy, Eye, Link2, Loader2, Minus, Plus, QrCode, RefreshCcw } from 'lucide-react';
 
 const defaultRoles = [
   { id: 'free', role: 'free' },
   { id: 'client', role: 'client' },
   { id: 'coach', role: 'coach' },
 ];
+const invitationAssignableRoles = new Set(defaultRoles.map((role) => role.role));
 
 const emptyForm = {
   destination: 'login',
@@ -44,16 +60,80 @@ const formatRoleLabel = (value = '') => {
   return value.charAt(0).toUpperCase() + value.slice(1);
 };
 
-const toDraftToken = () => {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID().replace(/-/g, '').slice(0, 24);
-  }
-  return `draft${Math.random().toString(36).slice(2, 16)}`;
-};
-
 const toQueryValue = (value) => {
   if (value === null || value === undefined) return '';
   return String(value);
+};
+
+const loadImageFromSrc = (src) =>
+  new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = src;
+  });
+
+const loadImage = async (src) => {
+  try {
+    return await loadImageFromSrc(src);
+  } catch (error) {
+    // Algunos assets .png del proyecto están guardados como texto base64.
+    if (!src.endsWith('.png')) throw error;
+
+    const response = await fetch(src);
+    if (!response.ok) throw error;
+
+    const base64Text = (await response.text()).trim();
+    const isBase64 = /^[A-Za-z0-9+/=\s]+$/.test(base64Text);
+    if (!isBase64) throw error;
+
+    return loadImageFromSrc(`data:image/png;base64,${base64Text.replace(/\s+/g, '')}`);
+  }
+};
+
+const formatDateLabel = (value) => {
+  if (!value) return 'Sin fecha';
+  try {
+    return format(parseISO(value), "dd MMM yyyy, HH:mm", { locale: es });
+  } catch {
+    return value;
+  }
+};
+
+const isInvitationExpired = (invitation) => {
+  if (!invitation?.expires_at) return false;
+  const expiresAt = new Date(invitation.expires_at);
+  if (Number.isNaN(expiresAt.getTime())) return false;
+  return expiresAt.getTime() <= Date.now();
+};
+
+const isInvitationExhausted = (invitation) => {
+  if (invitation?.max_uses === null || invitation?.max_uses === undefined) return false;
+  return Number(invitation.used_uses || 0) >= Number(invitation.max_uses || 0);
+};
+
+const isInvitationActive = (invitation) => {
+  if (!invitation) return false;
+  if (invitation.is_revoked) return false;
+  if (isInvitationExpired(invitation)) return false;
+  if (isInvitationExhausted(invitation)) return false;
+  return true;
+};
+
+const getInvitationStatus = (invitation) => {
+  if (!invitation) {
+    return { label: 'Desconocido', variant: 'secondary', kind: 'unknown' };
+  }
+  if (invitation.is_revoked) {
+    return { label: 'Revocada', variant: 'destructive', kind: 'revoked' };
+  }
+  if (isInvitationExpired(invitation)) {
+    return { label: 'Expirada', variant: 'warning', kind: 'expired' };
+  }
+  if (isInvitationExhausted(invitation)) {
+    return { label: 'Sin usos', variant: 'warning', kind: 'exhausted' };
+  }
+  return { label: 'Activa', variant: 'default', kind: 'active' };
 };
 
 const InvitationLinksPage = () => {
@@ -70,6 +150,17 @@ const InvitationLinksPage = () => {
   const [generatedAt, setGeneratedAt] = useState(null);
   const [qrDataUrl, setQrDataUrl] = useState('');
   const [isGeneratingQr, setIsGeneratingQr] = useState(false);
+  const [isSavingLink, setIsSavingLink] = useState(false);
+
+  const [invitationLinks, setInvitationLinks] = useState([]);
+  const [loadingLinks, setLoadingLinks] = useState(true);
+  const [revokingLinkId, setRevokingLinkId] = useState(null);
+
+  const [isQrViewerOpen, setIsQrViewerOpen] = useState(false);
+  const [qrViewerDataUrl, setQrViewerDataUrl] = useState('');
+  const [qrViewerTitle, setQrViewerTitle] = useState('QR de invitación');
+  const [qrViewerZoom, setQrViewerZoom] = useState(1);
+  const [isLoadingViewerQr, setIsLoadingViewerQr] = useState(false);
 
   const selectedRole = useMemo(
     () => roles.find((role) => toQueryValue(role.id) === form.roleId) || null,
@@ -80,6 +171,85 @@ const InvitationLinksPage = () => {
     () => centers.find((center) => toQueryValue(center.id) === form.centerId) || null,
     [centers, form.centerId]
   );
+
+  const roleNameById = useMemo(() => {
+    const map = new Map();
+    roles.forEach((role) => {
+      map.set(toQueryValue(role.id), role.role);
+    });
+    return map;
+  }, [roles]);
+
+  const centerNameById = useMemo(() => {
+    const map = new Map();
+    centers.forEach((center) => {
+      map.set(toQueryValue(center.id), center.name);
+    });
+    return map;
+  }, [centers]);
+
+  const activeInvitationLinks = useMemo(
+    () => invitationLinks.filter((invitation) => isInvitationActive(invitation)),
+    [invitationLinks]
+  );
+
+  const buildInvitationUrl = useCallback(
+    ({ token, destination = 'login' }) => {
+      const params = new URLSearchParams();
+      params.set('invite_token', token);
+      params.set('target', destination || 'login');
+
+      const origin = window.location.origin;
+      return `${origin}/login?${params.toString()}`;
+    },
+    []
+  );
+
+  const buildLinkFromInvitation = useCallback(
+    (invitation) => {
+      return buildInvitationUrl({
+        token: invitation?.token,
+        destination: invitation?.destination || 'login',
+      });
+    },
+    [buildInvitationUrl]
+  );
+
+  const fetchInvitationLinks = useCallback(async () => {
+    setLoadingLinks(true);
+    try {
+      const { data, error } = await supabase
+        .from('invitation_links')
+        .select(
+          'id, token, destination, role_id, center_id, max_uses, used_uses, note, expires_at, is_revoked, revoked_at, revoked_by, created_by, created_at, updated_at'
+        )
+        .order('created_at', { ascending: false })
+        .limit(200);
+
+      if (error) throw error;
+      setInvitationLinks(data || []);
+    } catch (error) {
+      console.error('[InvitationLinksPage] Error loading invitation links:', error);
+      setInvitationLinks([]);
+
+      if (error?.code === '42P01' || error?.code === '42883') {
+        toast({
+          title: 'Persistencia pendiente',
+          description:
+            'Falta aplicar la migración de invitaciones en Supabase. Ejecuta las migraciones para habilitar listado/revocación.',
+          variant: 'warning',
+        });
+      } else {
+        toast({
+          title: 'Error',
+          description: 'No se pudieron cargar los links persistidos.',
+          variant: 'destructive',
+        });
+      }
+    } finally {
+      setLoadingLinks(false);
+    }
+  }, [toast]);
 
   useEffect(() => {
     const fetchOptions = async () => {
@@ -94,8 +264,11 @@ const InvitationLinksPage = () => {
         if (centersRes.error) throw centersRes.error;
 
         const dbRoles = rolesRes.data || [];
-        const normalizedRoles = dbRoles.length
-          ? dbRoles.map((role) => ({ id: role.id, role: role.role }))
+        const safeRoles = dbRoles.filter((role) =>
+          invitationAssignableRoles.has(String(role?.role || '').toLowerCase())
+        );
+        const normalizedRoles = safeRoles.length
+          ? safeRoles.map((role) => ({ id: role.id, role: role.role }))
           : defaultRoles;
 
         setRoles(normalizedRoles);
@@ -123,45 +296,136 @@ const InvitationLinksPage = () => {
     fetchOptions();
   }, [toast]);
 
-  const buildInvitationUrl = (token, expiresAtIso) => {
-    const params = new URLSearchParams();
-    params.set('invite_token', token);
-    params.set('target', 'login');
-    params.set('draft', '1');
+  useEffect(() => {
+    fetchInvitationLinks();
+  }, [fetchInvitationLinks]);
 
-    if (selectedRole?.role) params.set('role', selectedRole.role);
-    if (selectedCenter?.id) params.set('center_id', toQueryValue(selectedCenter.id));
-    if (!form.isUnlimitedUses) params.set('max_uses', form.maxUses);
-    if (form.hasExpiration && expiresAtIso) params.set('expires_at', expiresAtIso);
+  const generateQrDataUrl = useCallback(async (url) => {
+    const qrSize = 360;
+    const qrData = await QRCode.toDataURL(url, {
+      width: qrSize,
+      margin: 1,
+      errorCorrectionLevel: 'H',
+      color: {
+        dark: '#0f172a',
+        light: '#ffffff',
+      },
+    });
 
-    const origin = window.location.origin;
-    return `${origin}/login?${params.toString()}`;
-  };
+    const qrImage = await loadImage(qrData);
 
-  const renderQr = async (url) => {
-    setIsGeneratingQr(true);
-    try {
-      const dataUrl = await QRCode.toDataURL(url, {
-        width: 360,
-        margin: 1,
-        color: {
-          dark: '#0f172a',
-          light: '#ffffff',
-        },
-      });
-      setQrDataUrl(dataUrl);
-    } catch (error) {
-      console.error('[InvitationLinksPage] QR generation error:', error);
-      setQrDataUrl('');
-      toast({
-        title: 'Error',
-        description: 'No se pudo generar el QR.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsGeneratingQr(false);
+    const canvas = document.createElement('canvas');
+    canvas.width = qrSize;
+    canvas.height = qrSize;
+
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('Canvas context unavailable');
+
+    context.drawImage(qrImage, 0, 0, qrSize, qrSize);
+
+    // Borde negro externo para integrar visualmente el QR en fondos claros.
+    context.strokeStyle = '#000000';
+    context.lineWidth = 8;
+    context.strokeRect(4, 4, qrSize - 8, qrSize - 8);
+
+    const logoSources = [
+      '/icon-192x192.svg',
+      '/favicon.svg',
+      '/icons/bibofit-192x192.png',
+      '/icons/bibofit-512x512.png',
+    ];
+
+    let logoImage = null;
+    for (const source of logoSources) {
+      try {
+        logoImage = await loadImage(source);
+        break;
+      } catch {
+        // Intentar siguiente formato/ruta.
+      }
     }
-  };
+
+    if (logoImage) {
+      const logoSize = Math.round(qrSize * 0.2);
+      const padding = Math.round(logoSize * 0.2);
+      const boxSize = logoSize + padding * 2;
+      const boxX = Math.round((qrSize - boxSize) / 2);
+      const boxY = Math.round((qrSize - boxSize) / 2);
+      const logoX = boxX + padding;
+      const logoY = boxY + padding;
+
+      context.fillStyle = '#ffffff';
+      context.fillRect(boxX, boxY, boxSize, boxSize);
+      context.strokeStyle = '#000000';
+      context.lineWidth = Math.max(2, Math.round(boxSize * 0.06));
+      context.strokeRect(boxX, boxY, boxSize, boxSize);
+      context.drawImage(logoImage, logoX, logoY, logoSize, logoSize);
+    }
+
+    return canvas.toDataURL('image/png');
+  }, []);
+
+  const renderQr = useCallback(
+    async (url) => {
+      setIsGeneratingQr(true);
+      try {
+        const dataUrl = await generateQrDataUrl(url);
+        setQrDataUrl(dataUrl);
+        return dataUrl;
+      } catch (error) {
+        console.error('[InvitationLinksPage] QR generation error:', error);
+        setQrDataUrl('');
+        toast({
+          title: 'Error',
+          description: 'No se pudo generar el QR.',
+          variant: 'destructive',
+        });
+        return null;
+      } finally {
+        setIsGeneratingQr(false);
+      }
+    },
+    [generateQrDataUrl, toast]
+  );
+
+  const openQrViewer = useCallback(
+    async ({ title, dataUrl = '', invitation = null }) => {
+      setQrViewerTitle(title || 'QR de invitación');
+      setQrViewerZoom(1);
+      setIsQrViewerOpen(true);
+
+      if (dataUrl) {
+        setQrViewerDataUrl(dataUrl);
+        setIsLoadingViewerQr(false);
+        return;
+      }
+
+      if (!invitation) {
+        setQrViewerDataUrl('');
+        setIsLoadingViewerQr(false);
+        return;
+      }
+
+      setQrViewerDataUrl('');
+      setIsLoadingViewerQr(true);
+
+      try {
+        const invitationUrl = buildLinkFromInvitation(invitation);
+        const generatedQrDataUrl = await generateQrDataUrl(invitationUrl);
+        setQrViewerDataUrl(generatedQrDataUrl);
+      } catch (error) {
+        console.error('[InvitationLinksPage] Error opening QR viewer:', error);
+        toast({
+          title: 'Error',
+          description: 'No se pudo preparar el QR para vista completa.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoadingViewerQr(false);
+      }
+    },
+    [buildLinkFromInvitation, generateQrDataUrl, toast]
+  );
 
   const handleGenerate = async () => {
     if (!form.roleId) {
@@ -173,8 +437,19 @@ const InvitationLinksPage = () => {
       return;
     }
 
+    const parsedRoleId = Number(form.roleId);
+    if (!Number.isInteger(parsedRoleId)) {
+      toast({
+        title: 'Validación',
+        description: 'El rol seleccionado no es válido para persistencia.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    let parsedUses = null;
     if (!form.isUnlimitedUses) {
-      const parsedUses = Number(form.maxUses);
+      parsedUses = Number(form.maxUses);
       if (!Number.isInteger(parsedUses) || parsedUses <= 0) {
         toast({
           title: 'Validación',
@@ -206,29 +481,89 @@ const InvitationLinksPage = () => {
         return;
       }
 
+      if (parsedDate.getTime() <= Date.now()) {
+        toast({
+          title: 'Validación',
+          description: 'La expiración debe ser en el futuro.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       expiresAtIso = parsedDate.toISOString();
     }
 
-    const token = toDraftToken();
-    const link = buildInvitationUrl(token, expiresAtIso);
+    const centerIdForInsert = form.centerId === 'none' ? null : Number(form.centerId);
+    if (centerIdForInsert !== null && !Number.isInteger(centerIdForInsert)) {
+      toast({
+        title: 'Validación',
+        description: 'El centro seleccionado no es válido.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
-    setGeneratedToken(token);
-    setGeneratedLink(link);
-    setGeneratedAt(new Date().toISOString());
+    setIsSavingLink(true);
+    try {
+      const { data, error } = await supabase.rpc('admin_create_invitation_link', {
+        p_destination: 'login',
+        p_role_id: parsedRoleId,
+        p_center_id: centerIdForInsert,
+        p_max_uses: form.isUnlimitedUses ? null : parsedUses,
+        p_note: form.note.trim() || null,
+        p_expires_at: expiresAtIso,
+      });
 
-    if (form.generateQr) {
-      await renderQr(link);
-    } else {
-      setQrDataUrl('');
+      if (error) throw error;
+
+      const createdInvitation = Array.isArray(data) ? data[0] : data;
+      if (!createdInvitation?.token) {
+        throw new Error('No se recibió el token persistido de invitación.');
+      }
+
+      const link = buildInvitationUrl({
+        token: createdInvitation.token,
+        destination: createdInvitation.destination || 'login',
+      });
+
+      setGeneratedToken(createdInvitation.token);
+      setGeneratedLink(link);
+      setGeneratedAt(createdInvitation.created_at || new Date().toISOString());
+
+      if (form.generateQr) {
+        await renderQr(link);
+      } else {
+        setQrDataUrl('');
+      }
+
+      toast({
+        title: 'Invitación creada',
+        description: 'El link se guardó en base de datos y ya está disponible para revocación.',
+      });
+
+      await fetchInvitationLinks();
+    } catch (error) {
+      console.error('[InvitationLinksPage] Error creating invitation link:', error);
+
+      const dbNotReady = error?.code === '42P01' || error?.code === '42883';
+      toast({
+        title: 'Error',
+        description: dbNotReady
+          ? 'Falta aplicar la migración de invitaciones en Supabase (tabla o RPC no disponible).'
+          : error?.message || 'No se pudo generar y persistir el link de invitación.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSavingLink(false);
     }
   };
 
-  const handleCopy = async () => {
-    if (!generatedLink) return;
+  const handleCopy = async (value = generatedLink) => {
+    if (!value) return;
     try {
-      await navigator.clipboard.writeText(generatedLink);
+      await navigator.clipboard.writeText(value);
       toast({ title: 'Copiado', description: 'Link copiado al portapapeles.' });
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'No se pudo copiar el link.',
@@ -246,13 +581,43 @@ const InvitationLinksPage = () => {
     setQrDataUrl('');
   };
 
+  const handleRevokeInvitation = async (invitation) => {
+    if (!invitation?.id || invitation.is_revoked) return;
+
+    const confirmed = window.confirm(
+      '¿Revocar este QR de invitación? Esta acción bloquea su uso inmediatamente.'
+    );
+    if (!confirmed) return;
+
+    setRevokingLinkId(invitation.id);
+    try {
+      const { error } = await supabase.rpc('admin_revoke_invitation_link', {
+        p_invitation_link_id: invitation.id,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Revocado',
+        description: 'El QR/link quedó revocado de forma inmediata.',
+      });
+
+      await fetchInvitationLinks();
+    } catch (error) {
+      console.error('[InvitationLinksPage] Error revoking invitation:', error);
+      toast({
+        title: 'Error',
+        description: error?.message || 'No se pudo revocar el QR/link.',
+        variant: 'destructive',
+      });
+    } finally {
+      setRevokingLinkId(null);
+    }
+  };
+
   const generatedAtLabel = useMemo(() => {
     if (!generatedAt) return null;
-    try {
-      return format(parseISO(generatedAt), "dd MMM yyyy, HH:mm", { locale: es });
-    } catch {
-      return generatedAt;
-    }
+    return formatDateLabel(generatedAt);
   }, [generatedAt]);
 
   return (
@@ -261,7 +626,7 @@ const InvitationLinksPage = () => {
         <title>Generar Link de Invitación - Bibofit Admin</title>
         <meta
           name="description"
-          content="Genera links de invitación con centro, rol, usos, nota, expiración y QR."
+          content="Genera links de invitación con centro, rol, usos, nota, expiración, persistencia y QR revocable."
         />
       </Helmet>
 
@@ -269,8 +634,7 @@ const InvitationLinksPage = () => {
         <div className="space-y-2">
           <h1 className="text-2xl md:text-4xl font-bold text-white">Generar Link de Invitación</h1>
           <p className="text-sm md:text-base text-muted-foreground">
-            Primera fase visual. Este flujo crea links en modo borrador para validar campos y UX antes
-            de implementar persistencia y seguridad en base de datos.
+            Flujo persistido en base de datos: cada QR generado queda registrado, listado y revocable.
           </p>
         </div>
 
@@ -304,7 +668,7 @@ const InvitationLinksPage = () => {
                 <Select
                   value={form.centerId}
                   onValueChange={(value) => setForm((prev) => ({ ...prev, centerId: value }))}
-                  disabled={loadingOptions}
+                  disabled={loadingOptions || isSavingLink}
                 >
                   <SelectTrigger id="invite-center">
                     <SelectValue placeholder="Selecciona un centro" />
@@ -325,7 +689,7 @@ const InvitationLinksPage = () => {
                 <Select
                   value={form.roleId}
                   onValueChange={(value) => setForm((prev) => ({ ...prev, roleId: value }))}
-                  disabled={loadingOptions}
+                  disabled={loadingOptions || isSavingLink}
                 >
                   <SelectTrigger id="invite-role">
                     <SelectValue placeholder="Selecciona un rol" />
@@ -360,6 +724,7 @@ const InvitationLinksPage = () => {
                       onCheckedChange={(checked) =>
                         setForm((prev) => ({ ...prev, isUnlimitedUses: checked }))
                       }
+                      disabled={isSavingLink}
                     />
                   </div>
                   {!form.isUnlimitedUses && (
@@ -375,6 +740,7 @@ const InvitationLinksPage = () => {
                           setForm((prev) => ({ ...prev, maxUses: event.target.value }))
                         }
                         placeholder="1"
+                        disabled={isSavingLink}
                       />
                     </div>
                   )}
@@ -396,6 +762,7 @@ const InvitationLinksPage = () => {
                     onCheckedChange={(checked) =>
                       setForm((prev) => ({ ...prev, hasExpiration: checked }))
                     }
+                    disabled={isSavingLink}
                   />
                 </div>
 
@@ -409,6 +776,7 @@ const InvitationLinksPage = () => {
                       onChange={(event) =>
                         setForm((prev) => ({ ...prev, expiresAt: event.target.value }))
                       }
+                      disabled={isSavingLink}
                     />
                   </div>
                 )}
@@ -427,6 +795,7 @@ const InvitationLinksPage = () => {
                     onCheckedChange={(checked) =>
                       setForm((prev) => ({ ...prev, generateQr: checked }))
                     }
+                    disabled={isSavingLink}
                   />
                 </div>
               </div>
@@ -440,26 +809,28 @@ const InvitationLinksPage = () => {
                 onChange={(event) => setForm((prev) => ({ ...prev, note: event.target.value }))}
                 placeholder="Ejemplo: Invitación para nuevos clientes del Centro Norte."
                 className="min-h-[110px]"
+                disabled={isSavingLink}
               />
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3">
               <Button
                 onClick={handleGenerate}
-                disabled={loadingOptions || isGeneratingQr}
+                disabled={loadingOptions || isGeneratingQr || isSavingLink}
                 className="sm:w-auto w-full"
               >
-                {isGeneratingQr ? (
+                {isGeneratingQr || isSavingLink ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 ) : (
                   <Link2 className="w-4 h-4 mr-2" />
                 )}
-                Generar Link de Invitación
+                {isSavingLink ? 'Guardando enlace...' : isGeneratingQr ? 'Generando QR...' : 'Generar Link de Invitación'}
               </Button>
               <Button
                 variant="outline"
                 onClick={handleReset}
                 className="sm:w-auto w-full"
+                disabled={isSavingLink || isGeneratingQr}
               >
                 <RefreshCcw className="w-4 h-4 mr-2" />
                 Limpiar formulario
@@ -472,7 +843,7 @@ const InvitationLinksPage = () => {
           <Card className="border-cyan-500/30 bg-card/90">
             <CardHeader className="space-y-3">
               <div className="flex flex-wrap items-center gap-2">
-                <CardTitle className="text-lg text-white">Link generado (borrador)</CardTitle>
+                <CardTitle className="text-lg text-white">Link generado y persistido</CardTitle>
                 {generatedAtLabel && (
                   <Badge variant="secondary" className="bg-muted text-muted-foreground">
                     {generatedAtLabel}
@@ -480,8 +851,7 @@ const InvitationLinksPage = () => {
                 )}
               </div>
               <CardDescription>
-                Este resultado es visual para validar frontend. La persistencia y validación segura se
-                implementarán en la siguiente fase.
+                Este resultado quedó guardado en base de datos y aparece en la lista de QRs activos.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
@@ -508,7 +878,7 @@ const InvitationLinksPage = () => {
 
               {generatedToken && (
                 <div className="rounded-lg border border-input px-3 py-2">
-                  <p className="text-xs text-muted-foreground mb-1">Token borrador</p>
+                  <p className="text-xs text-muted-foreground mb-1">Token persistido</p>
                   <p className="font-mono text-sm break-all">{generatedToken}</p>
                 </div>
               )}
@@ -522,7 +892,7 @@ const InvitationLinksPage = () => {
                     readOnly
                     className="font-mono text-xs md:text-sm"
                   />
-                  <Button variant="outline" onClick={handleCopy}>
+                  <Button variant="outline" onClick={() => handleCopy(generatedLink)}>
                     <Copy className="w-4 h-4 mr-2" />
                     Copiar
                   </Button>
@@ -542,21 +912,38 @@ const InvitationLinksPage = () => {
                     <QrCode className="w-4 h-4 text-cyan-400" />
                     <h3 className="text-sm font-semibold text-foreground">QR del enlace</h3>
                   </div>
-                  <div className="rounded-xl border border-input p-4 w-full md:w-fit bg-white">
+                  <div className="rounded-xl border border-input p-4 w-fit mx-auto bg-white space-y-2">
                     {isGeneratingQr ? (
                       <div className="flex items-center justify-center w-[240px] h-[240px]">
                         <Loader2 className="w-6 h-6 animate-spin text-slate-700" />
                       </div>
                     ) : qrDataUrl ? (
-                      <img
-                        src={qrDataUrl}
-                        alt="QR del link de invitación"
-                        className="w-[240px] h-[240px]"
-                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openQrViewer({
+                            title: 'QR recién generado',
+                            dataUrl: qrDataUrl,
+                          })
+                        }
+                        className="block cursor-zoom-in"
+                        title="Haz clic para pantalla completa"
+                      >
+                        <img
+                          src={qrDataUrl}
+                          alt="QR del link de invitación"
+                          className="w-[240px] h-[240px] border-4 border-black"
+                        />
+                      </button>
                     ) : (
                       <div className="flex items-center justify-center w-[240px] h-[240px] text-slate-600 text-sm">
                         QR no disponible
                       </div>
+                    )}
+                    {qrDataUrl && (
+                      <p className="text-[11px] text-slate-700 text-center">
+                        Haz click en el QR para abrirlo.
+                      </p>
                     )}
                   </div>
                 </div>
@@ -564,7 +951,194 @@ const InvitationLinksPage = () => {
             </CardContent>
           </Card>
         )}
+
+        <Card className="border-border/60 bg-card/90">
+          <CardHeader className="space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <CardTitle className="text-lg text-white">QRs activos</CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={fetchInvitationLinks}
+                disabled={loadingLinks}
+              >
+                {loadingLinks ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCcw className="w-4 h-4 mr-2" />
+                )}
+                Actualizar
+              </Button>
+            </div>
+            <CardDescription>
+              Lista de invitaciones activas persistidas. Puedes ver su QR y revocarlas inmediatamente.
+            </CardDescription>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge className="bg-emerald-600/90 text-white border-none">
+                Activas: {activeInvitationLinks.length}
+              </Badge>
+              <Badge variant="outline">
+                Total registradas: {invitationLinks.length}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loadingLinks ? (
+              <div className="h-32 flex items-center justify-center">
+                <Loader2 className="w-6 h-6 animate-spin text-cyan-400" />
+              </div>
+            ) : activeInvitationLinks.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-input p-6 text-center text-muted-foreground text-sm">
+                No hay QRs activos por ahora.
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Estado</TableHead>
+                    <TableHead>Rol</TableHead>
+                    <TableHead>Centro</TableHead>
+                    <TableHead>Usos</TableHead>
+                    <TableHead>Expira</TableHead>
+                    <TableHead>Creado</TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {activeInvitationLinks.map((invitation) => {
+                    const status = getInvitationStatus(invitation);
+                    const invitationUrl = buildLinkFromInvitation(invitation);
+                    const roleName = roleNameById.get(toQueryValue(invitation.role_id)) || 'N/A';
+                    const centerName = invitation.center_id
+                      ? centerNameById.get(toQueryValue(invitation.center_id)) || `Centro ${invitation.center_id}`
+                      : 'Sin centro';
+
+                    return (
+                      <TableRow key={invitation.id}>
+                        <TableCell>
+                          <Badge variant={status.variant}>{status.label}</Badge>
+                        </TableCell>
+                        <TableCell>{formatRoleLabel(roleName)}</TableCell>
+                        <TableCell>{centerName}</TableCell>
+                        <TableCell>
+                          {invitation.max_uses === null
+                            ? 'Ilimitado'
+                            : `${invitation.used_uses || 0}/${invitation.max_uses}`}
+                        </TableCell>
+                        <TableCell>
+                          {invitation.expires_at ? formatDateLabel(invitation.expires_at) : 'Sin expiración'}
+                        </TableCell>
+                        <TableCell>{formatDateLabel(invitation.created_at)}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end flex-wrap gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleCopy(invitationUrl)}
+                              title="Copiar link"
+                            >
+                              <Copy className="w-4 h-4 mr-2" />
+                              Copiar
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                openQrViewer({
+                                  title: `QR activo · ${formatRoleLabel(roleName)}`,
+                                  invitation,
+                                })
+                              }
+                              title="Ver QR en grande"
+                            >
+                              <Eye className="w-4 h-4 mr-2" />
+                              Ver QR
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleRevokeInvitation(invitation)}
+                              disabled={revokingLinkId === invitation.id}
+                              title="Revocar QR"
+                            >
+                              {revokingLinkId === invitation.id ? (
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              ) : (
+                                <Ban className="w-4 h-4 mr-2" />
+                              )}
+                              Revocar
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
       </div>
+
+      <Dialog
+        open={isQrViewerOpen}
+        onOpenChange={(open) => {
+          setIsQrViewerOpen(open);
+          if (!open) {
+            setQrViewerZoom(1);
+            setIsLoadingViewerQr(false);
+          }
+        }}
+      >
+        <DialogContent className="w-[96vw] max-w-[96vw] h-[96vh] bg-black/95 border-neutral-800 text-white p-0 overflow-hidden">
+          <DialogHeader className="px-5 py-4 border-b border-white/10 text-left">
+            <DialogTitle className="text-white">{qrViewerTitle}</DialogTitle>
+            <DialogDescription className="text-white/70">
+              Vista completa para compartir. Usa los controles para agrandar el QR rápidamente.
+            </DialogDescription>
+            <div className="flex items-center gap-2 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setQrViewerZoom((prev) => Math.max(1, prev - 0.25))}
+                disabled={isLoadingViewerQr || !qrViewerDataUrl}
+                className="border-white/30 bg-transparent text-white hover:bg-white/10"
+              >
+                <Minus className="w-4 h-4 mr-2" />
+                Zoom -
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setQrViewerZoom((prev) => Math.min(3.5, prev + 0.25))}
+                disabled={isLoadingViewerQr || !qrViewerDataUrl}
+                className="border-white/30 bg-transparent text-white hover:bg-white/10"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Zoom +
+              </Button>
+              <Badge variant="secondary" className="bg-white/10 text-white border-transparent">
+                {Math.round(qrViewerZoom * 100)}%
+              </Badge>
+            </div>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-auto flex items-center justify-center p-6">
+            {isLoadingViewerQr ? (
+              <Loader2 className="w-8 h-8 animate-spin text-cyan-300" />
+            ) : qrViewerDataUrl ? (
+              <img
+                src={qrViewerDataUrl}
+                alt="QR de invitación en pantalla completa"
+                className="border-[10px] border-black bg-white rounded-sm transition-transform duration-150"
+                style={{ transform: `scale(${qrViewerZoom})`, transformOrigin: 'center center' }}
+              />
+            ) : (
+              <p className="text-sm text-white/70">QR no disponible.</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

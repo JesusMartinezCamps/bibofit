@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Helmet } from 'react-helmet';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,6 +8,12 @@ import { useToast } from '@/components/ui/use-toast';
 import { UserPlus } from 'lucide-react';
 import { GoogleLogo } from '@/pages/LoginPage';
 import { PHONE_PREFIXES, validatePhone, buildE164 } from '@/lib/phonePrefixes';
+import {
+  appendInviteTokenToPath,
+  getInviteTokenFromSearch,
+  getStoredInviteToken,
+  setStoredInviteToken,
+} from '@/lib/invitationTokenStore';
 
 const SignUpPage = () => {
   const [email, setEmail] = useState('');
@@ -21,6 +27,22 @@ const SignUpPage = () => {
   const { signup, signInWithProvider, ensureDefaultTemplate } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const inviteTokenFromUrl = useMemo(
+    () => getInviteTokenFromSearch(location.search),
+    [location.search]
+  );
+  const inviteToken = useMemo(
+    () => inviteTokenFromUrl || getStoredInviteToken(),
+    [inviteTokenFromUrl]
+  );
+  const loginPath = useMemo(() => appendInviteTokenToPath('/login', inviteToken), [inviteToken]);
+
+  useEffect(() => {
+    if (!inviteTokenFromUrl) return;
+    setStoredInviteToken(inviteTokenFromUrl);
+  }, [inviteTokenFromUrl]);
 
   const handlePhoneNumberChange = (e) => {
     const digits = e.target.value.replace(/\D/g, '');
@@ -41,7 +63,7 @@ const SignUpPage = () => {
 
     setIsLoading(true);
     try {
-      const result = await signup(email, password, firstName, lastName, phone);
+      const result = await signup(email, password, firstName, lastName, phone, { inviteToken });
       if (!result.success) {
         toast({
           title: "Error de registro",
@@ -63,6 +85,19 @@ const SignUpPage = () => {
             title: "¡Cuenta creada!",
             description: "Tu sesión se ha iniciado correctamente.",
           });
+          if (result.invitationRedemption?.status === 'applied') {
+            toast({
+              title: 'Invitación aplicada',
+              description: 'Se aplicaron automáticamente tu rol y centro de invitación.',
+            });
+          }
+          if (['revoked', 'expired', 'exhausted', 'invalid_token'].includes(result.invitationRedemption?.status)) {
+            toast({
+              title: 'Invitación no aplicable',
+              description: 'El token de invitación no está activo o no es válido.',
+              variant: 'warning',
+            });
+          }
           navigate('/dashboard');
         }
       }
@@ -81,7 +116,7 @@ const SignUpPage = () => {
   const handleOAuth = async () => {
     setIsLoading(true);
     try {
-      const result = await signInWithProvider('google');
+      const result = await signInWithProvider('google', { inviteToken });
       if (!result.success) {
         toast({
           title: 'Error con Google',
@@ -242,7 +277,7 @@ const SignUpPage = () => {
 
               <p className="mt-8 text-center text-sm text-muted-foreground">
                 ¿Ya tienes una cuenta?{' '}
-                <Link to="/login" className="font-medium text-primary hover:underline">
+                <Link to={loginPath} className="font-medium text-primary hover:underline">
                   Inicia Sesión
                 </Link>
               </p>

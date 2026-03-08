@@ -4,12 +4,26 @@ import {
   getAuthConfirmedRedirectUrl,
   getDashboardRedirectUrl,
 } from '@/lib/authRedirects';
+import {
+  appendInviteTokenToPath,
+  captureInviteTokenFromLocation,
+  clearStoredInviteToken,
+  getInviteTokenCandidate,
+} from '@/lib/invitationTokenStore';
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const TERMINAL_INVITE_STATUSES = new Set([
+    'applied',
+    'already_redeemed',
+    'invalid_token',
+    'revoked',
+    'expired',
+    'exhausted',
+  ]);
 
   const syncProfileEmail = async (userId, authEmail, profileEmail) => {
     if (!userId || !authEmail) return;
@@ -22,6 +36,44 @@ export const AuthProvider = ({ children }) => {
 
     if (error) {
       console.warn('[AuthContext] Could not sync profile email:', error.message);
+    }
+  };
+
+  const resolveRedeemSourceForSession = (fallbackSource, sessionUser) => {
+    const provider = String(sessionUser?.app_metadata?.provider || '').toLowerCase();
+    if (provider === 'google') return 'oauth_google';
+    return fallbackSource;
+  };
+
+  const redeemPendingInvitationToken = async ({ explicitToken = null, source = 'web' } = {}) => {
+    const inviteToken = getInviteTokenCandidate(explicitToken);
+    if (!inviteToken) return { status: 'missing_token' };
+
+    const userAgent =
+      typeof navigator !== 'undefined' && typeof navigator.userAgent === 'string'
+        ? navigator.userAgent.slice(0, 1024)
+        : null;
+
+    try {
+      const { data, error } = await supabase.rpc('redeem_invitation_link', {
+        p_token: inviteToken,
+        p_source: source,
+        p_user_agent: userAgent,
+      });
+
+      if (error) throw error;
+
+      const payload = Array.isArray(data) ? data[0] : data;
+      const status = payload?.status || 'unknown';
+
+      if (TERMINAL_INVITE_STATUSES.has(status)) {
+        clearStoredInviteToken();
+      }
+
+      return payload || { status };
+    } catch (error) {
+      console.warn('[AuthContext] Invitation redeem error:', error?.message || error);
+      return { status: 'error', error: error?.message || 'invitation_redeem_failed' };
     }
   };
 
@@ -110,6 +162,7 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     let mounted = true;
+    captureInviteTokenFromLocation();
 
     // Backstop: if the auth fetch timeout fires but the SDK doesn't propagate
     // the error fast enough, force-unblock loading. The fetch timeout in
@@ -132,6 +185,9 @@ export const AuthProvider = ({ children }) => {
         }
 
         if (session) {
+          await redeemPendingInvitationToken({
+            source: resolveRedeemSourceForSession('session_bootstrap', session.user),
+          });
           await fetchUserProfile(session.user);
         } else {
           if (mounted) setLoading(false);
@@ -154,6 +210,9 @@ export const AuthProvider = ({ children }) => {
       if (!mounted) return;
 
       if (event === 'SIGNED_IN' && session) {
+        await redeemPendingInvitationToken({
+          source: resolveRedeemSourceForSession('auth_state_signed_in', session.user),
+        });
         await fetchUserProfile(session.user);
         return;
       }
@@ -183,15 +242,19 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
   
-  const login = async (email, password) => {
+  const login = async (email, password, options = {}) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) return { success: false, error: error.message };
       
       if (data.user) {
+          const invitationRedemption = await redeemPendingInvitationToken({
+            explicitToken: options?.inviteToken || null,
+            source: 'login_password',
+          });
           // Explicitly fetch profile immediately after login
           const fullUser = await fetchUserProfile(data.user);
-          return { success: true, user: fullUser };
+          return { success: true, user: fullUser, invitationRedemption };
       }
       return { success: false, error: 'An unknown error occurred.' };
     } catch (err) {
@@ -200,9 +263,13 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const signup = async (email, password, firstName, lastName, phone) => {
+  const signup = async (email, password, firstName, lastName, phone, options = {}) => {
     try {
-      const confirmationRedirectUrl = getAuthConfirmedRedirectUrl();
+      const inviteToken = getInviteTokenCandidate(options?.inviteToken || null);
+      const confirmationRedirectUrl = appendInviteTokenToPath(
+        getAuthConfirmedRedirectUrl(),
+        inviteToken
+      );
       const fullName = [firstName, lastName].filter(Boolean).join(' ');
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -221,12 +288,21 @@ export const AuthProvider = ({ children }) => {
       if (error) {
         return { success: false, error: error.message };
       }
+
+      let invitationRedemption = { status: 'missing_token' };
+      if (data.session && data.user) {
+        invitationRedemption = await redeemPendingInvitationToken({
+          explicitToken: inviteToken,
+          source: 'signup_auto_session',
+        });
+      }
       
       return {
         success: true,
         user: data.user,
         session: data.session,
         needsEmailConfirmation: !data.session,
+        invitationRedemption,
       };
     } catch (err) {
       console.error("Signup exception:", err);
@@ -253,12 +329,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const signInWithProvider = async (provider) => {
+  const signInWithProvider = async (provider, options = {}) => {
     try {
+      const inviteToken = getInviteTokenCandidate(options?.inviteToken || null);
+      const oauthRedirectUrl = appendInviteTokenToPath(getDashboardRedirectUrl(), inviteToken);
       const { error } = await supabase.auth.signInWithOAuth({
         provider: provider,
         options: {
-          redirectTo: getDashboardRedirectUrl(),
+          redirectTo: oauthRedirectUrl,
         }
       });
       if (error) return { success: false, error: error.message };
