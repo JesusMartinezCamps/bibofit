@@ -72,6 +72,27 @@ const IngredientSearch = ({
       .filter(Boolean);
   };
 
+  const getSearchAliases = (food) => {
+    const normalizedName = normalizeSearchText(food?.name);
+    if (!normalizedName) return [];
+
+    // En nutricion se usa "AOVE", pero usuarios suelen buscar "aceite".
+    if (
+      normalizedName.includes('aove') ||
+      normalizedName.includes('aceite oliva virgen extra')
+    ) {
+      return [
+        'aceite',
+        'aceite de oliva',
+        'aceite oliva',
+        'aceite virgen extra',
+        'aceite de oliva virgen extra',
+      ];
+    }
+
+    return [];
+  };
+
   useEffect(() => {
     if (searchTerm.trim() === '') {
       setSearchResults([]);
@@ -95,7 +116,8 @@ const IngredientSearch = ({
         const searchableText = [
           food.name,
           ...getFoodGroupNames(food),
-          ...getRecommendedConditionNames(food)
+          ...getRecommendedConditionNames(food),
+          ...getSearchAliases(food),
         ]
           .filter(Boolean)
           .map(normalizeSearchText)
