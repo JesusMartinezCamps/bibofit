@@ -10,32 +10,32 @@ export const MacroSummaryGrid = ({ macros }) => {
   return (
     <div className="grid grid-cols-4 gap-2">
       <div className="flex flex-col items-center p-2 bg-muted/65 rounded-lg border border-border/50">
-        <div className="flex items-center gap-1 text-orange-400 mb-1">
+        <div className="flex items-center gap-1 text-orange-500 dark:text-orange-400 mb-1">
           <CaloriesIcon className="w-4 h-4" />
           <span className="text-xs font-medium">Calorias</span>
         </div>
-        <span className="text-lg font-bold text-foreground dark:text-white">{Math.round(macros.calories || 0)}</span>
+        <span className="text-lg font-bold text-orange-500 dark:text-orange-300">{Math.round(macros.calories || 0)}</span>
       </div>
       <div className="flex flex-col items-center p-2 bg-muted/65 rounded-lg border border-border/50">
-        <div className="flex items-center gap-1 text-red-400 mb-1">
+        <div className="flex items-center gap-1 text-red-600 dark:text-red-400 mb-1">
           <ProteinIcon className="w-4 h-4" />
           <span className="text-xs font-medium">Proteinas</span>
         </div>
-        <span className="text-lg font-bold text-foreground dark:text-white">{Math.round(macros.proteins || 0)}g</span>
+        <span className="text-lg font-bold text-red-500 dark:text-red-300">{Math.round(macros.proteins || 0)}g</span>
       </div>
       <div className="flex flex-col items-center p-2 bg-muted/65 rounded-lg border border-border/50">
-        <div className="flex items-center gap-1 text-yellow-400 mb-1">
+        <div className="flex items-center gap-1 text-yellow-500 dark:text-yellow-400 mb-1">
           <CarbsIcon className="w-4 h-4" />
           <span className="text-xs font-medium">Carbs</span>
         </div>
-        <span className="text-lg font-bold text-foreground dark:text-white">{Math.round(macros.carbs || 0)}g</span>
+        <span className="text-lg font-bold text-yellow-500 dark:text-yellow-200">{Math.round(macros.carbs || 0)}g</span>
       </div>
       <div className="flex flex-col items-center p-2 bg-muted/65 rounded-lg border border-border/50">
-        <div className="flex items-center gap-1 text-green-400 mb-1">
+        <div className="flex items-center gap-1 text-green-500 dark:text-green-400 mb-1">
           <FatsIcon className="w-4 h-4" />
           <span className="text-xs font-medium">Grasas</span>
         </div>
-        <span className="text-lg font-bold text-foreground dark:text-white">{Math.round(macros.fats || 0)}g</span>
+        <span className="text-lg font-bold text-green-500 dark:text-green-200">{Math.round(macros.fats || 0)}g</span>
       </div>
     </div>
   );

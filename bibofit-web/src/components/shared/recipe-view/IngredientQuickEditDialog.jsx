@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowRightLeft, AlertTriangle, ThumbsUp } from 'lucide-react';
+import { ArrowRightLeft, AlertTriangle, ThumbsUp, Lock, LockOpen } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -23,6 +23,7 @@ const IngredientQuickEditDialog = ({
   const [selectedFoodId, setSelectedFoodId] = useState(null);
   const [isReplacing, setIsReplacing] = useState(false);
   const [selectedFoodDraft, setSelectedFoodDraft] = useState(null);
+  const [isLocked, setIsLocked] = useState(false);
 
   useEffect(() => {
     if (!ingredient) return;
@@ -31,6 +32,7 @@ const IngredientQuickEditDialog = ({
     setSelectedFoodId(ingredient.food?.id ?? ingredient.food_id ?? null);
     setIsReplacing(false);
     setSelectedFoodDraft(null);
+    setIsLocked(!!ingredient.locked);
   }, [ingredient]);
 
   if (!ingredient) return null;
@@ -164,6 +166,19 @@ const IngredientQuickEditDialog = ({
             </div>
           </div>
 
+          <button
+            type="button"
+            onClick={() => setIsLocked((prev) => !prev)}
+            className={`w-full flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+              isLocked
+                ? 'border-amber-500/60 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20'
+                : 'border-border/60 bg-card/60 text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+            }`}
+          >
+            {isLocked ? <Lock className="w-4 h-4 shrink-0" /> : <LockOpen className="w-4 h-4 shrink-0" />}
+            {isLocked ? 'Candado activo — el autocuadre no modificará esta cantidad' : 'Sin candado — el autocuadre puede ajustar este ingrediente'}
+          </button>
+
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-lg border border-border/70 bg-card/80 p-3">
               <p className="text-xs text-muted-foreground mb-1">Macros originales</p>
@@ -280,6 +295,7 @@ const IngredientQuickEditDialog = ({
               onSave({
                 quantity: safeQty,
                 food: selectedFood,
+                locked: isLocked,
               })
             }
           >

@@ -6,6 +6,7 @@ import {
   ArrowRightLeft,
   Plus,
   Minus,
+  Lock,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -80,7 +81,7 @@ const getStatusColorClasses = (type) => {
       return 'bg-red-500/5 dark:bg-muted/65 border-red-500/30 text-red-400';
     case 'condition_recommend':
     case 'preferred':
-      return 'bg-green-500/5 dark:bg-muted/65 border-green-500/30 text-green-400';
+      return 'bg-green-600/5 dark:bg-muted/65 border-green-500/30 text-green-600 dark:text-green-400';
     default:
       return 'bg-muted/65 border-border/50 text-foreground';
   }
@@ -110,7 +111,7 @@ const StatusDisplay = ({ type, conflicts, recommendations, isEditing }) => {
   if (type === 'condition_recommend' || type === 'preferred') {
     const reasonText = recommendations.map((r) => r.restrictionName).join(', ');
     return (
-      <div className="mt-1.5 flex items-center gap-1.5 text-green-400 text-xs font-medium animate-in fade-in">
+      <div className="mt-1.5 flex items-center gap-1.5 text-green-600 dark:text-green-400 text-xs font-medium animate-in fade-in">
         <ThumbsUp className="w-3.5 h-3.5 shrink-0" />
         <span>{reasonText}</span>
       </div>
@@ -176,7 +177,7 @@ const IngredientCard = ({
   allFoodGroups,
   multiplier = 1,
 }) => {
-  const { food, quantity, macros, vitamins, minerals, conflictType, conflictDetails, recommendationDetails, diffAction, is_ghost } = ingredient;
+  const { food, quantity, macros, vitamins, minerals, conflictType, conflictDetails, recommendationDetails, diffAction, is_ghost, locked } = ingredient;
 
   const foodGroupName =
     allFoodGroups?.find((g) => String(g.id) === String(ingredient.food_group_id))?.name ||
@@ -237,6 +238,9 @@ const IngredientCard = ({
             onClick={() => canQuickEdit && onQuickEdit()}
           >
             <div className="flex items-center min-w-0 mr-4 w-full flex-wrap gap-x-1">
+              {locked && !is_ghost && (
+                <Lock className="w-3 h-3 shrink-0 text-amber-600/80 dark:text-amber-400/80" title="Cantidad bloqueada — el autocuadre no modificará este ingrediente" />
+              )}
               <span
                 className={cn(
                   'text-base truncate transition-colors',
@@ -245,8 +249,8 @@ const IngredientCard = ({
                     : hasConflict
                       ? 'text-red-400 group-hover:text-red-300'
                       : isRecommended
-                        ? 'text-green-400 group-hover:text-green-300'
-                        : 'group-hover:text-green-300',
+                        ? 'text-green-600 dark:text-green-400 group-hover:text-green-600 dark:group-hover:text-green-400'
+                        : 'group-hover:text-green-600',
                   !is_ghost && statusColorClasses.split(' ').find((c) => c.startsWith('text-'))
                 )}
               >
@@ -255,7 +259,7 @@ const IngredientCard = ({
               {!is_ghost && (
                 <span className={cn(
                   'text-xs whitespace-nowrap',
-                  hasConflict ? 'text-red-400' : isRecommended ? 'text-green-400' : 'text-muted-foreground'
+                  hasConflict ? 'text-red-400' : isRecommended ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'
                 )}>
                   ({displayQuantity}{food.food_unit === 'unidades' ? ' ud' : 'g'})
                 </span>
@@ -264,7 +268,7 @@ const IngredientCard = ({
                 <FoodStateBadge food={food} isUserCreated={isUserCreated} />
               </div>
               {hasConflict && <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0" />}
-              {isRecommended && <ThumbsUp className="w-3.5 h-3.5 text-green-500 shrink-0" />}
+              {isRecommended && <ThumbsUp className="w-3.5 h-3.5 text-green-600 dark:text-green-400 shrink-0" />}
               {diffAction && <DiffBadge action={diffAction} />}
             </div>
           </div>
@@ -372,6 +376,9 @@ const IngredientCard = ({
                   'font-semibold flex flex-wrap items-center gap-2',
                   is_ghost ? 'text-muted-foreground/50' : statusColorClasses.split(' ').find((c) => c.startsWith('text-'))
                 )}>
+                  {locked && !is_ghost && (
+                    <Lock className="w-3 h-3 shrink-0 text-amber-500/70" title="Cantidad bloqueada — el autocuadre no modificará este ingrediente" />
+                  )}
                   <span className={cn(is_ghost && 'line-through')}>{food.name}</span>
                   {!is_ghost && (
                     <span className={cn(

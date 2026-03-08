@@ -71,6 +71,7 @@ export const createVariant = async ({
                 user_recipe_id: newRecipe.id,
                 food_id: parseInt(ing.food_id),
                 grams: parseFloat(ing.grams || ing.quantity || 0),
+                locked: !!ing.locked,
             }))
             .filter(i => !isNaN(i.food_id));
 
@@ -146,6 +147,7 @@ export const versionDietPlanRecipe = async ({ oldDietPlanRecipeId, formData, ing
                 diet_plan_recipe_id: newRecipe.id,
                 food_id: parseInt(ing.food_id),
                 grams: parseFloat(ing.grams || ing.quantity || 0),
+                locked: !!ing.locked,
             }))
             .filter(i => !isNaN(i.food_id));
 
@@ -242,6 +244,7 @@ export const submitPlanAmendment = async ({ recipeToEdit, formData, ingredients,
             user_recipe_id: proposalRecipe.id,
             food_id: ing.food_id,
             grams: ing.grams || ing.quantity || 0,
+            locked: !!ing.locked,
         }));
 
         const { error: ingError } = await supabase
@@ -409,6 +412,7 @@ export const saveDietPlanRecipe = async ({ formData, ingredients, originalRecipe
             diet_plan_recipe_id: newRecipe.id,
             food_id: ing.food_id,
             grams: ing.grams || ing.quantity || 0,
+            locked: !!ing.locked,
         }));
 
         if (newIngredientsData.length > 0) {

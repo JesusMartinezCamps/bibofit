@@ -284,10 +284,11 @@ const RecipeView = ({
         allFoods: safeFoods,
         allVitamins: safeVitamins,
         allMinerals: safeMinerals,
+        allFoodGroups: safeFoodGroups,
         conflicts,
         recommendations,
       }),
-    [recipe, safeFoods, safeVitamins, safeMinerals, conflicts, recommendations]
+    [recipe, safeFoods, safeVitamins, safeMinerals, safeFoodGroups, conflicts, recommendations]
   );
 
   useEffect(() => {
@@ -352,6 +353,7 @@ const RecipeView = ({
         .map((ing) => ({
           food_id: Number(ing.food_id || ing.food?.id),
           quantity: Number(ing.grams || ing.quantity) || 0,
+          locked: !!ing.locked,
         }))
         .filter((ing) => ing.food_id);
 
@@ -386,7 +388,7 @@ const RecipeView = ({
     }
   };
 
-  const handleQuickEditSave = ({ quantity, food }) => {
+  const handleQuickEditSave = ({ quantity, food, locked }) => {
     if (!quantityEditorIngredient) return;
 
     const hasFoodChanged =
@@ -394,7 +396,28 @@ const RecipeView = ({
       String(food.id) !== String(quantityEditorIngredient.food_id || quantityEditorIngredient.food?.id);
 
     if (!hasFoodChanged) {
-      handleQuantityChange(quantityEditorIngredient, quantity);
+      // Actualiza cantidad y estado de candado en el ingrediente existente
+      const targetIndex = quantityEditorIngredient.originalIndex;
+      if (targetIndex !== undefined && targetIndex !== null) {
+        const newIngredients = [...(recipe?.ingredients || [])];
+        if (newIngredients[targetIndex]) {
+          newIngredients[targetIndex] = {
+            ...newIngredients[targetIndex],
+            grams: quantity,
+            quantity,
+            locked: !!locked,
+          };
+          onIngredientsChange(newIngredients);
+        }
+      } else {
+        const identifier = quantityEditorIngredient.local_id || quantityEditorIngredient.id;
+        const newIngredients = (recipe?.ingredients || []).map((ing) =>
+          (ing.local_id || ing.id) === identifier
+            ? { ...ing, grams: quantity, quantity, locked: !!locked }
+            : ing
+        );
+        onIngredientsChange(newIngredients);
+      }
       setQuantityEditorIngredient(null);
       return;
     }
@@ -404,6 +427,7 @@ const RecipeView = ({
       food_id: food.id,
       grams: quantity,
       quantity,
+      locked: !!locked,
       food_group_id: food?.food_to_food_groups?.[0]?.food_group_id || null,
       food,
     };

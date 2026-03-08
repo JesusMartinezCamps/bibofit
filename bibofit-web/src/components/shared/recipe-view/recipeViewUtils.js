@@ -76,6 +76,7 @@ export const buildIngredientsWithDetails = ({
   allFoods,
   allVitamins,
   allMinerals,
+  allFoodGroups,
   conflicts,
   recommendations,
 }) => {
@@ -201,12 +202,25 @@ export const buildIngredientsWithDetails = ({
     };
   });
 
-  const byName = (a, b) =>
-    (a.food?.name || '').localeCompare(b.food?.name || '', 'es', { sensitivity: 'base' });
+  const foodGroupById = new Map(
+    (Array.isArray(allFoodGroups) ? allFoodGroups : []).map((group) => [String(group.id), group.name || ''])
+  );
+  const resolveFamilyName = (ingredient) => {
+    const groupId = ingredient?.food_group_id;
+    if (groupId !== undefined && groupId !== null) {
+      const byCatalog = foodGroupById.get(String(groupId));
+      if (byCatalog) return byCatalog;
+    }
+    return ingredient?.food?.food_to_food_groups?.[0]?.food_group?.name || 'Otros';
+  };
+  const compareByFamilyAndName = (a, b) => {
+    const familyCompare = resolveFamilyName(a).localeCompare(resolveFamilyName(b), 'es', {
+      sensitivity: 'base',
+    });
+    if (familyCompare !== 0) return familyCompare;
 
-  return [
-    ...built.filter((i) => i.diffAction === 'add').sort(byName),
-    ...built.filter((i) => !i.diffAction).sort(byName),
-    ...removedGhosts.sort(byName),
-  ];
+    return (a.food?.name || '').localeCompare(b.food?.name || '', 'es', { sensitivity: 'base' });
+  };
+
+  return [...built, ...removedGhosts].sort(compareByFamilyAndName);
 };

@@ -187,15 +187,17 @@ const ProfilePage = () => {
             <div className="mt-2 flex justify-center md:justify-start">
               <ProfileTypeSubtitle role={user?.role} />
             </div>
-            <div className="flex flex-col items-center justify-center gap-2 mt-4">
-              <Button 
-                  variant="link" 
-                  className="h-auto py-1 text-xs text-muted-foreground hover:text-primary" 
-                  onClick={handleResetOnboarding}
-              >
-                  <RotateCcw className="w-3 h-3 mr-1" /> Repetir Onboarding
-              </Button>
-            </div>
+            {user?.role === 'admin' && (
+              <div className="flex flex-col items-center justify-center gap-2 mt-4">
+                <Button
+                    variant="link"
+                    className="h-auto py-1 text-xs text-muted-foreground hover:text-primary"
+                    onClick={handleResetOnboarding}
+                >
+                    <RotateCcw className="w-3 h-3 mr-1" /> Repetir Onboarding
+                </Button>
+              </div>
+            )}
           </div>
 
           <div className="space-y-4 mb-12">

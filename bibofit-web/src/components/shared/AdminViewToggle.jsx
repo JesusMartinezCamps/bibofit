@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Switch } from '@/components/ui/switch';
-import { Eye, Settings, X, Save, Pen } from 'lucide-react';
+import { Eye, Settings, X, Save, ScanSearch } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import * as DialogPrimitive from "@radix-ui/react-dialog";
@@ -9,9 +9,14 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 const ViewModeToggle = ({ mode, onModeChange, loading, onClose, className, hasChanges, isClientRequestView = false, showClose = true, switchCheckedColor = 'data-[state=checked]:bg-violet-500', activeIconColor = 'text-violet-500', leftElement = null, switchDisabled = false, saveLabel = 'Guardar' }) => {
   const isViewMode = mode === 'view';
   const showSaveHint = !isViewMode && hasChanges;
+  const isToggleDisabled = loading || switchDisabled;
 
-  const SettingsIcon = isClientRequestView ? Pen : Settings;
+  const SettingsIcon = isClientRequestView ? ScanSearch : Settings;
   const ViewIcon = !isViewMode && hasChanges ? Save : Eye;
+  const handleToggleAreaClick = () => {
+    if (isToggleDisabled) return;
+    onModeChange(!isViewMode);
+  };
 
   return (
     <motion.div
@@ -31,15 +36,35 @@ const ViewModeToggle = ({ mode, onModeChange, loading, onClose, className, hasCh
         </div>
       )}
       <div className="flex-1 flex justify-center">
-        <div className="flex items-center space-x-3">
+        <div
+          role="button"
+          tabIndex={isToggleDisabled ? -1 : 0}
+          aria-disabled={isToggleDisabled}
+          onClick={handleToggleAreaClick}
+          onKeyDown={(e) => {
+            if (isToggleDisabled) return;
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onModeChange(!isViewMode);
+            }
+          }}
+          className={cn(
+            'flex items-center space-x-3 rounded-md px-3 py-2 -mx-3 -my-2 transition-colors',
+            isToggleDisabled
+              ? 'cursor-not-allowed opacity-70'
+              : 'cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/40'
+          )}
+        >
           <SettingsIcon className={`h-5 w-5 transition-colors ${!isViewMode ? activeIconColor : 'text-muted-foreground'}`} />
-          <Switch
-            checked={isViewMode}
-            onCheckedChange={onModeChange}
-            id="view-mode-toggle"
-            className={cn(switchCheckedColor, 'data-[state=unchecked]:bg-gray-600')}
-            disabled={loading || switchDisabled}
-          />
+          <div onClick={(e) => e.stopPropagation()}>
+            <Switch
+              checked={isViewMode}
+              onCheckedChange={onModeChange}
+              id="view-mode-toggle"
+              className={cn(switchCheckedColor, 'data-[state=unchecked]:bg-gray-600')}
+              disabled={isToggleDisabled}
+            />
+          </div>
           <div className="flex items-center gap-1.5">
             <ViewIcon className={`h-5 w-5 transition-colors ${isViewMode || (!isViewMode && hasChanges) ? activeIconColor : 'text-muted-foreground'}`} />
             {showSaveHint && (
