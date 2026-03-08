@@ -12,7 +12,7 @@
 - [Cuenta Confirmada - Bibofit](/authconfirmed): Tu cuenta está confirmada. Continúa para empezar con Bibofit.
 - [Dashboard - Bibofit](/dashboard): Tu calendario de entrenamientos y dietas.
 - [Dashboard Entrenador - Gsus Martz](/coachdashboard): No description available
-- [Generar Link de Invitación - Bibofit Admin](/invitationlinks): Genera links de invitación con centro, rol, usos, nota, expiración y QR.
+- [Generar Link de Invitación - Bibofit Admin](/invitationlinks): Genera links de invitación con centro, rol, usos, nota, expiración, persistencia y QR revocable.
 - [Gestión de Centros - Admin Panel](/centersmanagement): No description available
 - [Gestión de Contenidos - Coach](/coachcontent): No description available
 - [Gestión de Ejercicios - Gsus Martz](/createexercise): Crear y editar ejercicios.

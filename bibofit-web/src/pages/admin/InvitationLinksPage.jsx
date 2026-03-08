@@ -323,11 +323,6 @@ const InvitationLinksPage = () => {
 
     context.drawImage(qrImage, 0, 0, qrSize, qrSize);
 
-    // Borde negro externo para integrar visualmente el QR en fondos claros.
-    context.strokeStyle = '#000000';
-    context.lineWidth = 8;
-    context.strokeRect(4, 4, qrSize - 8, qrSize - 8);
-
     const logoSources = [
       '/icon-192x192.svg',
       '/favicon.svg',
@@ -932,7 +927,7 @@ const InvitationLinksPage = () => {
                         <img
                           src={qrDataUrl}
                           alt="QR del link de invitación"
-                          className="w-[240px] h-[240px] border-4 border-black"
+                          className="w-[240px] h-[240px]"
                         />
                       </button>
                     ) : (
@@ -1130,7 +1125,7 @@ const InvitationLinksPage = () => {
               <img
                 src={qrViewerDataUrl}
                 alt="QR de invitación en pantalla completa"
-                className="border-[10px] border-black bg-white rounded-sm transition-transform duration-150"
+                className="bg-white rounded-sm transition-transform duration-150"
                 style={{ transform: `scale(${qrViewerZoom})`, transformOrigin: 'center center' }}
               />
             ) : (
