@@ -340,37 +340,45 @@ const InvitationLinksPage = () => {
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center justify-between rounded-lg border border-input px-3 py-2">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Usos ilimitados</p>
-                    <p className="text-xs text-muted-foreground">
-                      Si lo activas, el link no tendrá límite de usos.
-                    </p>
-                  </div>
-                  <Switch
-                    checked={form.isUnlimitedUses}
-                    onCheckedChange={(checked) =>
-                      setForm((prev) => ({ ...prev, isUnlimitedUses: checked }))
-                    }
-                  />
+              <div className="space-y-3 md:col-span-2 rounded-lg border border-input p-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-foreground">Usos</p>
+                  <p className="text-xs text-muted-foreground">
+                    Configura si el link es ilimitado o con número máximo de usos.
+                  </p>
                 </div>
-                {!form.isUnlimitedUses && (
-                  <div className="space-y-2">
-                    <Label htmlFor="invite-max-uses">Número de usos</Label>
-                    <Input
-                      id="invite-max-uses"
-                      type="number"
-                      min={1}
-                      step={1}
-                      value={form.maxUses}
-                      onChange={(event) =>
-                        setForm((prev) => ({ ...prev, maxUses: event.target.value }))
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="flex items-center justify-between rounded-lg border border-input px-3 py-2">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Usos ilimitados</p>
+                      <p className="text-xs text-muted-foreground">
+                        Si lo activas, el link no tendrá límite de usos.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={form.isUnlimitedUses}
+                      onCheckedChange={(checked) =>
+                        setForm((prev) => ({ ...prev, isUnlimitedUses: checked }))
                       }
-                      placeholder="1"
                     />
                   </div>
-                )}
+                  {!form.isUnlimitedUses && (
+                    <div className="space-y-2">
+                      <Label htmlFor="invite-max-uses">Número de usos</Label>
+                      <Input
+                        id="invite-max-uses"
+                        type="number"
+                        min={1}
+                        step={1}
+                        value={form.maxUses}
+                        onChange={(event) =>
+                          setForm((prev) => ({ ...prev, maxUses: event.target.value }))
+                        }
+                        placeholder="1"
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
