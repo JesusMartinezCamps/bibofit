@@ -137,7 +137,7 @@ const MealRow = React.memo(({ meal, totalGrams, onMealPctChange, readOnly, disab
         (readOnly || disabled) && "opacity-75"
     )}>
       <div className="flex justify-between items-center md:block">
-        <p className="font-semibold text-white">{meal.day_meal?.name || meal.name || 'Comida'}</p>
+        <p className="font-semibold text-foreground">{meal.day_meal?.name || meal.name || 'Comida'}</p>
         <p className="md:hidden text-sm font-numeric text-orange-400">~{totalCalories} kcal</p>
       </div>
 
@@ -188,7 +188,7 @@ const TotalRow = React.memo(({ mealTotals, gramTotals, floating = false }) => (
         ? "bg-background border-border shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.3)] w-full" 
         : "bg-card/90 border-border"
     )}>
-    <span className="font-bold text-lg text-white">TOTAL</span>
+    <span className="font-bold text-lg text-foreground">TOTAL</span>
     
     <span />
     <div className="relative flex items-center justify-between bg-muted/65 rounded-lg border border-border px-3 h-10">
@@ -388,7 +388,7 @@ const MealMacroConfiguration = ({
   const isInteractive = forceUnlock || canUseAutoFrame;
 
   return (
-    <Card className={cn("bg-card/75 border-border text-white shadow-xl w-full max-w-full box-border", readOnly && "opacity-80")}>
+    <Card className={cn("bg-card/75 border-border text-foreground shadow-xl w-full max-w-full box-border", readOnly && "opacity-80")}>
       <Collapsible open={open} onOpenChange={setOpen} className="w-full">
         <CardHeader className="px-4">
           <CollapsibleTrigger asChild>
