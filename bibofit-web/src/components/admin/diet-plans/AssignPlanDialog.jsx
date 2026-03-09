@@ -323,7 +323,7 @@ const AssignPlanDialog = ({
                     toast({
                         title: "Plan asignado correctamente",
                         description: `El plan "${newPlanName}" ha sido creado y ajustado automáticamente.`,
-                        className: "bg-green-600 text-white border-none"
+                        variant: "success"
                     });
                     
                     if (isTourActive && currentStepData?.id === 'macro-distribution') {
@@ -537,6 +537,7 @@ const AssignPlanDialog = ({
                 onResolveComplete={() => setStep(2)}
                 clientRestrictions={clientRestrictions}
                 planRestrictions={planRestrictionsForEditor}
+                targetUserId={selectedClientId}
             />
         </Dialog>
     );

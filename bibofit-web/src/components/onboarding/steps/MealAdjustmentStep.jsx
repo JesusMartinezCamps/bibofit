@@ -412,6 +412,7 @@ const MealAdjustmentStep = ({ onNext, isLoading: isStepLoading }) => {
           onResolveComplete={handleConflictResolutionComplete}
           clientRestrictions={clientRestrictions}
           planRestrictions={planRestrictionsForEditor}
+          targetUserId={user?.id}
       />
     </>
   );

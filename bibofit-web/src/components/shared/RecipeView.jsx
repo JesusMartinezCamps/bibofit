@@ -126,6 +126,7 @@ const RecipeView = ({
   showPreparationSection = true,
   onFoodCreated,
   recipeStyles = null,
+  isConflictCorrectionMode = false,
 }) => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -489,6 +490,8 @@ const RecipeView = ({
     (isEditing || canManageIngredientsInView);
   const canRenderNativeImageUpload = showImageUpload && typeof onImageUploadChange === 'function';
   const isMultiplierActive = servingMultiplier !== 1;
+  const shouldShowMetaFields = showMetaFields && !isConflictCorrectionMode;
+  const shouldShowPreparationSection = showPreparationSection && !isConflictCorrectionMode;
   const handleIncreaseMultiplier = () => {
     setServingMultiplier((prev) => {
       if (prev >= 20) {
@@ -526,7 +529,12 @@ const RecipeView = ({
   }
 
   return (
-    <div className="text-foreground dark:text-white dark:bg-[#0C101D] space-y-6 p-2 sm:p-4 md:p-6">
+    <div
+      className={cn(
+        'text-foreground dark:text-white dark:bg-[#0C101D] space-y-6',
+        isConflictCorrectionMode ? 'py-2 px-0 sm:px-0 md:px-0' : 'p-2 sm:p-4 md:p-6'
+      )}
+    >
       <div className="text-center mt-6 relative z-10">
         {recipeImageUrl && (
           <div className="mb-4 overflow-hidden rounded-xl border border-border/70 bg-card/85">
@@ -573,6 +581,13 @@ const RecipeView = ({
           </Badge>
         </div>
       )}
+      {isConflictCorrectionMode && (
+        <div className="flex justify-center -mt-2 mb-4 relative z-10">
+          <Badge variant="outline" className="border-amber-500 text-amber-300 bg-amber-900/20">
+            Modo correccion de conflictos
+          </Badge>
+        </div>
+      )}
 
       {canRenderNativeImageUpload && (
         <div className="relative z-10">
@@ -586,7 +601,7 @@ const RecipeView = ({
 
       {headerSlot && <div className="relative z-10">{headerSlot}</div>}
 
-      {showMetaFields && (
+      {shouldShowMetaFields && (
         <div
           className={cn(
             'grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 rounded-lg relative z-10',
@@ -708,7 +723,7 @@ const RecipeView = ({
         </div>
       )}
 
-      {showPreparationSection && (
+      {shouldShowPreparationSection && (
         <div className="relative z-10">
           <h3 className="text-xl font-semibold mb-3 border-b border-border pb-2 bg-clip-text text-transparent bg-gradient-to-r from-emerald-700 to-teal-700 dark:from-green-300 dark:to-teal-400">
             Preparacion
@@ -727,7 +742,9 @@ const RecipeView = ({
       <div
         className={cn(
           enableStickyMacros &&
-            'sticky top-0 bg-card/95 dark:bg-[#0C101D] -mx-2 px-2 sm:-mx-4 sm:px-4 md:-mx-6 md:px-6 py-2 shadow-xl border-b border-border/60 mb-4',
+            (isConflictCorrectionMode
+              ? 'sticky top-0 bg-card/95 dark:bg-[#0C101D] px-0 sm:px-0 md:px-0 py-2 shadow-xl border-b border-border/60 mb-4'
+              : 'sticky top-0 bg-card/95 dark:bg-[#0C101D] -mx-2 px-2 sm:-mx-4 sm:px-4 md:-mx-6 md:px-6 py-2 shadow-xl border-b border-border/60 mb-4'),
           'z-30'
         )}
       >

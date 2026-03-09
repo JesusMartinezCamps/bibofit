@@ -26,7 +26,9 @@ const AdminRecipeModal = ({
     forcedRestrictions = null,
     isAssignedPlan = false, 
     isTemporaryEdit = false,
-    isReadOnly = false // NEW PROP
+    isReadOnly = false, // NEW PROP
+    asPage = false,
+    isConflictCorrectionMode = false
 }) =>
 {
     const { toast } = useToast();
@@ -555,116 +557,130 @@ const AdminRecipeModal = ({
         handleClose();
     };
 
+    const innerContent = (
+        <>
+            {loading ? (
+                <div className="flex-grow flex items-center justify-center">
+                    <Loader2 className="w-12 h-12 animate-spin text-green-400" />
+                </div>
+            ) : (
+                <div className="flex flex-col h-full overflow-hidden">
+                    {currentView === 'editor' ? (
+                         <div className="flex flex-col h-full">
+                            <div className="flex-grow overflow-y-auto styled-scrollbar p-0 pb-24">
+                                {recipeForView && (
+                                    <RecipeView
+                                        recipe={recipeForView}
+                                        allFoods={allFoods}
+                                        allVitamins={allVitamins}
+                                        allMinerals={allMinerals}
+                                        allFoodGroups={allFoodGroups}
+                                        macros={macros}
+                                        userRestrictions={fullUserRestrictions}
+                                        targetUserId={userId}
+                                        isEditing={!isReadOnly}
+                                        onFormChange={(e) => !isReadOnly && setRecipeData(prev => ({ ...prev, [e.target.name]: e.target.value }))}
+                                        onIngredientsChange={handleIngredientsChange}
+                                        onRemoveIngredient={handleRemoveIngredient}
+                                        onAddIngredientClick={() => setCurrentView('search')}
+                                        mealTargetMacros={mealTargetMacros}
+                                        enableStickyMacros={true}
+                                        conflicts={conflicts}
+                                        expandedIngredients={expandedIngredients}
+                                        visibleMacros={visibleMacros}
+                                        focusedQuantityInput={focusedInput}
+                                        toggleIngredientExpansion={toggleIngredientExpansion}
+                                        toggleQuantityInputFocus={toggleQuantityInputFocus}
+                                        toggleAllIngredients={toggleAllIngredients}
+                                        allExpanded={allExpanded}
+                                        isConflictCorrectionMode={isConflictCorrectionMode}
+                                    />
+                                )}
+                            </div>
+                            
+                            <div className="absolute bottom-0 left-0 right-0 bg-card/95 border-t border-border p-4 backdrop-blur-sm flex justify-end gap-3 z-20">
+                                <Button variant="ghost" onClick={handleClose} disabled={isSaving} className="text-white hover:bg-card hover:text-gray-200">
+                                    {isReadOnly ? 'Cerrar' : 'Cancelar'}
+                                </Button>
+                                
+                                {!isReadOnly && (
+                                    isTemporaryEdit ? (
+                                        <Button
+                                            onClick={handleTemporarySave}
+                                            disabled={isSaving}
+                                            className="bg-green-600 hover:bg-green-500"
+                                        >
+                                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                                            Guardar cambios temporales
+                                        </Button>
+                                    ) : showVariantButton ? (
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <span tabIndex={0}> 
+                                                        <Button 
+                                                            onClick={handleUpdateVariant} 
+                                                            disabled={isButtonDisabled} 
+                                                            className={cn(
+                                                                "bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-muted-foreground",
+                                                                ((hasChanges || isAdding) && !hasCriticalConflicts) && "bg-green-600 hover:bg-green-500",
+                                                                (isAssignedPlan && !isAdding && !hasCriticalConflicts) && "bg-orange-600 hover:bg-orange-500"
+                                                            )}
+                                                        >
+                                                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : variantButtonIcon}
+                                                            {variantButtonText}
+                                                        </Button>
+                                                    </span>
+                                                </TooltipTrigger>
+                                                {(isButtonDisabled) && (
+                                                    <TooltipContent className="bg-card border-border text-white">
+                                                        {hasCriticalConflicts 
+                                                            ? <p className="text-red-400">Resuelve los conflictos de intolerancias antes de guardar.</p>
+                                                            : <p>Realiza cambios en la receta para poder guardar.</p>
+                                                        }
+                                                    </TooltipContent>
+                                                )}
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    ) : (
+                                        <Button onClick={hookHandleSave} disabled={isSaving} className="bg-green-600 hover:bg-green-500">
+                                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                                            Guardar Receta
+                                        </Button>
+                                    )
+                                )}
+                            </div>
+                         </div>
+                    ) : (
+                        <div className="h-full p-6 bg-card">
+                            <IngredientSearch
+                                selectedIngredients={ingredients}
+                                onIngredientAdded={handleAddIngredient}
+                                availableFoods={allFoods}
+                                userRestrictions={fullUserRestrictions}
+                                createFoodUserId={userId || user?.id}
+                                onBack={() => setCurrentView('editor')}
+                            />
+                        </div>
+                    )}
+                </div>
+            )}
+        </>
+    );
+
+    if (asPage) {
+        if (!open) return null;
+        return (
+            <div className="w-full h-full bg-card border-border text-white flex flex-col overflow-hidden">
+                {innerContent}
+            </div>
+        );
+    }
+
     return (
         <Dialog open={open} onOpenChange={handleClose}>
             <DialogContent className="max-w-4xl h-[90vh] bg-card border-border text-white flex flex-col p-0 overflow-hidden">
-                {loading ? (
-                    <div className="flex-grow flex items-center justify-center">
-                        <Loader2 className="w-12 h-12 animate-spin text-green-400" />
-                    </div>
-                ) : (
-                    <div className="flex flex-col h-full overflow-hidden">
-                        {currentView === 'editor' ? (
-                             <div className="flex flex-col h-full">
-                                <div className="flex-grow overflow-y-auto styled-scrollbar p-0 pb-24">
-                                    {recipeForView && (
-                                        <RecipeView
-                                            recipe={recipeForView}
-                                            allFoods={allFoods}
-                                            allVitamins={allVitamins}
-                                            allMinerals={allMinerals}
-                                            allFoodGroups={allFoodGroups}
-                                            macros={macros}
-                                            userRestrictions={fullUserRestrictions}
-                                            targetUserId={userId}
-                                            isEditing={!isReadOnly}
-                                            onFormChange={(e) => !isReadOnly && setRecipeData(prev => ({ ...prev, [e.target.name]: e.target.value }))}
-                                            onIngredientsChange={handleIngredientsChange}
-                                            onRemoveIngredient={handleRemoveIngredient}
-                                            onAddIngredientClick={() => setCurrentView('search')}
-                                            mealTargetMacros={mealTargetMacros}
-                                            enableStickyMacros={true}
-                                            conflicts={conflicts}
-                                            
-                                            // New props for collapsible logic
-                                            expandedIngredients={expandedIngredients}
-                                            visibleMacros={visibleMacros}
-                                            focusedQuantityInput={focusedInput}
-                                            toggleIngredientExpansion={toggleIngredientExpansion}
-                                            toggleQuantityInputFocus={toggleQuantityInputFocus}
-                                            toggleAllIngredients={toggleAllIngredients}
-                                            allExpanded={allExpanded}
-                                        />
-                                    )}
-                                </div>
-                                
-                                <div className="absolute bottom-0 left-0 right-0 bg-card/95 border-t border-border p-4 backdrop-blur-sm flex justify-end gap-3 z-20">
-                                    <Button variant="ghost" onClick={handleClose} disabled={isSaving} className="text-white hover:bg-card hover:text-gray-200">
-                                        {isReadOnly ? 'Cerrar' : 'Cancelar'}
-                                    </Button>
-                                    
-                                    {!isReadOnly && (
-                                        isTemporaryEdit ? (
-                                            <Button
-                                                onClick={handleTemporarySave}
-                                                disabled={isSaving}
-                                                className="bg-green-600 hover:bg-green-500"
-                                            >
-                                                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                                                Guardar cambios temporales
-                                            </Button>
-                                        ) : showVariantButton ? (
-                                            <TooltipProvider>
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <span tabIndex={0}> 
-                                                            <Button 
-                                                                onClick={handleUpdateVariant} 
-                                                                disabled={isButtonDisabled} 
-                                                                className={cn(
-                                                                    "bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-muted-foreground",
-                                                                    ((hasChanges || isAdding) && !hasCriticalConflicts) && "bg-green-600 hover:bg-green-500",
-                                                                    (isAssignedPlan && !isAdding && !hasCriticalConflicts) && "bg-orange-600 hover:bg-orange-500"
-                                                                )}
-                                                            >
-                                                                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : variantButtonIcon}
-                                                                {variantButtonText}
-                                                            </Button>
-                                                        </span>
-                                                    </TooltipTrigger>
-                                                    {(isButtonDisabled) && (
-                                                        <TooltipContent className="bg-card border-border text-white">
-                                                            {hasCriticalConflicts 
-                                                                ? <p className="text-red-400">Resuelve los conflictos de intolerancias antes de guardar.</p>
-                                                                : <p>Realiza cambios en la receta para poder guardar.</p>
-                                                            }
-                                                        </TooltipContent>
-                                                    )}
-                                                </Tooltip>
-                                            </TooltipProvider>
-                                        ) : (
-                                            <Button onClick={hookHandleSave} disabled={isSaving} className="bg-green-600 hover:bg-green-500">
-                                                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                                                Guardar Receta
-                                            </Button>
-                                        )
-                                    )}
-                                </div>
-                             </div>
-                        ) : (
-                            <div className="h-full p-6 bg-card">
-                                <IngredientSearch
-                                    selectedIngredients={ingredients}
-                                    onIngredientAdded={handleAddIngredient}
-                                    availableFoods={allFoods}
-                                    userRestrictions={fullUserRestrictions}
-                                    createFoodUserId={userId || user?.id}
-                                    onBack={() => setCurrentView('editor')}
-                                />
-                            </div>
-                        )}
-                    </div>
-                )}
+                {innerContent}
             </DialogContent>
         </Dialog>
     );
