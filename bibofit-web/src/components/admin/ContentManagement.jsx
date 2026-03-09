@@ -26,6 +26,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { useNotifications } from '@/contexts/NotificationsContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { isAdminRole, isCoachRole } from '@/lib/roles';
 
 const normalizeText = (value = '') =>
   value
@@ -127,8 +128,8 @@ const ContentManagement = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
 
-  const isAdmin = user?.role === 'admin';
-  const isCoach = user?.role === 'coach';
+  const isAdmin = isAdminRole(user?.role);
+  const isCoach = isCoachRole(user?.role);
 
   const getLink = useCallback((path) => {
     if (isCoach && !path.startsWith('/coach')) {
@@ -139,7 +140,42 @@ const ContentManagement = () => {
 
   const sections = useMemo(() => {
     const baseSections = [
-      {
+
+      { //Organizacion
+        title: 'Organización',
+        visible: isAdmin,
+        items: [
+          {
+            id: 'invitation-links',
+            icon: Link2,
+            title: 'Generar Link de Invitación',
+            to: '/admin-panel/content/invitation-links',
+            keywords: ['invitacion', 'invitar', 'enlace', 'link', 'qr', 'acceso'],
+          },
+          {
+            id: 'users-manager',
+            icon: Users,
+            title: 'Gestor de Usuarios',
+            to: '/admin-panel/content/users-manager',
+            keywords: ['usuarios', 'roles', 'permisos', 'accounts', 'user manager'],
+          },
+          {
+            id: 'centers',
+            icon: Building,
+            title: 'Gestión de Centros',
+            to: '/admin-panel/content/centers',
+            keywords: ['centros', 'sedes', 'ubicaciones', 'organizacion'],
+          },
+          {
+            id: 'pricing',
+            icon: CreditCard,
+            title: 'Planes y Suscripciones',
+            to: '/admin-panel/content/pricing',
+            keywords: ['planes', 'suscripciones', 'precios', 'pricing', 'pagos'],
+          },
+        ],
+      },
+      {//Creación y Solicitudes
         title: 'Creación y Solicitudes',
         items: [
           {
@@ -196,7 +232,7 @@ const ContentManagement = () => {
           },
         ],
       },
-      {
+      {//Bases de Datos de Nutrientes
         title: 'Bases de Datos de Nutrientes',
         items: [
           {
@@ -237,41 +273,7 @@ const ContentManagement = () => {
           },
         ],
       },
-      {
-        title: 'Organización',
-        visible: isAdmin,
-        items: [
-          {
-            id: 'centers',
-            icon: Building,
-            title: 'Gestión de Centros',
-            to: '/admin-panel/content/centers',
-            keywords: ['centros', 'sedes', 'ubicaciones', 'organizacion'],
-          },
-          {
-            id: 'users-manager',
-            icon: Users,
-            title: 'Gestor de Usuarios',
-            to: '/admin-panel/content/users-manager',
-            keywords: ['usuarios', 'roles', 'permisos', 'accounts', 'user manager'],
-          },
-          {
-            id: 'pricing',
-            icon: CreditCard,
-            title: 'Planes y Suscripciones',
-            to: '/admin-panel/content/pricing',
-            keywords: ['planes', 'suscripciones', 'precios', 'pricing', 'pagos'],
-          },
-          {
-            id: 'invitation-links',
-            icon: Link2,
-            title: 'Generar Link de Invitación',
-            to: '/admin-panel/content/invitation-links',
-            keywords: ['invitacion', 'invitar', 'enlace', 'link', 'qr', 'acceso'],
-          },
-        ],
-      },
-      {
+      {//Seguridad
         title: 'Seguridad',
         visible: isAdmin,
         items: [
@@ -291,7 +293,7 @@ const ContentManagement = () => {
           },
         ],
       },
-      {
+      {//Entrenamiento
         title: 'Entrenamiento',
         items: [
           {
