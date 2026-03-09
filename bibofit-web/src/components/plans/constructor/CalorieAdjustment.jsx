@@ -157,6 +157,7 @@ const CalorieAdjustment = ({
 
         try {
             setActionLoading(true);
+            let savedOverride = null;
 
             const now = new Date();
             const existingSameDay = localOverrides.find((override) => {
@@ -165,17 +166,19 @@ const CalorieAdjustment = ({
             });
 
             if (existingSameDay) {
-                const { error } = await supabase
+                const { data: updatedRow, error } = await supabase
                     .from('diet_plan_calorie_overrides')
                     .update({
                         manual_calories: calories,
                         diet_plan_id: dietPlanId || null
                     })
+                    .select('*')
                     .eq('id', existingSameDay.id)
-                    .eq('user_id', userId);
+                    .eq('user_id', userId)
+                    .single();
 
                 if (error) throw error;
-                setActiveSelection({ type: 'override', overrideId: existingSameDay.id });
+                savedOverride = updatedRow;
             } else {
                 const payload = {
                     user_id: userId,
@@ -186,13 +189,19 @@ const CalorieAdjustment = ({
                 const { data: createdRow, error } = await supabase
                     .from('diet_plan_calorie_overrides')
                     .insert([payload])
-                    .select('id')
+                    .select('*')
                     .single();
 
                 if (error) throw error;
-                if (createdRow?.id) {
-                    setActiveSelection({ type: 'override', overrideId: createdRow.id });
-                }
+                savedOverride = createdRow;
+            }
+
+            if (savedOverride?.id) {
+                setLocalOverrides((prev) => {
+                    const withoutCurrent = prev.filter((item) => item.id !== savedOverride.id);
+                    return [savedOverride, ...withoutCurrent];
+                });
+                setActiveSelection({ type: 'override', overrideId: savedOverride.id });
             }
 
             setManualCalories('');
@@ -200,9 +209,11 @@ const CalorieAdjustment = ({
                 title: "Ajuste guardado",
                 description: existingSameDay
                     ? "Se actualizó el ajuste manual del día actual."
-                    : "El nuevo objetivo calórico ha sido establecido."
+                    : "El nuevo objetivo calórico ha sido establecido.",
+                variant: "success"
             });
 
+            // Keep local state in sync with server ordering/details
             await fetchOverrides();
 
         } catch (error) {
@@ -227,7 +238,7 @@ const CalorieAdjustment = ({
 
             if (error) throw error;
             
-            toast({ title: "Eliminado", description: "Registro eliminado correctamente." });
+            toast({ title: "Eliminado", description: "Registro eliminado correctamente.", variant: "success" });
             await fetchOverrides();
         } catch (error) {
             console.error("❌ Error deleting override:", error);
@@ -328,7 +339,7 @@ const CalorieAdjustment = ({
                 {/* Input Section */}
                 <div className="space-y-3 pt-2">
                     <Label className="text-sm font-medium text-muted-foreground">Nuevo Ajuste Manual</Label>
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                         <div className="relative flex-1">
                             <Input 
                                 type="number" 
@@ -352,7 +363,7 @@ const CalorieAdjustment = ({
                             onClick={handleSave} 
                             disabled={readOnly || actionLoading || !hasInputValue}
                             className={cn(
-                                "h-11 px-6 font-medium transition-all shadow-sm min-w-[120px]",
+                                "h-11 w-full px-6 font-medium transition-all shadow-sm sm:min-w-[120px] sm:w-auto",
                                 hasInputValue 
                                 ? "bg-green-600 hover:bg-green-700 text-white shadow-green-900/20" 
                                 : "bg-muted text-muted-foreground border border-border cursor-not-allowed opacity-50"

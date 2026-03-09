@@ -115,6 +115,7 @@ const OnboardingWizard = ({ isOpen: propIsOpen }) => {
     && isRepeatingOnboarding
     && currentStep.id !== 'meal-adjustment'
     && currentStep.id !== 'completion';
+  const isEdgeToEdgeMobileStep = currentStep.id === 'meal-macro-distribution' || currentStep.id === 'meal-adjustment';
 
   // If it's the completion step, just render it directly (it has its own full-screen layout)
   if (currentStep.id === 'completion') {
@@ -203,7 +204,7 @@ const OnboardingWizard = ({ isOpen: propIsOpen }) => {
 
       {/* Main Content Area */}
       <div className="flex-1 w-full max-w-3xl mx-auto flex flex-col min-h-0">
-        <div className="flex-1 px-6 py-8 md:px-8 md:py-8 flex flex-col h-full overflow-hidden">
+        <div className={`flex-1 ${isEdgeToEdgeMobileStep ? 'px-0' : 'px-6'} py-8 md:px-8 md:py-8 flex flex-col h-full overflow-hidden`}>
             <AnimatePresence mode="wait">
                 <motion.div
                     key={currentStep.id}
