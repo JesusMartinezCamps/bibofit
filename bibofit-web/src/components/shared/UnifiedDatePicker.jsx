@@ -1,6 +1,6 @@
-import React, { forwardRef, useMemo } from 'react';
+import React, { forwardRef, useMemo, useRef } from 'react';
 import DatePicker from 'react-datepicker';
-import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { format, getMonth, getYear } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -91,14 +91,58 @@ const UnifiedDatePicker = ({
   maxYear = new Date().getFullYear() + 10,
   withPortal = false,
   shouldCloseOnSelect,
+  showPortalCloseButton,
+  portalCloseLabel = 'Cerrar calendario',
+  calendarContainer,
+  popperModifiers,
   ...props
 }) => {
+  const datePickerRef = useRef(null);
   const monthNames = useMemo(() => getMonthNames(locale), [locale]);
   const yearOptions = useMemo(() => getYearOptions(minYear, maxYear), [minYear, maxYear]);
   const effectiveVariant = compact && variant === 'default' ? 'compact' : variant;
+  const shouldRenderPortalCloseButton = showPortalCloseButton ?? withPortal;
+  const effectivePopperModifiers = useMemo(
+    () =>
+      popperModifiers ?? [
+        { name: 'offset', options: { offset: [0, 8] } },
+        {
+          name: 'preventOverflow',
+          options: {
+            rootBoundary: 'viewport',
+            padding: 8,
+            tether: true,
+            altAxis: true,
+          },
+        },
+        { name: 'flip', options: { padding: 8 } },
+      ],
+    [popperModifiers]
+  );
+  const effectiveCalendarContainer =
+    calendarContainer ??
+    (({ className: calendarContainerClassName, children }) => (
+      <div className={calendarContainerClassName}>
+        {children}
+        {withPortal && shouldRenderPortalCloseButton && (
+          <div className="pt-3 pb-2">
+            <button
+              type="button"
+              onClick={() => datePickerRef.current?.setOpen(false)}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-border bg-muted/70 px-4 text-base font-semibold text-foreground transition-colors hover:bg-muted"
+              aria-label={portalCloseLabel}
+            >
+              <X className="h-6 w-6" />
+              <span>{portalCloseLabel}</span>
+            </button>
+          </div>
+        )}
+      </div>
+    ));
 
   return (
     <DatePicker
+      ref={datePickerRef}
       id={id}
       selected={selected}
       onChange={onChange}
@@ -113,6 +157,8 @@ const UnifiedDatePicker = ({
       withPortal={withPortal}
       shouldCloseOnSelect={shouldCloseOnSelect ?? !selectsRange}
       popperPlacement="bottom-start"
+      popperModifiers={effectivePopperModifiers}
+      calendarContainer={effectiveCalendarContainer}
       customInput={
         <DateTrigger
           id={id}

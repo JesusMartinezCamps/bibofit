@@ -20,9 +20,23 @@ const PhysicalDataStep = ({ onNext, isLoading }) => {
   });
   const [activityLevels, setActivityLevels] = useState([]);
   const [errors, setErrors] = useState({});
+  const [isSmallMobileViewport, setIsSmallMobileViewport] = useState(false);
 
   useEffect(() => {
     getActivityLevels().then(setActivityLevels);
+  }, []);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 390px)');
+    const updateViewportState = (event) => setIsSmallMobileViewport(event.matches);
+    setIsSmallMobileViewport(mediaQuery.matches);
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', updateViewportState);
+      return () => mediaQuery.removeEventListener('change', updateViewportState);
+    }
+
+    mediaQuery.addListener(updateViewportState);
+    return () => mediaQuery.removeListener(updateViewportState);
   }, []);
 
   const validate = () => {
@@ -81,6 +95,7 @@ const PhysicalDataStep = ({ onNext, isLoading }) => {
                         maxDate={new Date()}
                         minYear={1920}
                         maxYear={new Date().getFullYear()}
+                        withPortal={isSmallMobileViewport}
                     />
                 </div>
                 {errors.birth_date && <p className="text-red-400 text-xs">{errors.birth_date}</p>}

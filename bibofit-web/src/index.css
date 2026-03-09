@@ -287,10 +287,13 @@ html:not(.dark) .app-main-shell {
 
 .bf-datepicker-popper {
   z-index: 9999 !important;
+  max-width: min(calc(100vw - 1rem), 22rem);
 }
 
 .bf-datepicker {
   @apply overflow-hidden rounded-2xl border border-border bg-card p-3 text-card-foreground shadow-2xl;
+  width: min(calc(100vw - 1rem), 22rem);
+  max-width: 100%;
 }
 
 .bf-datepicker .react-datepicker__triangle {
@@ -416,29 +419,70 @@ html:not(.dark) .app-main-shell {
 
 @media (max-width: 640px) {
   .bf-datepicker {
+    --bf-day-size: clamp(2.1rem, 8vw, 2.55rem);
+    --bf-day-name-size: clamp(1.8rem, 7vw, 2.2rem);
+    --bf-nav-size: clamp(2.2rem, 9vw, 2.6rem);
+  }
+
+  .bf-datepicker {
     @apply rounded-2xl border p-3;
     min-height: auto;
+    width: min(calc(100vw - 1rem), 21.5rem);
   }
 
   .react-datepicker__portal .bf-datepicker {
     @apply rounded-none border-0 p-4;
     min-height: 100dvh;
+    width: 100%;
+    max-width: 100%;
   }
 
   .bf-datepicker .react-datepicker__day {
-    @apply h-12 w-12 text-base;
+    @apply text-base;
+    height: var(--bf-day-size);
+    width: var(--bf-day-size);
   }
 
   .bf-datepicker .react-datepicker__day-name {
-    @apply h-10 w-10 text-[11px];
+    @apply text-[11px];
+    height: var(--bf-day-name-size);
+    width: var(--bf-day-name-size);
   }
 
   .bf-datepicker__select {
     @apply h-11 text-base;
+    min-width: 0;
+    padding-inline: 0.6rem;
   }
 
   .bf-datepicker__nav-btn {
-    @apply h-11 w-11;
+    height: var(--bf-nav-size);
+    width: var(--bf-nav-size);
+  }
+}
+
+@media (max-width: 390px) {
+  .bf-datepicker {
+    --bf-day-size: clamp(1.95rem, 8.2vw, 2.2rem);
+    --bf-day-name-size: clamp(1.65rem, 6.5vw, 1.9rem);
+    --bf-nav-size: 2.1rem;
+    width: calc(100vw - 0.75rem);
+    padding: 0.625rem;
+  }
+
+  .bf-datepicker__header-controls {
+    margin-bottom: 0.5rem;
+    gap: 0.35rem;
+  }
+
+  .bf-datepicker__selectors {
+    gap: 0.35rem;
+  }
+
+  .bf-datepicker__select {
+    height: 2.1rem;
+    font-size: 0.875rem;
+    padding-inline: 0.45rem;
   }
 }
 

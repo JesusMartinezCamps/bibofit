@@ -117,7 +117,7 @@ const QuickStartGuideModal = () => {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-6">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -131,10 +131,10 @@ const QuickStartGuideModal = () => {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="relative w-full max-w-lg bg-gradient-to-b from-[#1a1e23] to-[#16191d] border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+          className="relative w-full max-w-lg max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-3rem)] bg-gradient-to-b from-[#1a1e23] to-[#16191d] border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col"
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-border/50">
+          <div className="flex items-center justify-between p-3 sm:p-4 border-b border-border/50">
             <span className="text-sm font-medium text-muted-foreground">
               Guía Rápida • Paso {currentStep + 1} de {steps.length}
             </span>
@@ -157,7 +157,7 @@ const QuickStartGuideModal = () => {
           </div>
 
           {/* Content */}
-          <div className="p-8 flex flex-col items-center text-center space-y-6 h-[520px] justify-center overflow-y-auto">
+          <div className="flex-1 min-h-0 overflow-y-auto p-5 sm:p-8 flex flex-col items-center text-center space-y-6 justify-start sm:justify-center">
             <AnimatePresence mode="wait">
               {step.isCover ? (
                 <motion.div
@@ -243,7 +243,7 @@ const QuickStartGuideModal = () => {
           </div>
 
           {/* Footer Actions */}
-          <div className="p-6 bg-black/20 border-t border-border/50 flex items-center justify-between gap-4">
+          <div className="p-4 sm:p-6 bg-black/20 border-t border-border/50 flex items-center justify-between gap-3 sm:gap-4">
             {step.isCover ? (
               <div className="w-full flex justify-center">
                 <Button
