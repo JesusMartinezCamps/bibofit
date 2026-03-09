@@ -354,7 +354,7 @@ const ConflictResolutionDialog = ({ open, onOpenChange, conflicts, onRecipeUpdat
                             {recipeConflictsByMeal.map((section) => (
                                 <section key={`${section.mealOrder}-${section.mealName}`} className="space-y-3">
                                     <div className="flex items-center justify-between">
-                                        <h3 className="text-base font-semibold text-slate-200">{section.mealName}</h3>
+                                        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-200">{section.mealName}</h3>
                                         <Badge variant="outline" className="border-input text-muted-foreground bg-card/80">
                                             {section.items.length} receta{section.items.length === 1 ? '' : 's'}
                                         </Badge>
