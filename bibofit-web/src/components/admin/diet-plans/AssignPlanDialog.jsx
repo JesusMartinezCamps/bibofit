@@ -63,6 +63,7 @@ const AssignPlanDialog = ({
         isConflictModalOpen,
         setIsConflictModalOpen,
         planRestrictionsForEditor,
+        modifiedRecipes,
         updateRecipeInState,
     } = useAssignPlan({ open, onOpenChange, onSuccess, preselectedClient, template, mode, forcedUserId });
 
@@ -316,7 +317,7 @@ const AssignPlanDialog = ({
                     globalMacros: dailyMacros,
                     mealMacroDistribution: mealsWithTargets, // Pass array with targets
                     overrides: localOverrides
-                });
+                }, false, modifiedRecipes);
 
                 if (assignmentResult.success) {
                     toast({

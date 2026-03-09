@@ -423,7 +423,7 @@ const RecipeView = ({
     }
 
     const replacementIngredient = {
-      local_id: crypto.randomUUID(),
+      local_id: quantityEditorIngredient.local_id || quantityEditorIngredient.id || crypto.randomUUID(),
       food_id: food.id,
       grams: quantity,
       quantity,
@@ -453,7 +453,7 @@ const RecipeView = ({
     if (!replacingIngredient) return;
 
     const newIngredient = {
-      local_id: crypto.randomUUID(),
+      local_id: replacingIngredient.local_id || replacingIngredient.id || crypto.randomUUID(),
       food_id: newFoodData.food_id,
       grams: newFoodData.quantity || 100,
       quantity: newFoodData.quantity || 100,

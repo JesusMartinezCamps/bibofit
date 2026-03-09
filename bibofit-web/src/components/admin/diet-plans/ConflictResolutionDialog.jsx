@@ -55,73 +55,64 @@ const ConflictResolutionDialog = ({ open, onOpenChange, conflicts, onRecipeUpdat
     };
 
     const getFoodId = (ingredient) => String(ingredient?.food_id ?? ingredient?.food?.id ?? '');
+    const getIngredientIdentity = (ingredient) => String(ingredient?.local_id ?? ingredient?.id ?? '');
 
-    const buildSubstitutionMapFromEdition = (originalRecipe, updatedRecipe) => {
+    const buildSubstitutionMapFromEdition = (originalRecipe, updatedRecipe, restrictions) => {
         const originalIngredients = getIngredientsFromRecipe(originalRecipe);
         const updatedIngredients = getIngredientsFromRecipe(updatedRecipe);
         const substitutions = new Map();
+        const blockedSourceIds = new Set();
 
-        const originalFoodsById = new Map();
-        const updatedFoodsById = new Map();
-        originalIngredients.forEach((ing) => {
-            const foodId = getFoodId(ing);
-            if (!foodId || !ing?.food) return;
-            if (!originalFoodsById.has(foodId)) originalFoodsById.set(foodId, ing.food);
-        });
+        if (!Array.isArray(originalIngredients) || !Array.isArray(updatedIngredients)) {
+            return substitutions;
+        }
+
+        const updatedIngredientsByIdentity = new Map();
         updatedIngredients.forEach((ing) => {
-            const foodId = getFoodId(ing);
-            if (!foodId || !ing?.food) return;
-            if (!updatedFoodsById.has(foodId)) updatedFoodsById.set(foodId, ing.food);
+            const identity = getIngredientIdentity(ing);
+            if (!identity) return;
+            updatedIngredientsByIdentity.set(identity, ing);
         });
 
-        const minLen = Math.min(originalIngredients.length, updatedIngredients.length);
-        for (let i = 0; i < minLen; i += 1) {
-            const before = originalIngredients[i];
-            const after = updatedIngredients[i];
-            const beforeId = getFoodId(before);
-            const afterId = getFoodId(after);
-            if (!beforeId || !afterId || beforeId === afterId) continue;
-            if (after?.food) {
-                substitutions.set(beforeId, { food_id: after.food.id, food: after.food });
+        originalIngredients.forEach((beforeIngredient) => {
+            const sourceFoodId = getFoodId(beforeIngredient);
+            if (!sourceFoodId || blockedSourceIds.has(sourceFoodId)) return;
+
+            const sourceFood = beforeIngredient?.food;
+            if (!sourceFood) return;
+
+            const sourceConflict = getConflictInfo(sourceFood, restrictions);
+            if (!sourceConflict || !criticalConflictTypes.has(sourceConflict.type)) {
+                return;
             }
-        }
 
-        const countDiff = (ingredients) => {
-            const counts = new Map();
-            ingredients.forEach((ing) => {
-                const foodId = getFoodId(ing);
-                if (!foodId) return;
-                counts.set(foodId, (counts.get(foodId) || 0) + 1);
-            });
-            return counts;
-        };
+            const identity = getIngredientIdentity(beforeIngredient);
+            if (!identity) return;
 
-        const oldCounts = countDiff(originalIngredients);
-        const newCounts = countDiff(updatedIngredients);
-        const removedCriticalIds = [];
-        const addedSafeIds = [];
+            // If ingredient was removed, do not propagate deletions to other recipes.
+            const afterIngredient = updatedIngredientsByIdentity.get(identity);
+            if (!afterIngredient) return;
 
-        oldCounts.forEach((oldCount, foodId) => {
-            const diff = oldCount - (newCounts.get(foodId) || 0);
-            if (diff <= 0) return;
-            for (let i = 0; i < diff; i += 1) removedCriticalIds.push(foodId);
+            const targetFoodId = getFoodId(afterIngredient);
+            if (!targetFoodId || targetFoodId === sourceFoodId) return;
+
+            const targetFood = afterIngredient?.food;
+            if (!targetFood) return;
+
+            const targetConflict = getConflictInfo(targetFood, restrictions);
+            if (targetConflict && criticalConflictTypes.has(targetConflict.type)) {
+                return;
+            }
+
+            const existing = substitutions.get(sourceFoodId);
+            if (existing && String(existing.food_id) !== String(targetFood.id)) {
+                substitutions.delete(sourceFoodId);
+                blockedSourceIds.add(sourceFoodId);
+                return;
+            }
+
+            substitutions.set(sourceFoodId, { food_id: targetFood.id, food: targetFood });
         });
-
-        newCounts.forEach((newCount, foodId) => {
-            const diff = newCount - (oldCounts.get(foodId) || 0);
-            if (diff <= 0) return;
-            for (let i = 0; i < diff; i += 1) addedSafeIds.push(foodId);
-        });
-
-        const pairCount = Math.min(removedCriticalIds.length, addedSafeIds.length);
-        for (let i = 0; i < pairCount; i += 1) {
-            const fromId = removedCriticalIds[i];
-            const toId = addedSafeIds[i];
-            if (substitutions.has(fromId)) continue;
-            const targetFood = updatedFoodsById.get(toId);
-            if (!targetFood) continue;
-            substitutions.set(fromId, { food_id: targetFood.id, food: targetFood });
-        }
 
         return substitutions;
     };
@@ -140,15 +131,6 @@ const ConflictResolutionDialog = ({ open, onOpenChange, conflicts, onRecipeUpdat
                 .map((ingredient) => getFoodId(ingredient))
                 .filter(Boolean),
         );
-        const shouldSkipRecipe = Array.from(substitutionMap.entries()).some(([fromId, substitution]) => {
-            const targetId = String(substitution?.food_id ?? '');
-            if (!targetId || targetId === fromId) return false;
-            return existingFoodIds.has(fromId) && existingFoodIds.has(targetId);
-        });
-
-        // If the recipe already contains the target food for a replacement that would apply,
-        // skip the entire recipe for this propagation cycle to avoid mixed/duplicate variants.
-        if (shouldSkipRecipe) return null;
 
         let hasChanges = false;
         const updatedIngredients = ingredients.map((ingredient) => {
@@ -286,13 +268,13 @@ const ConflictResolutionDialog = ({ open, onOpenChange, conflicts, onRecipeUpdat
     };
 
     const handleRecipeSaveSuccess = (updatedRecipe) => {
-        console.log("LOG 2: Received updated recipe in ConflictResolutionDialog", updatedRecipe.id, updatedRecipe);
         const originalEditedItem = recipeConflictsByMeal
             .flatMap((section) => section.items)
             .find((item) => Number(item.recipe?.id) === Number(updatedRecipe?.id));
         const substitutionMap = buildSubstitutionMapFromEdition(
             originalEditedItem?.recipe,
-            updatedRecipe
+            updatedRecipe,
+            resolvedRestrictions
         );
         const propagatedRecipes = [];
 

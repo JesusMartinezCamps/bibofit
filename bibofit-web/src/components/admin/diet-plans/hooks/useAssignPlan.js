@@ -39,11 +39,15 @@ export const useAssignPlan = ({ open, onOpenChange, onSuccess, preselectedClient
     }, [clientRestrictions]);
     
     const updateRecipeInState = (updatedRecipe) => {
-        setModifiedRecipes(prev => new Map(prev).set(updatedRecipe.id, updatedRecipe));
+        const parsedId = Number(updatedRecipe?.id);
+        const recipeId = Number.isFinite(parsedId) ? parsedId : updatedRecipe?.id;
+        if (!recipeId) return;
+
+        setModifiedRecipes(prev => new Map(prev).set(recipeId, updatedRecipe));
         
         const newConflicts = { ...conflicts };
         Object.keys(newConflicts).forEach(key => {
-            newConflicts[key] = newConflicts[key].filter(r => r.id !== updatedRecipe.id);
+            newConflicts[key] = newConflicts[key].filter(r => Number(r.id) !== Number(recipeId));
             if (newConflicts[key].length === 0) {
                 delete newConflicts[key];
             }
@@ -555,6 +559,7 @@ export const useAssignPlan = ({ open, onOpenChange, onSuccess, preselectedClient
         isConflictModalOpen,
         setIsConflictModalOpen,
         planRestrictionsForEditor,
+        modifiedRecipes,
         updateRecipeInState,
         handleAssign
     };
