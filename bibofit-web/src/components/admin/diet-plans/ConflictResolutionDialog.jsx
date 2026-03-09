@@ -418,7 +418,7 @@ const ConflictResolutionDialog = ({ open, onOpenChange, conflicts, onRecipeUpdat
                                         animate={{ opacity: 1, y: 0, scale: 1 }}
                                         exit={{ opacity: 0, y: -8, scale: 0.98 }}
                                         transition={{ duration: 0.35, ease: 'easeOut' }}
-                                        className="relative overflow-hidden rounded-2xl border border-emerald-400/30 bg-gradient-to-br from-emerald-950/60 via-slate-900/80 to-slate-900/90 p-7"
+                                        className="relative overflow-hidden rounded-2xl border border-emerald-400/30 bg-gradient-to-br from-emerald-600/80 to-emerald-600/90 dark:from-emerald-950/60 dark:via-slate-900/80 dark:to-slate-900/90 p-7"
                                     >
                                         <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.18),_transparent_55%)]" />
                                         <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-5">
