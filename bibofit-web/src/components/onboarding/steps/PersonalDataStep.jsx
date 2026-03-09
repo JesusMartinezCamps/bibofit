@@ -60,7 +60,7 @@ const PersonalDataStep = ({ onNext, isLoading }) => {
         </div>
 
         <div className="space-y-2">
-            <Label htmlFor="phone" className="text-muted-foreground">Teléfono (Opcional)</Label>
+            <Label htmlFor="phone" className="text-muted-foreground">Teléfono</Label>
             <Input
                 id="phone"
                 type="tel"

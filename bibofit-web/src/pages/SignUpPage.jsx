@@ -331,7 +331,7 @@ const SignUpPage = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-muted-foreground mb-2">
-                  Teléfono <span className="text-muted-foreground/60">(Opcional)</span>
+                  Teléfono
                 </label>
                 <div className="flex gap-2">
                   <select
