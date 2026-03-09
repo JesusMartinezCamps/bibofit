@@ -35,16 +35,19 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Ban, Copy, Eye, Link2, Loader2, Minus, Plus, QrCode, RefreshCcw } from 'lucide-react';
+import { ROLE } from '@/lib/roles';
 
 const defaultRoles = [
-  { id: 'free', role: 'free' },
-  { id: 'client', role: 'client' },
-  { id: 'coach', role: 'coach' },
+  { id: ROLE.FREE, role: ROLE.FREE },
+  { id: ROLE.PRO_NUTRITION, role: ROLE.PRO_NUTRITION },
+  { id: ROLE.PRO_WORKOUT, role: ROLE.PRO_WORKOUT },
+  { id: ROLE.COACH_NUTRITION, role: ROLE.COACH_NUTRITION },
+  { id: ROLE.COACH_WORKOUT, role: ROLE.COACH_WORKOUT },
 ];
 const invitationAssignableRoles = new Set(defaultRoles.map((role) => role.role));
 
 const emptyForm = {
-  destination: 'login',
+  destination: 'signup',
   centerId: 'none',
   roleId: '',
   isUnlimitedUses: false,
@@ -194,13 +197,13 @@ const InvitationLinksPage = () => {
   );
 
   const buildInvitationUrl = useCallback(
-    ({ token, destination = 'login' }) => {
+    ({ token, destination = 'signup' }) => {
       const params = new URLSearchParams();
       params.set('invite_token', token);
-      params.set('target', destination || 'login');
 
       const origin = window.location.origin;
-      return `${origin}/login?${params.toString()}`;
+      const path = destination === 'login' ? '/login' : '/signup';
+      return `${origin}${path}?${params.toString()}`;
     },
     []
   );
@@ -275,8 +278,8 @@ const InvitationLinksPage = () => {
         setCenters(centersRes.data || []);
 
         if (normalizedRoles.length > 0) {
-          const clientRole = normalizedRoles.find((role) => role.role === 'client');
-          const initialRole = clientRole || normalizedRoles[0];
+          const preferredNutritionRole = normalizedRoles.find((role) => role.role === ROLE.PRO_NUTRITION);
+          const initialRole = preferredNutritionRole || normalizedRoles[0];
           setForm((prev) => ({ ...prev, roleId: toQueryValue(initialRole.id) }));
         }
       } catch (error) {
@@ -501,7 +504,7 @@ const InvitationLinksPage = () => {
     setIsSavingLink(true);
     try {
       const { data, error } = await supabase.rpc('admin_create_invitation_link', {
-        p_destination: 'login',
+        p_destination: 'signup',
         p_role_id: parsedRoleId,
         p_center_id: centerIdForInsert,
         p_max_uses: form.isUnlimitedUses ? null : parsedUses,
@@ -653,7 +656,8 @@ const InvitationLinksPage = () => {
                     <SelectValue placeholder="Selecciona destino" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="login">Login</SelectItem>
+                    <SelectItem value="signup">Registro (/signup)</SelectItem>
+                    <SelectItem value="login">Login (/login)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -852,7 +856,7 @@ const InvitationLinksPage = () => {
             <CardContent className="space-y-5">
               <div className="flex flex-wrap gap-2">
                 <Badge className="bg-cyan-600/90 text-white border-none">
-                  Destino: Login
+                  Destino: {form.destination === 'signup' ? 'Registro' : 'Login'}
                 </Badge>
                 <Badge variant="outline">
                   Rol: {formatRoleLabel(selectedRole?.role || form.roleId || 'N/A')}

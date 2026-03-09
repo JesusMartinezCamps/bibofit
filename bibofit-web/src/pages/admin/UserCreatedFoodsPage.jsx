@@ -13,6 +13,7 @@ import {
 } from '@/lib/foodModerationImpactService';
 import { FOOD_CARD_SELECT, normalizeFoodRecord } from '@/lib/food/foodModel';
 import { useLocation } from 'react-router-dom';
+import { isCoachRole } from '@/lib/roles';
 
 const TABS = [
   { value: 'pending', label: 'Pendientes' },
@@ -37,7 +38,7 @@ const UserCreatedFoodsPage = () => {
   const { toast } = useToast();
   const { pendingFoodCount, refreshPendingRequests } = useNotifications();
 
-  const isCoach = user?.role === 'coach';
+  const isCoach = isCoachRole(user?.role);
 
   const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const requestedUserId = searchParams.get('userId');

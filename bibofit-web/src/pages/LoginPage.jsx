@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import AppIcon from '@/components/icons/AppIcon';
+import { getDefaultAuthenticatedPath, isAdminRole } from '@/lib/roles';
 import {
   appendInviteTokenToPath,
   getInviteTokenFromSearch,
@@ -55,9 +56,8 @@ const LoginPage = () => {
 
   const getTargetPath = (userData) => {
     if (!userData?.onboarding_completed_at) return '/assign-diet-plan';
-    if (userData?.role === 'admin') return '/admin-panel/advisories';
-    if (userData?.role === 'coach') return '/coach-dashboard';
-    return '/dashboard';
+    if (isAdminRole(userData?.role)) return '/admin-panel/advisories';
+    return getDefaultAuthenticatedPath(userData?.role);
   };
 
   useEffect(() => {

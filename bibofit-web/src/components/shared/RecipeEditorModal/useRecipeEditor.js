@@ -18,6 +18,7 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/lib/supabaseClient';
 import { findFoodByIdentity, inferIngredientUserCreated, isUserCreatedFood } from '@/lib/foodIdentity';
+import { isAdminRole, isCoachRole } from '@/lib/roles';
 
 export const useRecipeEditor = ({ recipeToEdit, onSaveSuccess, isAdminView, userId: propUserId, open, planRestrictions: initialPlanRestrictions, initialConflicts = null, allFoods, isTemplate = false }) => {
   const { user } = useAuth();
@@ -431,7 +432,7 @@ export const useRecipeEditor = ({ recipeToEdit, onSaveSuccess, isAdminView, user
     }
 }, [hasChanges, formData, ingredients, originalIngredients, recipeToEdit, userId, onSaveSuccess, toast, isAdminView, initialFormData, hasIngredientChanges, isTemplate, allFoods]);
   
-  const isEditable = isAdminView || user?.role === 'admin' || user?.role === 'coach' || (recipeToEdit && (
+  const isEditable = isAdminView || isAdminRole(user?.role) || isCoachRole(user?.role) || (recipeToEdit && (
       recipeToEdit.is_private ||
       recipeToEdit.type === 'private_recipe' ||
       recipeToEdit.type === 'free_recipe' ||

@@ -9,7 +9,9 @@ import {
   captureInviteTokenFromLocation,
   clearStoredInviteToken,
   getInviteTokenCandidate,
+  getStoredInviteToken,
 } from '@/lib/invitationTokenStore';
+import { normalizeRole } from '@/lib/roles';
 
 export const AuthContext = createContext();
 
@@ -100,8 +102,15 @@ export const AuthProvider = ({ children }) => {
       if (roleError && roleError.code !== 'PGRST116') {
         throw roleError;
       }
-      
+
+      const { data: centerRows } = await supabase
+        .from('user_centers')
+        .select('center_id')
+        .eq('user_id', sessionUser.id)
+        .limit(1);
+
       const userRole = roleData?.roles?.role || 'free';
+      const userCenterId = centerRows?.[0]?.center_id ?? null;
       const cleanProfile = profile ? { ...profile } : {};
 
       // Fallback: si el perfil no tiene first_name/last_name, usar auth metadata
@@ -122,7 +131,8 @@ export const AuthProvider = ({ children }) => {
       const fullUser = {
         ...cleanProfile,
         ...sessionUser,
-        role: userRole.toLowerCase(),
+        role: normalizeRole(userRole),
+        center_id: userCenterId,
       };
 
       console.log('✅ [AuthContext] User profile loaded:', fullUser.email);
@@ -312,7 +322,11 @@ export const AuthProvider = ({ children }) => {
 
   const resendSignupConfirmation = async (email) => {
     try {
-      const confirmationRedirectUrl = getAuthConfirmedRedirectUrl();
+      const pendingToken = getStoredInviteToken();
+      const confirmationRedirectUrl = appendInviteTokenToPath(
+        getAuthConfirmedRedirectUrl(),
+        pendingToken
+      );
       const { error } = await supabase.auth.resend({
         type: 'signup',
         email,

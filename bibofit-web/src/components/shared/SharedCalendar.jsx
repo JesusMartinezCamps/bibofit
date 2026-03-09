@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
 import { format, isSameDay, startOfWeek, endOfWeek, eachDayOfInterval, addDays, isWithinInterval, parseISO, add, sub } from 'date-fns';
 import ReminderFormDialog from '@/components/admin/reminders/ReminderFormDialog';
+import { isStaffRole } from '@/lib/roles';
 
 const capitalize = (value) => value ? value.charAt(0).toUpperCase() + value.slice(1) : 0;
 
@@ -20,7 +21,7 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
   const userId = propUserId || authUser?.id;
   
   const isClientView = !propUserId || propUserId === authUser?.id;
-  const isManagerView = (authUser?.role === 'admin' || authUser?.role === 'coach') && !isClientView;
+  const isManagerView = isStaffRole(authUser?.role) && !isClientView;
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);

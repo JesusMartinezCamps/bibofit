@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { CLIENT_ROLE_QUERY_VALUES, isAdminRole } from '@/lib/roles';
 import { useToast } from '@/components/ui/use-toast';
 import { format, addMonths } from 'date-fns';
 import { saveDietPlanRecipeIngredients, calculateMacros, saveRecipeMacros } from '@/lib/macroCalculator';
@@ -86,11 +87,11 @@ export const useAssignPlan = ({ open, onOpenChange, onSuccess, preselectedClient
                         return;
                      }
                     
-                    if (user?.role === 'admin') {
+                    if (isAdminRole(user?.role)) {
                         const { data: clientRoles, error: rolesError } = await supabase
                             .from('user_roles')
                             .select('user_id, roles!inner(role)')
-                            .eq('roles.role', 'client');
+                            .in('roles.role', CLIENT_ROLE_QUERY_VALUES);
 
                         if (rolesError) throw rolesError;
                         clientIds = clientRoles?.map(r => r.user_id) || [];

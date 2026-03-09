@@ -41,6 +41,13 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+    getRoleDisplayName,
+    isAdminRole,
+    isClientRole,
+    isCoachRole,
+    ROLE,
+} from '@/lib/roles';
 
 const PAGE_SIZE = 50;
 
@@ -74,7 +81,7 @@ const UsersManagerPage = () => {
     const [userToDelete, setUserToDelete] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
 
-    const isAdmin = currentUser?.role === 'admin';
+    const isAdmin = isAdminRole(currentUser?.role);
 
     useEffect(() => {
         const querySearch = searchParams.get('search');
@@ -118,18 +125,19 @@ const UsersManagerPage = () => {
             const userCentersData = userCentersRes.data || [];
             const coachClientsData = coachClientsRes.data || [];
 
-            const clientRole = rolesData.find((r) => r.role === 'client');
+            const clientRole = rolesData.find((r) => r.role === ROLE.PRO_NUTRITION)
+                || rolesData.find((r) => r.role === ROLE.LEGACY_CLIENT);
 
             const centersById = new Map(centersData.map((c) => [c.id, c]));
             const profilesById = new Map(profilesData.map((p) => [p.user_id, p]));
 
             const userRoleByUserId = new Map();
-            userRolesData.forEach((ur) => {
-                userRoleByUserId.set(ur.user_id, {
-                    id: ur.roles?.id ?? ur.role_id ?? clientRole?.id,
-                    role: ur.roles?.role ?? 'client',
+                userRolesData.forEach((ur) => {
+                    userRoleByUserId.set(ur.user_id, {
+                        id: ur.roles?.id ?? ur.role_id ?? clientRole?.id,
+                        role: ur.roles?.role ?? ROLE.PRO_NUTRITION,
+                    });
                 });
-            });
 
             const userCenterByUserId = new Map();
             userCentersData.forEach((uc) => {
@@ -147,7 +155,7 @@ const UsersManagerPage = () => {
             });
 
             const combinedUsers = profilesData.map((profile) => {
-                const roleData = userRoleByUserId.get(profile.user_id) || { role: 'client', id: clientRole?.id };
+                const roleData = userRoleByUserId.get(profile.user_id) || { role: ROLE.PRO_NUTRITION, id: clientRole?.id };
                 const centerId = userCenterByUserId.get(profile.user_id);
                 const center = centerId ? centersById.get(centerId) : null;
 
@@ -296,7 +304,7 @@ const UsersManagerPage = () => {
         if (!isAdmin && !client.center_id) return [];
 
         return users.filter((u) => {
-            const isCoach = u.role === 'coach';
+            const isCoach = isCoachRole(u.role);
             const isMeAdmin = isAdmin && u.user_id === currentUser.id;
 
             if (!isCoach && !isMeAdmin) return false;
@@ -313,7 +321,7 @@ const UsersManagerPage = () => {
             return;
         }
 
-        const clients = users.filter((u) => u.role === 'client' && u.center_id === coach.center_id);
+        const clients = users.filter((u) => isClientRole(u.role) && u.center_id === coach.center_id);
         setCoachCenterClients(clients);
         setSelectedCoachForClients(coach);
         setIsCenterClientsDialogOpen(true);
@@ -394,9 +402,9 @@ const UsersManagerPage = () => {
 
             if (!matchesSearch) return false;
             if (filterType === 'centers') return true;
-            if (filterType === 'clients') return user.role === 'client';
-            if (filterType === 'coaches') return user.role === 'coach';
-            if (filterType === 'unassigned') return user.role === 'client' && user.assigned_coaches.length === 0;
+            if (filterType === 'clients') return isClientRole(user.role);
+            if (filterType === 'coaches') return isCoachRole(user.role);
+            if (filterType === 'unassigned') return isClientRole(user.role) && user.assigned_coaches.length === 0;
             return true;
         });
     }, [users, searchTerm, filterType]);
@@ -415,12 +423,12 @@ const UsersManagerPage = () => {
                 case 'center':
                     return (user.center_name || '').toLowerCase();
                 case 'assignment':
-                    if (user.role === 'client') {
+                    if (isClientRole(user.role)) {
                         return user.assigned_coaches.length === 0
                             ? 'free'
                             : user.assigned_coaches.map((c) => c.full_name || '').join(' ').toLowerCase();
                     }
-                    return user.role === 'coach' ? 'coach' : '';
+                    return isCoachRole(user.role) ? 'coach' : '';
                 case 'age':
                     return typeof user.age === 'number' ? user.age : null;
                 case 'createdAt':
@@ -496,9 +504,9 @@ const UsersManagerPage = () => {
     };
 
     const appStats = useMemo(() => {
-        const coachCount = users.filter((u) => u.role === 'coach').length;
-        const clientCount = users.filter((u) => u.role === 'client').length;
-        const unassignedCount = users.filter((u) => u.role === 'client' && u.assigned_coaches.length === 0).length;
+        const coachCount = users.filter((u) => isCoachRole(u.role)).length;
+        const clientCount = users.filter((u) => isClientRole(u.role)).length;
+        const unassignedCount = users.filter((u) => isClientRole(u.role) && u.assigned_coaches.length === 0).length;
 
         return {
             total: users.length,
@@ -509,9 +517,9 @@ const UsersManagerPage = () => {
     }, [users]);
 
     const viewStats = useMemo(() => {
-        const coachCount = filteredUsers.filter((u) => u.role === 'coach').length;
-        const clientCount = filteredUsers.filter((u) => u.role === 'client').length;
-        const unassignedCount = filteredUsers.filter((u) => u.role === 'client' && u.assigned_coaches.length === 0).length;
+        const coachCount = filteredUsers.filter((u) => isCoachRole(u.role)).length;
+        const clientCount = filteredUsers.filter((u) => isClientRole(u.role)).length;
+        const unassignedCount = filteredUsers.filter((u) => isClientRole(u.role) && u.assigned_coaches.length === 0).length;
 
         return {
             total: filteredUsers.length,
@@ -573,7 +581,7 @@ const UsersManagerPage = () => {
                 </div>
             </TableCell>
             <TableCell>
-                {user.role === 'client' && (
+                {isClientRole(user.role) && (
                     <div className="flex flex-wrap gap-2 items-center">
                         {user.assigned_coaches?.length > 0 ? user.assigned_coaches.map((coach) => (
                             <Badge key={coach.assignment_id} variant="secondary" className="bg-muted hover:bg-accent text-muted-foreground text-xs flex items-center gap-1 pr-1">
@@ -600,7 +608,7 @@ const UsersManagerPage = () => {
                         </Button>
                     </div>
                 )}
-                {user.role === 'coach' && (
+                {isCoachRole(user.role) && (
                     <Button
                         variant="outline"
                         size="sm"

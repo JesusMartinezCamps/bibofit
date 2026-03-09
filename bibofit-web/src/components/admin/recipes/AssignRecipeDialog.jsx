@@ -6,6 +6,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabaseClient';
 import { Loader2, AlertTriangle, MessageSquare } from 'lucide-react';
 import DayMealSelect from '@/components/ui/day-meal-select';
+import { CLIENT_ROLE_QUERY_VALUES } from '@/lib/roles';
 
 const AssignRecipeDialog = ({ recipe, open, onOpenChange, onAssigned, preselectedClientId, preselectedMealId }) => {
   const { toast } = useToast();
@@ -22,13 +23,30 @@ const AssignRecipeDialog = ({ recipe, open, onOpenChange, onAssigned, preselecte
   useEffect(() => {
     if (open) {
       const fetchClients = async () => {
+        const { data: roleRows, error: rolesError } = await supabase
+          .from('user_roles')
+          .select('user_id, roles!inner(role)')
+          .in('roles.role', CLIENT_ROLE_QUERY_VALUES);
+
+        if (rolesError) {
+          toast({ title: 'Error', description: 'No se pudieron cargar los clientes.', variant: 'destructive' });
+          return;
+        }
+
+        const clientIds = (roleRows || []).map((row) => row.user_id);
+        if (clientIds.length === 0) {
+          setClients([]);
+          return;
+        }
+
         const { data, error } = await supabase
           .from('profiles')
           .select('user_id, full_name')
-          .eq('rol', 'client')
+          .in('user_id', clientIds)
           .order('full_name');
+
         if (error) {
-          toast({ title: 'Error', description: 'No se pudieron cargar los clientes.', variant: 'destructive' });
+          toast({ title: 'Error', description: 'No se pudieron cargar los perfiles de cliente.', variant: 'destructive' });
         } else {
           setClients(data);
           if (preselectedClientId) {

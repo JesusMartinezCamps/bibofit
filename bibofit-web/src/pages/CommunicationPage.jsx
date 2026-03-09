@@ -18,6 +18,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import { isAdminRole, isCoachRole, isStaffRole } from '@/lib/roles';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -184,9 +185,9 @@ const CommunicationPage = () => {
   } = useNotifications();
   const { toast } = useToast();
 
-  const isAdmin = user?.role === 'admin';
-  const isCoach = user?.role === 'coach';
-  const isStaff = isAdmin || isCoach;
+  const isAdmin = isAdminRole(user?.role);
+  const isCoach = isCoachRole(user?.role);
+  const isStaff = isStaffRole(user?.role);
 
   // Conversations list
   const [conversations, setConversations] = useState([]);

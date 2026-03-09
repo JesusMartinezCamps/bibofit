@@ -10,6 +10,7 @@ import MealMacroConfiguration from '@/components/plans/constructor/MealMacroConf
 import { assignDietPlanToUser } from '@/lib/dietAssignmentService';
 import { useNavigate } from 'react-router-dom';
 import LoadingScreen from '@/components/shared/LoadingScreen';
+import { isStaffRole } from '@/lib/roles';
 
 const AssignDietStep3 = ({ 
   onPrevious, 
@@ -62,7 +63,7 @@ const AssignDietStep3 = ({
       }
       
       // Fix: Ensure mock data has valid day_meal_id references for the flow to work in admin view
-      if ((!baseMeals || baseMeals.length === 0) && (user.role === 'admin' || user.role === 'coach')) {
+      if ((!baseMeals || baseMeals.length === 0) && isStaffRole(user?.role)) {
            baseMeals = [
                 { id: 'mock-1', day_meal_id: 1, day_meals: { name: 'Desayuno', display_order: 1 } },
                 { id: 'mock-2', day_meal_id: 2, day_meals: { name: 'Almuerzo', display_order: 2 } },

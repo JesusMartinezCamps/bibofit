@@ -11,10 +11,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Loader2, Plus, Trash2, Edit } from 'lucide-react';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { useAuth } from '@/contexts/AuthContext';
+import { isCoachRole } from '@/lib/roles';
 
 const ManageAminograms = () => {
   const { user } = useAuth();
-  const isCoach = user?.role === 'coach';
+  const isCoach = isCoachRole(user?.role);
 
   const [aminograms, setAminograms] = useState([]);
   const [isLoading, setIsLoading] = useState(true);

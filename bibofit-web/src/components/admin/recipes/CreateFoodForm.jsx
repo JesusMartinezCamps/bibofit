@@ -17,6 +17,7 @@ import ProteinIcon from '@/components/icons/ProteinIcon';
 import MedicalConditionFields from './form-fields/MedicalConditionFields';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { isCoachRole } from '@/lib/roles';
 
 const CreateFoodForm = ({
   foodToEdit,
@@ -28,7 +29,7 @@ const CreateFoodForm = ({
   showTopSubmit = true,
 }) => {
   const { user } = useAuth();
-  const isCoach = user?.role === 'coach';
+  const isCoach = isCoachRole(user?.role);
   const isReadOnly = isCoach; // Coaches are read-only for this form in both edit and create contexts within this page
   
   const effectiveSubmissionMode = submissionMode || (isClientRequest ? 'client_request' : 'admin');

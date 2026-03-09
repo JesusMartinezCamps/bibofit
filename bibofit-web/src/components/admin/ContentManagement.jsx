@@ -97,7 +97,7 @@ const ContentButton = ({ icon: Icon, title, to, hasPending, count, disabled }) =
   return (
     <button
       onClick={() => navigate(to)}
-      className="relative flex w-full items-center gap-3 px-3 py-2.5 min-h-[46px] text-left bg-gradient-to-r from-indigo-800/45 via-slate-900/85 to-cyan-950/80 border-cyan-900/30 border-x border-b first:border-t shadow-sm transition-all duration-300 ease-out hover:from-indigo-800/70 hover:via-cyan-950/80 hover:to-cyan-900/80 hover:border-cyan-600/40 group rounded-none first:rounded-t-xl last:rounded-b-xl md:flex-col md:items-center md:justify-center md:p-6 md:text-center md:min-h-[170px] md:bg-gradient-to-br md:from-indigo-800/50 md:via-slate-850 md:to-cyan-950 md:rounded-xl md:border md:shadow-lg md:hover:shadow-cyan-500/20"
+      className="relative flex w-full items-center gap-3 px-3 py-2.5 min-h-[46px] text-left bg-gradient-to-r from-sky-950 to-sky-900/50 border-cyan-900/30 border-x border-b first:border-t shadow-sm transition-all duration-300 ease-out hover:from-cyan-800/70 hover:via-cyan-950/80 hover:to-cyan-900/80 hover:border-cyan-600/40 group rounded-none first:rounded-t-xl last:rounded-b-xl md:flex-col md:items-center md:justify-center md:p-6 md:text-center md:min-h-[170px] md:bg-gradient-to-br md:from-cyan-800/50 md:via-slate-850 md:to-cyan-950 md:rounded-xl md:border md:shadow-lg md:hover:shadow-cyan-500/20"
     >
       <Icon className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform md:w-10 md:h-10 md:mb-3 md:text-cyan-500" />
       <span className="text-white font-semibold text-sm leading-tight flex-1 md:flex-none md:text-base">{title}</span>

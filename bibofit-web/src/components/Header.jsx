@@ -13,33 +13,26 @@ import {
 import { cn } from '@/lib/utils';
 import { useNotifications } from '@/contexts/NotificationsContext';
 import AppIcon from '@/components/icons/AppIcon';
+import {
+  getDefaultAuthenticatedPath,
+  getRoleDisplayName,
+  isAdminRole,
+  isCoachRole,
+  isStaffRole,
+} from '@/lib/roles';
 
 const Header = () => {
   const { user } = useAuth();
   const location = useLocation();
   const { hasPendingRequests, totalUnread } = useNotifications();
 
-  const isAdmin = user?.role === 'admin';
-  const isCoach = user?.role === 'coach';
-  const isStaff = isAdmin || isCoach;
-
-  const getRoleDisplayName = (role) => {
-    switch (role) {
-      case 'admin':
-        return 'Admin';
-      case 'coach':
-        return 'Coach';
-      case 'client':
-        return 'Cliente';
-      default:
-        return 'Cliente';
-    }
-  };
+  const isAdmin = isAdminRole(user?.role);
+  const isCoach = isCoachRole(user?.role);
+  const isStaff = isStaffRole(user?.role);
 
   const getHomeLink = () => {
       if (isAdmin) return '/admin-panel/advisories';
-      if (isCoach) return '/coach-dashboard';
-      return '/dashboard';
+      return getDefaultAuthenticatedPath(user?.role);
   }
 
   const getContentLink = () => {

@@ -5,6 +5,7 @@ import { Helmet } from 'react-helmet';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { getDefaultAuthenticatedPath, isAdminRole } from '@/lib/roles';
 
 const AuthConfirmedPage = () => {
   const navigate = useNavigate();
@@ -13,9 +14,8 @@ const AuthConfirmedPage = () => {
   const targetPath = useMemo(() => {
     if (!user) return '/login';
     if (!user.onboarding_completed_at) return '/assign-diet-plan';
-    if (user.role === 'admin') return '/admin-panel/advisories';
-    if (user.role === 'coach') return '/coach-dashboard';
-    return '/dashboard';
+    if (isAdminRole(user.role)) return '/admin-panel/advisories';
+    return getDefaultAuthenticatedPath(user.role);
   }, [user]);
 
   useEffect(() => {

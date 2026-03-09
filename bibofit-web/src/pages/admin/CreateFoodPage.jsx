@@ -6,13 +6,14 @@ import FoodSearch from '@/components/admin/recipes/FoodSearch';
 import CreateFoodForm from '@/components/admin/recipes/CreateFoodForm';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { useAuth } from '@/contexts/AuthContext';
+import { isCoachRole } from '@/lib/roles';
 
 const CreateFoodPage = () => {
   const [selectedFood, setSelectedFood] = useState(null);
   const [key, setKey] = useState(0); // Force re-render of form when clearing or updating
   const [refreshTrigger, setRefreshTrigger] = useState(0); // To trigger list reload
   const { user } = useAuth();
-  const isCoach = user?.role === 'coach';
+  const isCoach = isCoachRole(user?.role);
   const foodFormId = 'create-food-form';
 
   const handleSelectFood = useCallback((food) => {

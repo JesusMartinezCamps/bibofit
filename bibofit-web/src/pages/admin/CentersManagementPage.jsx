@@ -33,6 +33,7 @@ import { Loader2, Building2, MapPin, Trash2, Edit, Plus, Users, UserPlus, Check,
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
+import { getRoleDisplayName, isCoachRole } from '@/lib/roles';
 
 const CentersManagementPage = () => {
     const [centers, setCenters] = useState([]);
@@ -199,7 +200,7 @@ const CentersManagementPage = () => {
 
             const members = profiles
                 .filter(p => memberIds.includes(p.user_id))
-                .map(p => ({ ...p, role: rolesMap[p.user_id] || 'client' }));
+                .map(p => ({ ...p, role: rolesMap[p.user_id] || 'pro-nutrition' }));
             
             setCenterMembers(members);
 
@@ -208,7 +209,7 @@ const CentersManagementPage = () => {
             // AND exclude Admins
             const available = profiles
                 .filter(p => !memberIds.includes(p.user_id))
-                .map(p => ({ ...p, role: rolesMap[p.user_id] || 'client' }))
+                .map(p => ({ ...p, role: rolesMap[p.user_id] || 'pro-nutrition' }))
                 .filter(p => p.role !== 'admin'); // Hide admins
             
             setAvailableUsers(available);
@@ -473,7 +474,7 @@ const CentersManagementPage = () => {
                                 <SelectContent className="max-h-60">
                                     {availableUsers.map(u => (
                                         <SelectItem key={u.user_id} value={u.user_id}>
-                                            {u.full_name} ({u.role === 'coach' ? 'Entrenador' : 'Cliente'})
+                                            {u.full_name} ({getRoleDisplayName(u.role)})
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -492,8 +493,8 @@ const CentersManagementPage = () => {
                                                 <span className="text-sm font-medium text-white">{member.full_name}</span>
                                                 <div className="flex gap-2">
                                                     <Badge variant="outline" className="text-[10px] border-input text-muted-foreground">{member.email}</Badge>
-                                                    <Badge className={`text-[10px] ${member.role === 'coach' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-blue-500/20 text-blue-400'}`}>
-                                                        {member.role === 'coach' ? 'Entrenador' : 'Cliente'}
+                                                    <Badge className={`text-[10px] ${isCoachRole(member.role) ? 'bg-yellow-500/20 text-yellow-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                                                        {getRoleDisplayName(member.role)}
                                                     </Badge>
                                                 </div>
                                             </div>

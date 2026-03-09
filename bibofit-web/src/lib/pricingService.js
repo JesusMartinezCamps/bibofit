@@ -1,5 +1,18 @@
 import { supabase } from '@/lib/supabaseClient';
 
+export const PRICING_PRODUCT_AREAS = Object.freeze({
+  NUTRITION: 'nutrition',
+  WORKOUT: 'workout',
+  BUNDLE: 'bundle',
+});
+
+const VALID_PRODUCT_AREAS = new Set(Object.values(PRICING_PRODUCT_AREAS));
+
+const normalizeProductArea = (value) => {
+  const normalized = String(value || PRICING_PRODUCT_AREAS.NUTRITION).toLowerCase();
+  return VALID_PRODUCT_AREAS.has(normalized) ? normalized : PRICING_PRODUCT_AREAS.NUTRITION;
+};
+
 const FALLBACK_TIERS = [
   {
     id: 'free',
@@ -28,6 +41,7 @@ const FALLBACK_TIERS = [
 
     ],
     targets: ['free'],
+    productArea: PRICING_PRODUCT_AREAS.NUTRITION,
   },
   {
     id: 'pro',
@@ -52,7 +66,8 @@ const FALLBACK_TIERS = [
       { id: 'p-5', featureText: 'Chat integrado con soporte básico', included: true, sortOrder: 5 },
       { id: 'p-6', featureText: 'Análisis avanzado de progreso', included: true, sortOrder: 6 },
     ],
-    targets: ['client'],
+    targets: ['pro-nutrition'],
+    productArea: PRICING_PRODUCT_AREAS.NUTRITION,
   },
   {
     id: 'coaching',
@@ -77,7 +92,8 @@ const FALLBACK_TIERS = [
       { id: 'c-5', featureText: 'Soporte Prioritario 24/7', included: true, sortOrder: 5 },
       { id: 'c-6', featureText: 'Ajustes ilimitados de plan', included: true, sortOrder: 6 },
     ],
-    targets: ['client'],
+    targets: ['pro-nutrition'],
+    productArea: PRICING_PRODUCT_AREAS.NUTRITION,
   },
 ];
 
@@ -118,15 +134,26 @@ const mapPlan = (plan) => {
     isActive: !!plan.is_active,
     showOnHome: !!plan.show_on_home,
     showOnPricing: !!plan.show_on_pricing,
+    productArea: normalizeProductArea(plan.product_area),
     sortOrder: plan.sort_order || 0,
     features,
     targets,
   };
 };
 
-export const getFallbackPricingPlans = () => FALLBACK_TIERS;
+export const getFallbackPricingPlans = ({ productArea = PRICING_PRODUCT_AREAS.NUTRITION } = {}) => {
+  const normalizedArea = normalizeProductArea(productArea);
+  return FALLBACK_TIERS.filter((plan) => normalizeProductArea(plan.productArea) === normalizedArea);
+};
 
-export const getPricingPlans = async ({ surface = 'pricing', includeInactive = false } = {}) => {
+export const getPricingPlans = async ({
+  surface = 'pricing',
+  includeInactive = false,
+  includeAllAreas = false,
+  productArea = PRICING_PRODUCT_AREAS.NUTRITION,
+} = {}) => {
+  const normalizedArea = normalizeProductArea(productArea);
+
   let query = supabase
     .from('commercial_plans')
     .select(`
@@ -145,6 +172,7 @@ export const getPricingPlans = async ({ surface = 'pricing', includeInactive = f
       sort_order,
       show_on_home,
       show_on_pricing,
+      product_area,
       commercial_plan_features (
         id,
         feature_text,
@@ -163,6 +191,9 @@ export const getPricingPlans = async ({ surface = 'pricing', includeInactive = f
 
   if (!includeInactive) {
     query = query.eq('is_active', true);
+  }
+  if (!includeAllAreas) {
+    query = query.eq('product_area', normalizedArea);
   }
 
   const { data, error } = await query;

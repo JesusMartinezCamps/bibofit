@@ -1,13 +1,19 @@
 import { useAuth } from '@/contexts/AuthContext';
+import {
+  isAdminRole,
+  isClientRole,
+  isCoachRole,
+  normalizeRole,
+} from '@/lib/roles';
 
 export const useRole = () => {
   const { user } = useAuth();
-  
-  const role = user?.role || 'free'; // Default to free if undefined
+
+  const role = normalizeRole(user?.role || 'free');
   const isFree = role === 'free';
-  const isClient = role === 'client';
-  const isCoach = role === 'coach';
-  const isAdmin = role === 'admin';
+  const isClient = isClientRole(role);
+  const isCoach = isCoachRole(role);
+  const isAdmin = isAdminRole(role);
 
   // Feature flags
   const canAutoBalanceMacros = !isFree;

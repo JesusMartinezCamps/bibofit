@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/lib/customSupabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRealtime } from '@/contexts/RealtimeProvider';
+import { isStaffRole } from '@/lib/roles';
 
 export const NotificationsContext = createContext();
 
@@ -23,7 +24,7 @@ export const NotificationsProvider = ({ children }) => {
     const [pendingFreeRecipeCount, setPendingFreeRecipeCount] = useState(0);
     const [pendingDietChangeCount, setPendingDietChangeCount] = useState(0);
 
-    const isAdminOrCoach = user?.role === 'admin' || user?.role === 'coach';
+    const isAdminOrCoach = isStaffRole(user?.role);
 
     // 1. Fetch normal user notifications
     const fetchNotifications = async () => {

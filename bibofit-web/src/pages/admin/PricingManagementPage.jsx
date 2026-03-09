@@ -32,6 +32,13 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Plus, Pencil, Trash2 } from 'lucide-react';
+import { PRICING_PRODUCT_AREAS } from '@/lib/pricingService';
+
+const PRODUCT_AREA_OPTIONS = [
+  { value: PRICING_PRODUCT_AREAS.NUTRITION, label: 'Nutrición' },
+  { value: PRICING_PRODUCT_AREAS.WORKOUT, label: 'Entreno' },
+  { value: PRICING_PRODUCT_AREAS.BUNDLE, label: 'Bundle' },
+];
 
 const emptyPlanForm = {
   slug: '',
@@ -48,6 +55,7 @@ const emptyPlanForm = {
   showOnHome: true,
   showOnPricing: true,
   sortOrder: '0',
+  productArea: PRICING_PRODUCT_AREAS.NUTRITION,
   features: [
     { id: 'tmp-1', featureText: '', included: true, sortOrder: 1 },
   ],
@@ -95,6 +103,7 @@ const PricingManagementPage = () => {
             is_active,
             show_on_home,
             show_on_pricing,
+            product_area,
             sort_order,
             commercial_plan_features(id, feature_text, included, sort_order),
             commercial_plan_role_targets(role_id)
@@ -187,6 +196,7 @@ const PricingManagementPage = () => {
       showOnHome: !!plan.show_on_home,
       showOnPricing: !!plan.show_on_pricing,
       sortOrder: String(plan.sort_order ?? 0),
+      productArea: plan.product_area || PRICING_PRODUCT_AREAS.NUTRITION,
       features: (plan.commercial_plan_features || []).length
         ? plan.commercial_plan_features
             .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
@@ -279,6 +289,7 @@ const PricingManagementPage = () => {
         is_active: planForm.isActive,
         show_on_home: planForm.showOnHome,
         show_on_pricing: planForm.showOnPricing,
+        product_area: planForm.productArea || PRICING_PRODUCT_AREAS.NUTRITION,
         sort_order: Number(planForm.sortOrder || 0),
       };
 
@@ -413,6 +424,7 @@ const PricingManagementPage = () => {
                       <TableHead>Plan</TableHead>
                       <TableHead>Precio</TableHead>
                       <TableHead>Target</TableHead>
+                      <TableHead>Área</TableHead>
                       <TableHead>Estado</TableHead>
                       <TableHead>Popular</TableHead>
                       <TableHead className="text-right">Acciones</TableHead>
@@ -437,6 +449,9 @@ const PricingManagementPage = () => {
                               </Badge>
                             ))}
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          {PRODUCT_AREA_OPTIONS.find((opt) => opt.value === plan.product_area)?.label || plan.product_area || 'Nutrición'}
                         </TableCell>
                         <TableCell>{plan.is_active ? 'Activo' : 'Inactivo'}</TableCell>
                         <TableCell>{plan.is_popular ? 'Si' : 'No'}</TableCell>
@@ -537,7 +552,7 @@ const PricingManagementPage = () => {
         <DialogContent className="bg-background border-border text-white sm:max-w-[860px]">
           <DialogHeader>
             <DialogTitle>{editingPlanId ? 'Editar plan' : 'Nuevo plan'}</DialogTitle>
-            <DialogDescription>Configura nombre, precio, CTA, características y roles objetivo.</DialogDescription>
+            <DialogDescription>Configura nombre, precio, CTA, área comercial, características y roles objetivo.</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 max-h-[72vh] overflow-y-auto pr-1">
@@ -554,7 +569,7 @@ const PricingManagementPage = () => {
               className="bg-card border-border"
             />
 
-            <div className="grid md:grid-cols-4 gap-3">
+            <div className="grid md:grid-cols-5 gap-3">
               <Input value={planForm.priceAmount} onChange={(e) => setPlanForm((prev) => ({ ...prev, priceAmount: e.target.value }))} placeholder="Precio" className="bg-card border-border" />
               <Input value={planForm.priceCurrency} onChange={(e) => setPlanForm((prev) => ({ ...prev, priceCurrency: e.target.value.toUpperCase() }))} placeholder="Moneda" className="bg-card border-border" />
 
@@ -565,6 +580,19 @@ const PricingManagementPage = () => {
                 <SelectContent>
                   <SelectItem value="monthly">Mensual</SelectItem>
                   <SelectItem value="one_time">Pago unico</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={planForm.productArea} onValueChange={(value) => setPlanForm((prev) => ({ ...prev, productArea: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Área" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PRODUCT_AREA_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 

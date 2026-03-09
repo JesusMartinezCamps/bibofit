@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import FoodLookupPanel from '@/components/shared/FoodLookupPanel';
 import { normalizeSearchText, splitSearchTokens } from '@/lib/foodSearchUtils';
 import { FOOD_CARD_SELECT, mergeFoodsById, normalizeFoodRecord } from '@/lib/food/foodModel';
+import { isCoachRole } from '@/lib/roles';
 
 const isSubsequence = (needle, haystack) => {
   if (!needle) return true;
@@ -130,7 +131,7 @@ const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSen
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { user } = useAuth();
-  const isCoach = user?.role === 'coach';
+  const isCoach = isCoachRole(user?.role);
 
   const fetchAllFoods = useCallback(async () => {
     setLoading(true);

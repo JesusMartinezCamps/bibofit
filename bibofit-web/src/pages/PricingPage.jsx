@@ -10,7 +10,12 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { Check, X, Loader2 } from 'lucide-react';
-import { buildFeatureMatrix, getPricingPlans, subscribePricingChanges } from '@/lib/pricingService';
+import {
+  buildFeatureMatrix,
+  getPricingPlans,
+  PRICING_PRODUCT_AREAS,
+  subscribePricingChanges,
+} from '@/lib/pricingService';
 
 const PricingPage = () => {
   const { user } = useAuth();
@@ -28,7 +33,7 @@ const PricingPage = () => {
     {
       question: '¿Qué es el autocuadre de macros?',
       answer:
-        'Es nuestra tecnología exclusiva que recalcula automáticamente las cantidades de tus otras comidas cuando añades una receta libre o cambias un ingrediente, asegurando que siempre cumplas tus objetivos diarios.',
+        'Es nuestra tecnología exclusiva de nutrición que recalcula automáticamente las cantidades de tus otras comidas cuando añades una receta libre o cambias un ingrediente.',
     },
     {
       question: '¿Hay algún compromiso de permanencia?',
@@ -37,14 +42,14 @@ const PricingPage = () => {
     {
       question: '¿Cómo funciona la asesoría personalizada?',
       answer:
-        'Te asignaremos un dietista certificado que diseñará tu plan desde cero, lo revisará semanalmente y estará disponible para resolver tus dudas específicas a través de chat privado.',
+        'Te asignaremos un dietista certificado que diseñará tu plan nutricional desde cero, lo revisará semanalmente y estará disponible para tus dudas por chat privado.',
     },
   ];
 
   const fetchPlans = useCallback(async ({ silent = false } = {}) => {
     if (!silent) setLoadingComparison(true);
     try {
-      const data = await getPricingPlans({ surface: 'pricing' });
+      const data = await getPricingPlans({ surface: 'pricing', productArea: PRICING_PRODUCT_AREAS.NUTRITION });
       setPlans(data);
       setComparisonError('');
     } catch (error) {
@@ -101,7 +106,7 @@ const PricingPage = () => {
     <div className="min-h-screen bg-background text-foreground font-sans flex flex-col">
       <Helmet>
         <title>Precios y Planes | Bibofit</title>
-        <meta name="description" content="Elige el plan perfecto para tus objetivos de fitness y nutrición." />
+        <meta name="description" content="Elige el plan de nutrición que mejor se adapta a tus objetivos." />
       </Helmet>
 
       <main className={`${!user ? 'pt-28 md:pt-32' : 'pt-8'} pb-20 flex-grow`}>
@@ -111,11 +116,11 @@ const PricingPage = () => {
               Invierte en tu salud
             </h1>
             <p className="text-xl text-muted-foreground">
-              Herramientas profesionales para resultados reales. Sin trucos, solo ciencia y tecnología aplicada a tu nutrición.
+              Herramientas profesionales para nutrición con una base preparada para entreno y futuros bundles.
             </p>
           </div>
 
-          <PricingComponent showTitle={false} surface="pricing" />
+          <PricingComponent showTitle={false} surface="pricing" productArea={PRICING_PRODUCT_AREAS.NUTRITION} />
 
           <div className="max-w-6xl mx-auto mt-24 mb-24">
             <h2 className="text-3xl font-bold text-center mb-12">Comparativa Detallada</h2>

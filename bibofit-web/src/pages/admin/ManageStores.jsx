@@ -11,10 +11,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Loader2, Plus, Trash2, Edit } from 'lucide-react';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { useAuth } from '@/contexts/AuthContext';
+import { isCoachRole } from '@/lib/roles';
 
 const ManageStores = () => {
   const { user } = useAuth();
-  const isCoach = user?.role === 'coach';
+  const isCoach = isCoachRole(user?.role);
 
   const [stores, setStores] = useState([]);
   const [isLoading, setIsLoading] = useState(true);

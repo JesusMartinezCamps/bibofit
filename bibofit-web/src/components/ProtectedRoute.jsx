@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { isAdminRole, isClientRole } from '@/lib/roles';
 
 const ProtectedRoute = ({ children, adminOnly = false, clientOnly = false }) => {
   const { user, loading } = useAuth();
@@ -18,11 +19,11 @@ const ProtectedRoute = ({ children, adminOnly = false, clientOnly = false }) => 
   }
 
   // If specific role required
-  if (adminOnly && user.role !== 'admin') {
+  if (adminOnly && !isAdminRole(user.role)) {
     return <Navigate to="/dashboard" replace />;
   }
   
-  if (clientOnly && user.role !== 'client') {
+  if (clientOnly && !isClientRole(user.role)) {
     return <Navigate to="/admin-panel" replace />;
   }
 

@@ -5,14 +5,23 @@ import { Check, X, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { getPricingPlans, subscribePricingChanges } from '@/lib/pricingService';
+import {
+  getPricingPlans,
+  PRICING_PRODUCT_AREAS,
+  subscribePricingChanges,
+} from '@/lib/pricingService';
 
 const PERIOD_LABEL = {
   monthly: '/mes',
   one_time: 'pago único',
 };
 
-const PricingComponent = ({ showTitle = true, className, surface = 'home' }) => {
+const PricingComponent = ({
+  showTitle = true,
+  className,
+  surface = 'home',
+  productArea = PRICING_PRODUCT_AREAS.NUTRITION,
+}) => {
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -21,7 +30,7 @@ const PricingComponent = ({ showTitle = true, className, surface = 'home' }) => 
   const fetchPlans = useCallback(async ({ silent = false } = {}) => {
     if (!silent) setLoading(true);
     try {
-      const data = await getPricingPlans({ surface });
+      const data = await getPricingPlans({ surface, productArea });
       setPlans(data);
       setLoadError('');
     } catch (error) {
@@ -31,7 +40,7 @@ const PricingComponent = ({ showTitle = true, className, surface = 'home' }) => 
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [surface]);
+  }, [surface, productArea]);
 
   useEffect(() => {
     fetchPlans();
@@ -79,7 +88,7 @@ const PricingComponent = ({ showTitle = true, className, surface = 'home' }) => 
         {showTitle && (
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Planes flexibles</h2>
-            <p className="text-muted-foreground">Comienza gratis y escala a medida que crece tu negocio.</p>
+            <p className="text-muted-foreground">Planes de nutrición listos para crecer a entreno y bundles.</p>
           </div>
         )}
 

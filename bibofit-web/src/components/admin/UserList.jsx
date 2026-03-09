@@ -7,6 +7,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
+import {
+  getRoleDisplayName,
+  isClientRole,
+  isCoachRole,
+} from '@/lib/roles';
 
 // Define role colors
 const ROLE_COLORS = {
@@ -55,7 +60,7 @@ const UserList = ({ selectedUser, onSelectUser }) => {
         const formattedUsers = profilesData
           .map(p => ({
             ...p,
-            role: rolesMap.get(p.user_id) || 'client',
+            role: rolesMap.get(p.user_id) || 'pro-nutrition',
             assignedCoach: coachMap.get(p.user_id)
           }))
           .filter(u => u.role !== 'admin');
@@ -82,7 +87,9 @@ const UserList = ({ selectedUser, onSelectUser }) => {
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = (user.full_name || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+    const matchesRole = roleFilter === 'all'
+      || (roleFilter === 'coach' && isCoachRole(user.role))
+      || (roleFilter === 'client' && isClientRole(user.role));
     return matchesSearch && matchesRole;
   });
 
@@ -155,7 +162,9 @@ const UserList = ({ selectedUser, onSelectUser }) => {
             <AnimatePresence mode="popLayout">
             {filteredUsers.map((user, index) => {
               const isSelected = selectedUser?.user_id === user.user_id;
-              const roleColor = user.role === 'coach' ? ROLE_COLORS.coach : ROLE_COLORS.client;
+              const isCoach = isCoachRole(user.role);
+              const isClient = isClientRole(user.role);
+              const roleColor = isCoach ? ROLE_COLORS.coach : ROLE_COLORS.client;
               
               return (
                 <motion.li
@@ -183,7 +192,7 @@ const UserList = ({ selectedUser, onSelectUser }) => {
                             "w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-colors",
                             isSelected ? "bg-white/20" : "bg-muted group-hover:bg-[rgb(60,134,126)]"
                           )}>
-                            {user.role === 'coach' ? (
+                            {isCoach ? (
                                <UserCog className="w-5 h-5" />
                             ) : (
                                <User className="w-5 h-5" />
@@ -191,7 +200,7 @@ const UserList = ({ selectedUser, onSelectUser }) => {
                           </div>
                           <div className="flex flex-col min-w-0">
                              <span className="font-medium truncate text-sm leading-tight">{user.full_name}</span>
-                             {user.role === 'client' && user.assignedCoach && (
+                             {isClient && user.assignedCoach && (
                                 <span className={cn("text-[11px] truncate mt-0.5", isSelected ? "text-white/80" : "text-muted-foreground")}>
                                   Coach: {user.assignedCoach}
                                 </span>
@@ -206,13 +215,13 @@ const UserList = ({ selectedUser, onSelectUser }) => {
                            "ml-2 text-[10px] h-5 px-1.5 uppercase tracking-wider border-0 font-semibold cursor-pointer hover:scale-105 transition-transform",
                            isSelected 
                              ? "bg-white/20 text-white hover:bg-white/30" 
-                             : user.role === 'coach' 
+                             : isCoach
                                 ? "bg-[rgb(155,68,130)]/10 text-[rgb(155,68,130)] border border-[rgb(155,68,130)]/20 hover:bg-[rgb(155,68,130)]/20" 
                                 : "bg-[rgb(60,134,126)]/10 text-[rgb(60,134,126)] border border-[rgb(60,134,126)]/20 hover:bg-[rgb(60,134,126)]/20"
                          )}
                          title="Ver en gestión de usuarios"
                        >
-                         {user.role === 'coach' ? 'Coach' : 'Cliente'}
+                         {getRoleDisplayName(user.role)}
                        </Badge>
                     </div>
                   </button>

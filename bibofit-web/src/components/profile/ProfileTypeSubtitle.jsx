@@ -3,10 +3,10 @@ import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Crown, Star, ShieldCheck, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { normalizeRole } from '@/lib/roles';
 
 const ProfileTypeSubtitle = ({ role = 'free' }) => {
-  // Normalize role to lowercase to ensure matching
-  const normalizedRole = role ? role.toLowerCase() : 'free';
+  const normalizedRole = normalizeRole(role);
 
   const typeConfig = {
     free: {
@@ -15,16 +15,26 @@ const ProfileTypeSubtitle = ({ role = 'free' }) => {
       className: 'bg-gradient-to-r from-slate-600/95 to-slate-500/30 text-white border-slate-400 hover:from-slate-500 hover:to-slate-400',
       icon: User,
     },
-    client: {
-      label: 'Pro',
+    'pro-nutrition': {
+      label: 'Pro Nutrición',
       // Gold gradient for Premium/Client
       className: 'bg-gradient-to-r from-amber-600/95 to-yellow-500/30 text-black border-yellow-400 font-bold hover:from-amber-400 hover:to-yellow-400',
       icon: Crown,
     },
-    coach: {
-      label: 'Coach',
+    'pro-workout': {
+      label: 'Pro Entreno',
+      className: 'bg-gradient-to-r from-orange-600/95 to-amber-500/30 text-black border-amber-300 font-bold hover:from-orange-500 hover:to-amber-400',
+      icon: Crown,
+    },
+    'coach-nutrition': {
+      label: 'Coach Nutrición',
       // Green gradient for Coach
       className: 'bg-gradient-to-r from-emerald-700/95 to-emerald-500/30 text-white border-emerald-100 hover:from-emerald-500 hover:to-emerald-400',
+      icon: ShieldCheck,
+    },
+    'coach-workout': {
+      label: 'Coach Entreno',
+      className: 'bg-gradient-to-r from-cyan-700/95 to-sky-500/30 text-white border-cyan-100 hover:from-cyan-500 hover:to-sky-400',
       icon: ShieldCheck,
     },
     admin: {

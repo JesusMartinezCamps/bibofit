@@ -24,6 +24,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import TemplatePreviewModal from '@/components/admin/diet-plans/TemplatePreviewModal';
+import { isCoachRole } from '@/lib/roles';
 
 const ClassificationDialog = ({ template, open, onOpenChange, onUpdate }) => {
     const { toast } = useToast();
@@ -258,7 +259,7 @@ const TemplateCard = ({
                                     )}
                                 </div>
                                 <h3 className="text-lg font-bold text-foreground dark:text-white leading-tight line-clamp-2 group-hover:text-blue-200 transition-colors">{template.name}</h3>
-                                {creatorRole === 'coach' && (isCreator || creatorName) && (
+                                {isCoachRole(creatorRole) && (isCreator || creatorName) && (
                                     <p className="text-xs text-muted-foreground mt-1">
                                         {isCreator ? 'Creado por ti' : `Creado por: ${creatorName}`}
                                     </p>

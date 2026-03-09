@@ -11,10 +11,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Loader2, Plus, Edit } from 'lucide-react';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { useAuth } from '@/contexts/AuthContext';
+import { isCoachRole } from '@/lib/roles';
 
 const ManageFatTypes = () => {
   const { user } = useAuth();
-  const isCoach = user?.role === 'coach';
+  const isCoach = isCoachRole(user?.role);
 
   const [fatTypes, setFatTypes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);

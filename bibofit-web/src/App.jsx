@@ -79,6 +79,11 @@ import { OnboardingProvider } from '@/contexts/OnboardingContext';
 import { SwipeGestureProvider } from '@/contexts/SwipeGestureContext';
 import { QuickStartGuideProvider } from '@/contexts/QuickStartGuideContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
+import {
+  getDefaultAuthenticatedPath,
+  hasAnyRole,
+  STAFF_ALLOWED_ROLES,
+} from '@/lib/roles';
 
 const HomeRedirect = () => {
   const { user, loading } = useAuth();
@@ -92,9 +97,7 @@ const HomeRedirect = () => {
   }
 
   if (!user) return <Navigate to="/home" replace />;
-  if (user.role === 'admin') return <Navigate to="/admin-panel/advisories" replace />;
-  if (user.role === 'coach') return <Navigate to="/coach-dashboard" replace />;
-  return <Navigate to="/dashboard" replace />;
+  return <Navigate to={getDefaultAuthenticatedPath(user.role)} replace />;
 };
 
 const RoleProtected = ({ allowedRoles, children }) => {
@@ -102,7 +105,7 @@ const RoleProtected = ({ allowedRoles, children }) => {
 
   if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
-  if (!allowedRoles.includes(user.role)) return <Navigate to="/" replace />;
+  if (!hasAnyRole(user.role, allowedRoles)) return <Navigate to="/" replace />;
 
   return children;
 };
@@ -188,8 +191,8 @@ const AppRoutes = () => (
       <Route path="/create-snack/:date/:mealId" element={<ProtectedRoute><CreateSnackPage /></ProtectedRoute>} />
 
       {/* Admin panel */}
-      <Route path="/admin-panel/:mainView?/:subView?" element={<ProtectedRoute><RoleProtected allowedRoles={['admin', 'coach']}><AdminPanel /></RoleProtected></ProtectedRoute>} />
-      <Route path="/admin-panel/plan-detail/:planId" element={<ProtectedRoute><RoleProtected allowedRoles={['admin', 'coach']}><AdminDietPlanDetailPage /></RoleProtected></ProtectedRoute>} />
+      <Route path="/admin-panel/:mainView?/:subView?" element={<ProtectedRoute><RoleProtected allowedRoles={STAFF_ALLOWED_ROLES}><AdminPanel /></RoleProtected></ProtectedRoute>} />
+      <Route path="/admin-panel/plan-detail/:planId" element={<ProtectedRoute><RoleProtected allowedRoles={STAFF_ALLOWED_ROLES}><AdminDietPlanDetailPage /></RoleProtected></ProtectedRoute>} />
 
       {/* Profile */}
       <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
@@ -203,8 +206,8 @@ const AppRoutes = () => (
       <Route path="/my-plan" element={<ProtectedRoute><ClientPlanDetailPage /></ProtectedRoute>} />
 
       {/* Staff-only */}
-      <Route path="/client-profile/:userId" element={<ProtectedRoute><RoleProtected allowedRoles={['admin', 'coach']}><ClientProfilePage /></RoleProtected></ProtectedRoute>} />
-      <Route path="/admin/manage-diet/:userId" element={<ProtectedRoute><RoleProtected allowedRoles={['admin', 'coach']}><DietManagementPage /></RoleProtected></ProtectedRoute>} />
+      <Route path="/client-profile/:userId" element={<ProtectedRoute><RoleProtected allowedRoles={STAFF_ALLOWED_ROLES}><ClientProfilePage /></RoleProtected></ProtectedRoute>} />
+      <Route path="/admin/manage-diet/:userId" element={<ProtectedRoute><RoleProtected allowedRoles={STAFF_ALLOWED_ROLES}><DietManagementPage /></RoleProtected></ProtectedRoute>} />
       <Route path="/admin/manage-training/:userId" element={<ProtectedRoute adminOnly><TrainingManagementPage /></ProtectedRoute>} />
       <Route path="/admin/create-food" element={<ProtectedRoute adminOnly><CreateFoodPage /></ProtectedRoute>} />
       <Route path="/request-food" element={<ProtectedRoute><CreateFoodPage /></ProtectedRoute>} />
@@ -216,10 +219,10 @@ const AppRoutes = () => (
       <Route path="/admin/manage-antioxidants" element={<ProtectedRoute adminOnly><ManageAntioxidants /></ProtectedRoute>} />
       <Route path="/admin/manage-fat-types" element={<ProtectedRoute adminOnly><ManageFatTypes /></ProtectedRoute>} />
       <Route path="/admin/manage-carb-types" element={<ProtectedRoute adminOnly><ManageCarbTypes /></ProtectedRoute>} />
-      <Route path="/admin-panel/content/food-requests" element={<ProtectedRoute><RoleProtected allowedRoles={['admin', 'coach']}><UserCreatedFoodsPage /></RoleProtected></ProtectedRoute>} />
-      <Route path="/admin-panel/content/free-recipe-requests" element={<ProtectedRoute><RoleProtected allowedRoles={['admin', 'coach']}><FreeMealRequestsPage /></RoleProtected></ProtectedRoute>} />
-      <Route path="/admin-panel/content/diet-requests" element={<ProtectedRoute><RoleProtected allowedRoles={['admin', 'coach']}><DietChangeRequestsPage /></RoleProtected></ProtectedRoute>} />
-      <Route path="/admin-panel/content/plan-templates" element={<ProtectedRoute><RoleProtected allowedRoles={['admin', 'coach']}><PlanTemplatesPage /></RoleProtected></ProtectedRoute>} />
+      <Route path="/admin-panel/content/food-requests" element={<ProtectedRoute><RoleProtected allowedRoles={STAFF_ALLOWED_ROLES}><UserCreatedFoodsPage /></RoleProtected></ProtectedRoute>} />
+      <Route path="/admin-panel/content/free-recipe-requests" element={<ProtectedRoute><RoleProtected allowedRoles={STAFF_ALLOWED_ROLES}><FreeMealRequestsPage /></RoleProtected></ProtectedRoute>} />
+      <Route path="/admin-panel/content/diet-requests" element={<ProtectedRoute><RoleProtected allowedRoles={STAFF_ALLOWED_ROLES}><DietChangeRequestsPage /></RoleProtected></ProtectedRoute>} />
+      <Route path="/admin-panel/content/plan-templates" element={<ProtectedRoute><RoleProtected allowedRoles={STAFF_ALLOWED_ROLES}><PlanTemplatesPage /></RoleProtected></ProtectedRoute>} />
       <Route path="/admin-panel/content/food-restrictions" element={<ProtectedRoute adminOnly><FoodRestrictionsPage /></ProtectedRoute>} />
       <Route path="/admin-panel/content/food-substitutions" element={<ProtectedRoute adminOnly><FoodSubstitutionRulesPage /></ProtectedRoute>} />
       <Route path="/admin-panel/content/users-manager" element={<ProtectedRoute adminOnly><UsersManagerPage /></ProtectedRoute>} />

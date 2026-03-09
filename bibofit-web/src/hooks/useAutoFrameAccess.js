@@ -1,16 +1,15 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useMemo } from 'react';
+import { canUseAutoFrameForRole, normalizeRole } from '@/lib/roles';
 
 export const useAutoFrameAccess = () => {
     const { user } = useAuth();
     
     // Get role from user object (populated from user_roles in AuthContext)
-    const role = user?.role ? user.role.toLowerCase() : 'free';
+    const role = normalizeRole(user?.role);
 
     const accessInfo = useMemo(() => {
-        // 'client' role corresponds to Premium plan
-        // 'coach' and 'admin' also have access
-        const canUseAutoFrame = ['client', 'coach', 'admin'].includes(role);
+        const canUseAutoFrame = canUseAutoFrameForRole(role);
         
         return {
             canUseAutoFrame,
