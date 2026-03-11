@@ -183,7 +183,7 @@ export const useAdminRecipeEditor = ({ recipeToEdit, onSaveSuccess, userId, plan
                 const { error: ingredientsError } = await supabase.from('recipe_ingredients').insert(newIngredients);
                 if(ingredientsError) throw ingredientsError;
                 
-                toast({ title: 'Éxito', description: 'Receta añadida y personalizada en el plan.' });
+                toast({ title: 'Éxito', description: 'Receta añadida y personalizada en el plan.', variant: 'success' });
                 if (onSaveSuccess) onSaveSuccess();
 
             } else {
@@ -250,7 +250,7 @@ export const useAdminRecipeEditor = ({ recipeToEdit, onSaveSuccess, userId, plan
             if (insertError) throw insertError;
         }
         
-        toast({ title: 'Éxito', description: 'Receta actualizada correctamente.' });
+        toast({ title: 'Éxito', description: 'Receta actualizada correctamente.', variant: 'success' });
         onSaveSuccess();
     };
 

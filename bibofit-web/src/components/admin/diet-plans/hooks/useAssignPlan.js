@@ -526,7 +526,7 @@ export const useAssignPlan = ({ open, onOpenChange, onSuccess, preselectedClient
                 await saveRecipeMacros(null, newRecipeId, macros);
             }
             
-            toast({ title: 'Éxito', description: 'Plan asignado correctamente con todas las modificaciones.' });
+            toast({ title: 'Éxito', description: 'Plan asignado correctamente con todas las modificaciones.', variant: 'success' });
             if(onSuccess) onSuccess();
             onOpenChange(false);
 

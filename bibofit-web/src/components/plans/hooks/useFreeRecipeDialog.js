@@ -151,7 +151,7 @@ export const useFreeRecipeDialog = ({ targetUserId, dayMealId, dietPlanId, date,
             toast({ title: 'Error', description: 'No se pudo leer el borrador.', variant: 'destructive' });
         }
     } else {
-        toast({ title: 'Sin datos', description: 'No hay ningún borrador guardado para esta comida.', variant: 'outline' });
+        toast({ title: 'Sin datos', description: 'No hay ningún borrador guardado para esta comida.', variant: 'default' });
     }
   }, [storageKey, toast, availableFoods]);
 
@@ -339,7 +339,7 @@ export const useFreeRecipeDialog = ({ targetUserId, dayMealId, dietPlanId, date,
       // Clear draft on success
       clearDraft();
 
-      toast({ title: 'Éxito', description: 'Receta libre creada y registrada.' });
+      toast({ title: 'Éxito', description: 'Receta libre creada y registrada.', variant: 'success' });
       if (onSuccess) onSuccess(mealLog, newFreeMealWithOccurrence);
 
     } catch (error) {

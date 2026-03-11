@@ -148,7 +148,7 @@ const CentersManagementPage = () => {
                     })
                     .eq('id', currentCenter.id);
                 if (error) throw error;
-                toast({ title: 'Actualizado', description: 'Centro actualizado correctamente.' });
+                toast({ title: 'Actualizado', description: 'Centro actualizado correctamente.', variant: 'success' });
             } else {
                 const { error } = await supabase
                     .from('centers')
@@ -158,7 +158,7 @@ const CentersManagementPage = () => {
                         center_type: formData.center_type
                     }]);
                 if (error) throw error;
-                toast({ title: 'Creado', description: 'Centro creado correctamente.' });
+                toast({ title: 'Creado', description: 'Centro creado correctamente.', variant: 'success' });
             }
             handleCloseDialog();
             fetchCenters();
@@ -175,7 +175,7 @@ const CentersManagementPage = () => {
         try {
             const { error } = await supabase.from('centers').delete().eq('id', id);
             if (error) throw error;
-            toast({ title: 'Eliminado', description: 'Centro eliminado correctamente.' });
+            toast({ title: 'Eliminado', description: 'Centro eliminado correctamente.', variant: 'success' });
             fetchCenters();
         } catch (error) {
              toast({ title: "Error", description: "No se pudo eliminar el centro.", variant: "destructive" });
@@ -232,7 +232,7 @@ const CentersManagementPage = () => {
                 await supabase.from('user_centers').insert({ user_id: selectedUserToAdd, center_id: currentMembersCenter.id });
             }
 
-            toast({ title: "Miembro añadido", className: "bg-green-600 text-white border-none" });
+            toast({ title: "Miembro añadido", variant: "success" });
             handleManageMembers(currentMembersCenter); // Refresh list
             fetchCenters(); // Refresh counts
             setSelectedUserToAdd('');
@@ -244,7 +244,7 @@ const CentersManagementPage = () => {
     const handleRemoveMember = async (userId) => {
         try {
             await supabase.from('user_centers').delete().eq('user_id', userId);
-            toast({ title: "Miembro removido", className: "bg-green-600 text-white border-none" });
+            toast({ title: "Miembro removido", variant: "success" });
             handleManageMembers(currentMembersCenter);
             fetchCenters();
         } catch (error) {

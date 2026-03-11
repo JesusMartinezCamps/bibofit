@@ -537,6 +537,7 @@ const InvitationLinksPage = () => {
       toast({
         title: 'Invitación creada',
         description: 'El link se guardó en base de datos y ya está disponible para revocación.',
+        variant: 'success',
       });
 
       await fetchInvitationLinks();

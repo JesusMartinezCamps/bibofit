@@ -122,11 +122,6 @@ const CalorieAdjustmentHistory = ({
                                         <span className="text-lg font-bold text-green-600 dark:text-white font-numeric">
                                             {override.manual_calories} <span className="text-xs font-normal text-muted-foreground">kcal</span>
                                         </span>
-                                        {isActive && (
-                                            <Badge className="bg-green-500/10 text-green-400 border-green-500/20 hover:bg-green-500/20 h-5 px-1.5 text-[10px]">
-                                                ✅ Vigente
-                                            </Badge>
-                                        )}
                                     </div>
                                     <p className="text-xs text-muted-foreground capitalize flex items-center gap-1">
                                         {override.created_at ? format(new Date(override.created_at), 'd MMM yyyy HH:mm', { locale: es }) : 'Reciente'}

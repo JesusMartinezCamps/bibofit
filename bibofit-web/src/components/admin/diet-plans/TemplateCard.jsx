@@ -49,7 +49,7 @@ const ClassificationDialog = ({ template, open, onOpenChange, onUpdate }) => {
             }).eq('id', template.id);
 
             if (error) throw error;
-            toast({ title: "Clasificación actualizada" });
+            toast({ title: "Clasificación actualizada", variant: "success" });
             onUpdate();
             onOpenChange(false);
         } catch (error) {

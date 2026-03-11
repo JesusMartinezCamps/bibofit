@@ -351,7 +351,7 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
             setCurrentFreeMeal(updatedFreeMeal);
             if (onUpdate) onUpdate(updatedFreeMeal);
             
-            toast({ title: 'Éxito', description: 'Receta libre actualizada.' });
+            toast({ title: 'Éxito', description: 'Receta libre actualizada.', variant: 'success' });
             setHasChanges(false);
             setMode('view');
         }

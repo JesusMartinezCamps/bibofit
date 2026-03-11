@@ -326,7 +326,7 @@ const UserDietTemplatesPage = () => {
                     onSuccess={() => {
                         setIsAssignDialogOpen(false);
                         window.location.reload(); // Reload to refresh active status
-                        toast({ title: 'Plan iniciado', description: 'Has comenzado tu nueva dieta con éxito.'});
+                        toast({ title: 'Plan iniciado', description: 'Has comenzado tu nueva dieta con éxito.', variant: 'success'});
                     }}
                 />
             )}

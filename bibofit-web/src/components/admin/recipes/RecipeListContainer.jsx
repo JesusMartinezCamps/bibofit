@@ -55,7 +55,7 @@ const RecipeListContainer = ({ onSelectRecipe, selectedRecipeId, onDeleteRecipe,
         const { error } = await supabase.from('recipes').delete().eq('id', recipe.id);
         if (error) throw error;
         setAllRecipes(prev => prev.filter(r => r.id !== recipe.id));
-        toast({ title: 'Receta eliminada', description: 'La plantilla ha sido eliminada correctamente.' });
+        toast({ title: 'Receta eliminada', description: 'La plantilla ha sido eliminada correctamente.', variant: 'success' });
       }
       if (selectedRecipeId === recipe.id) {
         onSelectRecipe(recipe);

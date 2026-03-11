@@ -147,7 +147,7 @@ import React, { useState, useEffect, useCallback } from 'react';
                     if (insertError) throw insertError;
                 }
 
-                toast({ title: "Éxito", description: "Planificación semanal actualizada." });
+                toast({ title: "Éxito", description: "Planificación semanal actualizada.", variant: "success" });
                 onSave();
             } catch (error) {
                 toast({ title: "Error", description: `No se pudo guardar la planificación: ${error.message}`, variant: "destructive" });

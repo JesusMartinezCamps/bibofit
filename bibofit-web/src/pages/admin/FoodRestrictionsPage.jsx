@@ -63,7 +63,7 @@ const RestrictionForm = ({ item, onSave, onCancel }) => {
         .upsert({ id: item?.id, ...formData });
 
       if (error) throw error;
-      toast({ title: 'Éxito', description: `Restricción ${item ? 'actualizada' : 'creada'} correctamente.` });
+      toast({ title: 'Éxito', description: `Restricción ${item ? 'actualizada' : 'creada'} correctamente.`, variant: 'success' });
       onSave();
     } catch (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -194,7 +194,7 @@ const FoodRestrictionsPage = () => {
         try {
             const { error } = await supabase.from(tableName).delete().eq('id', id);
             if(error) throw error;
-            toast({title: "Éxito", description: "Restricción eliminada."});
+            toast({title: "Éxito", description: "Restricción eliminada.", variant: "success"});
             fetchData();
         } catch(error) {
             toast({title: "Error", description: `No se pudo eliminar: ${error.message}`, variant: "destructive"})

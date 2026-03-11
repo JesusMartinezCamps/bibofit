@@ -464,7 +464,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
           const tableName = 'food';
           const { data: newFood } = await supabase.from(tableName).select('*').eq('id', newFoodId).single();
           
-          toast({ title: 'Éxito', description: `Alimento ${isEditing ? 'actualizado' : 'creado'} correctamente.` });
+          toast({ title: 'Éxito', description: `Alimento ${isEditing ? 'actualizado' : 'creado'} correctamente.`, variant: 'success' });
           if (onFoodActionComplete) onFoodActionComplete(newFood);
         } catch (error) {
           console.error('Error submitting food form:', error);

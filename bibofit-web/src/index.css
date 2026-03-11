@@ -138,6 +138,10 @@
     background-attachment: fixed;
   }
 
+  body.app-shell-scroll-lock {
+    overflow-y: hidden;
+  }
+
   #root {
     display: flex;
     flex-direction: column;

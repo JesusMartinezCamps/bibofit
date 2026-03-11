@@ -104,11 +104,11 @@ const ManageAntioxidants = () => {
       if (currentAntioxidant) {
         const { error } = await supabase.from('antioxidants').update(payload).eq('id', currentAntioxidant.id);
         if (error) throw error;
-        toast({ title: 'Éxito', description: 'Antioxidante actualizado.' });
+        toast({ title: 'Éxito', description: 'Antioxidante actualizado.', variant: 'success' });
       } else {
         const { error } = await supabase.from('antioxidants').insert(payload);
         if (error) throw error;
-        toast({ title: 'Éxito', description: 'Antioxidante creado.' });
+        toast({ title: 'Éxito', description: 'Antioxidante creado.', variant: 'success' });
       }
       handleCloseDialog();
       fetchData();
@@ -124,7 +124,7 @@ const ManageAntioxidants = () => {
       await supabase.from('food_antioxidants').delete().eq('antioxidant_id', antioxidantId);
       const { error } = await supabase.from('antioxidants').delete().eq('id', antioxidantId);
       if (error) throw error;
-      toast({ title: 'Éxito', description: 'Antioxidante eliminado.' });
+      toast({ title: 'Éxito', description: 'Antioxidante eliminado.', variant: 'success' });
       fetchData();
     } catch (error) {
       toast({ title: 'Error', description: 'No se pudo eliminar. Asegúrate de que no esté en uso.', variant: 'destructive' });

@@ -70,11 +70,11 @@ const ManageFatTypes = () => {
       if (currentFatType) {
         const { error } = await supabase.from('fat_types').update(formData).eq('id', currentFatType.id);
         if (error) throw error;
-        toast({ title: 'Éxito', description: 'Tipo de grasa actualizado.' });
+        toast({ title: 'Éxito', description: 'Tipo de grasa actualizado.', variant: 'success' });
       } else {
         const { error } = await supabase.from('fat_types').insert(formData);
         if (error) throw error;
-        toast({ title: 'Éxito', description: 'Tipo de grasa creado.' });
+        toast({ title: 'Éxito', description: 'Tipo de grasa creado.', variant: 'success' });
       }
       handleCloseDialog();
       fetchFatTypes();

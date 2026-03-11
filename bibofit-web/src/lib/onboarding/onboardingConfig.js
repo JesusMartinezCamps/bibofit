@@ -97,7 +97,7 @@ export const ONBOARDING_STEPS = [
       title: 'Calorías y Macronutrientes diarios',
       description: 'Bibofit ha calculado en función de tus datos unas calorías diarias objetivo, pero puedes introducir un valor manual si ya has trackeado tus calorías antes y sabes en qué rango estás.',
       videoUrl: null,
-      tips: ['Bibofit recomienda este reparto, no tienes la necesidad de modificarlo ahora', 'Puedes cambiar esto más tarde', 'Elige según tu objetivo']
+      tips: ['Bibofit recomienda este reparto, no tienes la necesidad de modificarlo ahora', 'Puedes cambiar esto más tarde']
     },
     nextStepId: 'meal-adjustment',
     tableName: 'assignment_progress' 

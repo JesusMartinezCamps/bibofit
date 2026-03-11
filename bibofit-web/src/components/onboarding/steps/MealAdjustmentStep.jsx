@@ -368,13 +368,6 @@ const MealAdjustmentStep = ({ onNext, isLoading: isStepLoading }) => {
       ) : (
         <div className="flex flex-col h-full">
           <div className="flex-1 overflow-y-auto pr-1 space-y-6">
-            <div className="text-center space-y-2 mb-4">
-              <p className="text-muted-foreground">
-                 Revisa la distribución de macros para tus comidas. 
-                 Cuando estés listo, finaliza para generar tu plan.
-              </p>
-            </div>
-
             {/* Meal Configuration Component */}
             <MealMacroConfiguration
                 meals={meals}

@@ -62,7 +62,7 @@ const FoodsWithSensitivitySection = ({ sensitivity, onUpdateFoods }) => {
             toast({ title: 'Error', description: 'No se pudo asociar el alimento.', variant: 'destructive' });
         } else {
             onUpdateFoods(sensitivity.id, foodToAdd, 'add-food');
-            toast({ title: 'Éxito', description: 'Alimento asociado correctamente.' });
+            toast({ title: 'Éxito', description: 'Alimento asociado correctamente.', variant: 'success' });
         }
         setIsLoading(false);
         setIsAddDialogOpen(false);
@@ -81,7 +81,7 @@ const FoodsWithSensitivitySection = ({ sensitivity, onUpdateFoods }) => {
             toast({ title: 'Error', description: 'No se pudo desasociar el alimento.', variant: 'destructive' });
         } else {
             onUpdateFoods(sensitivity.id, foodToRemove, 'remove-food');
-            toast({ title: 'Éxito', description: 'Alimento desasociado correctamente.' });
+            toast({ title: 'Éxito', description: 'Alimento desasociado correctamente.', variant: 'success' });
         }
         setIsLoading(false);
     };

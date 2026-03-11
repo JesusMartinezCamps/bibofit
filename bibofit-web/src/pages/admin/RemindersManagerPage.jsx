@@ -174,7 +174,7 @@ const RemindersManagerPage = () => {
     if (error) {
       toast({ title: 'Error', description: 'No se pudo eliminar el recordatorio.', variant: 'destructive' });
     } else {
-      toast({ title: 'Éxito', description: 'Recordatorio eliminado.' });
+      toast({ title: 'Éxito', description: 'Recordatorio eliminado.', variant: 'success' });
       fetchReminders(selectedUser?.user_id);
     }
     setDeletingId(null);

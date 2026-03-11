@@ -398,12 +398,12 @@ const ConflictResolutionDialog = ({ open, onOpenChange, conflicts, onRecipeUpdat
                                                             {!isResolved ? (
                                                                 <div className="space-y-2 flex-1">
                                                                     {conflicts.map((conflict, idx) => (
-                                                                        <div key={`${recipe.id}-${idx}`} className="bg-red-400/20 border border-red-500/30 rounded px-3 py-2">
+                                                                        <div key={`${recipe.id}-${idx}`} className="bg-red-300/20 border border-red-500/30 rounded px-3 py-2">
                                                                             <div className="flex items-center gap-2 text-red-600 font-medium text-sm">
                                                                                 <AlertTriangle className=" w-3.5 h-3.5" />
                                                                                 <span>{conflict.name}</span>
                                                                             </div>
-                                                                            <p className="text-red-600/80 text-xs mt-1 pl-5">
+                                                                            <p className="text-red-600/90 text-xs mt-1 pl-5">
                                                                                 {conflict.foods.length > 0 ? conflict.foods.join(', ') : 'Ingrediente no identificado'}
                                                                             </p>
                                                                         </div>

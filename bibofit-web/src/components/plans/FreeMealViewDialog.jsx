@@ -160,7 +160,7 @@ const FreeMealViewDialog = ({ open, onOpenChange, freeMeal, onUpdate }) => {
       setCurrentFreeMeal(updatedFreeMeal);
       if (onUpdate) onUpdate(updatedFreeMeal);
 
-      toast({ title: 'Exito', description: 'Receta libre actualizada.' });
+      toast({ title: 'Exito', description: 'Receta libre actualizada.', variant: 'success' });
       setHasChanges(false);
       setMode('view');
     } catch (error) {

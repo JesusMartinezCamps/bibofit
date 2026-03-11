@@ -33,7 +33,7 @@
 - [Mis Recetas Libres - Gsus Martz](/myfreerecipes): Consulta el historial de tus recetas libres y su estado.
 - [Plan de Dieta - Gsus Martz](/dietplan): Visualiza y gestiona tu plan de dieta diario y semanal.
 - [Plan de Entreno - Gsus Martz](/trainingplan): Tu plan de entrenamiento completo.
-- [Precios y Planes | Bibofit](/pricing): Elige el plan perfecto para tus objetivos de fitness y nutrición.
+- [Precios y Planes | Bibofit](/pricing): Elige el plan de nutrición que mejor se adapta a tus objetivos.
 - [Recordatorios - Entrenador](/coachreminders): No description available
 - [Registrarse - Bibofit](/signup): Crea tu cuenta en Bibofit y empieza tu transformación fitness
 - [Registro de Peso - Bibofit](/weightlog): No description available

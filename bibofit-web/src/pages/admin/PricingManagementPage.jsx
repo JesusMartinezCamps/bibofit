@@ -325,7 +325,7 @@ const PricingManagementPage = () => {
         if (insTargetsError) throw insTargetsError;
       }
 
-      toast({ title: 'Guardado', description: 'Plan guardado correctamente.', className: 'bg-green-600 text-white border-none' });
+      toast({ title: 'Guardado', description: 'Plan guardado correctamente.', variant: 'success' });
       setIsDialogOpen(false);
       setPlanForm(emptyPlanForm);
       setEditingPlanId(null);
@@ -344,7 +344,7 @@ const PricingManagementPage = () => {
     try {
       const { error } = await supabase.from('commercial_plans').delete().eq('id', planId);
       if (error) throw error;
-      toast({ title: 'Eliminado', description: 'Plan eliminado.', className: 'bg-green-600 text-white border-none' });
+      toast({ title: 'Eliminado', description: 'Plan eliminado.', variant: 'success' });
       fetchData();
     } catch (error) {
       console.error('[PricingManagementPage] deletePlan error:', error);
@@ -379,7 +379,7 @@ const PricingManagementPage = () => {
       toast({
         title: 'Acceso asignado',
         description: 'Se creó la suscripción manual y se sincronizó el rol del usuario.',
-        className: 'bg-green-600 text-white border-none',
+        variant: 'success',
       });
 
       setSelectedUserId('');

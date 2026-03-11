@@ -70,11 +70,11 @@ const ManageStores = () => {
       if (currentStore) {
         const { error } = await supabase.from('stores').update(formData).eq('id', currentStore.id);
         if (error) throw error;
-        toast({ title: 'Éxito', description: 'Tienda actualizada correctamente.' });
+        toast({ title: 'Éxito', description: 'Tienda actualizada correctamente.', variant: 'success' });
       } else {
         const { error } = await supabase.from('stores').insert(formData);
         if (error) throw error;
-        toast({ title: 'Éxito', description: 'Tienda creada correctamente.' });
+        toast({ title: 'Éxito', description: 'Tienda creada correctamente.', variant: 'success' });
       }
       handleCloseDialog();
       fetchStores();
@@ -89,7 +89,7 @@ const ManageStores = () => {
     try {
       const { error } = await supabase.from('stores').delete().eq('id', storeId);
       if (error) throw error;
-      toast({ title: 'Éxito', description: 'Tienda eliminada.' });
+      toast({ title: 'Éxito', description: 'Tienda eliminada.', variant: 'success' });
       fetchStores();
     } catch (error) {
       toast({ title: 'Error', description: 'No se pudo eliminar la tienda. Asegúrate de que no esté en uso.', variant: 'destructive' });

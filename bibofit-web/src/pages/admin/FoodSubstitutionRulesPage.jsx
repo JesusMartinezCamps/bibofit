@@ -505,11 +505,12 @@ const FoodSubstitutionRulesPage = () => {
 
         toast({
           title: 'Normas guardadas',
-          description: `Se guardaron ${savedCount} norma(s) de sustitución.`
+          description: `Se guardaron ${savedCount} norma(s) de sustitución.`,
+          variant: 'success'
         });
       }
       if (editingMappingId) {
-        toast({ title: 'Norma actualizada', description: 'La regla fue actualizada correctamente.' });
+        toast({ title: 'Norma actualizada', description: 'La regla fue actualizada correctamente.', variant: 'success' });
       }
       setFormData(DEFAULT_FORM);
       setSelectedContextKeys([]);
@@ -529,7 +530,7 @@ const FoodSubstitutionRulesPage = () => {
       const { error } = await supabase.from('food_substitution_mappings').delete().eq('id', id);
       if (error) throw error;
       setMappings((prev) => prev.filter((item) => item.id !== id));
-      toast({ title: 'Norma eliminada', description: 'La norma se eliminó.' });
+      toast({ title: 'Norma eliminada', description: 'La norma se eliminó.', variant: 'success' });
     } catch (error) {
       toast({ title: 'Error eliminando norma', description: error.message, variant: 'destructive' });
     }

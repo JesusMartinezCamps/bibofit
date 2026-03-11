@@ -61,7 +61,7 @@ const ManagePathologies = () => {
         .from('pathologies')
         .upsert(editingPathology ? { id: editingPathology.id, ...formData } : formData);
       if (error) throw error;
-      toast({ title: 'Éxito', description: `Patología ${editingPathology ? 'actualizada' : 'creada'} correctamente.` });
+      toast({ title: 'Éxito', description: `Patología ${editingPathology ? 'actualizada' : 'creada'} correctamente.`, variant: 'success' });
       setIsDialogOpen(false);
       fetchPathologies();
     } catch (error) {
@@ -76,7 +76,7 @@ const ManagePathologies = () => {
     try {
       const { error } = await supabase.from('pathologies').delete().eq('id', id);
       if (error) throw error;
-      toast({ title: 'Éxito', description: 'Patología eliminada.' });
+      toast({ title: 'Éxito', description: 'Patología eliminada.', variant: 'success' });
       fetchPathologies();
     } catch (error) {
       toast({ title: 'Error', description: `No se pudo eliminar la patología: ${error.message}`, variant: 'destructive' });

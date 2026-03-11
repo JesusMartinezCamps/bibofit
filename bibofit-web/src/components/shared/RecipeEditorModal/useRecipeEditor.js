@@ -339,7 +339,7 @@ export const useRecipeEditor = ({ recipeToEdit, onSaveSuccess, isAdminView, user
              
              if (result.success) {
                  if (onSaveSuccess) onSaveSuccess(result.data, 'update_details');
-                 toast({ title: 'Éxito', description: result.message });
+                 toast({ title: 'Éxito', description: result.message, variant: 'success' });
                  setIsSubmitting(false);
                  return true;
              }
@@ -418,7 +418,7 @@ export const useRecipeEditor = ({ recipeToEdit, onSaveSuccess, isAdminView, user
             setInitialFormData(finalFormData);
             setOriginalIngredients(JSON.parse(JSON.stringify(sanitizedIngredients)));
             if (onSaveSuccess) onSaveSuccess(result.data, result.action);
-            toast({ title: 'Éxito', description: result.message });
+            toast({ title: 'Éxito', description: result.message, variant: 'success' });
             return true;
         } else {
             toast({ title: 'Error', description: result.message, variant: 'destructive' });

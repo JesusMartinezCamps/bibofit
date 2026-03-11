@@ -210,7 +210,7 @@ export const useFreeMealDialog = ({ open, onOpenChange, userId, onSaveSuccess, i
         dnd_id: `free-${occurrence.id}`,
       };
 
-      toast({ title: "Éxito", description: `Receta libre ${mealToEdit ? 'actualizada' : 'registrada'} correctamente.` });
+      toast({ title: "Éxito", description: `Receta libre ${mealToEdit ? 'actualizada' : 'registrada'} correctamente.`, variant: "success" });
       if (onSaveSuccess) onSaveSuccess(mealLog, newFreeRecipeWithDetails);
       onOpenChange(false);
     } catch (error) {

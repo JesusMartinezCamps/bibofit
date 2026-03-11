@@ -59,7 +59,7 @@ const FoodsForConditionSection = ({ conditionId, foods, onUpdateFoods, relationT
             toast({ title: 'Error', description: 'No se pudo asociar el alimento. ' + error.message, variant: 'destructive' });
         } else {
             onUpdateFoods(conditionId, newAssociation, 'add');
-            toast({ title: 'Éxito', description: 'Alimento asociado correctamente.' });
+            toast({ title: 'Éxito', description: 'Alimento asociado correctamente.', variant: 'success' });
         }
         setIsLoading(false);
         setIsAddDialogOpen(false);
@@ -70,13 +70,13 @@ const FoodsForConditionSection = ({ conditionId, foods, onUpdateFoods, relationT
         const { error } = await supabase.from('food_medical_conditions')
             .delete()
             .match({ food_id: foodId, condition_id: conditionId, relation_type: relationType });
-            
+
         if (error) {
             toast({ title: 'Error', description: 'No se pudo desasociar el alimento.', variant: 'destructive' });
         } else {
             const foodToRemove = foodsToDisplay.find(f => f.food.id === foodId);
             onUpdateFoods(conditionId, foodToRemove, 'remove');
-            toast({ title: 'Éxito', description: 'Alimento desasociado correctamente.' });
+            toast({ title: 'Éxito', description: 'Alimento desasociado correctamente.', variant: 'success' });
         }
         setIsLoading(false);
     };

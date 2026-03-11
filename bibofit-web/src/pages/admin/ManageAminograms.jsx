@@ -75,11 +75,11 @@ const ManageAminograms = () => {
       if (currentAminogram) {
         const { error } = await supabase.from('aminograms').update(formData).eq('id', currentAminogram.id);
         if (error) throw error;
-        toast({ title: 'Éxito', description: 'Aminograma actualizado.' });
+        toast({ title: 'Éxito', description: 'Aminograma actualizado.', variant: 'success' });
       } else {
         const { error } = await supabase.from('aminograms').insert(formData);
         if (error) throw error;
-        toast({ title: 'Éxito', description: 'Aminograma creado.' });
+        toast({ title: 'Éxito', description: 'Aminograma creado.', variant: 'success' });
       }
       handleCloseDialog();
       fetchAminograms();
@@ -94,7 +94,7 @@ const ManageAminograms = () => {
     try {
       const { error } = await supabase.from('aminograms').delete().eq('id', aminogramId);
       if (error) throw error;
-      toast({ title: 'Éxito', description: 'Aminograma eliminado.' });
+      toast({ title: 'Éxito', description: 'Aminograma eliminado.', variant: 'success' });
       fetchAminograms();
     } catch (error) {
       toast({ title: 'Error', description: 'No se pudo eliminar. Asegúrate de que no esté en uso.', variant: 'destructive' });

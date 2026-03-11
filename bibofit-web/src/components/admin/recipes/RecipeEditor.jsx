@@ -211,7 +211,7 @@ const RecipeEditor = ({
       // 3. Update Macros Cache
       await saveRecipeMacros(null, dietPlanRecipeId, currentMacros);
       
-      toast({ title: "Éxito", description: "Receta del plan actualizada." });
+      toast({ title: "Éxito", description: "Receta del plan actualizada.", variant: "success" });
       onSave();
 
     } else if (isAdminView) {
@@ -244,7 +244,7 @@ const RecipeEditor = ({
 
       await saveRecipeMacros(recipeId, null, currentMacros);
 
-      toast({ title: "Éxito", description: `Plantilla ${selectedRecipe ? 'actualizada' : 'creada'} correctamente.` });
+      toast({ title: "Éxito", description: `Plantilla ${selectedRecipe ? 'actualizada' : 'creada'} correctamente.`, variant: "success" });
       onSave();
     }
 

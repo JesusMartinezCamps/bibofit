@@ -114,7 +114,7 @@ export const useDietCalories = (dietPlanId, initialBaseTdee, userId) => {
 
       if (insertError) throw insertError;
       
-      toast({ title: 'Éxito', description: 'Nueva asignación de calorías registrada.' });
+      toast({ title: 'Éxito', description: 'Nueva asignación de calorías registrada.', variant: 'success' });
       await fetchData(); 
       return { success: true };
     } catch (err) {
@@ -139,7 +139,7 @@ export const useDietCalories = (dietPlanId, initialBaseTdee, userId) => {
 
       if (error) throw error;
       
-      toast({ title: 'Éxito', description: 'Registro de calorías eliminado.' });
+      toast({ title: 'Éxito', description: 'Registro de calorías eliminado.', variant: 'success' });
       await fetchData(); 
       return { success: true };
     } catch (err) {

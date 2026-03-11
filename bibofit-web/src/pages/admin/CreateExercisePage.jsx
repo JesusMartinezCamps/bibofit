@@ -190,7 +190,7 @@ const CreateExercisePage = () => {
         }
     }
     
-    toast({ title: "Éxito", description: `Ejercicio ${selectedExerciseId ? 'actualizado' : 'creado'} correctamente.` });
+    toast({ title: "Éxito", description: `Ejercicio ${selectedExerciseId ? 'actualizado' : 'creado'} correctamente.`, variant: "success" });
     resetForm();
     await fetchAllData();
     setIsSubmitting(false);

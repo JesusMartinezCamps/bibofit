@@ -222,7 +222,7 @@ const UsersManagerPage = () => {
 
             if (error) throw error;
 
-            toast({ title: "Rol actualizado", className: "bg-green-600 text-white border-none" });
+            toast({ title: "Rol actualizado", variant: "success" });
         } catch (error) {
             setUsers((prevUsers) =>
                 prevUsers.map((u) =>
@@ -268,7 +268,7 @@ const UsersManagerPage = () => {
             }
 
             setIsCenterDialogOpen(false);
-            toast({ title: "Centro actualizado", className: "bg-green-600 text-white border-none" });
+            toast({ title: "Centro actualizado", variant: "success" });
             refreshData();
         } catch (error) {
             toast({ title: "Error", description: "No se pudo cambiar el centro.", variant: "destructive" });
@@ -281,7 +281,7 @@ const UsersManagerPage = () => {
             if (error) throw error;
 
             setIsCoachDialogOpen(false);
-            toast({ title: "Entrenador asignado", className: "bg-green-600 text-white border-none" });
+            toast({ title: "Entrenador asignado", variant: "success" });
             refreshData();
         } catch (error) {
             toast({ title: "Error", description: "No se pudo asignar el entrenador.", variant: "destructive" });
@@ -292,7 +292,7 @@ const UsersManagerPage = () => {
         try {
             const { error } = await supabase.from('coach_clients').delete().eq('id', assignmentId);
             if (error) throw error;
-            toast({ title: "Entrenador removido", className: "bg-green-600 text-white border-none" });
+            toast({ title: "Entrenador removido", variant: "success" });
             refreshData();
         } catch (error) {
             toast({ title: "Error", description: "No se pudo remover.", variant: "destructive" });
@@ -370,7 +370,7 @@ const UsersManagerPage = () => {
             toast({
                 title: "Usuario eliminado",
                 description: `El usuario ${userToDelete.full_name} y todos sus datos han sido eliminados.`,
-                className: "bg-green-600 text-white border-none"
+                variant: "success"
             });
 
             refreshData();

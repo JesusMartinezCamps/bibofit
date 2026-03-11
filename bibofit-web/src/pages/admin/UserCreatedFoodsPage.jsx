@@ -361,7 +361,7 @@ const UserCreatedFoodsPage = () => {
     try {
       const { error } = await supabase.rpc('delete_food_with_dependencies', { p_food_id: foodId });
       if (error) throw error;
-      toast({ title: 'Éxito', description: 'Alimento eliminado permanentemente.' });
+      toast({ title: 'Éxito', description: 'Alimento eliminado permanentemente.', variant: 'success' });
       handleFoodAction();
     } catch (error) {
       toast({

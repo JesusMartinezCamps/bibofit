@@ -86,6 +86,7 @@ const LoginPage = () => {
           toast({
             title: 'Invitación aplicada',
             description: 'Se aplicaron automáticamente tu rol y centro de invitación.',
+            variant: 'success',
           });
         }
         if (['revoked', 'expired', 'exhausted', 'invalid_token'].includes(result.invitationRedemption?.status)) {

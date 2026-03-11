@@ -194,7 +194,7 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
       console.log('4. Edge Function Response:', funcData);
       if (funcData && !funcData.success) throw new Error('Error interno en balanceo: ' + (funcData.error || 'Unknown error'));
 
-      toast({ title: 'Éxito', description: 'Equivalencia aplicada y recetas ajustadas.' });
+      toast({ title: 'Éxito', description: 'Equivalencia aplicada y recetas ajustadas.', variant: 'success' });
       if(onSuccess) onSuccess(newAdjustment);
       // NO cerramos aquí: el padre se encarga de cerrar y limpiar estado.
       // Esto evita el "cierra/reabre" por dobles updates + refetch.    

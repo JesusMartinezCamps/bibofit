@@ -116,7 +116,7 @@ const ManageCarbTypes = () => {
 
             if (error) throw error;
 
-            toast({ title: "Éxito", description: "Operación realizada correctamente." });
+            toast({ title: "Éxito", description: "Operación realizada correctamente.", variant: "success" });
             setIsModalOpen(false);
             fetchData();
         } catch (error) {
@@ -141,7 +141,7 @@ const ManageCarbTypes = () => {
             const { error } = await supabase.from(table).delete().eq('id', deleteTarget.id);
             if (error) throw error;
 
-            toast({ title: "Eliminado", description: "Elemento eliminado correctamente." });
+            toast({ title: "Eliminado", description: "Elemento eliminado correctamente.", variant: "success" });
             
             // Reset selections if parent is deleted
             if (deleteTarget.level === 'type' && selectedType?.id === deleteTarget.id) {

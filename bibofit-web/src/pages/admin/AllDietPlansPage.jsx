@@ -83,7 +83,7 @@ const AllDietPlansPage = () => {
             
             await supabase.rpc('delete_diet_plan_with_dependencies', { p_plan_id: templateId });
 
-            toast({ title: "Plantilla eliminada", description: "La plantilla y todos sus planes asociados han sido eliminados." });
+            toast({ title: "Plantilla eliminada", description: "La plantilla y todos sus planes asociados han sido eliminados.", variant: "success" });
             fetchData();
         } catch (error) {
             toast({ title: "Error al eliminar", description: error.message, variant: "destructive" });

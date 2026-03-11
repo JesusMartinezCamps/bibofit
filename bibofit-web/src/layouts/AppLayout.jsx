@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Header from '@/components/Header';
 import OnboardingWizard from '@/components/onboarding/OnboardingWizard';
@@ -20,6 +20,13 @@ const noMobilePaddingPaths = [
 
 const AppLayout = () => {
   const location = useLocation();
+
+  useEffect(() => {
+    document.body.classList.add('app-shell-scroll-lock');
+    return () => {
+      document.body.classList.remove('app-shell-scroll-lock');
+    };
+  }, []);
 
   const shouldRemoveMobilePadding = noMobilePaddingPaths.some(path =>
     location.pathname.startsWith(path)

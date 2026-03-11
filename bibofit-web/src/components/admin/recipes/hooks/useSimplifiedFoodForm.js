@@ -216,7 +216,7 @@ export const useSimplifiedFoodForm = ({ onFoodActionComplete, isClientRequest, u
                 if (error) throw error;
             }
 
-            toast({ title: 'Éxito', description: 'Solicitud de alimento enviada correctamente.' });
+            toast({ title: 'Éxito', description: 'Solicitud de alimento enviada correctamente.', variant: 'success' });
             if (onFoodActionComplete) onFoodActionComplete(savedRequest);
         } catch (error) {
             console.error('Error submitting simplified food form:', error);

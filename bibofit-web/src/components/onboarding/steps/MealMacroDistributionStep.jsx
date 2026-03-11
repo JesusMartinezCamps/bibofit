@@ -49,10 +49,6 @@ const MealMacroDistributionStep = ({ onNext, isLoading }) => {
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto pr-1">
-        <div className="text-center space-y-2 mb-6">
-          <p className="text-muted-foreground">Define tus objetivos nutricionales base.</p>
-        </div>
-
         <MacroDistribution
             effectiveTdee={dailyCalories}
             calculatedTdee={user?.tdee_kcal || 2000}

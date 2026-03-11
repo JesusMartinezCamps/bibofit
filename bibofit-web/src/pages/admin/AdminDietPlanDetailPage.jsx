@@ -220,7 +220,7 @@ const AdminDietPlanDetailPage = ({
                 throw new Error(errorMsg || 'Ocurrió un error al guardar.');
             }
 
-            toast({ title: 'Guardado', description: 'Configuración de macros por comida guardada.', className: 'bg-green-600 text-white' });
+            toast({ title: 'Guardado', description: 'Configuración de macros por comida guardada.', variant: 'success' });
             fetchData(true);
         } catch (error) {
             toast({ title: 'Error', description: `No se pudo guardar: ${error.message}`, variant: 'destructive' });

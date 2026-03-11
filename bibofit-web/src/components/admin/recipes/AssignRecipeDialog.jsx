@@ -174,7 +174,7 @@ const AssignRecipeDialog = ({ recipe, open, onOpenChange, onAssigned, preselecte
       if (insertError) throw insertError;
 
       const client = clients.find(c => c.user_id === selectedClientId);
-      toast({ title: 'Éxito', description: `Receta "${recipe.name}" asignada a ${client?.full_name}.` });
+      toast({ title: 'Éxito', description: `Receta "${recipe.name}" asignada a ${client?.full_name}.`, variant: 'success' });
       if (onAssigned) onAssigned({ ...newDietPlanRecipe, user_id: selectedClientId });
       onOpenChange(false);
     } catch (error) {

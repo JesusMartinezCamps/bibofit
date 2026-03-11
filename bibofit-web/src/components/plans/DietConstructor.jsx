@@ -209,7 +209,7 @@ const DietConstructor = ({ userId, dietPlan, onPlanUpdate, isTemplate }) => {
             });
 
             await Promise.all(updates);
-            toast({ title: 'Guardado', description: 'Configuración de macros por comida guardada.', className: 'bg-green-600 text-white' });
+            toast({ title: 'Guardado', description: 'Configuración de macros por comida guardada.', variant: 'success' });
             fetchData();
         } catch (error) {
             toast({ title: 'Error de guardado', description: `No se pudo guardar: ${error.message}`, variant: 'destructive' });

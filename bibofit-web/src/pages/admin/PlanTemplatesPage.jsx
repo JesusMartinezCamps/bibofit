@@ -151,7 +151,7 @@ const PlanTemplatesPage = () => {
             const { error: dependenciesError } = await supabase.rpc('delete_diet_plan_with_dependencies', { p_plan_id: id });
             if (dependenciesError) throw dependenciesError;
             
-            toast({ title: 'Plantilla eliminada', description: 'La plantilla ha sido eliminada correctamente.' });
+            toast({ title: 'Plantilla eliminada', description: 'La plantilla ha sido eliminada correctamente.', variant: 'success' });
             fetchTemplates();
         } catch (error) {
             toast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -167,7 +167,7 @@ const PlanTemplatesPage = () => {
             
             if (error) throw error;
             
-            toast({ title: 'Plantilla promovida', description: 'La plantilla ahora es global y visible para todos los centros.' });
+            toast({ title: 'Plantilla promovida', description: 'La plantilla ahora es global y visible para todos los centros.', variant: 'success' });
             fetchTemplates();
         } catch (error) {
             toast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -409,7 +409,7 @@ const PlanTemplatesPage = () => {
                     onSuccess={() => {
                         setIsAssignDialogOpen(false);
                         fetchTemplates();
-                        toast({ title: 'Plan asignado', description: 'La plantilla se ha asignado correctamente.'});
+                        toast({ title: 'Plan asignado', description: 'La plantilla se ha asignado correctamente.', variant: 'success' });
                     }}
                 />
             )}
