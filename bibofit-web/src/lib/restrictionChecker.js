@@ -124,6 +124,38 @@ export const getConflictInfo = (food, userRestrictions) => {
       }
     }
   
+    // Check diet type compatibility
+    // Genera advertencias (no bloqueos): el usuario puede usar el alimento igualmente.
+    if (userRestrictions.diet_type_id && Array.isArray(userRestrictions.diet_type_rules) && userRestrictions.diet_type_rules.length > 0) {
+        const foodGroupIds = (food.food_to_food_groups || []).map(fg => Number(fg.food_group_id ?? fg.food_group?.id));
+
+        if (foodGroupIds.length > 0) {
+            const excludedRule = userRestrictions.diet_type_rules.find(
+                r => r.rule_type === 'excluded' && foodGroupIds.includes(Number(r.food_group_id))
+            );
+            if (excludedRule) {
+                return {
+                    type: 'diet_type_excluded',
+                    reason: `No recomendado en dieta ${userRestrictions.diet_type_name || 'seleccionada'}: ${excludedRule.food_group_name || ''}`.trim(),
+                    diet_type_id: userRestrictions.diet_type_id,
+                    food_group_name: excludedRule.food_group_name,
+                };
+            }
+
+            const limitedRule = userRestrictions.diet_type_rules.find(
+                r => r.rule_type === 'limited' && foodGroupIds.includes(Number(r.food_group_id))
+            );
+            if (limitedRule) {
+                return {
+                    type: 'diet_type_limited',
+                    reason: `Uso reducido recomendado en dieta ${userRestrictions.diet_type_name || 'seleccionada'}: ${limitedRule.food_group_name || ''}`.trim(),
+                    diet_type_id: userRestrictions.diet_type_id,
+                    food_group_name: limitedRule.food_group_name,
+                };
+            }
+        }
+    }
+
     return null;
 };
 
@@ -157,9 +189,20 @@ export const prefetchSubstitutionMappings = async (sourceFoodIds = []) => {
 export const getConflictWithSubstitutions = async (food, userRestrictions, allFoods, preloadedMappingsBySourceId = null) => {
     const basicConflict = getConflictInfo(food, userRestrictions);
     
-    // Si no hay conflicto o es una preferencia positiva, retornamos rápido
+    // Si no hay conflicto o es una preferencia positiva, retornamos rápido.
+    // Los conflictos de tipo de dieta son advertencias informativas: se reportan
+    // pero no se buscan sustituciones automáticas (el usuario decide libremente).
     if (!basicConflict || basicConflict.type === 'preferred' || basicConflict.type === 'condition_recommend') {
         return { hasConflict: false };
+    }
+    if (basicConflict.type === 'diet_type_excluded' || basicConflict.type === 'diet_type_limited') {
+        return {
+            hasConflict: true,
+            conflict: basicConflict,
+            substitutions: [],
+            autoSubstitution: null,
+            requiresReview: false,  // advertencia informativa, no requiere acción
+        };
     }
     
     try {

@@ -1,12 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabaseClient';
 import FoodPreferencesForm from '@/components/profile/FoodPreferencesForm';
 import { Loader2 } from 'lucide-react';
 
 const DietPreferencesStep = ({ onNext, isLoading }) => {
   const { user } = useAuth();
   const [saveStatus, setSaveStatus] = useState('idle');
+  const [userRestrictions, setUserRestrictions] = useState(null);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase.rpc('get_user_restrictions', { p_user_id: user.id })
+      .then(({ data }) => { if (data) setUserRestrictions(data); });
+  }, [user?.id]);
 
   const handleNext = () => {
     onNext({});
@@ -15,7 +23,7 @@ const DietPreferencesStep = ({ onNext, isLoading }) => {
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto pr-1">
-         <FoodPreferencesForm userId={user?.id} onSaveStatusChange={setSaveStatus} />
+         <FoodPreferencesForm userId={user?.id} onSaveStatusChange={setSaveStatus} userRestrictions={userRestrictions} />
       </div>
 
       <div className="pt-6 mt-auto shrink-0">

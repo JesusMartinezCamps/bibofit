@@ -69,6 +69,15 @@ const FreeMealApprovalModal = ({ freeMeal, isOpen, onOpenChange, onAction }) => 
     allSensitivities: [],
   });
 
+  // Formato compatible con getConflictInfo / IngredientSearch
+  const ingredientSearchRestrictions = useMemo(() => ({
+    sensitivities: planRestrictions.sensitivities.map(id => ({ id })),
+    medical_conditions: planRestrictions.conditions.map(id => ({ id })),
+    individual_food_restrictions: [],
+    preferred_foods: planRestrictions.preferredFoods.map(id => ({ id })),
+    non_preferred_foods: planRestrictions.nonPreferredFoods.map(id => ({ id })),
+  }), [planRestrictions]);
+
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -367,13 +376,7 @@ const FreeMealApprovalModal = ({ freeMeal, isOpen, onOpenChange, onAction }) => 
             <IngredientSearch
               selectedIngredients={editableIngredients}
               availableFoods={availableFoods}
-              userRestrictions={{
-                sensitivities: [],
-                medical_conditions: [],
-                individual_food_restrictions: [],
-                preferred_foods: [],
-                non_preferred_foods: [],
-              }}
+              userRestrictions={ingredientSearchRestrictions}
               onBack={() => setIsSearchingIngredient(false)}
               onIngredientAdded={handleIngredientAdded}
               createFoodUserId={freeMeal?.user_id || user?.id}

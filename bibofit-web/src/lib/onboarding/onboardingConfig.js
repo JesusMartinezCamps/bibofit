@@ -13,16 +13,30 @@ export const ONBOARDING_STEPS = [
     id: 'physical-data',
     type: 'form',
     title: 'Datos Físicos',
-    description: 'Se calculará tu gasto calórico aproximado utilizando la fórmula científica de Harris-Benedict',
-    fieldKeys: ['birth_date', 'sex', 'height_cm', 'current_weight_kg', 'activity_level_id'],
+    description: 'Se calculará tu gasto calórico aproximado con Mifflin-St Jeor y, si aportas datos extra, con ecuaciones avanzadas.',
+    fieldKeys: [
+      'birth_date',
+      'sex',
+      'height_cm',
+      'current_weight_kg',
+      'activity_level_id',
+      'knows_ffm',
+      'ffm_method',
+      'is_athlete',
+      'athlete_type',
+      'ffm_pct',
+      'fm_pct',
+      'ffm_kg',
+      'fm_kg'
+    ],
     nextStepId: 'diet_objective_history',
     tableName: 'profiles',
     showModal: true,
     modalContent: {
       title: "Datos Físicos",
       description: "Con tus datos físicos podremos calcular tus requerimientos calóricos.",
-      tips: ["El sistema utiliza la fórmula de Harris-Benedict para calcular la Tasa Metabólica Basal (TMB)", "El nivel de actividad es algo orientativo",
-        "Bibofit se adaptará a tu TMB en función de tu progreso"
+      tips: ["El sistema usa Mifflin-St Jeor como base y puede usar ecuaciones avanzadas si aportas datos opcionales", "El nivel de actividad es algo orientativo",
+        "Bibofit adaptará el resultado en función de tu progreso, este es sólo un punto inicial."
       ]
     },
     component: 'PhysicalDataStep'

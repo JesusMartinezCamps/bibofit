@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Moon, Sun, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Moon, Sun, X, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import OnboardingModal from './OnboardingModal';
 import { useTheme } from '@/contexts/ThemeContext';
+import { ONBOARDING_STEPS } from '@/lib/onboarding/onboardingConfig';
 
 // Existing Steps
 import IntroStep from './steps/IntroStep';
@@ -18,6 +19,22 @@ import CompletionStep from './steps/CompletionStep';
 // New Steps
 import MealMacroDistributionStep from './steps/MealMacroDistributionStep';
 import MealAdjustmentStep from './steps/MealAdjustmentStep';
+
+// Pasos que se muestran en la barra de navegación rápida (sin intro ni completion)
+const NAV_STEPS = ONBOARDING_STEPS.filter(
+  s => s.id !== 'intro' && s.id !== 'completion'
+);
+
+// Etiquetas cortas para la nav bar
+const STEP_SHORT_LABEL = {
+  'physical-data':            'Físico',
+  'diet_objective_history':   'Objetivo',
+  'diet_meals_preferences':   'Comidas',
+  'diet_restrictions':        'Restricciones',
+  'diet_preferences':         'Gustos',
+  'meal-macro-distribution':  'Macros',
+  'meal-adjustment':          'Ajuste',
+};
 
 const OnboardingWizard = ({ isOpen: propIsOpen }) => {
   const { isDark, toggleTheme } = useTheme();
@@ -35,10 +52,11 @@ const OnboardingWizard = ({ isOpen: propIsOpen }) => {
     hasCompletedOnboardingOnce,
     cancelOnboarding,
     jumpToMealAdjustment,
+    jumpToStep,
     isRepeatingOnboarding
   } = useOnboarding();
 
-  // Local state to track if the modal for the current step has been dismissed
+  // En modo repetición el modal NO aparece automáticamente: el usuario lo abre con el botón ℹ️
   const [isModalDismissed, setIsModalDismissed] = useState(false);
 
   // Determine effective open state: Prop overrides context if provided
@@ -60,10 +78,10 @@ const OnboardingWizard = ({ isOpen: propIsOpen }) => {
     };
   }, [effectiveIsOpen]);
 
-  // Reset modal state when step changes
+  // Al cambiar de paso: en primera vez el modal se auto-muestra; en repetición empieza cerrado
   useEffect(() => {
-    setIsModalDismissed(false);
-  }, [currentStep?.id]);
+    setIsModalDismissed(isRepeatingOnboarding);
+  }, [currentStep?.id, isRepeatingOnboarding]);
 
   if (!effectiveIsOpen) {
     return null;
@@ -107,10 +125,11 @@ const OnboardingWizard = ({ isOpen: propIsOpen }) => {
   }[currentStep.id] || IntroStep;
 
   const progress = ((currentStepIndex + 1) / totalSteps) * 100;
-  
+
   // Access modal content directly from the centralized config
   const activeModalContent = currentStep.modalContent;
   const shouldShowModal = Boolean(currentStep.showModal && activeModalContent && !isModalDismissed);
+  const hasModalContent = Boolean(currentStep.showModal && activeModalContent);
   const canJumpToMealAdjustment = hasCompletedOnboardingOnce
     && isRepeatingOnboarding
     && currentStep.id !== 'meal-adjustment'
@@ -139,67 +158,113 @@ const OnboardingWizard = ({ isOpen: propIsOpen }) => {
       </AnimatePresence>
 
       {/* Header */}
-      <div className="px-6 py-4 md:px-8 md:py-6 flex items-center justify-between border-b border-border shrink-0 relative bg-[#0f1115] z-10">
-          {!isFirstStep && !isLastStep ? (
-              <Button variant="ghost" size="icon" onClick={previousStep} className="text-muted-foreground hover:text-muted-foreground hover:bg-muted">
-                  <ChevronLeft className="h-6 w-6" />
-              </Button>
+      <div className="px-4 py-3 md:px-8 md:py-4 flex items-center justify-between border-b border-border shrink-0 relative bg-[#0f1115] z-10">
+        {/* Izquierda: botón anterior (solo primer onboarding) */}
+        {!isRepeatingOnboarding ? (
+          !isFirstStep && !isLastStep ? (
+            <Button variant="ghost" size="icon" onClick={previousStep} className="text-muted-foreground hover:text-muted-foreground hover:bg-muted">
+              <ChevronLeft className="h-6 w-6" />
+            </Button>
           ) : (
-              <div className="w-10" /> 
-          )}
+            <div className="w-10" />
+          )
+        ) : (
+          <div className="w-10" />
+        )}
 
-          {!isFirstStep && !isLastStep && (
-              <span className="font-semibold text-sm md:text-base text-foreground">
-                  Paso {currentStepIndex} de {totalSteps - 2}
-              </span>
-          )}
+        {/* Centro: indicador de paso (solo primer onboarding) */}
+        {!isRepeatingOnboarding && !isFirstStep && !isLastStep && (
+          <span className="font-semibold text-sm md:text-base text-foreground">
+            Paso {currentStepIndex} de {totalSteps - 2}
+          </span>
+        )}
 
-           <div className="min-w-[5.5rem] flex justify-end gap-1">
+        {/* Derecha: acciones */}
+        <div className="flex justify-end gap-1">
+          {/* Botón ℹ️ modal explicativo — visible en repetición cuando el paso tiene contenido */}
+          {isRepeatingOnboarding && hasModalContent && (
             <Button
               variant="ghost"
               size="icon"
-              onClick={toggleTheme}
+              onClick={() => setIsModalDismissed(false)}
               className="text-muted-foreground hover:text-foreground hover:bg-muted"
-              aria-label={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+              aria-label="Ver explicación de este paso"
               disabled={isLoading}
             >
-              {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              <Info className="h-5 w-5" />
             </Button>
-            {canJumpToMealAdjustment && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={jumpToMealAdjustment}
-                className="text-muted-foreground hover:text-foreground hover:bg-muted"
-                aria-label="Ir al ajuste final"
-                disabled={isLoading}
-              >
-                <ChevronRight className="h-5 w-5" />
-              </Button>
-            )}
-            {hasCompletedOnboardingOnce && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={cancelOnboarding}
-                className="text-muted-foreground hover:text-foreground hover:bg-muted"
-                aria-label="Cerrar onboarding"
-                disabled={isLoading}
-              >
-                <X className="h-5 w-5" />
-              </Button>
-            )}
-           </div>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleTheme}
+            className="text-muted-foreground hover:text-foreground hover:bg-muted"
+            aria-label={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+            disabled={isLoading}
+          >
+            {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </Button>
+          {canJumpToMealAdjustment && !isRepeatingOnboarding && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={jumpToMealAdjustment}
+              className="text-muted-foreground hover:text-foreground hover:bg-muted"
+              aria-label="Ir al ajuste final"
+              disabled={isLoading}
+            >
+              <ChevronRight className="h-5 w-5" />
+            </Button>
+          )}
+          {hasCompletedOnboardingOnce && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={cancelOnboarding}
+              className="text-muted-foreground hover:text-foreground hover:bg-muted"
+              aria-label="Cerrar onboarding"
+              disabled={isLoading}
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          )}
+        </div>
       </div>
 
-      {/* Progress Bar */}
-      {!isFirstStep && !isLastStep && (
-         <div className="h-1 bg-muted w-full overflow-hidden shrink-0">
-            <div 
-              className="h-full bg-green-500 transition-all duration-300 ease-out"
-              style={{ width: `${progress}%` }}
-            />
-         </div>
+      {/* Barra de navegación por pasos (solo modo repetición) */}
+      {isRepeatingOnboarding && !isFirstStep && !isLastStep && (
+        <div className="shrink-0 border-b border-border bg-[#0f1115] px-2 py-2 overflow-x-auto">
+          <div className="flex gap-1.5 min-w-max px-2">
+            {NAV_STEPS.map((step) => {
+              const isActive = step.id === currentStep.id;
+              return (
+                <button
+                  key={step.id}
+                  type="button"
+                  disabled={isLoading}
+                  onClick={() => jumpToStep(step.id)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                    isActive
+                      ? 'bg-green-600 text-white'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground'
+                  }`}
+                >
+                  {STEP_SHORT_LABEL[step.id] ?? step.title}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Barra de progreso (solo primer onboarding) */}
+      {!isRepeatingOnboarding && !isFirstStep && !isLastStep && (
+        <div className="h-1 bg-muted w-full overflow-hidden shrink-0">
+          <div
+            className="h-full bg-green-500 transition-all duration-300 ease-out"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
       )}
 
       {/* Main Content Area */}

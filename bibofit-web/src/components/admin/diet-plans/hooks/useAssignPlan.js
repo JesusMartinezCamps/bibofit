@@ -32,10 +32,27 @@ export const useAssignPlan = ({ open, onOpenChange, onSuccess, preselectedClient
     const [modifiedRecipes, setModifiedRecipes] = useState(new Map());
 
     const planRestrictionsForEditor = useMemo(() => {
-        if (!clientRestrictions) return { sensitivities: [], conditions: [] };
+        if (!clientRestrictions) {
+            return {
+                sensitivities: [],
+                conditions: [],
+                individual_food_restrictions: [],
+                preferred_foods: [],
+                non_preferred_foods: [],
+                diet_type_id: null,
+                diet_type_name: null,
+                diet_type_rules: [],
+            };
+        }
         return {
-            sensitivities: clientRestrictions.sensitivities.map(s => s.id),
-            conditions: clientRestrictions.conditions.map(c => c.id)
+            sensitivities: (clientRestrictions.sensitivities || []).map(s => s.id),
+            conditions: (clientRestrictions.conditions || []).map(c => c.id),
+            individual_food_restrictions: clientRestrictions.individual_food_restrictions || [],
+            preferred_foods: clientRestrictions.preferred_foods || [],
+            non_preferred_foods: clientRestrictions.non_preferred_foods || [],
+            diet_type_id: clientRestrictions.diet_type_id ?? null,
+            diet_type_name: clientRestrictions.diet_type_name ?? null,
+            diet_type_rules: clientRestrictions.diet_type_rules || [],
         };
     }, [clientRestrictions]);
     
@@ -216,15 +233,29 @@ export const useAssignPlan = ({ open, onOpenChange, onSuccess, preselectedClient
                 return;
             }
             try {
-                const { data: sensitivities, error: sensError } = await supabase.from('user_sensitivities').select('sensitivities(id, name)').eq('user_id', selectedClientId);
-                if (sensError) throw sensError;
+                const [restrictionsRes, preferredRes, nonPreferredRes] = await Promise.all([
+                    supabase.rpc('get_user_restrictions', { p_user_id: selectedClientId }),
+                    supabase.from('preferred_foods').select('food(id, name)').eq('user_id', selectedClientId),
+                    supabase.from('non_preferred_foods').select('food(id, name)').eq('user_id', selectedClientId),
+                ]);
 
-                const { data: conditions, error: condError } = await supabase.from('user_medical_conditions').select('medical_conditions(id, name)').eq('user_id', selectedClientId);
-                if (condError) throw condError;
+                if (restrictionsRes.error) throw restrictionsRes.error;
+                if (preferredRes.error) throw preferredRes.error;
+                if (nonPreferredRes.error) throw nonPreferredRes.error;
+
+                const rpcRestrictions = restrictionsRes.data || {};
+                const medicalConditions = rpcRestrictions.medical_conditions || rpcRestrictions.conditions || [];
 
                 setClientRestrictions({
-                    sensitivities: sensitivities.map(s => s.sensitivities).filter(Boolean),
-                    conditions: conditions.map(c => c.medical_conditions).filter(Boolean),
+                    sensitivities: rpcRestrictions.sensitivities || [],
+                    conditions: medicalConditions,
+                    medical_conditions: medicalConditions,
+                    individual_food_restrictions: rpcRestrictions.individual_food_restrictions || [],
+                    preferred_foods: (preferredRes.data || []).map(i => i.food).filter(Boolean),
+                    non_preferred_foods: (nonPreferredRes.data || []).map(i => i.food).filter(Boolean),
+                    diet_type_id: rpcRestrictions.diet_type_id ?? null,
+                    diet_type_name: rpcRestrictions.diet_type_name ?? null,
+                    diet_type_rules: rpcRestrictions.diet_type_rules || [],
                 });
             } catch (error) {
                 toast({ title: 'Error', description: 'No se pudieron cargar las restricciones del cliente.', variant: 'destructive' });

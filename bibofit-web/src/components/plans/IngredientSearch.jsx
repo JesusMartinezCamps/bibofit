@@ -15,11 +15,13 @@ const ConflictBadge = ({ conflict }) => {
   if (!conflict) return null;
 
   const config = {
-    'non-preferred': { icon: <ThumbsDown size={14} />, color: 'bg-orange-500/15 text-orange-700 dark:text-orange-300 border-orange-500/35' },
-    'preferred': { icon: <ThumbsUp size={14} />, color: 'bg-green-500/15 text-green-900 dark:text-green-300 border-green-500/35' },
-    'condition_avoid': { icon: <AlertTriangle size={14} />, color: 'bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/35' },
-    'condition_recommend': { icon: <ThumbsUp size={14} />, color: 'bg-green-500/15 text-green-900 dark:text-green-300 border-green-500/35' },
-    'sensitivity': { icon: <AlertTriangle size={14} />, color: 'bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/35' },
+    'non-preferred':       { icon: <ThumbsDown size={14} />,    color: 'bg-orange-500/15 text-orange-700 dark:text-orange-300 border-orange-500/35' },
+    'preferred':           { icon: <ThumbsUp size={14} />,      color: 'bg-green-500/15 text-green-900 dark:text-green-300 border-green-500/35' },
+    'condition_avoid':     { icon: <AlertTriangle size={14} />, color: 'bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/35' },
+    'condition_recommend': { icon: <ThumbsUp size={14} />,      color: 'bg-green-500/15 text-green-900 dark:text-green-300 border-green-500/35' },
+    'sensitivity':         { icon: <AlertTriangle size={14} />, color: 'bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/35' },
+    'diet_type_excluded':  { icon: <AlertTriangle size={14} />, color: 'bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/35' },
+    'diet_type_limited':   { icon: <AlertTriangle size={14} />, color: 'bg-orange-500/15 text-orange-700 dark:text-orange-300 border-orange-500/35' },
   };
 
   const { icon, color } = config[conflict.type] || {};
@@ -131,13 +133,15 @@ const IngredientSearch = ({
       }))
       .sort((a, b) => {
         // Priority: Preferred/Recommended (1) -> Neutral (2) -> Sensitivity (3) -> Non-preferred (4) -> Avoid (5)
-        const priority = { 
-            'preferred': 1, 
-            'condition_recommend': 1, 
-            undefined: 2, // No conflict
-            'sensitivity': 3, 
-            'non-preferred': 4, 
-            'condition_avoid': 5 
+        const priority = {
+            'preferred': 1,
+            'condition_recommend': 1,
+            undefined: 2,            // Sin conflicto
+            'sensitivity': 3,
+            'diet_type_excluded': 3, // Mismo nivel que sensibilidad: advertencia roja
+            'non-preferred': 4,
+            'diet_type_limited': 4,  // Mismo nivel que no-preferido: advertencia naranja
+            'condition_avoid': 5
         };
         
         const typeA = a.conflict?.type;
@@ -181,8 +185,10 @@ const IngredientSearch = ({
       case 'condition_recommend':
         return 'border-green-500/50 hover:border-green-500 bg-green-500/12 dark:bg-green-900/10';
       case 'non-preferred':
+      case 'diet_type_limited':
         return 'border-orange-500/50 hover:border-orange-500 bg-orange-500/12 dark:bg-orange-900/10';
       case 'sensitivity':
+      case 'diet_type_excluded':
         return 'border-red-500/50 hover:border-red-500 bg-red-500/12 dark:bg-red-900/10';
       case 'condition_avoid':
         return 'border-red-500/80 hover:border-red-600 bg-red-500/18 dark:bg-red-900/20';

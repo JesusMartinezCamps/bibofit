@@ -121,7 +121,27 @@ export const onboardingService = {
                const { error } = await supabase
                  .from('diet_preferences')
                  .upsert({ user_id: userId, ...data }, { onConflict: 'user_id' });
-               if (error) throw error;
+
+               if (error) {
+                 const errorMessage = String(error.message || '').toLowerCase();
+                 const hasMissingNewColumns = errorMessage.includes('calorie_adjustment_pct')
+                   || errorMessage.includes('calorie_adjustment_direction');
+
+                 if (!hasMissingNewColumns) throw error;
+
+                 const legacyPayload = {
+                   user_id: userId,
+                   diet_goal_id: data.diet_goal_id,
+                   diet_history: data.diet_history,
+                   diet_type_id: data.diet_type_id
+                 };
+
+                 const { error: legacyError } = await supabase
+                   .from('diet_preferences')
+                   .upsert(legacyPayload, { onConflict: 'user_id' });
+
+                 if (legacyError) throw legacyError;
+               }
             }
             else if (stepId === 'meal-macro-distribution') {
                 console.log('💾 Saving macro distribution...');

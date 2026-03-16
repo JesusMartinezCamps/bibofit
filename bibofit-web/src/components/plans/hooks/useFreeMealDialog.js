@@ -26,16 +26,16 @@ export const useFreeMealDialog = ({ open, onOpenChange, userId, onSaveSuccess, i
       if (!userId) return;
 
       try {
-        const [foodsRes, profileRes, sensitivitiesRes, conditionsRes, dayMealsRes] = await Promise.all([
-          supabase.from('food').select('*, food_sensitivities(sensitivity_id), food_medical_conditions(condition_id, relation_type), food_to_food_groups(food_group_id)'),
-          supabase.from('profiles').select('user_sensitivities(sensitivity_id), user_medical_conditions(condition_id)').eq('user_id', userId).single(),
+        const [foodsRes, restrictionsRes, sensitivitiesRes, conditionsRes, dayMealsRes] = await Promise.all([
+          supabase.from('food').select('*, food_sensitivities(sensitivity_id, sensitivities(id, name)), food_medical_conditions(condition_id, relation_type, medical_conditions(id, name)), food_to_food_groups(food_group_id)'),
+          supabase.rpc('get_user_restrictions', { p_user_id: userId }),
           supabase.from('sensitivities').select('id, name'),
           supabase.from('medical_conditions').select('id, name'),
           supabase.from('user_day_meals').select('*, day_meal:day_meal_id(*)').eq('user_id', userId)
         ]);
 
         if (foodsRes.error) throw foodsRes.error;
-        if (profileRes.error) throw profileRes.error;
+        if (restrictionsRes.error) throw restrictionsRes.error;
         if (sensitivitiesRes.error) throw sensitivitiesRes.error;
         if (conditionsRes.error) throw conditionsRes.error;
         if (dayMealsRes.error) throw dayMealsRes.error;
@@ -44,36 +44,31 @@ export const useFreeMealDialog = ({ open, onOpenChange, userId, onSaveSuccess, i
         setAllSensitivities(sensitivitiesRes.data || []);
         setAllConditions(conditionsRes.data || []);
 
-        const currentUserRestrictions = {
-          sensitivities: profileRes.data?.user_sensitivities.map(s => s.sensitivity_id) || [],
-          conditions: profileRes.data?.user_medical_conditions.map(c => c.condition_id) || [],
-        };
+        const currentUserRestrictions = restrictionsRes.data || { sensitivities: [], medical_conditions: [], individual_food_restrictions: [], diet_type_rules: [] };
         setUserRestrictions(currentUserRestrictions);
 
-        const getConflictTypeForFood = (food, restrictions) => {
-          if (!food || !restrictions) return null;
-      
-          const hasConditionAvoid = food.food_medical_conditions?.some(fmc => 
-              (restrictions.conditions || []).includes(fmc.condition_id) && fmc.relation_type === 'contraindicated'
+        // ID-only format for pre-processing conflict badges on food list
+        const sensitivityIds = (currentUserRestrictions.sensitivities || []).map(s => s?.id ?? s);
+        const conditionIds = (currentUserRestrictions.medical_conditions || []).map(c => c?.id ?? c);
+
+        const getConflictTypeForFood = (food) => {
+          if (!food) return null;
+          const hasConditionAvoid = food.food_medical_conditions?.some(fmc =>
+            conditionIds.includes(fmc.condition_id) && fmc.relation_type === 'contraindicated'
           );
           if (hasConditionAvoid) return 'condition_avoid';
-      
-          const hasSensitivity = food.food_sensitivities?.some(fs => 
-              (restrictions.sensitivities || []).includes(fs.sensitivity_id)
-          );
+          const hasSensitivity = food.food_sensitivities?.some(fs => sensitivityIds.includes(fs.sensitivity_id));
           if (hasSensitivity) return 'sensitivity';
-      
-          const hasConditionRecommend = food.food_medical_conditions?.some(fmc => 
-              (restrictions.conditions || []).includes(fmc.condition_id) && fmc.relation_type === 'recommended'
+          const hasConditionRecommend = food.food_medical_conditions?.some(fmc =>
+            conditionIds.includes(fmc.condition_id) && fmc.relation_type === 'recommended'
           );
           if (hasConditionRecommend) return 'condition_recommend';
-      
           return null;
         };
 
         const processedFoods = foodsRes.data.map(food => ({
           ...food,
-          conflictType: getConflictTypeForFood(food, currentUserRestrictions)
+          conflictType: getConflictTypeForFood(food)
         }));
         
         setAvailableFoods(processedFoods);

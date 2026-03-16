@@ -3883,6 +3883,15 @@ CREATE TABLE IF NOT EXISTS "public"."profiles" (
     "birth_date" "date",
     "ger_kcal" integer,
     "tdee_kcal" integer,
+    "knows_ffm" boolean,
+    "ffm_method" "text",
+    "is_athlete" boolean,
+    "athlete_type" "text",
+    "ffm_pct" numeric(5,2),
+    "fm_pct" numeric(5,2),
+    "ffm_kg" numeric(6,2),
+    "fm_kg" numeric(6,2),
+    "ger_equation_key" "text",
     "email" "text",
     "profile_type" "text" DEFAULT 'free'::"text",
     "onboarding_version" "text",
@@ -5199,6 +5208,16 @@ ALTER TABLE ONLY "public"."private_shopping_list_items"
 
 ALTER TABLE ONLY "public"."private_shopping_list_items"
     ADD CONSTRAINT "private_shopping_list_items_user_id_item_name_key" UNIQUE ("user_id", "item_name");
+
+
+
+ALTER TABLE ONLY "public"."profiles"
+    ADD CONSTRAINT "profiles_athlete_type_check" CHECK ((("athlete_type" IS NULL) OR ("athlete_type" = ANY (ARRAY['Physique'::"text", 'Sport'::"text", 'Both'::"text"]))));
+
+
+
+ALTER TABLE ONLY "public"."profiles"
+    ADD CONSTRAINT "profiles_ffm_method_check" CHECK ((("ffm_method" IS NULL) OR ("ffm_method" = ANY (ARRAY['Skinfold'::"text", 'DXA'::"text", 'UWW'::"text", 'BIA'::"text"]))));
 
 
 
@@ -9943,9 +9962,6 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TAB
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "authenticated";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "service_role";
-
-
-
 
 
 

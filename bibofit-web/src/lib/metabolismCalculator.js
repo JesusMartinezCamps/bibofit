@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabaseClient';
+import { calculateGerFromProfile } from '@/lib/metabolismEngine';
 
 /**
  * Calcula la edad basándose en la fecha de nacimiento
@@ -145,13 +146,22 @@ export const calculateAndSaveMetabolism = async (userId, profileData = null) => 
     const age = calculateAge(profile.birth_date);
     console.log('Age calculated:', age);
 
-    const ger = calculateGER({
+    const advancedResult = calculateGerFromProfile({
+      profile,
+      age
+    });
+
+    // Compatibility path: preserve the legacy Mifflin calculation if advanced logic
+    // cannot produce a valid GER value.
+    const legacyGer = calculateGER({
       weight: profile.current_weight_kg,
       height: profile.height_cm,
-      age: age,
+      age,
       sex: profile.sex
     });
-    console.log('GER calculated:', ger);
+
+    const ger = advancedResult.ger ?? legacyGer;
+    console.log('GER calculated:', ger, advancedResult.formulaKey ? `(${advancedResult.formulaKey})` : '(legacy)');
 
     let tdee = null;
     if (ger && profile.activity_levels?.factor) {
@@ -166,7 +176,8 @@ export const calculateAndSaveMetabolism = async (userId, profileData = null) => 
         .from('profiles')
         .update({
             ger_kcal: ger,
-            tdee_kcal: tdee
+            tdee_kcal: tdee,
+            ger_equation_key: advancedResult.formulaKey || (legacyGer ? 'mifflin_st_jeor_weight' : null)
         })
         .eq('user_id', userId);
 
@@ -181,6 +192,10 @@ export const calculateAndSaveMetabolism = async (userId, profileData = null) => 
       ger,
       tdee,
       age,
+      gerFormulaKey: advancedResult.formulaKey || (legacyGer ? 'mifflin_st_jeor_weight' : null),
+      recommendedFormulaKeys: advancedResult.recommendedFormulaKeys || [],
+      formulaSource: advancedResult.formulaSource || 'legacy',
+      bodyComposition: advancedResult.bodyComposition || null,
       missingData: !ger ? getMissingDataMessage(profile, age) : null
     };
 

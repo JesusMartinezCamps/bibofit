@@ -47,6 +47,7 @@ const FreeMealViewDialog = ({ open, onOpenChange, freeMeal, onUpdate }) => {
   const [allVitamins, setAllVitamins] = useState([]);
   const [allMinerals, setAllMinerals] = useState([]);
   const [allFoodGroups, setAllFoodGroups] = useState([]);
+  const [userRestrictions, setUserRestrictions] = useState(null);
 
   const [ingredients, setIngredients] = useState([]);
   const [dayMealId, setDayMealId] = useState('');
@@ -56,14 +57,15 @@ const FreeMealViewDialog = ({ open, onOpenChange, freeMeal, onUpdate }) => {
   const [isEquivalenceDialogOpen, setIsEquivalenceDialogOpen] = useState(false);
   const [currentFreeMeal, setCurrentFreeMeal] = useState(freeMeal);
 
-  const fetchInitialData = useCallback(async () => {
+  const fetchInitialData = useCallback(async (targetUserId) => {
     setLoading(true);
     try {
-      const [foodsRes, vitaminsRes, mineralsRes, groupsRes] = await Promise.all([
-        supabase.from('food').select('*, food_to_food_groups(food_group_id), food_vitamins(vitamin_id), food_minerals(mineral_id)'),
+      const [foodsRes, vitaminsRes, mineralsRes, groupsRes, restrictionsRes] = await Promise.all([
+        supabase.from('food').select('*, food_to_food_groups(food_group_id), food_sensitivities(sensitivities(id, name)), food_medical_conditions(relation_type, medical_conditions(id, name)), food_vitamins(vitamin_id), food_minerals(mineral_id)'),
         supabase.from('vitamins').select('*'),
         supabase.from('minerals').select('*'),
         supabase.from('food_groups').select('*'),
+        targetUserId ? supabase.rpc('get_user_restrictions', { p_user_id: targetUserId }) : Promise.resolve({ data: null }),
       ]);
 
       if (foodsRes.error) throw foodsRes.error;
@@ -75,6 +77,7 @@ const FreeMealViewDialog = ({ open, onOpenChange, freeMeal, onUpdate }) => {
       setAllVitamins(vitaminsRes.data || []);
       setAllMinerals(mineralsRes.data || []);
       setAllFoodGroups(groupsRes.data || []);
+      if (restrictionsRes.data) setUserRestrictions(restrictionsRes.data);
     } catch (error) {
       toast({
         title: 'Error',
@@ -90,7 +93,7 @@ const FreeMealViewDialog = ({ open, onOpenChange, freeMeal, onUpdate }) => {
     if (!open) return;
 
     setCurrentFreeMeal(freeMeal);
-    fetchInitialData();
+    fetchInitialData(freeMeal?.user_id || user?.id);
 
     if (!freeMeal) return;
 
@@ -266,13 +269,7 @@ const FreeMealViewDialog = ({ open, onOpenChange, freeMeal, onUpdate }) => {
                     selectedIngredients={ingredients}
                     onIngredientAdded={handleIngredientAdded}
                     availableFoods={allFoods}
-                    userRestrictions={{
-                      sensitivities: [],
-                      medical_conditions: [],
-                      individual_food_restrictions: [],
-                      preferred_foods: [],
-                      non_preferred_foods: [],
-                    }}
+                    userRestrictions={userRestrictions}
                     createFoodUserId={currentFreeMeal?.user_id || user?.id}
                     onBack={() => setIsSearchingIngredient(false)}
                   />

@@ -237,18 +237,14 @@ const RecipeView = ({
     const fetchRestrictions = async () => {
       setLoadingRestrictions(true);
       try {
-        const [sensRes, condRes, indRes, prefRes, nonPrefRes] = await Promise.all([
-          supabase.from('user_sensitivities').select('sensitivity:sensitivities(id, name)').eq('user_id', user.id),
-          supabase.from('user_medical_conditions').select('condition:medical_conditions(id, name)').eq('user_id', user.id),
-          supabase.from('user_individual_food_restrictions').select('food(id, name)').eq('user_id', user.id),
+        const [restrictionsRes, prefRes, nonPrefRes] = await Promise.all([
+          supabase.rpc('get_user_restrictions', { p_user_id: user.id }),
           supabase.from('preferred_foods').select('food(id, name)').eq('user_id', user.id),
           supabase.from('non_preferred_foods').select('food(id, name)').eq('user_id', user.id),
         ]);
 
         setInternalRestrictions({
-          sensitivities: (sensRes.data || []).map((s) => s.sensitivity).filter(Boolean),
-          medical_conditions: (condRes.data || []).map((c) => c.condition).filter(Boolean),
-          individual_food_restrictions: (indRes.data || []).map((i) => i.food).filter(Boolean),
+          ...(restrictionsRes.data || {}),
           preferred_foods: (prefRes.data || []).map((p) => p.food).filter(Boolean),
           non_preferred_foods: (nonPrefRes.data || []).map((np) => np.food).filter(Boolean),
         });

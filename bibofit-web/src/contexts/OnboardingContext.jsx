@@ -146,7 +146,7 @@ export const OnboardingProvider = ({ children }) => {
     ] = await Promise.all([
       supabase
         .from('profiles')
-        .select('first_name, last_name, full_name, phone, birth_date, sex, height_cm, current_weight_kg, activity_level_id, tdee_kcal, onboarding_step_id')
+        .select('first_name, last_name, full_name, phone, birth_date, sex, height_cm, current_weight_kg, activity_level_id, tdee_kcal, onboarding_step_id, knows_ffm, ffm_method, is_athlete, athlete_type, ffm_pct, fm_pct, ffm_kg, fm_kg, ger_equation_key')
         .eq('user_id', user.id)
         .maybeSingle(),
       supabase
@@ -242,6 +242,15 @@ export const OnboardingProvider = ({ children }) => {
           current_weight_kg: profile.current_weight_kg ?? null,
           activity_level_id: profile.activity_level_id ?? null,
           tdee_kcal: profile.tdee_kcal ?? null,
+          knows_ffm: profile.knows_ffm ?? null,
+          ffm_method: profile.ffm_method ?? null,
+          is_athlete: profile.is_athlete ?? null,
+          athlete_type: profile.athlete_type ?? null,
+          ffm_pct: profile.ffm_pct ?? null,
+          fm_pct: profile.fm_pct ?? null,
+          ffm_kg: profile.ffm_kg ?? null,
+          fm_kg: profile.fm_kg ?? null,
+          ger_equation_key: profile.ger_equation_key ?? null,
           onboarding_step_id: profile.onboarding_step_id || 'completion'
         })
         .eq('user_id', user.id);
@@ -407,12 +416,19 @@ export const OnboardingProvider = ({ children }) => {
       const hasCompletedAtLeastOnce = Boolean(status?.onboarding_completed_at);
 
       if (!hasCompletedAtLeastOnce) {
-        toast({
-          title: "Onboarding no completado",
-          description: "Debes completar el onboarding al menos una vez antes de repetirlo.",
-          variant: "destructive"
-        });
-        return false;
+        if (user?.role !== 'admin') {
+          toast({
+            title: "Onboarding no completado",
+            description: "Debes completar el onboarding al menos una vez antes de repetirlo.",
+            variant: "destructive"
+          });
+          return false;
+        }
+        // Admins can force-start onboarding for testing; mark it as completed so repeat mode works
+        await supabase
+          .from('profiles')
+          .update({ onboarding_completed_at: new Date().toISOString() })
+          .eq('user_id', user.id);
       }
 
       setIsOnboardingCompleted(true);
@@ -428,7 +444,7 @@ export const OnboardingProvider = ({ children }) => {
       });
       return false;
     }
-  }, [toast, user?.id]);
+  }, [toast, user?.id, user?.role]);
 
   const cancelOnboarding = useCallback(async () => {
     try {
@@ -475,6 +491,13 @@ export const OnboardingProvider = ({ children }) => {
   const jumpToMealAdjustment = useCallback(() => {
     if (!isRepeatingOnboarding) return false;
     setCurrentStepId('meal-adjustment');
+    return true;
+  }, [isRepeatingOnboarding]);
+
+  const jumpToStep = useCallback((stepId) => {
+    if (!isRepeatingOnboarding) return false;
+    if (!ONBOARDING_STEPS.find(s => s.id === stepId)) return false;
+    setCurrentStepId(stepId);
     return true;
   }, [isRepeatingOnboarding]);
 
@@ -573,6 +596,7 @@ export const OnboardingProvider = ({ children }) => {
     cancelOnboarding,
     startRepeatOnboarding,
     jumpToMealAdjustment,
+    jumpToStep,
     isOnboardingActive: isOpen,
     isRepeatingOnboarding,
     onboardingState, // Exposed State

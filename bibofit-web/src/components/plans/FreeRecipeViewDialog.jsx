@@ -50,14 +50,12 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
     setLoading(true);
     try {
       const [
-          foodsRes, 
-          vitaminsRes, 
-          mineralsRes, 
+          foodsRes,
+          vitaminsRes,
+          mineralsRes,
           groupsRes,
           userFoodsRes,
-          sensitivitiesRes,
-          conditionsRes,
-          individualRes,
+          restrictionsRes,
           preferredRes,
           nonPreferredRes,
           recipeStylesRes
@@ -67,9 +65,7 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
           supabase.from('minerals').select('*'),
           supabase.from('food_groups').select('*'),
           supabase.from('food').select('*, food_to_food_groups(food_group_id)').eq('user_id', user.id).neq('status', 'rejected'),
-          supabase.from('user_sensitivities').select('sensitivities(id, name)').eq('user_id', user.id),
-          supabase.from('user_medical_conditions').select('medical_conditions(id, name)').eq('user_id', user.id),
-          supabase.from('user_individual_food_restrictions').select('food(id, name)').eq('user_id', user.id),
+          supabase.rpc('get_user_restrictions', { p_user_id: user.id }),
           supabase.from('preferred_foods').select('food(id, name)').eq('user_id', user.id),
           supabase.from('non_preferred_foods').select('food(id, name)').eq('user_id', user.id),
           supabase.from('recipe_styles').select('id, name').eq('is_active', true).order('display_order').order('name'),
@@ -80,12 +76,13 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
       if (mineralsRes.error) throw mineralsRes.error;
       if (groupsRes.error) throw groupsRes.error;
       if (userFoodsRes.error) throw userFoodsRes.error;
+      if (restrictionsRes.error) throw restrictionsRes.error;
 
       const globalFoods = (foodsRes.data || []).map(f => ({ ...f, is_user_created: false }));
-      const userFoods = (userFoodsRes.data || []).map(f => ({ 
-          ...f, 
+      const userFoods = (userFoodsRes.data || []).map(f => ({
+          ...f,
           is_user_created: true,
-          food_to_food_groups: f.food_to_food_groups // Map for consistency
+          food_to_food_groups: f.food_to_food_groups
       }));
 
       setAllFoods([...globalFoods, ...userFoods]);
@@ -95,9 +92,7 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
       setRecipeStyles(recipeStylesRes.data || []);
 
       setUserRestrictions({
-          sensitivities: (sensitivitiesRes.data || []).map(s => s.sensitivities).filter(Boolean),
-          medical_conditions: (conditionsRes.data || []).map(c => c.medical_conditions).filter(Boolean),
-          individual_food_restrictions: (individualRes.data || []).map(i => i.food).filter(Boolean),
+          ...(restrictionsRes.data || {}),
           preferred_foods: (preferredRes.data || []).map(p => p.food).filter(Boolean),
           non_preferred_foods: (nonPreferredRes.data || []).map(np => np.food).filter(Boolean),
       });

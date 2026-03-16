@@ -219,13 +219,14 @@ const PersonalDataForm = ({ className, onSave, userId: propUserId }) => {
 
   /**
    * Helper function to check if any metabolism-related fields have changed
-   * Compares: weight, height, birth_date, activity_level_id
+   * Compares: weight, height, birth_date, sex, activity_level_id
    */
   const hasMetabolismFieldsChanged = (initial, current) => {
     return (
       initial.current_weight_kg !== current.current_weight_kg ||
       initial.height_cm !== current.height_cm ||
       initial.birth_date !== current.birth_date ||
+      initial.sex !== current.sex ||
       initial.activity_level_id !== current.activity_level_id
     );
   };
@@ -342,6 +343,7 @@ const PersonalDataForm = ({ className, onSave, userId: propUserId }) => {
         current_weight_kg: initialFormData.current_weight_kg,
         height_cm: initialFormData.height_cm,
         birth_date: initialFormData.birth_date,
+        sex: initialFormData.sex,
         activity_level_id: initialFormData.activity_level_id
       };
 
@@ -349,6 +351,7 @@ const PersonalDataForm = ({ className, onSave, userId: propUserId }) => {
         current_weight_kg: refreshedProfile.current_weight_kg ? refreshedProfile.current_weight_kg.toString() : '',
         height_cm: refreshedProfile.height_cm ? refreshedProfile.height_cm.toString() : '',
         birth_date: refreshedProfile.birth_date || '',
+        sex: refreshedProfile.sex || '',
         activity_level_id: refreshedProfile.activity_level_id ? refreshedProfile.activity_level_id.toString() : ''
       };
 

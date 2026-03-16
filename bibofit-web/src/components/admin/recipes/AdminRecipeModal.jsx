@@ -156,7 +156,10 @@ const AdminRecipeModal = ({
                         medical_conditions: forcedRestrictions.medical_conditions || [],
                         individual_food_restrictions: forcedRestrictions.individual_food_restrictions || [],
                         preferred_foods: forcedRestrictions.preferred_foods || [],
-                        non_preferred_foods: forcedRestrictions.non_preferred_foods || []
+                        non_preferred_foods: forcedRestrictions.non_preferred_foods || [],
+                        diet_type_id: forcedRestrictions.diet_type_id ?? null,
+                        diet_type_name: forcedRestrictions.diet_type_name ?? null,
+                        diet_type_rules: forcedRestrictions.diet_type_rules || []
                     };
                 } else if (isTemplatePlan && initialPlanRestrictions) {
                     const sensitivityObjects = (sensitivitiesRes.data || []).filter(s => initialPlanRestrictions.sensitivities?.includes(s.id));

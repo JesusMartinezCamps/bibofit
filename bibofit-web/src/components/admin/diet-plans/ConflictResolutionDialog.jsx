@@ -255,9 +255,13 @@ const ConflictResolutionDialog = ({ open, onOpenChange, conflicts, onRecipeUpdat
   const resolvedRestrictions = useMemo(() => ({
         sensitivities: clientRestrictions?.sensitivities || [],
         medical_conditions: clientRestrictions?.medical_conditions || clientRestrictions?.conditions || [],
-        individual_food_restrictions: planRestrictions?.individual_food_restrictions || [],
-        preferred_foods: planRestrictions?.preferred_foods || [],
-        non_preferred_foods: planRestrictions?.non_preferred_foods || []
+        individual_food_restrictions:
+            planRestrictions?.individual_food_restrictions || clientRestrictions?.individual_food_restrictions || [],
+        preferred_foods: planRestrictions?.preferred_foods || clientRestrictions?.preferred_foods || [],
+        non_preferred_foods: planRestrictions?.non_preferred_foods || clientRestrictions?.non_preferred_foods || [],
+        diet_type_id: planRestrictions?.diet_type_id ?? clientRestrictions?.diet_type_id ?? null,
+        diet_type_name: planRestrictions?.diet_type_name ?? clientRestrictions?.diet_type_name ?? null,
+        diet_type_rules: planRestrictions?.diet_type_rules || clientRestrictions?.diet_type_rules || []
     }), [clientRestrictions, planRestrictions]);
 
     const handleEditRecipe = (recipe) => {

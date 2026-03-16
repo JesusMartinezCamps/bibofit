@@ -78,7 +78,10 @@ const getStatusColorClasses = (type) => {
     case 'condition_avoid':
     case 'sensitivity':
     case 'non-preferred':
+    case 'diet_type_excluded':
       return 'bg-red-500/5 dark:bg-muted/65 border-red-500/30 text-red-400';
+    case 'diet_type_limited':
+      return 'bg-orange-500/5 dark:bg-muted/65 border-orange-500/30 text-orange-400';
     case 'condition_recommend':
     case 'preferred':
       return 'bg-green-600/5 dark:bg-muted/65 border-green-500/30 text-green-600 dark:text-green-400';
@@ -118,10 +121,20 @@ const StatusDisplay = ({ type, conflicts, recommendations, isEditing }) => {
     );
   }
 
-  if (isEditing && (type === 'condition_avoid' || type === 'sensitivity' || type === 'non-preferred')) {
+  if (isEditing && (type === 'condition_avoid' || type === 'sensitivity' || type === 'non-preferred' || type === 'diet_type_excluded')) {
     const reasonText = conflicts.map((c) => c.restrictionName).join(', ');
     return (
       <div className="mt-1.5 flex items-center gap-1.5 text-red-400 text-xs font-medium animate-in fade-in">
+        <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+        <span>{reasonText}</span>
+      </div>
+    );
+  }
+
+  if (isEditing && type === 'diet_type_limited') {
+    const reasonText = conflicts.map((c) => c.restrictionName).join(', ');
+    return (
+      <div className="mt-1.5 flex items-center gap-1.5 text-orange-400 text-xs font-medium animate-in fade-in">
         <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
         <span>{reasonText}</span>
       </div>
@@ -195,7 +208,7 @@ const IngredientCard = ({
   // Ghosts are never interactive
   const canManageIngredient = !is_ghost && typeof onRemove === 'function' && typeof onReplace === 'function';
   const canQuickEdit = !is_ghost && typeof onQuickEdit === 'function';
-  const hasConflict = !is_ghost && ['condition_avoid', 'sensitivity', 'non-preferred'].includes(conflictType);
+  const hasConflict = !is_ghost && ['condition_avoid', 'sensitivity', 'non-preferred', 'diet_type_excluded', 'diet_type_limited'].includes(conflictType);
   const isRecommended = !is_ghost && ['condition_recommend', 'preferred'].includes(conflictType);
   const isUserCreated = !!ingredient.is_user_created || !!food.is_user_created || !!food.user_id;
 

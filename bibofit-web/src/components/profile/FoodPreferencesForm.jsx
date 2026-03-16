@@ -24,6 +24,10 @@ const FoodPreferencesForm = ({ userId, onSaveStatusChange: _onSaveStatusChange, 
                 food_group_id,
                 food_groups(id, name)
               ),
+              food_sensitivities(
+                sensitivity_id,
+                sensitivities(id, name)
+              ),
               food_medical_conditions(
                 condition_id,
                 relation_type,

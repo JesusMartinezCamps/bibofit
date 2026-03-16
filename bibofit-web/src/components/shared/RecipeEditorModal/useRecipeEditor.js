@@ -61,31 +61,18 @@ export const useRecipeEditor = ({ recipeToEdit, onSaveSuccess, isAdminView, user
   const fetchUserRestrictions = useCallback(async () => {
     if (!userId) return;
     try {
-        const [
-            sensitivitiesRes,
-            conditionsRes,
-            individualRes,
-            preferredRes,
-            nonPreferredRes
-        ] = await Promise.all([
-            supabase.from('user_sensitivities').select('sensitivities(id, name)').eq('user_id', userId),
-            supabase.from('user_medical_conditions').select('medical_conditions(id, name)').eq('user_id', userId),
-            supabase.from('user_individual_food_restrictions').select('food(id, name)').eq('user_id', userId),
+        const [restrictionsRes, preferredRes, nonPreferredRes] = await Promise.all([
+            supabase.rpc('get_user_restrictions', { p_user_id: userId }),
             supabase.from('preferred_foods').select('food(id, name)').eq('user_id', userId),
             supabase.from('non_preferred_foods').select('food(id, name)').eq('user_id', userId),
         ]);
 
-        const checkError = (res, name) => {
-            if (res.error) throw new Error(`Error fetching ${name}: ${res.error.message}`);
-            return res.data;
-        };
+        if (restrictionsRes.error) throw new Error(`Error fetching restrictions: ${restrictionsRes.error.message}`);
 
         setUserRestrictions({
-            sensitivities: (checkError(sensitivitiesRes, 'sensitivities') || []).map(s => s.sensitivities).filter(Boolean),
-            medical_conditions: (checkError(conditionsRes, 'conditions') || []).map(c => c.medical_conditions).filter(Boolean),
-            individual_food_restrictions: (checkError(individualRes, 'individual restrictions') || []).map(i => i.food).filter(Boolean),
-            preferred_foods: (checkError(preferredRes, 'preferred foods') || []).map(p => p.food).filter(Boolean),
-            non_preferred_foods: (checkError(nonPreferredRes, 'non-preferred foods') || []).map(np => np.food).filter(Boolean),
+            ...(restrictionsRes.data || {}),
+            preferred_foods: (preferredRes.data || []).map(p => p.food).filter(Boolean),
+            non_preferred_foods: (nonPreferredRes.data || []).map(np => np.food).filter(Boolean),
         });
 
     } catch (error) {
@@ -96,15 +83,13 @@ export const useRecipeEditor = ({ recipeToEdit, onSaveSuccess, isAdminView, user
   
   useEffect(() => {
     if (open) {
-      if (!initialPlanRestrictions) {
-          fetchUserRestrictions();
-      } else {
-          setUserRestrictions(initialPlanRestrictions);
-      }
+      // Siempre obtener restricciones completas via RPC (incluye diet_type_rules).
+      // initialPlanRestrictions ya es el estado inicial; el RPC lo sobreescribe con datos completos.
+      fetchUserRestrictions();
     } else {
       resetState();
     }
-  }, [open, fetchUserRestrictions, resetState, initialPlanRestrictions]);
+  }, [open, fetchUserRestrictions, resetState]);
 
   useEffect(() => {
     if (!open || !recipeToEdit || allFoods.length === 0) return;
@@ -202,7 +187,7 @@ export const useRecipeEditor = ({ recipeToEdit, onSaveSuccess, isAdminView, user
       const info = getConflictInfo(food, userRestrictions);
       if (!info) return;
 
-      if (['condition_avoid', 'sensitivity', 'individual_restriction', 'non-preferred'].includes(info.type)) {
+      if (['condition_avoid', 'sensitivity', 'individual_restriction', 'non-preferred', 'diet_type_excluded', 'diet_type_limited'].includes(info.type)) {
         computedConflicts.push({
           foodId: food.id,
           type: info.type === 'individual_restriction' ? 'condition_avoid' : info.type,
