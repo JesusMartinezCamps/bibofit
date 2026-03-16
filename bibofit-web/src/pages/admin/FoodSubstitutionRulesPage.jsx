@@ -17,6 +17,20 @@ const CONFIDENCE_OPTIONS = [
   { value: 70, label: 'Baja (70%)' }
 ];
 
+const LIST_LIMIT_OPTIONS = [
+  { value: '30', label: '30' },
+  { value: '60', label: '60' },
+  { value: '100', label: '100' },
+  { value: 'all', label: 'Ilimitado' }
+];
+
+const CONFIDENCE_FILTER_OPTIONS = [
+  { value: 'all', label: 'Todas' },
+  { value: 'high', label: 'Alta (>=95)' },
+  { value: 'medium', label: 'Media (85-94)' },
+  { value: 'low', label: 'Baja (<85)' }
+];
+
 const DEFAULT_FORM = {
   source_food_id: '',
   target_food_id: '',
@@ -302,6 +316,7 @@ const FoodSubstitutionRulesPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [foods, setFoods] = useState([]);
   const [mappings, setMappings] = useState([]);
+  const [mappingsTotalCount, setMappingsTotalCount] = useState(0);
   const [sensitivities, setSensitivities] = useState([]);
   const [conditions, setConditions] = useState([]);
   const [dietTypes, setDietTypes] = useState([]);
@@ -312,6 +327,12 @@ const FoodSubstitutionRulesPage = () => {
   const [reasonByContext, setReasonByContext] = useState({});
   const [reasonTouchedByContext, setReasonTouchedByContext] = useState({});
   const [listSearch, setListSearch] = useState('');
+  const [listLimit, setListLimit] = useState('30');
+  const [filterSensitivityId, setFilterSensitivityId] = useState('all');
+  const [filterConditionId, setFilterConditionId] = useState('all');
+  const [filterDietTypeId, setFilterDietTypeId] = useState('all');
+  const [filterAutomatic, setFilterAutomatic] = useState('all');
+  const [filterConfidence, setFilterConfidence] = useState('all');
   const [editingMappingId, setEditingMappingId] = useState(null);
 
   const foodsById = useMemo(() => new Map(foods.map((food) => [food.id, food])), [foods]);
@@ -388,26 +409,116 @@ const FoodSubstitutionRulesPage = () => {
     return foods.filter((food) => String(food.id) !== String(formData.source_food_id));
   }, [foods, formData.source_food_id]);
 
+  const listFilterOptions = useMemo(() => {
+    const toSortedOptions = (items, idKey = 'id', labelKey = 'name') =>
+      (items || [])
+        .map((item) => ({ id: String(item?.[idKey]), label: item?.[labelKey] || `#${item?.[idKey]}` }))
+        .filter((item) => item.id && item.id !== 'undefined' && item.id !== 'null')
+        .sort((a, b) => (a.label || '').localeCompare(b.label || ''));
+
+    return {
+      sensitivities: toSortedOptions(sensitivities),
+      conditions: toSortedOptions(conditions),
+      dietTypes: toSortedOptions(dietTypes)
+    };
+  }, [sensitivities, conditions, dietTypes]);
+
   const filteredMappings = useMemo(() => {
     const term = normalizeText(listSearch.trim());
-    if (!term) return mappings;
 
     return mappings.filter((mapping) => {
+      const contexts = Array.isArray(mapping?.metadata?.conflict_contexts) ? mapping.metadata.conflict_contexts : [];
+
+      if (filterSensitivityId !== 'all') {
+        const sensitivityId = Number(filterSensitivityId);
+        const match = contexts.some((ctx) => ctx?.type === 'sensitivity' && Number(ctx.sensitivity_id) === sensitivityId);
+        if (!match) return false;
+      }
+
+      if (filterConditionId !== 'all') {
+        const conditionId = Number(filterConditionId);
+        const match = contexts.some((ctx) => ctx?.type === 'medical_condition' && Number(ctx.condition_id) === conditionId);
+        if (!match) return false;
+      }
+
+      if (filterDietTypeId !== 'all') {
+        const dietTypeId = Number(filterDietTypeId);
+        const match = contexts.some((ctx) => ctx?.type === 'diet_type' && Number(ctx.diet_type_id) === dietTypeId);
+        if (!match) return false;
+      }
+
+      if (filterAutomatic === 'yes' && !mapping.is_automatic) return false;
+      if (filterAutomatic === 'no' && mapping.is_automatic) return false;
+
+      const confidence = Number(mapping.confidence_score || 0);
+      if (filterConfidence === 'high' && confidence < 95) return false;
+      if (filterConfidence === 'medium' && (confidence < 85 || confidence >= 95)) return false;
+      if (filterConfidence === 'low' && confidence >= 85) return false;
+
+      if (!term) return true;
+
       const sourceName = normalizeText(foodsById.get(Number(mapping.source_food_id))?.name || '');
       const targetName = normalizeText(foodsById.get(Number(mapping.target_food_id))?.name || '');
       const contextText = normalizeText(
-        (mapping?.metadata?.conflict_contexts || [])
+        contexts
           .map((ctx) => getContextLabel(ctx, sensitivityMap, conditionMap, dietTypeMap))
           .join(' ')
       );
       return sourceName.includes(term) || targetName.includes(term) || contextText.includes(term);
     });
-  }, [listSearch, mappings, foodsById, sensitivityMap, conditionMap, dietTypeMap]);
+  }, [
+    listSearch,
+    mappings,
+    foodsById,
+    sensitivityMap,
+    conditionMap,
+    dietTypeMap,
+    filterSensitivityId,
+    filterConditionId,
+    filterDietTypeId,
+    filterAutomatic,
+    filterConfidence
+  ]);
+
+  const visibleMappings = useMemo(() => {
+    if (listLimit === 'all') return filteredMappings;
+    const parsedLimit = Number(listLimit);
+    return filteredMappings.slice(0, Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 30);
+  }, [filteredMappings, listLimit]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [foodsRes, mappingsRes, sensitivityRes, conditionRes, dietTypesRes] = await Promise.all([
+      const fetchAllMappings = async () => {
+        const pageSize = 1000;
+        let from = 0;
+        let hasMore = true;
+        const rows = [];
+
+        const { count, error: countError } = await supabase
+          .from('food_substitution_mappings')
+          .select('*', { count: 'exact', head: true });
+        if (countError) throw countError;
+
+        while (hasMore) {
+          const { data, error } = await supabase
+            .from('food_substitution_mappings')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .range(from, from + pageSize - 1);
+
+          if (error) throw error;
+
+          const batch = data || [];
+          rows.push(...batch);
+          hasMore = batch.length === pageSize;
+          from += pageSize;
+        }
+
+        return { rows, total: Number(count) || rows.length };
+      };
+
+      const [foodsRes, mappingsData, sensitivityRes, conditionRes, dietTypesRes] = await Promise.all([
         supabase
           .from('food')
           .select(`
@@ -418,7 +529,7 @@ const FoodSubstitutionRulesPage = () => {
             food_to_food_groups(food_group_id, food_group:food_groups(id, name))
           `)
           .order('name'),
-        supabase.from('food_substitution_mappings').select('*').order('created_at', { ascending: false }),
+        fetchAllMappings(),
         supabase.from('sensitivities').select('id, name').order('name'),
         supabase.from('medical_conditions').select('id, name').order('name'),
         supabase
@@ -428,13 +539,13 @@ const FoodSubstitutionRulesPage = () => {
       ]);
 
       if (foodsRes.error) throw foodsRes.error;
-      if (mappingsRes.error) throw mappingsRes.error;
       if (sensitivityRes.error) throw sensitivityRes.error;
       if (conditionRes.error) throw conditionRes.error;
       if (dietTypesRes.error) throw dietTypesRes.error;
 
       setFoods(foodsRes.data || []);
-      setMappings(mappingsRes.data || []);
+      setMappings(mappingsData.rows || []);
+      setMappingsTotalCount(mappingsData.total || 0);
       setSensitivities(sensitivityRes.data || []);
       setConditions(conditionRes.data || []);
       setDietTypes(dietTypesRes.data || []);
@@ -820,6 +931,102 @@ const FoodSubstitutionRulesPage = () => {
             placeholder="Buscar por origen, destino o conflicto..."
             className="max-w-xl"
           />
+          <div className="text-xs text-muted-foreground">
+            Total en DB: {mappingsTotalCount} | Cargadas: {mappings.length} | Filtradas: {filteredMappings.length} | Visibles: {visibleMappings.length}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Filtrar por sensibilidad</Label>
+              <Select value={filterSensitivityId} onValueChange={setFilterSensitivityId}>
+                <SelectTrigger><SelectValue placeholder="Sensibilidad" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas las sensibilidades</SelectItem>
+                  {listFilterOptions.sensitivities.map((option) => (
+                    <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Filtrar por patología</Label>
+              <Select value={filterConditionId} onValueChange={setFilterConditionId}>
+                <SelectTrigger><SelectValue placeholder="Patología" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas las patologías</SelectItem>
+                  {listFilterOptions.conditions.map((option) => (
+                    <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Filtrar por tipo de dieta</Label>
+              <Select value={filterDietTypeId} onValueChange={setFilterDietTypeId}>
+                <SelectTrigger><SelectValue placeholder="Tipo de dieta" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los tipos de dieta</SelectItem>
+                  {listFilterOptions.dietTypes.map((option) => (
+                    <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Filtrar por automática</Label>
+              <Select value={filterAutomatic} onValueChange={setFilterAutomatic}>
+                <SelectTrigger><SelectValue placeholder="Automática" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Automática: todas</SelectItem>
+                  <SelectItem value="yes">Solo automáticas</SelectItem>
+                  <SelectItem value="no">Solo manuales</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Filtrar por confianza</Label>
+              <Select value={filterConfidence} onValueChange={setFilterConfidence}>
+                <SelectTrigger><SelectValue placeholder="Confianza" /></SelectTrigger>
+                <SelectContent>
+                  {CONFIDENCE_FILTER_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Límite visible</Label>
+              <Select value={listLimit} onValueChange={setListLimit}>
+                <SelectTrigger><SelectValue placeholder="Límite" /></SelectTrigger>
+                <SelectContent>
+                  {LIST_LIMIT_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setFilterSensitivityId('all');
+                setFilterConditionId('all');
+                setFilterDietTypeId('all');
+                setFilterAutomatic('all');
+                setFilterConfidence('all');
+                setListLimit('30');
+                setListSearch('');
+              }}
+            >
+              Limpiar filtros
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -831,7 +1038,7 @@ const FoodSubstitutionRulesPage = () => {
             <p className="text-muted-foreground">No hay normas para la búsqueda actual.</p>
           ) : (
             <div className="space-y-2">
-              {filteredMappings.map((mapping) => (
+              {visibleMappings.map((mapping) => (
                 <div
                   key={mapping.id}
                   onClick={() => handleEditMapping(mapping)}

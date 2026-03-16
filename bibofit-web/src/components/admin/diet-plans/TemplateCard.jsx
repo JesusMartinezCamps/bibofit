@@ -379,14 +379,14 @@ const TemplateCard = ({
                                 </h4>
                                 {assignedPlans.length > 0 ? (
                                     <div className="flex flex-wrap gap-1.5">
-                                        {assignedPlans.slice(0, 3).map(plan => (
+                                        {assignedPlans.slice(0, 3).filter(plan => plan.profile).map(plan => (
                                             allowManagement ? (
                                                 <TooltipProvider key={plan.id}>
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
                                                             <Link to={`/admin/manage-diet/${plan.profile.user_id}`} onClick={stopPropagation}>
                                                                 <Badge variant="outline" className="text-[10px] px-2 py-0.5 border-green-900/40 bg-green-900/10 text-green-400/80 hover:bg-green-900/30 hover:text-green-300 transition-colors cursor-pointer">
-                                                                    {plan.profile.full_name.split(' ')[0]}
+                                                                    {plan.profile.full_name?.split(' ')[0] ?? plan.user_id}
                                                                 </Badge>
                                                             </Link>
                                                         </TooltipTrigger>
@@ -397,7 +397,7 @@ const TemplateCard = ({
                                                 </TooltipProvider>
                                             ) : (
                                                 <Badge key={plan.id} variant="outline" className="text-[10px] px-2 py-0.5 border-green-900/40 bg-green-900/10 text-green-400/80">
-                                                    {plan.profile.full_name.split(' ')[0]}
+                                                    {plan.profile.full_name?.split(' ')[0] ?? plan.user_id}
                                                 </Badge>
                                             )
                                         ))}

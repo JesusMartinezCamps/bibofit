@@ -83,13 +83,15 @@ export const useRecipeEditor = ({ recipeToEdit, onSaveSuccess, isAdminView, user
   
   useEffect(() => {
     if (open) {
-      // Siempre obtener restricciones completas via RPC (incluye diet_type_rules).
-      // initialPlanRestrictions ya es el estado inicial; el RPC lo sobreescribe con datos completos.
-      fetchUserRestrictions();
+      // Para plantillas no hay usuario objetivo: las restricciones vienen de initialPlanRestrictions.
+      // Llamar fetchUserRestrictions aquí usaría user.id (el admin), contaminando los conflictos.
+      if (!isTemplate) {
+        fetchUserRestrictions();
+      }
     } else {
       resetState();
     }
-  }, [open, fetchUserRestrictions, resetState]);
+  }, [open, isTemplate, fetchUserRestrictions, resetState]);
 
   useEffect(() => {
     if (!open || !recipeToEdit || allFoods.length === 0) return;
