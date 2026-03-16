@@ -199,7 +199,7 @@ const MealAdjustmentStep = ({ onNext, isLoading: isStepLoading }) => {
       });
 
       setConflicts(prev => {
-          const criticalTypes = new Set(['condition_avoid', 'sensitivity', 'non-preferred']);
+          const criticalTypes = new Set(['condition_avoid', 'sensitivity', 'non-preferred', 'diet_type_excluded']);
           const ingredients = updatedRecipe?.custom_ingredients?.length > 0
               ? updatedRecipe.custom_ingredients
               : (updatedRecipe?.ingredients || updatedRecipe?.recipe?.recipe_ingredients || []);

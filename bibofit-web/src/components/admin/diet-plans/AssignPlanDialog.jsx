@@ -60,6 +60,7 @@ const AssignPlanDialog = ({
         dateRange,
         setDateRange,
         conflicts,
+        isCheckingConflicts,
         isConflictModalOpen,
         setIsConflictModalOpen,
         planRestrictionsForEditor,
@@ -268,6 +269,14 @@ const AssignPlanDialog = ({
     const handleNext = async () => {
         if (step === 1) {
             if (!selectedClientId || !newPlanName || !startDate || !endDate) return;
+             if (isCheckingConflicts) {
+                toast({
+                    title: "Verificando conflictos",
+                    description: "Espera un momento mientras validamos sustituciones y restricciones.",
+                    variant: "default"
+                });
+                return;
+            }
              if (Object.keys(conflicts).length > 0) {
                 setIsConflictModalOpen(true);
                 return;
@@ -442,6 +451,12 @@ const AssignPlanDialog = ({
                                     />
                                 </div>
                             </div>
+                            {isCheckingConflicts && selectedClientId && (
+                                <div className="text-xs text-muted-foreground flex items-center gap-2">
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    Analizando mapeos de sustitución y compatibilidad de dieta...
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -515,6 +530,7 @@ const AssignPlanDialog = ({
                             onClick={handleNext}
                             disabled={
                                 isAssigning ||
+                                (step === 1 && isCheckingConflicts) ||
                                 (step === 1 && (!selectedClientId || !newPlanName || !startDate || !endDate)) ||
                                 (step === 2 && (dailyMacros.protein + dailyMacros.carbs + dailyMacros.fat) !== 100)
                             }

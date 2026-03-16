@@ -33,6 +33,9 @@ export const useConflictResolution = (recipes, userRestrictions, allFoods) => {
                     const result = await getConflictWithSubstitutions(food, userRestrictions, allFoods);
                     
                     if (result.hasConflict) {
+                        if (result?.conflict?.type === 'diet_type_limited') {
+                            continue;
+                        }
                         recipeHasConflict = true;
                         
                         const conflictDetails = {

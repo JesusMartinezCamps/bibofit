@@ -7,6 +7,7 @@ import { saveDietPlanRecipeIngredients, calculateMacros, saveRecipeMacros } from
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { invokeAutoBalanceDietPlans } from '@/lib/autoBalanceClient';
+import { prepareTemplateConflictResolution } from '@/lib/planConflictResolver';
 
 export const useAssignPlan = ({ open, onOpenChange, onSuccess, preselectedClient, template, mode = 'adminAssign', forcedUserId }) => {
     const { toast } = useToast();
@@ -77,7 +78,30 @@ export const useAssignPlan = ({ open, onOpenChange, onSuccess, preselectedClient
         if (!template?.id) return;
         const { data, error } = await supabase
             .from('diet_plan_recipes')
-            .select('*, recipe:recipe_id(*, recipe_ingredients(*, food(*, food_sensitivities(sensitivity_id), food_medical_conditions(*)))), custom_ingredients:recipe_ingredients(*, food(*, food_sensitivities(sensitivity_id), food_medical_conditions(*))))')
+            .select(`
+                *,
+                recipe:recipe_id(
+                    *,
+                    recipe_ingredients(
+                        *,
+                        food(
+                            *,
+                            food_sensitivities(sensitivity_id),
+                            food_medical_conditions(*),
+                            food_to_food_groups(food_group_id, food_group:food_groups(id, name))
+                        )
+                    )
+                ),
+                custom_ingredients:recipe_ingredients(
+                    *,
+                    food(
+                        *,
+                        food_sensitivities(sensitivity_id),
+                        food_medical_conditions(*),
+                        food_to_food_groups(food_group_id, food_group:food_groups(id, name))
+                    )
+                )
+            `)
             .eq('diet_plan_id', template.id);
         if (error) {
             toast({ title: 'Error', description: 'No se pudieron cargar las recetas de la plantilla.', variant: 'destructive' });
@@ -164,6 +188,7 @@ export const useAssignPlan = ({ open, onOpenChange, onSuccess, preselectedClient
             setClientRestrictions(null);
             setConflicts({});
             setModifiedRecipes(new Map());
+            setTemplateRecipes([]);
         }
     }, [open, preselectedClient, template, toast, fetchTemplateRecipes, user, mode, forcedUserId]);
 
@@ -177,96 +202,40 @@ export const useAssignPlan = ({ open, onOpenChange, onSuccess, preselectedClient
         }
     }, [selectedClientId, template, clients, mode]);
 
-    const checkConflicts = useCallback(() => {
-        if (!clientRestrictions || !templateRecipes.length) {
+    const checkConflicts = useCallback(async () => {
+        if (!selectedClientId || !template?.id || !templateRecipes.length) {
+            setClientRestrictions(null);
             setConflicts({});
+            setModifiedRecipes(new Map());
             return;
         }
+
         setIsCheckingConflicts(true);
-        const newConflicts = {};
-
-        const clientSensitivityIds = new Set(clientRestrictions.sensitivities.map(s => s.id));
-        const clientConditionIds = new Set(clientRestrictions.conditions.map(c => c.id));
-
-        templateRecipes.forEach(recipe => {
-            const ingredientsSource = recipe.custom_ingredients?.length > 0 
-                ? recipe.custom_ingredients 
-                : recipe.recipe?.recipe_ingredients || [];
-
-            const ingredients = ingredientsSource.map(i => i?.food).filter(Boolean);
-            
-            ingredients.forEach(food => {
-                if (!food) return;
-                (food.food_sensitivities || []).forEach(fs => {
-                    if (clientSensitivityIds.has(fs.sensitivity_id)) {
-                        const restriction = clientRestrictions.sensitivities.find(s => s.id === fs.sensitivity_id);
-                        if (restriction) {
-                            if (!newConflicts[restriction.name]) newConflicts[restriction.name] = [];
-                            if (!newConflicts[restriction.name].some(r => r.id === recipe.id)) {
-                                newConflicts[restriction.name].push(recipe);
-                            }
-                        }
-                    }
-                });
-                (food.food_medical_conditions || []).forEach(fmc => {
-                    if (clientConditionIds.has(fmc.condition_id) && fmc.relation_type === 'to_avoid') {
-                        const restriction = clientRestrictions.conditions.find(c => c.id === fmc.condition_id);
-                        if (restriction) {
-                            if (!newConflicts[restriction.name]) newConflicts[restriction.name] = [];
-                            if (!newConflicts[restriction.name].some(r => r.id === recipe.id)) {
-                                newConflicts[restriction.name].push(recipe);
-                            }
-                        }
-                    }
-                });
+        setConflicts({});
+        try {
+            const resolution = await prepareTemplateConflictResolution({
+                userId: selectedClientId,
+                templateId: template.id,
+                templateRecipes,
             });
-        });
-        setConflicts(newConflicts);
-        setIsCheckingConflicts(false);
-    }, [clientRestrictions, templateRecipes]);
 
-    useEffect(() => {
-        const fetchClientRestrictions = async () => {
-            if (!selectedClientId) {
-                setClientRestrictions(null);
-                setConflicts({});
-                return;
-            }
-            try {
-                const [restrictionsRes, preferredRes, nonPreferredRes] = await Promise.all([
-                    supabase.rpc('get_user_restrictions', { p_user_id: selectedClientId }),
-                    supabase.from('preferred_foods').select('food(id, name)').eq('user_id', selectedClientId),
-                    supabase.from('non_preferred_foods').select('food(id, name)').eq('user_id', selectedClientId),
-                ]);
-
-                if (restrictionsRes.error) throw restrictionsRes.error;
-                if (preferredRes.error) throw preferredRes.error;
-                if (nonPreferredRes.error) throw nonPreferredRes.error;
-
-                const rpcRestrictions = restrictionsRes.data || {};
-                const medicalConditions = rpcRestrictions.medical_conditions || rpcRestrictions.conditions || [];
-
-                setClientRestrictions({
-                    sensitivities: rpcRestrictions.sensitivities || [],
-                    conditions: medicalConditions,
-                    medical_conditions: medicalConditions,
-                    individual_food_restrictions: rpcRestrictions.individual_food_restrictions || [],
-                    preferred_foods: (preferredRes.data || []).map(i => i.food).filter(Boolean),
-                    non_preferred_foods: (nonPreferredRes.data || []).map(i => i.food).filter(Boolean),
-                    diet_type_id: rpcRestrictions.diet_type_id ?? null,
-                    diet_type_name: rpcRestrictions.diet_type_name ?? null,
-                    diet_type_rules: rpcRestrictions.diet_type_rules || [],
-                });
-            } catch (error) {
-                toast({ title: 'Error', description: 'No se pudieron cargar las restricciones del cliente.', variant: 'destructive' });
-            }
-        };
-        fetchClientRestrictions();
-    }, [selectedClientId, toast]);
+            setClientRestrictions(resolution.clientRestrictions || null);
+            setConflicts(resolution.conflicts || {});
+            setModifiedRecipes(resolution.recipeOverrides || new Map());
+        } catch (error) {
+            console.error('Error preparing conflict resolution for assign flow:', error);
+            toast({ title: 'Error', description: 'No se pudieron preparar los conflictos de la plantilla.', variant: 'destructive' });
+            setClientRestrictions(null);
+            setConflicts({});
+            setModifiedRecipes(new Map());
+        } finally {
+            setIsCheckingConflicts(false);
+        }
+    }, [selectedClientId, template?.id, templateRecipes, toast]);
 
     useEffect(() => {
         checkConflicts();
-    }, [clientRestrictions, templateRecipes, checkConflicts]);
+    }, [checkConflicts]);
 
     const handleAssign = async (
         mealConfigs = [],

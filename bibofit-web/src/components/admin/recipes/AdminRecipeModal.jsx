@@ -364,7 +364,7 @@ const AdminRecipeModal = ({
 
     const handleUpdateVariant = async () => {
         if (isReadOnly) return;
-        const criticalConflicts = conflicts?.filter(c => ['condition_avoid', 'sensitivity', 'non-preferred', 'individual_restriction'].includes(c.type)) || [];
+        const criticalConflicts = conflicts?.filter(c => ['condition_avoid', 'sensitivity', 'non-preferred', 'individual_restriction', 'diet_type_excluded'].includes(c.type)) || [];
         if (criticalConflicts.length > 0) {
             toast({ title: "Conflictos detectados", description: "No puedes guardar cambios si la receta contiene ingredientes que generan conflicto.", variant: "destructive" });
             return;
@@ -514,7 +514,7 @@ const AdminRecipeModal = ({
         !isReadOnly 
     ); 
 
-    const criticalConflicts = conflicts?.filter(c => ['condition_avoid', 'sensitivity', 'non-preferred', 'individual_restriction'].includes(c.type)) || [];
+    const criticalConflicts = conflicts?.filter(c => ['condition_avoid', 'sensitivity', 'non-preferred', 'individual_restriction', 'diet_type_excluded'].includes(c.type)) || [];
     const hasCriticalConflicts = criticalConflicts.length > 0;
     
     const variantButtonText = useMemo(() => {

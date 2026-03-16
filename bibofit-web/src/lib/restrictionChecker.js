@@ -8,6 +8,19 @@ const normalizeRelationType = (value) => {
     return relation || null;
 };
 
+const normalizeDietRuleType = (value) => {
+    const normalized = (value || '').toLowerCase().trim();
+    if (['excluded', 'exclude', 'no_compatible', 'not_compatible'].includes(normalized)) return 'excluded';
+    if (['limited', 'limit', 'reduce', 'reduced'].includes(normalized)) return 'limited';
+    return normalized || null;
+};
+
+const normalizeText = (value) =>
+    String(value || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+
 const mappingAppliesToConflict = (mapping, conflict) => {
     const contexts = mapping?.metadata?.conflict_contexts;
 
@@ -33,6 +46,28 @@ const mappingAppliesToConflict = (mapping, conflict) => {
 
             const ctxRelation = normalizeRelationType(ctx.relation_type);
             return !ctxRelation || ctxRelation === normalizeRelationType(conflict.condition_relation);
+        }
+
+        if (ctx.type === 'diet_type') {
+            if (conflict?.type !== 'diet_type_excluded' && conflict?.type !== 'diet_type_limited') {
+                return false;
+            }
+
+            if (Number(ctx.diet_type_id) !== Number(conflict.diet_type_id)) {
+                return false;
+            }
+
+            const ctxRuleType = normalizeDietRuleType(ctx.rule_type);
+            const conflictRuleType = normalizeDietRuleType(conflict.rule_type);
+            if (ctxRuleType && conflictRuleType && ctxRuleType !== conflictRuleType) {
+                return false;
+            }
+
+            if (ctx.food_group_id != null && conflict.food_group_id != null) {
+                return Number(ctx.food_group_id) === Number(conflict.food_group_id);
+            }
+
+            return true;
         }
 
         return false;
@@ -127,30 +162,53 @@ export const getConflictInfo = (food, userRestrictions) => {
     // Check diet type compatibility
     // Genera advertencias (no bloqueos): el usuario puede usar el alimento igualmente.
     if (userRestrictions.diet_type_id && Array.isArray(userRestrictions.diet_type_rules) && userRestrictions.diet_type_rules.length > 0) {
-        const foodGroupIds = (food.food_to_food_groups || []).map(fg => Number(fg.food_group_id ?? fg.food_group?.id));
+        const foodGroupIds = (food.food_to_food_groups || []).map(fg => Number(fg.food_group_id ?? fg.food_group?.id ?? fg.food_groups?.id));
+        const foodGroupNames = (food.food_to_food_groups || [])
+            .map(fg => normalizeText(fg.food_group?.name ?? fg.food_groups?.name))
+            .filter(Boolean);
 
         if (foodGroupIds.length > 0) {
             const excludedRule = userRestrictions.diet_type_rules.find(
-                r => r.rule_type === 'excluded' && foodGroupIds.includes(Number(r.food_group_id))
+                (r) => {
+                    if (r.rule_type !== 'excluded') return false;
+                    const ruleGroupId = Number(r.food_group_id ?? r.food_groups?.id);
+                    const ruleGroupName = normalizeText(r.food_group_name ?? r.food_groups?.name);
+                    return (
+                        (Number.isFinite(ruleGroupId) && foodGroupIds.includes(ruleGroupId)) ||
+                        (ruleGroupName && foodGroupNames.includes(ruleGroupName))
+                    );
+                }
             );
             if (excludedRule) {
                 return {
                     type: 'diet_type_excluded',
-                    reason: `No recomendado en dieta ${userRestrictions.diet_type_name || 'seleccionada'}: ${excludedRule.food_group_name || ''}`.trim(),
+                    reason: `No recomendado en dieta ${userRestrictions.diet_type_name || 'seleccionada'}: ${excludedRule.food_group_name || excludedRule.food_groups?.name || ''}`.trim(),
                     diet_type_id: userRestrictions.diet_type_id,
-                    food_group_name: excludedRule.food_group_name,
+                    food_group_name: excludedRule.food_group_name || excludedRule.food_groups?.name,
+                    food_group_id: excludedRule.food_group_id ?? excludedRule.food_groups?.id ?? null,
+                    rule_type: excludedRule.rule_type,
                 };
             }
 
             const limitedRule = userRestrictions.diet_type_rules.find(
-                r => r.rule_type === 'limited' && foodGroupIds.includes(Number(r.food_group_id))
+                (r) => {
+                    if (r.rule_type !== 'limited') return false;
+                    const ruleGroupId = Number(r.food_group_id ?? r.food_groups?.id);
+                    const ruleGroupName = normalizeText(r.food_group_name ?? r.food_groups?.name);
+                    return (
+                        (Number.isFinite(ruleGroupId) && foodGroupIds.includes(ruleGroupId)) ||
+                        (ruleGroupName && foodGroupNames.includes(ruleGroupName))
+                    );
+                }
             );
             if (limitedRule) {
                 return {
                     type: 'diet_type_limited',
-                    reason: `Uso reducido recomendado en dieta ${userRestrictions.diet_type_name || 'seleccionada'}: ${limitedRule.food_group_name || ''}`.trim(),
+                    reason: `Uso reducido recomendado en dieta ${userRestrictions.diet_type_name || 'seleccionada'}: ${limitedRule.food_group_name || limitedRule.food_groups?.name || ''}`.trim(),
                     diet_type_id: userRestrictions.diet_type_id,
-                    food_group_name: limitedRule.food_group_name,
+                    food_group_name: limitedRule.food_group_name || limitedRule.food_groups?.name,
+                    food_group_id: limitedRule.food_group_id ?? limitedRule.food_groups?.id ?? null,
+                    rule_type: limitedRule.rule_type,
                 };
             }
         }
@@ -190,19 +248,8 @@ export const getConflictWithSubstitutions = async (food, userRestrictions, allFo
     const basicConflict = getConflictInfo(food, userRestrictions);
     
     // Si no hay conflicto o es una preferencia positiva, retornamos rápido.
-    // Los conflictos de tipo de dieta son advertencias informativas: se reportan
-    // pero no se buscan sustituciones automáticas (el usuario decide libremente).
     if (!basicConflict || basicConflict.type === 'preferred' || basicConflict.type === 'condition_recommend') {
         return { hasConflict: false };
-    }
-    if (basicConflict.type === 'diet_type_excluded' || basicConflict.type === 'diet_type_limited') {
-        return {
-            hasConflict: true,
-            conflict: basicConflict,
-            substitutions: [],
-            autoSubstitution: null,
-            requiresReview: false,  // advertencia informativa, no requiere acción
-        };
     }
     
     try {
@@ -228,18 +275,29 @@ export const getConflictWithSubstitutions = async (food, userRestrictions, allFo
             if (!targetFood) return false;
             
             const targetConflict = getConflictInfo(targetFood, userRestrictions);
-            // Solo es seguro si no hay conflicto, o si el conflicto es "preferido" / "recomendado"
-            return !targetConflict || targetConflict.type === 'preferred' || targetConflict.type === 'condition_recommend';
+            // Solo es seguro si no hay conflicto, o si es una recomendación/preferencia positiva
+            // o una advertencia leve de tipo de dieta (limited).
+            return (
+                !targetConflict ||
+                targetConflict.type === 'preferred' ||
+                targetConflict.type === 'condition_recommend' ||
+                targetConflict.type === 'diet_type_limited'
+            );
         });
 
-        const autoSub = safeSubstitutions.find(s => s.is_automatic && s.confidence_score >= 85);
+        const isDietLimitedConflict = basicConflict.type === 'diet_type_limited';
+        const autoSubCandidates = isDietLimitedConflict
+            ? []
+            : safeSubstitutions.filter(s => s.is_automatic && s.confidence_score >= 85);
+        const autoSub = autoSubCandidates[0] ?? null;
 
         return {
             hasConflict: true,
             conflict: basicConflict,
             substitutions: safeSubstitutions,
             autoSubstitution: autoSub,
-            requiresReview: !autoSub
+            autoSubstitutionCandidates: autoSubCandidates,
+            requiresReview: isDietLimitedConflict ? false : !autoSub
         };
     } catch (err) {
         console.error("Error fetching substitutions:", err);

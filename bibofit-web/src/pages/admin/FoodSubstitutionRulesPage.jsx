@@ -54,10 +54,19 @@ const getConditionEntries = (food) =>
     }))
     .filter((item) => item.id && item.name);
 
+const getFoodGroupEntries = (food) =>
+  (food?.food_to_food_groups || [])
+    .map((entry) => ({
+      id: entry?.food_group_id ?? entry?.food_group?.id ?? entry?.food_groups?.id,
+      name: entry?.food_group?.name ?? entry?.food_groups?.name
+    }))
+    .filter((item) => item.id && item.name);
+
 const getSearchIndex = (food) => {
   const sensitivityText = getSensitivityEntries(food).map((item) => item.name).join(' ');
   const conditionText = getConditionEntries(food).map((item) => `${item.name} ${item.relation_type}`).join(' ');
-  return normalizeText(`${food?.name || ''} ${sensitivityText} ${conditionText}`);
+  const groupText = getFoodGroupEntries(food).map((item) => item.name).join(' ');
+  return normalizeText(`${food?.name || ''} ${groupText} ${sensitivityText} ${conditionText}`);
 };
 
 const matchesFoodSearch = (food, rawQuery) => {
@@ -85,7 +94,7 @@ const getNameMatchScore = (foodName, rawQuery) => {
   return 5;
 };
 
-const foodMatchesContext = (food, context) => {
+const foodMatchesContext = (food, context, dietTypeRulesById = new Map()) => {
   if (!food || !context) return false;
 
   if (context.type === 'sensitivity') {
@@ -100,10 +109,18 @@ const foodMatchesContext = (food, context) => {
     );
   }
 
+  if (context.type === 'diet_type') {
+    const foodGroupIds = getFoodGroupEntries(food).map((item) => Number(item.id));
+    const dietRules = dietTypeRulesById.get(Number(context.diet_type_id)) || [];
+    return dietRules
+      .filter((rule) => normalizeText(rule.rule_type) === normalizeText(context.rule_type))
+      .some((rule) => foodGroupIds.includes(Number(rule.food_group_id)));
+  }
+
   return false;
 };
 
-const getContextLabel = (ctx, sensitivityMap, conditionMap) => {
+const getContextLabel = (ctx, sensitivityMap, conditionMap, dietTypeMap) => {
   if (ctx?.type === 'sensitivity') {
     return `Sensibilidad: ${sensitivityMap.get(Number(ctx.sensitivity_id)) || `#${ctx.sensitivity_id}`}`;
   }
@@ -112,6 +129,11 @@ const getContextLabel = (ctx, sensitivityMap, conditionMap) => {
     const prefix = relation === 'recommend' ? 'Recomendación' : 'Evitar';
     return `${prefix}: ${conditionMap.get(Number(ctx.condition_id)) || `#${ctx.condition_id}`}`;
   }
+  if (ctx?.type === 'diet_type') {
+    const dietName = ctx?.diet_type_name || dietTypeMap?.get(Number(ctx.diet_type_id)) || `#${ctx.diet_type_id}`;
+    const tone = normalizeText(ctx.rule_type) === 'limited' ? 'Uso reducido' : 'No compatible';
+    return `Dieta (${tone}): ${dietName} · ${ctx.food_group_name || `Grupo #${ctx.food_group_id}`}`;
+  }
   return 'Contexto';
 };
 
@@ -119,6 +141,7 @@ const getContextKey = (ctx) => {
   if (!ctx || typeof ctx !== 'object') return 'general';
   if (ctx.type === 'sensitivity') return `sensitivity:${ctx.sensitivity_id}`;
   if (ctx.type === 'medical_condition') return `medical_condition:${ctx.condition_id}:${normalizeRelationType(ctx.relation_type)}`;
+  if (ctx.type === 'diet_type') return `diet_type:${ctx.diet_type_id}:${ctx.rule_type}:${ctx.food_group_id}`;
   return 'general';
 };
 
@@ -137,10 +160,19 @@ const buildContextMetadata = (context) => {
     ? [
         context.type === 'sensitivity'
           ? { type: 'sensitivity', sensitivity_id: context.sensitivity_id }
-          : {
+          : context.type === 'medical_condition'
+          ? {
               type: 'medical_condition',
               condition_id: context.condition_id,
               relation_type: context.relation_type
+            }
+          : {
+              type: 'diet_type',
+              diet_type_id: context.diet_type_id,
+              diet_type_name: context.diet_type_name,
+              food_group_id: context.food_group_id,
+              food_group_name: context.food_group_name,
+              rule_type: context.rule_type
             }
       ]
     : [];
@@ -151,7 +183,7 @@ const buildContextMetadata = (context) => {
   };
 };
 
-const buildAutomaticReason = (sourceFood, targetFood, contexts, sensitivityMap, conditionMap) => {
+const buildAutomaticReason = (sourceFood, targetFood, contexts, sensitivityMap, conditionMap, dietTypeMap) => {
   if (!sourceFood?.name || !targetFood?.name) return '';
 
   if (!contexts || contexts.length === 0) {
@@ -159,17 +191,25 @@ const buildAutomaticReason = (sourceFood, targetFood, contexts, sensitivityMap, 
   }
 
   if (contexts.length === 1) {
-    const label = getContextLabel(contexts[0], sensitivityMap, conditionMap);
+    const label = getContextLabel(contexts[0], sensitivityMap, conditionMap, dietTypeMap);
     return `${sourceFood.name} en conflicto con ${label}. Se reemplaza por ${targetFood.name}.`;
   }
 
-  const labelList = contexts.map((ctx) => getContextLabel(ctx, sensitivityMap, conditionMap)).join(', ');
+  const labelList = contexts.map((ctx) => getContextLabel(ctx, sensitivityMap, conditionMap, dietTypeMap)).join(', ');
   return `El alimento ${sourceFood.name} en conflicto con ${labelList}. Se reemplaza por ${targetFood.name}.`;
 };
 
 const getReasonInputKeyForContext = (ctx) => (ctx ? getContextKey(ctx) : 'general');
 
-const FoodSearchModal = ({ open, onOpenChange, foods, onSelect, selectedContexts = [], conflictVisualMode = false }) => {
+const FoodSearchModal = ({
+  open,
+  onOpenChange,
+  foods,
+  onSelect,
+  selectedContexts = [],
+  conflictVisualMode = false,
+  dietTypeRulesById = new Map()
+}) => {
   const [query, setQuery] = useState('');
 
   const results = useMemo(() => {
@@ -215,7 +255,7 @@ const FoodSearchModal = ({ open, onOpenChange, foods, onSelect, selectedContexts
               <p className="text-sm text-muted-foreground px-3 py-4">Escribe para ver resultados.</p>
             ) : (
               results.map((food) => {
-                const isBlocked = conflictVisualMode && selectedContexts.some((ctx) => foodMatchesContext(food, ctx));
+                const isBlocked = conflictVisualMode && selectedContexts.some((ctx) => foodMatchesContext(food, ctx, dietTypeRulesById));
                 const hasSelectedContexts = conflictVisualMode && selectedContexts.length > 0;
 
                 let toneClass = 'bg-transparent border-border';
@@ -264,6 +304,7 @@ const FoodSubstitutionRulesPage = () => {
   const [mappings, setMappings] = useState([]);
   const [sensitivities, setSensitivities] = useState([]);
   const [conditions, setConditions] = useState([]);
+  const [dietTypes, setDietTypes] = useState([]);
   const [formData, setFormData] = useState(DEFAULT_FORM);
   const [selectedContextKeys, setSelectedContextKeys] = useState([]);
   const [isSourceModalOpen, setIsSourceModalOpen] = useState(false);
@@ -276,6 +317,21 @@ const FoodSubstitutionRulesPage = () => {
   const foodsById = useMemo(() => new Map(foods.map((food) => [food.id, food])), [foods]);
   const sensitivityMap = useMemo(() => new Map(sensitivities.map((item) => [item.id, item.name])), [sensitivities]);
   const conditionMap = useMemo(() => new Map(conditions.map((item) => [item.id, item.name])), [conditions]);
+  const dietTypeMap = useMemo(() => new Map(dietTypes.map((item) => [item.id, item.name])), [dietTypes]);
+  const dietTypeRulesById = useMemo(() => {
+    const map = new Map();
+    dietTypes.forEach((dietType) => {
+      map.set(
+        Number(dietType.id),
+        (dietType.diet_type_food_group_rules || []).map((rule) => ({
+          food_group_id: rule.food_group_id,
+          rule_type: rule.rule_type,
+          food_group_name: rule.food_groups?.name || ''
+        }))
+      );
+    });
+    return map;
+  }, [dietTypes]);
 
   const selectedSourceFood = foodsById.get(Number(formData.source_food_id));
   const selectedTargetFood = foodsById.get(Number(formData.target_food_id));
@@ -298,8 +354,26 @@ const FoodSubstitutionRulesPage = () => {
         relation_type: item.relation_type
       }));
 
-    return [...sensitivityContexts, ...conditionContexts];
-  }, [selectedSourceFood]);
+    const sourceGroupIds = new Set(
+      getFoodGroupEntries(selectedSourceFood).map((group) => Number(group.id))
+    );
+
+    const dietTypeContexts = dietTypes.flatMap((dietType) =>
+      (dietType.diet_type_food_group_rules || [])
+        .filter((rule) => sourceGroupIds.has(Number(rule.food_group_id)))
+        .map((rule) => ({
+          key: `diet_type:${dietType.id}:${rule.rule_type}:${rule.food_group_id}`,
+          type: 'diet_type',
+          diet_type_id: Number(dietType.id),
+          diet_type_name: dietType.name,
+          food_group_id: Number(rule.food_group_id),
+          food_group_name: rule.food_groups?.name || '',
+          rule_type: rule.rule_type
+        }))
+    );
+
+    return [...sensitivityContexts, ...conditionContexts, ...dietTypeContexts];
+  }, [selectedSourceFood, dietTypes]);
 
   const selectedContextObjects = useMemo(
     () => availableContexts.filter((ctx) => selectedContextKeys.includes(ctx.key)),
@@ -323,40 +397,47 @@ const FoodSubstitutionRulesPage = () => {
       const targetName = normalizeText(foodsById.get(Number(mapping.target_food_id))?.name || '');
       const contextText = normalizeText(
         (mapping?.metadata?.conflict_contexts || [])
-          .map((ctx) => getContextLabel(ctx, sensitivityMap, conditionMap))
+          .map((ctx) => getContextLabel(ctx, sensitivityMap, conditionMap, dietTypeMap))
           .join(' ')
       );
       return sourceName.includes(term) || targetName.includes(term) || contextText.includes(term);
     });
-  }, [listSearch, mappings, foodsById, sensitivityMap, conditionMap]);
+  }, [listSearch, mappings, foodsById, sensitivityMap, conditionMap, dietTypeMap]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [foodsRes, mappingsRes, sensitivityRes, conditionRes] = await Promise.all([
+      const [foodsRes, mappingsRes, sensitivityRes, conditionRes, dietTypesRes] = await Promise.all([
         supabase
           .from('food')
           .select(`
             id,
             name,
             food_sensitivities(sensitivity_id, sensitivities(id, name)),
-            food_medical_conditions(condition_id, relation_type, medical_conditions(id, name))
+            food_medical_conditions(condition_id, relation_type, medical_conditions(id, name)),
+            food_to_food_groups(food_group_id, food_group:food_groups(id, name))
           `)
           .order('name'),
         supabase.from('food_substitution_mappings').select('*').order('created_at', { ascending: false }),
         supabase.from('sensitivities').select('id, name').order('name'),
-        supabase.from('medical_conditions').select('id, name').order('name')
+        supabase.from('medical_conditions').select('id, name').order('name'),
+        supabase
+          .from('diet_types')
+          .select('id, name, diet_type_food_group_rules(food_group_id, rule_type, food_groups(id, name))')
+          .order('name')
       ]);
 
       if (foodsRes.error) throw foodsRes.error;
       if (mappingsRes.error) throw mappingsRes.error;
       if (sensitivityRes.error) throw sensitivityRes.error;
       if (conditionRes.error) throw conditionRes.error;
+      if (dietTypesRes.error) throw dietTypesRes.error;
 
       setFoods(foodsRes.data || []);
       setMappings(mappingsRes.data || []);
       setSensitivities(sensitivityRes.data || []);
       setConditions(conditionRes.data || []);
+      setDietTypes(dietTypesRes.data || []);
     } catch (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } finally {
@@ -389,7 +470,8 @@ const FoodSubstitutionRulesPage = () => {
             selectedTargetFood,
             ctx ? [ctx] : [],
             sensitivityMap,
-            conditionMap
+            conditionMap,
+            dietTypeMap
           );
 
           if (next[key]) {
@@ -403,7 +485,7 @@ const FoodSubstitutionRulesPage = () => {
 
       return next;
     });
-  }, [selectedOrGeneralContexts, selectedSourceFood, selectedTargetFood, sensitivityMap, conditionMap]);
+  }, [selectedOrGeneralContexts, selectedSourceFood, selectedTargetFood, sensitivityMap, conditionMap, dietTypeMap]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -472,7 +554,8 @@ const FoodSubstitutionRulesPage = () => {
             selectedTargetFood,
             singleContextArray,
             sensitivityMap,
-            conditionMap
+            conditionMap,
+            dietTypeMap
           );
           const reasonInputKey = getReasonInputKeyForContext(context);
           const useAutomaticReason = !reasonTouchedByContext[reasonInputKey];
@@ -577,7 +660,7 @@ const FoodSubstitutionRulesPage = () => {
           </Button>
         </div>
           <CardDescription className="text-muted-foreground">
-            Selecciona alimento origen/destino, el conflicto aplicable y guarda la regla.
+            Gestiona reglas por sensibilidad/patología y por tipo de dieta desde una única pantalla.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -600,9 +683,11 @@ const FoodSubstitutionRulesPage = () => {
             </div>
 
             <div className="space-y-2">
-              <Label>Conflictos del alimento origen</Label>
+              <Label>Contextos aplicables al alimento origen</Label>
               {availableContexts.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Selecciona un alimento origen para elegir sensibilidad/patología.</p>
+                <p className="text-sm text-muted-foreground">
+                  Selecciona un alimento origen para mostrar contextos de sensibilidad, patología y tipo de dieta.
+                </p>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {availableContexts.map((ctx) => (
@@ -616,13 +701,13 @@ const FoodSubstitutionRulesPage = () => {
                           );
                         }}
                       />
-                      {getContextLabel(ctx, sensitivityMap, conditionMap)}
+                      {getContextLabel(ctx, sensitivityMap, conditionMap, dietTypeMap)}
                     </label>
                   ))}
                 </div>
               )}
               <p className="text-xs text-muted-foreground">
-                Si no seleccionas ninguno, la regla se guarda como general para ese alimento origen.
+                Puedes combinar múltiples contextos. Si no seleccionas ninguno, la regla queda como contexto general.
               </p>
             </div>
 
@@ -665,7 +750,7 @@ const FoodSubstitutionRulesPage = () => {
                 return (
                   <div key={key} className="rounded-md border border-border p-3 bg-card/80 space-y-2">
                     <p className="text-xs text-muted-foreground">
-                      {ctx ? getContextLabel(ctx, sensitivityMap, conditionMap) : 'Contexto general'}
+                      {ctx ? getContextLabel(ctx, sensitivityMap, conditionMap, dietTypeMap) : 'Contexto general'}
                     </p>
                     <Input
                       value={reasonByContext[key] || ''}
@@ -685,7 +770,8 @@ const FoodSubstitutionRulesPage = () => {
                           selectedTargetFood,
                           ctx ? [ctx] : [],
                           sensitivityMap,
-                          conditionMap
+                          conditionMap,
+                          dietTypeMap
                         );
                         setReasonByContext((prev) => ({ ...prev, [key]: automatic }));
                         setReasonTouchedByContext((prev) => ({ ...prev, [key]: false }));
@@ -766,7 +852,7 @@ const FoodSubstitutionRulesPage = () => {
                     {mapping.reason && <p className="text-xs text-muted-foreground mt-1">{mapping.reason}</p>}
                     <p className="text-xs text-muted-foreground mt-1">
                       {(mapping?.metadata?.conflict_contexts || []).length > 0
-                        ? mapping.metadata.conflict_contexts.map((ctx) => getContextLabel(ctx, sensitivityMap, conditionMap)).join(' | ')
+                        ? mapping.metadata.conflict_contexts.map((ctx) => getContextLabel(ctx, sensitivityMap, conditionMap, dietTypeMap)).join(' | ')
                         : 'Contexto general'}
                     </p>
                   </div>
@@ -794,6 +880,7 @@ const FoodSubstitutionRulesPage = () => {
         foods={foods.filter((food) => String(food.id) !== String(formData.target_food_id))}
         selectedContexts={[]}
         conflictVisualMode={false}
+        dietTypeRulesById={dietTypeRulesById}
         onSelect={(food) => {
           setFormData((prev) => ({ ...prev, source_food_id: String(food.id) }));
           setSelectedContextKeys([]);
@@ -807,6 +894,7 @@ const FoodSubstitutionRulesPage = () => {
         foods={destinationFoods}
         selectedContexts={selectedContextObjects}
         conflictVisualMode={true}
+        dietTypeRulesById={dietTypeRulesById}
         onSelect={(food) => {
           setFormData((prev) => ({ ...prev, target_food_id: String(food.id) }));
           setReasonByContext({});
