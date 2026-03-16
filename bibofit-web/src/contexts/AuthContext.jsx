@@ -49,6 +49,16 @@ export const AuthProvider = ({ children }) => {
     return fallbackSource;
   };
 
+  const getInviteTokenFromUserMetadata = (sessionUser) => {
+    const metadata = sessionUser?.user_metadata || {};
+    return (
+      metadata.invite_token ||
+      metadata.inviteToken ||
+      metadata.invitation_token ||
+      null
+    );
+  };
+
   const redeemPendingInvitationToken = async ({ explicitToken = null, source = 'web' } = {}) => {
     const inviteToken = getInviteTokenCandidate(explicitToken);
     if (!inviteToken) return { status: 'missing_token' };
@@ -198,6 +208,7 @@ export const AuthProvider = ({ children }) => {
 
         if (session) {
           await redeemPendingInvitationToken({
+            explicitToken: getInviteTokenFromUserMetadata(session.user),
             source: resolveRedeemSourceForSession('session_bootstrap', session.user),
           });
           await fetchUserProfile(session.user);
@@ -223,6 +234,7 @@ export const AuthProvider = ({ children }) => {
 
       if (event === 'SIGNED_IN' && session) {
         await redeemPendingInvitationToken({
+          explicitToken: getInviteTokenFromUserMetadata(session.user),
           source: resolveRedeemSourceForSession('auth_state_signed_in', session.user),
         });
         await fetchUserProfile(session.user);
@@ -261,7 +273,7 @@ export const AuthProvider = ({ children }) => {
       
       if (data.user) {
           const invitationRedemption = await redeemPendingInvitationToken({
-            explicitToken: options?.inviteToken || null,
+            explicitToken: options?.inviteToken || getInviteTokenFromUserMetadata(data.user) || null,
             source: 'login_password',
           });
           // Explicitly fetch profile immediately after login
@@ -292,6 +304,7 @@ export const AuthProvider = ({ children }) => {
             last_name: lastName || null,
             full_name: fullName || null,
             phone: phone || null,
+            invite_token: inviteToken || null,
           },
           emailRedirectTo: confirmationRedirectUrl,
         },

@@ -1,5 +1,7 @@
 BEGIN;
 
+CREATE EXTENSION IF NOT EXISTS "pgcrypto" WITH SCHEMA "extensions";
+
 -- ============================================================================
 -- 1) Persist only token hashes + safe preview
 -- ============================================================================
@@ -10,7 +12,7 @@ ALTER TABLE public.invitation_links
 UPDATE public.invitation_links
 SET token = CASE
   WHEN token ~ '^[a-f0-9]{64}$' THEN lower(token)
-  ELSE encode(digest(lower(trim(token)), 'sha256'), 'hex')
+  ELSE encode(extensions.digest(lower(trim(token)), 'sha256'), 'hex')
 END
 WHERE token IS NOT NULL;
 
@@ -40,7 +42,7 @@ LANGUAGE sql
 IMMUTABLE
 STRICT
 AS $$
-  SELECT encode(digest(lower(trim(p_token)), 'sha256'), 'hex');
+  SELECT encode(extensions.digest(lower(trim(p_token)), 'sha256'), 'hex');
 $$;
 
 ALTER FUNCTION public.hash_invitation_token(text) OWNER TO postgres;

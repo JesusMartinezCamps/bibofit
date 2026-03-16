@@ -293,6 +293,23 @@ const InvitationLinksPage = () => {
     fetchInvitationLinks();
   }, [fetchInvitationLinks]);
 
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-invitation-links-updates')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'invitation_links' },
+        () => {
+          void fetchInvitationLinks();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [fetchInvitationLinks]);
+
   const generateQrDataUrl = useCallback(async (url) => {
     const qrSize = 360;
     const qrData = await QRCode.toDataURL(url, {
