@@ -6,10 +6,13 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, PlusCircle, X, Shield, HeartPulse } from 'lucide-react';
 import SearchSelectionModal from '@/components/shared/SearchSelectionModal';
+import { PREFERENCE_TONES } from '@/components/profile/preferenceToneStyles';
 
-const FoodRestrictionsForm = ({ userId, onSaveStatusChange }) => {
+const FoodRestrictionsForm = ({ userId, onSaveStatusChange, onRestrictionsChange }) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  const sensitivityTone = PREFERENCE_TONES.orange;
+  const conditionTone = PREFERENCE_TONES.red;
   
   const [allSensitivities, setAllSensitivities] = useState([]);
   const [allMedicalConditions, setAllMedicalConditions] = useState([]);
@@ -45,6 +48,14 @@ const FoodRestrictionsForm = ({ userId, onSaveStatusChange }) => {
     };
     fetchData();
   }, [userId]);
+
+  useEffect(() => {
+    if (!onRestrictionsChange) return;
+    onRestrictionsChange({
+      sensitivityIds: selectedSensitivities.map((sensitivity) => sensitivity.sensitivity_id),
+      medicalConditionIds: [...selectedMedicalConditions],
+    });
+  }, [onRestrictionsChange, selectedSensitivities, selectedMedicalConditions]);
 
   const handleAddSensitivity = async (sensitivity) => {
     if (selectedSensitivities.some(s => s.sensitivity_id === sensitivity.id)) return;
@@ -120,14 +131,14 @@ const FoodRestrictionsForm = ({ userId, onSaveStatusChange }) => {
 
   return (
     <div className="space-y-6">
-        <div className="p-4 rounded-lg border border-orange-500/30 bg-[#47330526]">
+        <div className={`p-4 rounded-lg border ${sensitivityTone.container}`}>
             <div className="flex items-center justify-between mb-4">
-                 <h4 className="font-semibold text-orange-400 flex items-center gap-2"><Shield size={16}/> Sensibilidades</h4>
+                 <h4 className={`font-semibold flex items-center gap-2 ${sensitivityTone.title}`}><Shield size={16}/> Sensibilidades</h4>
                  <Button 
                     type="button" 
                     variant="outline" 
                     size="sm" 
-                    className="border-orange-500/50 text-orange-600 bg-orange-400/10 hover:bg-orange-400/80 hover:text-gray-100" 
+                    className={sensitivityTone.addButton}
                     onClick={() => setIsSensitivityModalOpen(true)}
                  >
                     <PlusCircle className="w-4 h-4 mr-2" /> Añadir
@@ -139,23 +150,23 @@ const FoodRestrictionsForm = ({ userId, onSaveStatusChange }) => {
               {selectedSensitivities.map(s => {
                 const details = allSensitivities.find(as => as.id === s.sensitivity_id);
                 return details ? (
-                    <Badge key={s.sensitivity_id} variant="destructive" className="bg-orange-600/10 border border-orange-500/30 text-orange-600">
+                    <Badge key={s.sensitivity_id} variant="outline" className={sensitivityTone.selectedBadge}>
                         {details.name} ({s.sensitivitie_level})
-                        <button type="button" onClick={() => handleRemoveSensitivity(s.sensitivity_id)} className="ml-2 hover:text-foreground"><X size={14}/></button>
+                        <button type="button" onClick={() => handleRemoveSensitivity(s.sensitivity_id)} className={`ml-2 ${sensitivityTone.selectedAction}`}><X size={14}/></button>
                     </Badge>
                 ) : null;
               })}
             </div>
         </div>
 
-        <div className="p-4 rounded-lg border border-red-500/30 bg-[#47050526]">
+        <div className={`p-4 rounded-lg border ${conditionTone.container}`}>
             <div className="flex items-center justify-between mb-4">
-                <h4 className="font-semibold text-red-400 flex items-center gap-2"><HeartPulse size={16}/> Condiciones Médicas</h4>
+                <h4 className={`font-semibold flex items-center gap-2 ${conditionTone.title}`}><HeartPulse size={16}/> Condiciones Médicas</h4>
                 <Button 
                     type="button" 
                     variant="outline" 
                     size="sm" 
-                    className="border-red-500/50 text-red-600 bg-red-400/10 hover:bg-red-400/80 hover:text-gray-100" 
+                    className={conditionTone.addButton}
                     onClick={() => setIsConditionModalOpen(true)}
                 >
                      <PlusCircle className="w-4 h-4 mr-2" /> Añadir
@@ -166,7 +177,7 @@ const FoodRestrictionsForm = ({ userId, onSaveStatusChange }) => {
               {selectedMedicalConditions.length === 0 && <p className="text-muted-foreground text-sm italic">No hay condiciones seleccionadas.</p>}
               {selectedMedicalConditions.map(cId => {
                 const details = allMedicalConditions.find(amc => amc.id === cId);
-                return details ? <Badge key={cId} variant="destructive" className="bg-red-600/10 border border-red-500/30 text-red-600">{details.name} <button type="button" onClick={() => handleRemoveCondition(cId)} className="ml-2 hover:text-foreground"><X size={14}/></button></Badge> : null;
+                return details ? <Badge key={cId} variant="outline" className={conditionTone.selectedBadge}>{details.name} <button type="button" onClick={() => handleRemoveCondition(cId)} className={`ml-2 ${conditionTone.selectedAction}`}><X size={14}/></button></Badge> : null;
               })}
             </div>
         </div>

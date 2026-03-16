@@ -2,20 +2,19 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
-import { Button } from '@/components/ui/button';
-import { Loader2, Utensils, Shield, HeartPulse, X, PlusCircle, Info, Sun, Apple, CheckCircle2 } from 'lucide-react';
+import { Loader2, Utensils, Shield, Info, Sun, Apple, CheckCircle2 } from 'lucide-react';
 import ProfileSectionCard from '@/components/profile/ProfileSectionCard.jsx';
 import FormRow from '@/components/profile/FormRow.jsx';
 import DayMealsPreferencesForm from '@/components/profile/DayMealsPreferencesForm.jsx';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import FoodPreferenceSelector from '@/components/profile/FoodPreferenceSelector';
-import { Badge } from '@/components/ui/badge';
 import FormBlock from '@/components/profile/FormBlock';
-import SearchSelectionModal from '@/components/shared/SearchSelectionModal';
+import DietTypeSelector from '@/components/shared/DietTypeSelector';
+import FoodRestrictionsForm from '@/components/profile/FoodRestrictionsForm';
+import FoodPreferencesForm from '@/components/profile/FoodPreferencesForm';
 import { debounce } from 'lodash';
 
-const DietPreferencesForm = ({ userId: propUserId, onUpdate }) => {
+const DietPreferencesForm = ({ userId: propUserId, onUpdate: _onUpdate }) => {
   const { user: authUser } = useAuth();
   const userId = propUserId || authUser?.id;
   const { toast } = useToast();
@@ -30,23 +29,13 @@ const DietPreferencesForm = ({ userId: propUserId, onUpdate }) => {
     likes_cooking: false,
   });
   
-  const [allSensitivities, setAllSensitivities] = useState([]);
-  const [allMedicalConditions, setAllMedicalConditions] = useState([]);
-  const [selectedSensitivities, setSelectedSensitivities] = useState([]);
-  const [selectedMedicalConditions, setSelectedMedicalConditions] = useState([]);
+  const [selectedSensitivityIds, setSelectedSensitivityIds] = useState(null);
+  const [selectedMedicalConditionIds, setSelectedMedicalConditionIds] = useState(null);
   
   const [allergicFoodIds, setAllergicFoodIds] = useState([]);
 
   const [dietTypes, setDietTypes] = useState([]);
   const [dietGoals, setDietGoals] = useState([]);
-  const [foods, setFoods] = useState([]);
-  const [preferredFoods, setPreferredFoods] = useState([]);
-  const [nonPreferredFoods, setNonPreferredFoods] = useState([]);
-
-  // Modals State
-  const [isSensitivityModalOpen, setIsSensitivityModalOpen] = useState(false);
-  const [isConditionModalOpen, setIsConditionModalOpen] = useState(false);
-  const [sensitivityLevel, setSensitivityLevel] = useState('Leve');
 
   const fetchData = useCallback(async () => {
     if (!userId) return;
@@ -54,59 +43,24 @@ const DietPreferencesForm = ({ userId: propUserId, onUpdate }) => {
     try {
       const [
         prefsData,
-        sensitivitiesRes, userSensitivitiesRes,
-        medicalConditionsRes, userMedicalConditionsRes,
-        dietTypesRes, dietGoalsRes, foodsRes,
-        preferredFoodsRes, nonPreferredFoodsRes
+        dietTypesRes,
+        dietGoalsRes
       ] = await Promise.all([
         supabase.from('diet_preferences').select('*').eq('user_id', userId).maybeSingle(),
-        supabase.from('sensitivities').select('id, name'),
-        supabase.from('user_sensitivities').select('sensitivity_id, sensitivitie_level').eq('user_id', userId),
-        supabase.from('medical_conditions').select('id, name'),
-        supabase.from('user_medical_conditions').select('condition_id').eq('user_id', userId),
-        supabase.from('diet_types').select('id, name'),
+        supabase.from('diet_types').select('id, name, description, diet_type_food_group_rules(rule_type, food_groups(name))').order('name'),
         supabase.from('diet_goals').select('id, name, description').order('name'),
-        supabase.from('food').select(`
-          id,
-          name,
-          food_to_food_groups(
-            food_group_id,
-            food_groups(id, name)
-          ),
-          food_medical_conditions(
-            condition_id,
-            relation_type,
-            medical_conditions(id, name)
-          )
-        `).order('name'),
-        supabase.from('preferred_foods').select('food_id, food(id, name)').eq('user_id', userId),
-        supabase.from('non_preferred_foods').select('food_id, food(id, name)').eq('user_id', userId),
       ]);
 
       if (prefsData.error && prefsData.error.code !== 'PGRST116') throw prefsData.error;
-      if (sensitivitiesRes.error) throw sensitivitiesRes.error;
-      if (userSensitivitiesRes.error) throw userSensitivitiesRes.error;
-      if (medicalConditionsRes.error) throw medicalConditionsRes.error;
-      if (userMedicalConditionsRes.error) throw userMedicalConditionsRes.error;
       if (dietTypesRes.error) throw dietTypesRes.error;
       if (dietGoalsRes.error) throw dietGoalsRes.error;
-      if (foodsRes.error) throw foodsRes.error;
-      if (preferredFoodsRes.error) throw preferredFoodsRes.error;
-      if (nonPreferredFoodsRes.error) throw nonPreferredFoodsRes.error;
 
       if (prefsData.data) {
         const { diet_types, ...restData } = prefsData.data;
         setFormData(prev => ({ ...prev, ...restData }));
       }
-      setAllSensitivities(sensitivitiesRes.data || []);
-      setSelectedSensitivities(userSensitivitiesRes.data || []);
-      setAllMedicalConditions(medicalConditionsRes.data || []);
-      setSelectedMedicalConditions((userMedicalConditionsRes.data || []).map(c => c.condition_id));
       setDietTypes(dietTypesRes.data || []);
       setDietGoals(dietGoalsRes.data || []);
-      setFoods(foodsRes.data || []);
-      setPreferredFoods((preferredFoodsRes.data || []).map(pf => pf.food).filter(Boolean));
-      setNonPreferredFoods((nonPreferredFoodsRes.data || []).map(npf => npf.food).filter(Boolean));
 
     } catch (error) {
       console.error("Error fetching diet preferences:", error);
@@ -122,7 +76,7 @@ const DietPreferencesForm = ({ userId: propUserId, onUpdate }) => {
 
   useEffect(() => {
     const fetchRestrictedFoods = async () => {
-      const sensitivityIds = selectedSensitivities.map(s => s.sensitivity_id);
+      const sensitivityIds = selectedSensitivityIds || [];
       let allergicIds = [];
       if (sensitivityIds.length > 0) {
         const { data, error } = await supabase.from('food_sensitivities').select('food_id').in('sensitivity_id', sensitivityIds);
@@ -131,7 +85,7 @@ const DietPreferencesForm = ({ userId: propUserId, onUpdate }) => {
       setAllergicFoodIds(allergicIds);
     };
     fetchRestrictedFoods();
-  }, [selectedSensitivities, selectedMedicalConditions]);
+  }, [selectedSensitivityIds]);
 
   // Auto-save logic for form data
   const performSave = async (dataToSave) => {
@@ -166,72 +120,28 @@ const DietPreferencesForm = ({ userId: propUserId, onUpdate }) => {
 
   const handleChange = (id, value) => updateFormData({ [id]: value });
 
-  const handleAddSensitivity = async (sensitivity) => {
-    if (selectedSensitivities.some(s => s.sensitivity_id === sensitivity.id)) {
-        toast({ title: "Info", description: "Esta sensibilidad ya está añadida.", variant: "default" });
-        return;
-    }
-    const { error } = await supabase.from('user_sensitivities').insert({ user_id: userId, sensitivity_id: sensitivity.id, sensitivitie_level: sensitivityLevel });
-    if (error) {
-        toast({ title: "Error", description: "No se pudo añadir la sensibilidad.", variant: "destructive" });
-    } else {
-        setSelectedSensitivities(prev => [...prev, { sensitivity_id: sensitivity.id, sensitivitie_level: sensitivityLevel }]);
-        toast({ title: "Éxito", description: "Sensibilidad añadida.", variant: "success" });
-        setIsSensitivityModalOpen(false);
-    }
-  };
+  const handleRestrictionsChange = useCallback(({ sensitivityIds, medicalConditionIds }) => {
+    setSelectedSensitivityIds(Array.isArray(sensitivityIds) ? sensitivityIds : []);
+    setSelectedMedicalConditionIds(Array.isArray(medicalConditionIds) ? medicalConditionIds : []);
+  }, []);
 
-  const handleRemoveSensitivity = async (sensitivityId) => {
-    const { error } = await supabase.from('user_sensitivities').delete().eq('user_id', userId).eq('sensitivity_id', sensitivityId);
-    if (error) {
-        toast({ title: "Error", description: "No se pudo quitar la sensibilidad.", variant: "destructive" });
-    } else {
-        setSelectedSensitivities(prev => prev.filter(s => s.sensitivity_id !== sensitivityId));
-        toast({ title: "Éxito", description: "Sensibilidad eliminada.", variant: "success" });
-    }
-  };
-
-  const handleAddCondition = async (condition) => {
-    if (selectedMedicalConditions.includes(condition.id)) {
-         toast({ title: "Info", description: "Esta condición ya está añadida.", variant: "default" });
-         return;
-    }
-    const { error } = await supabase.from('user_medical_conditions').insert({ user_id: userId, condition_id: condition.id });
-    if (error) {
-        toast({ title: "Error", description: "No se pudo añadir la condición médica.", variant: "destructive" });
-    } else {
-        setSelectedMedicalConditions(prev => [...prev, condition.id]);
-        toast({ title: "Éxito", description: "Condición médica añadida.", variant: "success" });
-        setIsConditionModalOpen(false);
-    }
-  };
-
-  const handleRemoveCondition = async (conditionId) => {
-    const { error } = await supabase.from('user_medical_conditions').delete().eq('user_id', userId).eq('condition_id', conditionId);
-    if (error) {
-        toast({ title: "Error", description: "No se pudo quitar la condición médica.", variant: "destructive" });
-    } else {
-        setSelectedMedicalConditions(prev => prev.filter(c => c !== conditionId));
-        toast({ title: "Éxito", description: "Condición médica eliminada.", variant: "success" });
-    }
-  };
-  
-  const availableSensitivities = useMemo(() => {
-     return allSensitivities.filter(s => !selectedSensitivities.some(sel => sel.sensitivity_id === s.id));
-  }, [allSensitivities, selectedSensitivities]);
-
-  const availableConditions = useMemo(() => {
-     return allMedicalConditions.filter(c => !selectedMedicalConditions.includes(c.id));
-  }, [allMedicalConditions, selectedMedicalConditions]);
-
-  const foodOptions = useMemo(() => foods
-    .filter(food => 
-      !preferredFoods.some(pf => pf.id === food.id) && 
-      !nonPreferredFoods.some(npf => npf.id === food.id) &&
-      !allergicFoodIds.includes(food.id)
-    )
-    .map(food => ({ value: String(food.id), label: food.name })), 
-  [foods, preferredFoods, nonPreferredFoods, allergicFoodIds]);
+  // userRestrictions para FoodPreferenceSelector: sensibilidades, condiciones y tipo de dieta.
+  // Sin preferred/non_preferred_foods (eso lo gestiona el propio selector).
+  const userRestrictionsForFoodSelector = useMemo(() => {
+    const selectedDietType = formData.diet_type_id
+      ? dietTypes.find(dt => String(dt.id) === String(formData.diet_type_id))
+      : null;
+    const sensitivityIds = selectedSensitivityIds || [];
+    const medicalConditionIds = selectedMedicalConditionIds || [];
+    return {
+      sensitivities: sensitivityIds.map((id) => ({ id })),
+      medical_conditions: medicalConditionIds.map((id) => ({ id })),
+      individual_food_restrictions: [],
+      diet_type_id: formData.diet_type_id || null,
+      diet_type_name: selectedDietType?.name || null,
+      diet_type_rules: selectedDietType?.diet_type_food_group_rules || [],
+    };
+  }, [selectedSensitivityIds, selectedMedicalConditionIds, formData.diet_type_id, dietTypes]);
 
   const selectedGoalDescription = useMemo(() => {
       const goal = dietGoals.find(g => g.id === formData.diet_goal_id);
@@ -276,11 +186,13 @@ const DietPreferencesForm = ({ userId: propUserId, onUpdate }) => {
                     )}
                 </div>
                 <div className="flex flex-col space-y-2">
-                    <Label htmlFor="diet_type_id" className="text-muted-foreground">Tipo de Dieta</Label>
-                    <Select value={formData.diet_type_id ? String(formData.diet_type_id) : ''} onValueChange={(v) => handleChange('diet_type_id', v ? parseInt(v, 10) : null)}>
-                        <SelectTrigger id="diet_type_id" className="w-full"><SelectValue placeholder="Selecciona un tipo..." /></SelectTrigger>
-                        <SelectContent>{(dietTypes || []).map((t) => <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>)}</SelectContent>
-                    </Select>
+                    <Label className="text-muted-foreground">Tipo de Dieta</Label>
+                    <DietTypeSelector
+                        dietTypes={dietTypes}
+                        value={formData.diet_type_id ? String(formData.diet_type_id) : ''}
+                        onChange={(v) => handleChange('diet_type_id', v ? parseInt(v, 10) : null)}
+                        placeholder="Selecciona un tipo..."
+                    />
                 </div>
             </div>
             <FormRow id="diet_history" label="Historial de Dieta" type="textarea" value={formData.diet_history || ''} onChange={handleChange} placeholder="Cuéntame sobre tus dietas anteriores..." />
@@ -296,101 +208,21 @@ const DietPreferencesForm = ({ userId: propUserId, onUpdate }) => {
         </FormBlock>
 
         <FormBlock title="Restricciones Alimentarias" icon={Shield} color="orange-red">
-            <div className="space-y-6">
-            <div className="p-4 rounded-lg border border-orange-500/30 bg-orange-50 dark:bg-[#47330526]">
-                    <div className="flex items-center justify-between mb-4">
-                         <h4 className="font-semibold text-orange-400 flex items-center gap-2"><Shield size={16}/> Sensibilidades</h4>
-                         <Button 
-                            type="button" 
-                            variant="outline" 
-                            size="sm" 
-                            className="border-orange-500/50 text-orange-700 bg-orange-100 hover:bg-orange-200 hover:text-orange-800 dark:text-orange-400 dark:bg-[hsl(36deg_63.96%_15.46%_/_0.65)] dark:hover:bg-[hsl(36deg_63.96%_15.46%_/_0.58)] dark:hover:text-gray-100"
-                            onClick={() => setIsSensitivityModalOpen(true)}
-                         >
-                            <PlusCircle className="w-4 h-4 mr-2" /> Añadir
-                         </Button>
-                    </div>
-                    
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      {selectedSensitivities.length === 0 && <p className="text-muted-foreground text-sm italic">No hay sensibilidades seleccionadas.</p>}
-                      {selectedSensitivities.map(s => {
-                        const details = allSensitivities.find(as => as.id === s.sensitivity_id);
-                        return details ? (
-                            <Badge key={s.sensitivity_id} variant="destructive" className="bg-orange-100 border border-orange-500/30 text-orange-700 dark:bg-orange-600/20 dark:text-orange-300">
-                                {details.name} ({s.sensitivitie_level})
-                                <button type="button" onClick={() => handleRemoveSensitivity(s.sensitivity_id)} className="ml-2 hover:text-foreground"><X size={14}/></button>
-                            </Badge>
-                        ) : null;
-                      })}
-                    </div>
-                </div>
-
-                <div className="p-4 rounded-lg border border-red-500/30 bg-red-50 dark:bg-[#47050526]">
-                    <div className="flex items-center justify-between mb-4">
-                        <h4 className="font-semibold text-red-400 flex items-center gap-2"><HeartPulse size={16}/> Condiciones Médicas</h4>
-                        <Button 
-                            type="button" 
-                            variant="outline" 
-                            size="sm" 
-                            className="border-red-500/50 text-red-700 bg-red-100 hover:bg-red-200 hover:text-red-800 dark:text-red-400 dark:bg-[hsl(0deg_60%_11.41%_/_0.65)] dark:hover:bg-[hsl(0deg_60%_11.41%_/_0.58)] dark:hover:text-gray-100"
-                            onClick={() => setIsConditionModalOpen(true)}
-                        >
-                             <PlusCircle className="w-4 h-4 mr-2" /> Añadir
-                        </Button>
-                    </div>
-                    
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      {selectedMedicalConditions.length === 0 && <p className="text-muted-foreground text-sm italic">No hay condiciones seleccionadas.</p>}
-                      {selectedMedicalConditions.map(cId => {
-                        const details = allMedicalConditions.find(amc => amc.id === cId);
-                        return details ? <Badge key={cId} variant="destructive" className="bg-red-100 border border-red-500/30 text-red-700 dark:bg-red-600/20 dark:text-red-300">{details.name} <button type="button" onClick={() => handleRemoveCondition(cId)} className="ml-2 hover:text-foreground"><X size={14}/></button></Badge> : null;
-                      })}
-                    </div>
-                </div>
-            </div>
+            <FoodRestrictionsForm
+              userId={userId}
+              onRestrictionsChange={handleRestrictionsChange}
+            />
         </FormBlock>
 
         <FormBlock title="Gustos por Alimentos" icon={Apple} color="green-red">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FoodPreferenceSelector userId={userId} foodOptions={foodOptions} selectedFoods={preferredFoods} setSelectedFoods={setPreferredFoods} allFoods={foods} type="preferred" selectedConditionIds={selectedMedicalConditions} />
-                <FoodPreferenceSelector userId={userId} foodOptions={foodOptions} selectedFoods={nonPreferredFoods} setSelectedFoods={setNonPreferredFoods} allFoods={foods} type="non-preferred" selectedConditionIds={selectedMedicalConditions} />
-            </div>
+          <FoodPreferencesForm
+            userId={userId}
+            selectedConditionIds={selectedMedicalConditionIds}
+            userRestrictions={userRestrictionsForFoodSelector}
+            excludedFoodIds={allergicFoodIds}
+          />
         </FormBlock>
       </div>
-      
-      {/* Modals */}
-      <SearchSelectionModal 
-        open={isSensitivityModalOpen} 
-        onOpenChange={setIsSensitivityModalOpen}
-        title="Añadir Sensibilidad"
-        searchPlaceholder="Buscar sensibilidad..."
-        items={availableSensitivities}
-        onSelect={handleAddSensitivity}
-        headerContent={
-            <div className="flex items-center gap-3 p-2 rounded-xl bg-muted/75 border border-input/80">
-                <span className="text-sm text-muted-foreground whitespace-nowrap">Nivel de sensibilidad:</span>
-                <Select value={sensitivityLevel} onValueChange={setSensitivityLevel}>
-                    <SelectTrigger className="h-10 w-36 text-xs">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="Leve">Leve</SelectItem>
-                        <SelectItem value="Moderado">Moderado</SelectItem>
-                        <SelectItem value="Grave">Grave</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
-        }
-      />
-
-      <SearchSelectionModal 
-        open={isConditionModalOpen} 
-        onOpenChange={setIsConditionModalOpen}
-        title="Añadir Condición Médica"
-        searchPlaceholder="Buscar condición..."
-        items={availableConditions}
-        onSelect={handleAddCondition}
-      />
 
     </ProfileSectionCard>
   );

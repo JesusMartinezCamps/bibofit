@@ -2,12 +2,14 @@ import React, { useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useToast } from '@/components/ui/use-toast';
 import { Label } from "@/components/ui/label";
-import { X, PlusCircle, Check, CircleAlert, CircleCheck, Layers } from 'lucide-react';
+import { X, PlusCircle, Check, CircleAlert, CircleCheck, Layers, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { getConflictInfo } from '@/lib/restrictionChecker';
+import { PREFERENCE_TONES } from '@/components/profile/preferenceToneStyles';
 
 const normalizeText = (value = '') =>
   String(value)
@@ -35,6 +37,15 @@ const isRecommendRelation = (relationType) => {
     || relation === 'recommend';
 };
 
+// Mapeo de tipo de conflicto → estilos del badge
+const CONFLICT_BADGE_CONFIG = {
+  sensitivity:         { icon: AlertTriangle, className: 'border-red-500/50 text-red-300' },
+  condition_avoid:     { icon: CircleAlert,   className: 'border-red-500/50 text-red-300' },
+  condition_recommend: { icon: CircleCheck,   className: 'border-emerald-500/50 text-emerald-300' },
+  diet_type_excluded:  { icon: AlertTriangle, className: 'border-red-500/50 text-red-300' },
+  diet_type_limited:   { icon: AlertTriangle, className: 'border-orange-500/50 text-orange-300' },
+};
+
 const FoodPreferenceSelector = ({
   type,
   userId,
@@ -42,19 +53,21 @@ const FoodPreferenceSelector = ({
   selectedFoods,
   setSelectedFoods,
   allFoods,
-  selectedConditionIds = []
+  selectedConditionIds = [],
+  userRestrictions = null,
 }) => {
   const { toast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const isPreferred = type === 'preferred';
+  const tone = isPreferred ? PREFERENCE_TONES.green : PREFERENCE_TONES.red;
   
   const label = isPreferred ? 'Alimentos Preferidos' : 'Alimentos que No Te Gustan';
-  const labelColor = isPreferred ? 'text-green-400' : 'text-red-400';
+  const labelColor = tone.title;
   
   // Styling for the chips
-  const chipClassName = isPreferred ? "bg-green-100 text-green-700 dark:bg-green-600/20 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-600/20 dark:text-red-400";
-  const chipButtonClassName = isPreferred ? "text-green-700 hover:text-foreground dark:text-green-400" : "text-red-700 hover:text-foreground dark:text-red-400";
+  const chipClassName = tone.selectedBadge;
+  const chipButtonClassName = tone.selectedAction;
   const tableName = isPreferred ? 'preferred_foods' : 'non_preferred_foods';
 
   const handleAddFood = async (food) => {
@@ -241,7 +254,7 @@ const FoodPreferenceSelector = ({
 
 
   return (
-    <div className={`space-y-4 p-4 rounded-lg ${isPreferred ? 'bg-green-50 dark:bg-green-900/20 border-green-500/30' : 'bg-red-50 dark:bg-[#47050526] border-red-500/30'} border flex flex-col h-full`}>
+    <div className={`space-y-4 p-4 rounded-lg border flex flex-col h-full ${tone.container}`}>
       <div className="flex flex-col space-y-3">
         <div className="flex items-center justify-between">
             <Label className={`${labelColor} font-semibold text-base`}>{label}</Label>
@@ -249,7 +262,7 @@ const FoodPreferenceSelector = ({
                 type="button" 
                 variant="outline" 
                 size="sm" 
-                className={isPreferred ? "border-green-500/50 text-green-700 bg-green-100 hover:bg-green-200 hover:text-green-800 dark:text-green-400 dark:bg-[hsl(119.08deg_69.96%_14.45%_/_0.58)] dark:hover:bg-[hsl(119.08deg_69.96%_14.45%_/_0.58)] dark:hover:text-gray-100" : "border-red-500/50 text-red-700 bg-red-100 hover:bg-red-200 hover:text-red-800 dark:text-red-400 dark:bg-[hsl(0deg_60%_11.41%_/_0.58)] dark:hover:bg-[hsl(0deg_60%_11.41%_/_0.58)] dark:hover:text-gray-100"}
+                className={tone.addButton}
                 onClick={() => setIsModalOpen(true)}
             >
                 <PlusCircle className="w-4 h-4 mr-2" /> Añadir
@@ -331,9 +344,9 @@ const FoodPreferenceSelector = ({
                             onClick={() => handleToggleGroup(group)}
                             className={`w-full p-3 rounded-lg transition-colors text-left border ${
                               isFullySelected
-                                ? (isPreferred ? 'bg-green-900/20 border-green-500/40' : 'bg-red-900/20 border-red-500/40')
+                                ? tone.selectedRow
                                 : isPartial
-                                ? (isPreferred ? 'bg-green-900/10 border-green-500/20' : 'bg-red-900/10 border-red-500/20')
+                                ? tone.selectedRowSoft
                                 : 'bg-transparent border-transparent hover:bg-muted/80'
                             }`}
                           >
@@ -345,7 +358,7 @@ const FoodPreferenceSelector = ({
                               </div>
                               <div className={`flex items-center text-xs whitespace-nowrap ${
                                 isFullySelected || isPartial
-                                  ? (isPreferred ? 'text-green-400' : 'text-red-400')
+                                  ? tone.selectedRowText
                                   : 'text-muted-foreground'
                               }`}>
                                 {isFullySelected ? (
@@ -370,7 +383,47 @@ const FoodPreferenceSelector = ({
                       {filteredItems.map((food) => {
                         const isSelected = selectedFoodIds.has(String(food.id));
                         const foodGroups = getFoodGroupNames(food);
-                        const conditionInfo = getFoodConditionInfo(food);
+
+                        // Conflicto unificado: dieta, sensibilidades y condiciones médicas.
+                        // Se omiten preferred/non-preferred porque este componente los gestiona.
+                        const rawConflict = userRestrictions
+                          ? getConflictInfo(food, userRestrictions)
+                          : getFoodConditionInfo(food);
+
+                        // Normaliza la salida de getFoodConditionInfo (fallback) al mismo formato
+                        const conflictBadge = (() => {
+                          if (!rawConflict) return null;
+                          if (['preferred', 'non-preferred'].includes(rawConflict.type)) return null;
+
+                          // Resultado de getConflictInfo (tiene .type y .reason)
+                          if (rawConflict.type) {
+                            const cfg = CONFLICT_BADGE_CONFIG[rawConflict.type];
+                            if (!cfg) return null;
+                            const Icon = cfg.icon;
+                            return (
+                              <Badge variant="outline" className={`mt-2 text-[11px] whitespace-normal text-left h-auto py-1 ${cfg.className}`}>
+                                <Icon className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
+                                <span className="leading-tight">{rawConflict.reason}</span>
+                              </Badge>
+                            );
+                          }
+
+                          // Fallback: resultado de getFoodConditionInfo (tiene .variant y .label)
+                          const variantMap = {
+                            avoid:     { Icon: CircleAlert, className: 'border-red-500/50 text-red-300' },
+                            recommend: { Icon: CircleCheck, className: 'border-emerald-500/50 text-emerald-300' },
+                            mixed:     { Icon: CircleAlert, className: 'border-amber-500/50 text-amber-300' },
+                          };
+                          const v = variantMap[rawConflict.variant];
+                          if (!v) return null;
+                          return (
+                            <Badge variant="outline" className={`mt-2 text-[11px] whitespace-normal text-left h-auto py-1 ${v.className}`}>
+                              <v.Icon className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
+                              <span className="leading-tight">{rawConflict.label}</span>
+                            </Badge>
+                          );
+                        })();
+
                         return (
                           <button
                             key={food.id}
@@ -378,7 +431,7 @@ const FoodPreferenceSelector = ({
                             onClick={() => handleToggleFood(food)}
                             className={`w-full p-3 rounded-lg transition-colors text-left border ${
                               isSelected
-                                ? (isPreferred ? 'bg-green-900/20 border-green-500/40' : 'bg-red-900/20 border-red-500/40')
+                                ? tone.selectedRow
                                 : 'bg-transparent border-transparent hover:bg-muted/80'
                             }`}
                           >
@@ -390,25 +443,9 @@ const FoodPreferenceSelector = ({
                                     Grupo: {foodGroups.join(', ')}
                                   </p>
                                 )}
-                                {conditionInfo && (
-                                  <Badge
-                                    variant="outline"
-                                    className={`mt-2 text-[11px] whitespace-normal text-left h-auto py-1 ${
-                                      conditionInfo.variant === 'avoid'
-                                        ? 'border-red-500/50 text-red-300'
-                                        : conditionInfo.variant === 'recommend'
-                                          ? 'border-emerald-500/50 text-emerald-300'
-                                          : 'border-amber-500/50 text-amber-300'
-                                    }`}
-                                  >
-                                    {conditionInfo.variant === 'avoid' && <CircleAlert className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />}
-                                    {conditionInfo.variant === 'recommend' && <CircleCheck className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />}
-                                    {conditionInfo.variant === 'mixed' && <CircleAlert className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />}
-                                    <span className="leading-tight">{conditionInfo.label}</span>
-                                  </Badge>
-                                )}
+                                {conflictBadge}
                               </div>
-                              <div className={`flex items-center text-xs ${isSelected ? (isPreferred ? 'text-green-400' : 'text-red-400') : 'text-muted-foreground'}`}>
+                              <div className={`flex items-center text-xs ${isSelected ? tone.selectedRowText : 'text-muted-foreground'}`}>
                                 {isSelected ? (
                                   <><Check className="h-4 w-4 mr-1" /> Activo</>
                                 ) : (

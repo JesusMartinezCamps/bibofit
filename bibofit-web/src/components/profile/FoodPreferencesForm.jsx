@@ -1,17 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/customSupabaseClient';
-import { useToast } from '@/components/ui/use-toast';
 import { Loader2 } from 'lucide-react';
 import FoodPreferenceSelector from '@/components/profile/FoodPreferenceSelector';
 
-const FoodPreferencesForm = ({ userId, onSaveStatusChange }) => {
-  const { toast } = useToast();
+const FoodPreferencesForm = ({ userId, onSaveStatusChange: _onSaveStatusChange, selectedConditionIds = null, userRestrictions = null, excludedFoodIds = [] }) => {
   const [loading, setLoading] = useState(true);
   
   const [foods, setFoods] = useState([]);
   const [preferredFoods, setPreferredFoods] = useState([]);
   const [nonPreferredFoods, setNonPreferredFoods] = useState([]);
-  const [selectedMedicalConditions, setSelectedMedicalConditions] = useState([]);
+  const [selectedMedicalConditionsFromDb, setSelectedMedicalConditionsFromDb] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -40,7 +38,7 @@ const FoodPreferencesForm = ({ userId, onSaveStatusChange }) => {
         if (foodsRes.data) setFoods(foodsRes.data);
         if (prefRes.data) setPreferredFoods(prefRes.data.map(pf => pf.food).filter(Boolean));
         if (nonPrefRes.data) setNonPreferredFoods(nonPrefRes.data.map(npf => npf.food).filter(Boolean));
-        if (conditionsRes.data) setSelectedMedicalConditions(conditionsRes.data.map(condition => condition.condition_id));
+        if (conditionsRes.data) setSelectedMedicalConditionsFromDb(conditionsRes.data.map(condition => condition.condition_id));
       } catch (error) {
         console.error("Error fetching food preferences:", error);
       } finally {
@@ -50,13 +48,24 @@ const FoodPreferencesForm = ({ userId, onSaveStatusChange }) => {
     fetchData();
   }, [userId]);
 
+  const effectiveSelectedConditionIds = useMemo(
+    () => (selectedConditionIds ?? selectedMedicalConditionsFromDb),
+    [selectedConditionIds, selectedMedicalConditionsFromDb]
+  );
+
+  const excludedFoodIdsSet = useMemo(
+    () => new Set((excludedFoodIds || []).map((id) => String(id))),
+    [excludedFoodIds]
+  );
+
   const foodOptions = useMemo(() => foods
     .filter(food => 
       !preferredFoods.some(pf => pf.id === food.id) && 
-      !nonPreferredFoods.some(npf => npf.id === food.id)
+      !nonPreferredFoods.some(npf => npf.id === food.id) &&
+      !excludedFoodIdsSet.has(String(food.id))
     )
     .map(food => ({ value: String(food.id), label: food.name })), 
-  [foods, preferredFoods, nonPreferredFoods]);
+  [foods, preferredFoods, nonPreferredFoods, excludedFoodIdsSet]);
 
   if (loading) return <div className="flex justify-center p-8"><Loader2 className="animate-spin text-green-500" /></div>;
 
@@ -69,7 +78,8 @@ const FoodPreferencesForm = ({ userId, onSaveStatusChange }) => {
             selectedFoods={preferredFoods} 
             setSelectedFoods={setPreferredFoods} 
             allFoods={foods} 
-            selectedConditionIds={selectedMedicalConditions}
+            selectedConditionIds={effectiveSelectedConditionIds}
+            userRestrictions={userRestrictions}
         />
         <FoodPreferenceSelector 
             userId={userId} 
@@ -78,7 +88,8 @@ const FoodPreferencesForm = ({ userId, onSaveStatusChange }) => {
             selectedFoods={nonPreferredFoods} 
             setSelectedFoods={setNonPreferredFoods} 
             allFoods={foods} 
-            selectedConditionIds={selectedMedicalConditions}
+            selectedConditionIds={effectiveSelectedConditionIds}
+            userRestrictions={userRestrictions}
         />
     </div>
   );
