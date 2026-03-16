@@ -40,7 +40,7 @@ const FreeMealList = ({
       const { error } = await supabase.rpc('delete_free_recipe_and_occurrences', { p_free_recipe_id: recipeToDelete });
       if (error) throw error;
 
-      toast({ title: 'Éxito', description: 'Receta libre eliminada permanentemente.' });
+      toast({ title: 'Éxito', description: 'Receta libre eliminada permanentemente.', variant: 'success' });
       if (onActionComplete) onActionComplete();
     } catch (error) {
       toast({ title: 'Error', description: `No se pudieron eliminar la receta: ${error.message}`, variant: 'destructive' });
@@ -72,7 +72,7 @@ const FreeMealList = ({
             });
 
             if (error) throw error;
-            toast({ title: 'Éxito', description: 'Receta privada creada y asignada al plan del cliente. La receta libre original ha sido eliminada.' });
+            toast({ title: 'Éxito', description: 'Receta privada creada y asignada al plan del cliente. La receta libre original ha sido eliminada.', variant: 'success' });
             // 5) Call onActionComplete after "Guardar como Receta Privada" button is clicked
 
         } else if (actionType === 'approve_general') {
@@ -99,7 +99,7 @@ const FreeMealList = ({
             if (error) throw error;
             if (rpcData && !rpcData.success) throw new Error(rpcData.error || 'Error al aprobar como global');
 
-            toast({ title: 'Éxito', description: 'La receta libre ha sido guardada como plantilla y asignada al plan. La receta libre original ha sido eliminada.' });
+            toast({ title: 'Éxito', description: 'La receta libre ha sido guardada como plantilla y asignada al plan. La receta libre original ha sido eliminada.', variant: 'success' });
             // 3) Call onActionComplete after "Guardar Como Plantilla" button is clicked
 
         } else if (actionType === 'keep_as_free_recipe') {
@@ -108,7 +108,7 @@ const FreeMealList = ({
               .update({ status: FREE_RECIPE_STATUS.KEPT_AS_FREE_RECIPE })
               .eq('id', recipe.id);
             if (error) throw error;
-            toast({ title: 'Guardado', description: 'La solicitud se archivó y se mantiene como receta libre para el cliente.' });
+            toast({ title: 'Guardado', description: 'La solicitud se archivó y se mantiene como receta libre para el cliente.', variant: 'success' });
             // 4) Call onActionComplete after "Dejar como Receta Libre" button is clicked
 
         } else if (actionType === 'reject') {

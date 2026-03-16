@@ -397,9 +397,10 @@ const PersonalDataForm = ({ className, onSave, userId: propUserId }) => {
             variant: 'default'
           });
         } else {
-          toast({ 
-            title: 'Éxito', 
-            description: 'Datos personales guardados y metabolismo recalculado correctamente.' 
+          toast({
+            title: 'Éxito',
+            description: 'Datos personales guardados y metabolismo recalculado correctamente.',
+            variant: 'success'
           });
         }
       } else if (shouldRecalculateMetabolism && metabolismResult && !metabolismResult.success) {
@@ -416,9 +417,10 @@ const PersonalDataForm = ({ className, onSave, userId: propUserId }) => {
             variant: 'default'
           });
         } else {
-          toast({ 
-            title: 'Datos guardados', 
-            description: 'Datos personales actualizados correctamente.'
+          toast({
+            title: 'Datos guardados',
+            description: 'Datos personales actualizados correctamente.',
+            variant: 'success'
           });
         }
       }

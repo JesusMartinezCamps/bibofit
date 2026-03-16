@@ -561,7 +561,7 @@ const InvitationLinksPage = () => {
     if (!value) return;
     try {
       await navigator.clipboard.writeText(value);
-      toast({ title: 'Copiado', description: 'Link copiado al portapapeles.' });
+      toast({ title: 'Copiado', description: 'Link copiado al portapapeles.', variant: 'success' });
     } catch {
       toast({
         title: 'Error',
@@ -599,6 +599,7 @@ const InvitationLinksPage = () => {
       toast({
         title: 'Revocado',
         description: 'El QR/link quedó revocado de forma inmediata.',
+        variant: 'success',
       });
 
       await fetchInvitationLinks();

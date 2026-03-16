@@ -320,7 +320,7 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
 
             const fullNewRecipe = await fetchFreeRecipeDetails(newRecipe.id);
 
-            toast({ title: 'Nueva versión creada', description: 'Se ha creado una solicitud de nueva versión pendiente de aprobación.' });
+            toast({ title: 'Nueva versión creada', description: 'Se ha creado una solicitud de nueva versión pendiente de aprobación.', variant: 'success' });
             
             setCurrentFreeMeal(fullNewRecipe);
             if (onUpdate) onUpdate(fullNewRecipe);

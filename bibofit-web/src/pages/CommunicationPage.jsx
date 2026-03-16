@@ -544,7 +544,7 @@ const CommunicationPage = () => {
       setChannelDesc('');
       await loadConversations();
       handleSelectConv(data);
-      toast({ title: 'Canal creado', description: channelName });
+      toast({ title: 'Canal creado', description: channelName, variant: 'success' });
     } catch (err) {
       console.error(err);
       toast({ title: 'Error al crear el canal', variant: 'destructive' });

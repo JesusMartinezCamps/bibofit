@@ -86,7 +86,7 @@ const PlanTemplateForm = ({ open, onOpenChange, template, onSuccess, centerId })
                 newTemplateId = template.id;
                 const { error } = await supabase.from('diet_plans').update(templateData).eq('id', template.id);
                 if (error) throw error;
-                toast({ title: 'Éxito', description: `Plantilla actualizada correctamente.` });
+                toast({ title: 'Éxito', description: `Plantilla actualizada correctamente.`, variant: 'success' });
             } else {
                 // If coach tries to create global, block it or force center
                 if (userRole !== 'admin' && scope === 'global') {
@@ -100,7 +100,7 @@ const PlanTemplateForm = ({ open, onOpenChange, template, onSuccess, centerId })
                 const { data, error } = await supabase.from('diet_plans').insert(templateData).select('id').single();
                 if (error) throw error;
                 newTemplateId = data.id;
-                toast({ title: 'Éxito', description: `Plantilla creada correctamente.` });
+                toast({ title: 'Éxito', description: `Plantilla creada correctamente.`, variant: 'success' });
             }
 
             if (onSuccess) onSuccess();

@@ -65,7 +65,7 @@ const TrainingPreferencesForm = ({ userId: propUserId, onUpdate }) => {
       
       if (onUpdate) onUpdate();
       else {
-        toast({ title: 'Éxito', description: 'Preferencias de entreno guardadas correctamente.' });
+        toast({ title: 'Éxito', description: 'Preferencias de entreno guardadas correctamente.', variant: 'success' });
       }
     } catch (error) {
       console.error("Error saving training preferences:", error);

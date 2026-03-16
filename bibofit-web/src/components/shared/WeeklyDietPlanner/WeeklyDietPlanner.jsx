@@ -402,7 +402,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
             if (occurrenceError) throw occurrenceError;
 
             if (onPlanUpdate) onPlanUpdate();
-            toast({ title: 'Éxito', description: 'Receta libre eliminada de este día.' });
+            toast({ title: 'Éxito', description: 'Receta libre eliminada de este día.', variant: 'success' });
         } catch (error) {
             setFreeMeals(originalFreeMeals);
             setAllMealLogs(originalLogs);
@@ -419,7 +419,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
                 if (!result.success) throw new Error(result.message);
 
                 setPlanRecipes(prev => prev.filter(r => !(r.id === recipeId && r.is_private)));
-                toast({ title: 'Éxito', description: 'Receta privada archivada.' });
+                toast({ title: 'Éxito', description: 'Receta privada archivada.', variant: 'success' });
             } else if (isAdminView) {
                 const result = await archiveDietPlanRecipe(recipeId);
                 if (!result.success) throw new Error(result.message);
@@ -432,7 +432,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
                         duration: 6000,
                     });
                 } else {
-                    toast({ title: 'Éxito', description: 'Receta del plan archivada.' });
+                    toast({ title: 'Éxito', description: 'Receta del plan archivada.', variant: 'success' });
                 }
             } else {
                 return;
@@ -525,7 +525,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
             await supabase.from('snack_occurrences').delete().eq('id', occurrenceId);
             
             if (onPlanUpdate) onPlanUpdate();
-            toast({ title: 'Éxito', description: 'Picoteo eliminado de este día.' });
+            toast({ title: 'Éxito', description: 'Picoteo eliminado de este día.', variant: 'success' });
         } catch (error) {
             toast({ title: 'Error', description: `No se pudo eliminar el picoteo: ${error.message}`, variant: 'destructive' });
             fetchAndSetPlanItems();
@@ -541,7 +541,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
             const { error } = await supabase.from('equivalence_adjustments').delete().eq('id', equivalenceAdjustmentId);
             if (error) throw error;
     
-            toast({ title: 'Éxito', description: 'La equivalencia ha sido deshecha. Las recetas han vuelto a su estado original.' });
+            toast({ title: 'Éxito', description: 'La equivalencia ha sido deshecha. Las recetas han vuelto a su estado original.', variant: 'success' });
             if (onPlanUpdate) onPlanUpdate();
             fetchAndSetPlanItems();
     
@@ -567,7 +567,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
                 await supabase.from('equivalence_adjustments').delete().eq('source_daily_snack_log_id', log.id);
                 await supabase.from('daily_snack_logs').delete().eq('id', log.id);
 
-                toast({ title: 'Éxito', description: 'Picoteo desmarcado.' });
+                toast({ title: 'Éxito', description: 'Picoteo desmarcado.', variant: 'success' });
                 if (onPlanUpdate) onPlanUpdate();
             } catch (error) {
                 toast({ title: 'Error', description: `No se pudo desmarcar: ${error.message}`, variant: 'destructive' });
@@ -592,7 +592,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
                 }
                 handleSnackUpdate(newLog, newSnackWithOccurrence);
 
-                toast({ title: 'Éxito', description: 'Picoteo marcado como comido.' });
+                toast({ title: 'Éxito', description: 'Picoteo marcado como comido.', variant: 'success' });
                 if (onPlanUpdate) onPlanUpdate();
             } catch (error) {
                 toast({ title: 'Error', description: `No se pudo marcar: ${error.message}`, variant: 'destructive' });
@@ -605,7 +605,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
             const { error } = await supabase.rpc('delete_snack_and_dependencies', { p_snack_id: snackId });
             if (error) throw error;
             
-            toast({ title: 'Éxito', description: 'Picoteo eliminado permanentemente.' });
+            toast({ title: 'Éxito', description: 'Picoteo eliminado permanentemente.', variant: 'success' });
             setSnacks(prev => prev.filter(s => s.id !== snackId));
             setIsSnackEditorOpen(false);
             if (onPlanUpdate) onPlanUpdate();
@@ -786,7 +786,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
     
             handleSnackUpdate(newLog, newSnackWithOccurrence);
             setIsRepeatSnackOpen(false);
-            toast({ title: 'Éxito', description: `"${newSnackWithOccurrence.name}" añadido y marcado.` });
+            toast({ title: 'Éxito', description: `"${newSnackWithOccurrence.name}" añadido y marcado.`, variant: 'success' });
         } catch (error) {
             toast({ title: 'Error', description: `No se pudo registrar el picoteo: ${error.message}`, variant: 'destructive' });
         }

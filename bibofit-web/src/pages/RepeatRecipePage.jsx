@@ -67,7 +67,7 @@ const RepeatRecipePage = () => {
         });
       if (insertError) throw insertError;
 
-      toast({ title: 'Receta añadida', description: 'La receta ha sido añadida al plan.' });
+      toast({ title: 'Receta añadida', description: 'La receta ha sido añadida al plan.', variant: 'success' });
       requestRefresh();
     } catch (error) {
       console.error('Error adding repeated recipe:', error);
@@ -83,7 +83,7 @@ const RepeatRecipePage = () => {
     try {
       const { error } = await supabase.from('user_recipes').delete().eq('id', recipeId);
       if (error) throw error;
-      toast({ title: 'Receta eliminada', description: 'La receta ha sido eliminada permanentemente.' });
+      toast({ title: 'Receta eliminada', description: 'La receta ha sido eliminada permanentemente.', variant: 'success' });
       return true;
     } catch (error) {
       console.error('Error deleting recipe:', error);

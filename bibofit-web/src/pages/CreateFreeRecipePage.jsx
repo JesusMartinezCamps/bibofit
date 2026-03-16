@@ -149,7 +149,7 @@ const CreateFreeRecipePage = () => {
   const handleEquivalenceSuccess = () => {
     setIsEquivalenceDialogOpen(false);
     setRecipeForEquivalence(null);
-    toast({ title: 'Éxito', description: `Receta "${recipeNameForToast}" creada y equivalencia aplicada.` });
+    toast({ title: 'Éxito', description: `Receta "${recipeNameForToast}" creada y equivalencia aplicada.`, variant: 'success' });
     navigate(`/plan/dieta/${date}`);
   };
 
@@ -157,7 +157,7 @@ const CreateFreeRecipePage = () => {
     if (!isOpen && recipeForEquivalence) {
       setIsEquivalenceDialogOpen(false);
       setRecipeForEquivalence(null);
-      toast({ title: 'Éxito', description: `Receta "${recipeNameForToast}" creada y añadida al plan.` });
+      toast({ title: 'Éxito', description: `Receta "${recipeNameForToast}" creada y añadida al plan.`, variant: 'success' });
       navigate(`/plan/dieta/${date}`);
     } else {
       setIsEquivalenceDialogOpen(isOpen);

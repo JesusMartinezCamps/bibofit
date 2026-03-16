@@ -64,6 +64,7 @@ const AccountSecurityForm = ({ currentEmail = '', disabled = false, onCredential
       toast({
         title: 'Cambio de correo iniciado',
         description: 'Revisa tu email actual y el nuevo para confirmar el cambio.',
+        variant: 'success',
       });
       await onCredentialsUpdated?.();
     } catch (error) {
@@ -116,7 +117,7 @@ const AccountSecurityForm = ({ currentEmail = '', disabled = false, onCredential
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      toast({ title: 'Contraseña actualizada', description: 'Tu contraseña se cambió correctamente.' });
+      toast({ title: 'Contraseña actualizada', description: 'Tu contraseña se cambió correctamente.', variant: 'success' });
       await onCredentialsUpdated?.();
     } catch (error) {
       toast({
@@ -149,6 +150,7 @@ const AccountSecurityForm = ({ currentEmail = '', disabled = false, onCredential
       toast({
         title: 'Enlace enviado',
         description: 'Te enviamos un enlace para restablecer la contraseña.',
+        variant: 'success',
       });
     } catch (error) {
       toast({

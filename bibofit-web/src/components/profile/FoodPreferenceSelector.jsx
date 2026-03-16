@@ -70,7 +70,7 @@ const FoodPreferenceSelector = ({
       if (error) throw error;
       
       setSelectedFoods(prev => [...prev, food]);
-      toast({ title: 'Éxito', description: `${food.name} añadido a la lista.` });
+      toast({ title: 'Éxito', description: `${food.name} añadido a la lista.`, variant: 'success' });
       return true;
     } catch (error) {
       toast({ title: 'Error', description: `No se pudo añadir el alimento.`, variant: 'destructive' });
@@ -84,7 +84,7 @@ const FoodPreferenceSelector = ({
       if (error) throw error;
 
       setSelectedFoods(prev => prev.filter(f => f.id !== foodId));
-      toast({ title: 'Éxito', description: 'Alimento eliminado de la lista.' });
+      toast({ title: 'Éxito', description: 'Alimento eliminado de la lista.', variant: 'success' });
       return true;
     } catch (error) {
       toast({ title: 'Error', description: 'No se pudo eliminar el alimento.', variant: 'destructive' });
@@ -100,7 +100,7 @@ const FoodPreferenceSelector = ({
       const { error } = await supabase.from(tableName).insert(inserts);
       if (error) throw error;
       setSelectedFoods(prev => [...prev, ...newFoods]);
-      toast({ title: 'Éxito', description: `${newFoods.length} alimentos añadidos.` });
+      toast({ title: 'Éxito', description: `${newFoods.length} alimentos añadidos.`, variant: 'success' });
     } catch (error) {
       toast({ title: 'Error', description: 'No se pudieron añadir los alimentos.', variant: 'destructive' });
     }
@@ -114,7 +114,7 @@ const FoodPreferenceSelector = ({
       const { error } = await supabase.from(tableName).delete().eq('user_id', userId).in('food_id', idsToRemove);
       if (error) throw error;
       setSelectedFoods(prev => prev.filter(f => !idsToRemove.includes(f.id)));
-      toast({ title: 'Éxito', description: `${toRemove.length} alimentos eliminados.` });
+      toast({ title: 'Éxito', description: `${toRemove.length} alimentos eliminados.`, variant: 'success' });
     } catch (error) {
       toast({ title: 'Error', description: 'No se pudieron eliminar los alimentos.', variant: 'destructive' });
     }

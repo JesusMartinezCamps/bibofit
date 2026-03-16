@@ -17,6 +17,7 @@ import React, { useState, useCallback } from 'react';
           toast({
             title: "Cambios Guardados",
             description: "Tus datos se han actualizado correctamente.",
+            variant: "success",
           });
         }
         setHasUnsavedChanges(true);

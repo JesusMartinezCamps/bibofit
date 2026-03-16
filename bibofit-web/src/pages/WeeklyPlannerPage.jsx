@@ -197,7 +197,7 @@ const WeeklyPlannerPage = () => {
                     .eq('log_date', logDate)
                     .eq('diet_plan_recipe_id', item.id);
                 if (error) throw error;
-                toast({ title: 'Comida desmarcada', description: `${item.recipe?.name || 'Receta'} ya no está marcada para hoy.` });
+                toast({ title: 'Comida desmarcada', description: `${item.recipe?.name || 'Receta'} ya no está marcada para hoy.`, variant: 'success' });
             } else {
                 const { error } = await supabase.from('daily_meal_logs').insert({
                     user_id: userId,
@@ -206,7 +206,7 @@ const WeeklyPlannerPage = () => {
                     user_day_meal_id: item.day_meal?.id,
                 });
                 if (error) throw error;
-                toast({ title: 'Comida marcada', description: `${item.recipe?.name || 'Receta'} marcada como comida de hoy.` });
+                toast({ title: 'Comida marcada', description: `${item.recipe?.name || 'Receta'} marcada como comida de hoy.`, variant: 'success' });
             }
             fetchLogs();
         } catch (error) {

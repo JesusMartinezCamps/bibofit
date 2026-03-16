@@ -176,7 +176,7 @@ const DietPreferencesForm = ({ userId: propUserId, onUpdate }) => {
         toast({ title: "Error", description: "No se pudo añadir la sensibilidad.", variant: "destructive" });
     } else {
         setSelectedSensitivities(prev => [...prev, { sensitivity_id: sensitivity.id, sensitivitie_level: sensitivityLevel }]);
-        toast({ title: "Éxito", description: "Sensibilidad añadida." });
+        toast({ title: "Éxito", description: "Sensibilidad añadida.", variant: "success" });
         setIsSensitivityModalOpen(false);
     }
   };
@@ -187,7 +187,7 @@ const DietPreferencesForm = ({ userId: propUserId, onUpdate }) => {
         toast({ title: "Error", description: "No se pudo quitar la sensibilidad.", variant: "destructive" });
     } else {
         setSelectedSensitivities(prev => prev.filter(s => s.sensitivity_id !== sensitivityId));
-        toast({ title: "Éxito", description: "Sensibilidad eliminada." });
+        toast({ title: "Éxito", description: "Sensibilidad eliminada.", variant: "success" });
     }
   };
 
@@ -201,7 +201,7 @@ const DietPreferencesForm = ({ userId: propUserId, onUpdate }) => {
         toast({ title: "Error", description: "No se pudo añadir la condición médica.", variant: "destructive" });
     } else {
         setSelectedMedicalConditions(prev => [...prev, condition.id]);
-        toast({ title: "Éxito", description: "Condición médica añadida." });
+        toast({ title: "Éxito", description: "Condición médica añadida.", variant: "success" });
         setIsConditionModalOpen(false);
     }
   };
@@ -212,7 +212,7 @@ const DietPreferencesForm = ({ userId: propUserId, onUpdate }) => {
         toast({ title: "Error", description: "No se pudo quitar la condición médica.", variant: "destructive" });
     } else {
         setSelectedMedicalConditions(prev => prev.filter(c => c !== conditionId));
-        toast({ title: "Éxito", description: "Condición médica eliminada." });
+        toast({ title: "Éxito", description: "Condición médica eliminada.", variant: "success" });
     }
   };
   

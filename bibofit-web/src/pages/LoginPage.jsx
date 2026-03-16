@@ -81,6 +81,7 @@ const LoginPage = () => {
         toast({
           title: "¡Bienvenido!",
           description: "Has iniciado sesión correctamente.",
+          variant: "success",
         });
         if (result.invitationRedemption?.status === 'applied') {
           toast({

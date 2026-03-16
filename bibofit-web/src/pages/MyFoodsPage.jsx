@@ -67,7 +67,7 @@ const MyFoodsPage = () => {
     try {
       const { error } = await supabase.from('food').delete().eq('id', foodId).eq('user_id', user.id);
       if (error) throw error;
-      toast({ title: 'Éxito', description: 'Alimento eliminado permanentemente.' });
+      toast({ title: 'Éxito', description: 'Alimento eliminado permanentemente.', variant: 'success' });
       fetchFoods(); // Refresh list
     } catch (error) {
       console.error("Error deleting food:", error);

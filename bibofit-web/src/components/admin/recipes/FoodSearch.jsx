@@ -199,7 +199,7 @@ const FoodSearch = ({ onSelectFood, selectedFoodId, onActionComplete, excludeSen
     try {
         const { error } = await supabase.rpc('delete_food_with_dependencies', { p_food_id: foodIdToDelete });
         if (error) throw error;
-        toast({ title: 'Éxito', description: 'Alimento eliminado correctamente y todas sus dependencias.' });
+        toast({ title: 'Éxito', description: 'Alimento eliminado correctamente y todas sus dependencias.', variant: 'success' });
         if(onActionComplete) onActionComplete();
     } catch (error) {
         console.error('Error deleting food:', error);

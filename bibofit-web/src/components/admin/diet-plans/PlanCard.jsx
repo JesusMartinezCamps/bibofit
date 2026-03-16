@@ -59,7 +59,7 @@ import React, { useState, useMemo } from 'react';
                 if (error) {
                     toast({ title: 'Error', description: 'No se pudo actualizar el rango de fechas.', variant: 'destructive' });
                 } else {
-                    toast({ title: 'Éxito', description: 'Rango de fechas actualizado.' });
+                    toast({ title: 'Éxito', description: 'Rango de fechas actualizado.', variant: 'success' });
                     if (onPlanUpdate) onPlanUpdate();
                 }
             }

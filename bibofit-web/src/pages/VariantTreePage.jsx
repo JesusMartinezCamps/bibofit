@@ -382,7 +382,7 @@ const VariantTreePage = () => {
         return next;
       });
 
-      toast({ title: 'Variante eliminada' });
+      toast({ title: 'Variante eliminada', variant: 'success' });
     } catch (err) {
       toast({
         title: 'No se pudo eliminar',

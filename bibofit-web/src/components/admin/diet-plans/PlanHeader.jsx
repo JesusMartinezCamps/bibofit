@@ -224,7 +224,7 @@ const PlanHeader = ({ plan, onUpdate, onToggleActive, readOnly = false }) => {
       });
     } else {
       if (onUpdate) onUpdate(true);
-      toast({ title: 'Éxito', description: 'Nombre del plan actualizado.' });
+      toast({ title: 'Éxito', description: 'Nombre del plan actualizado.', variant: 'success' });
       setIsNameChanged(false);
     }
     setIsSavingName(false);
@@ -266,7 +266,7 @@ const PlanHeader = ({ plan, onUpdate, onToggleActive, readOnly = false }) => {
       if (error) {
         toast({ title: 'Error', description: 'No se pudo actualizar el rango de fechas.', variant: 'destructive' });
       } else {
-        toast({ title: 'Éxito', description: 'Rango de fechas actualizado.' });
+        toast({ title: 'Éxito', description: 'Rango de fechas actualizado.', variant: 'success' });
         onUpdate?.(true);
       }
     }

@@ -211,12 +211,14 @@ const SignUpPage = () => {
           toast({
             title: "¡Cuenta creada!",
             description: "Te hemos enviado un correo para confirmar tu cuenta.",
+            variant: "success",
           });
           navigate('/auth/check-email', { state: { email: normalizedEmail } });
         } else {
           toast({
             title: "¡Cuenta creada!",
             description: "Tu sesión se ha iniciado correctamente.",
+            variant: "success",
           });
           if (result.invitationRedemption?.status === 'applied') {
             toast({

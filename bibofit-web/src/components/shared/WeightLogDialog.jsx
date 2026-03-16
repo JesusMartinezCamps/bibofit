@@ -190,6 +190,7 @@ import React, { useState, useEffect, useCallback } from 'react';
           toast({
             title: '¡Peso registrado!',
             description: isAdminView ? 'El registro ha sido guardado correctamente.' : 'Tu progreso ha sido guardado correctamente.',
+            variant: 'success',
           });
           
           if (onLogAdded) onLogAdded(savedData);
@@ -218,6 +219,7 @@ import React, { useState, useEffect, useCallback } from 'react';
           toast({
             title: 'Registro eliminado',
             description: 'El registro de peso ha sido eliminado correctamente.',
+            variant: 'success',
           });
           
           if (onLogAdded) onLogAdded(null);

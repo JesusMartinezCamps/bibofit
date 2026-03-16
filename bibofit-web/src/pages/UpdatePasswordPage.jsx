@@ -70,7 +70,7 @@ const UpdatePasswordPage = () => {
       toast({ 
         title: "¡Contraseña actualizada!", 
         description: "Tu contraseña ha sido cambiada exitosamente.",
-        className: "bg-green-600 text-white border-none"
+        variant: "success"
       });
 
       // Redirect to login after a short delay to let user read the success message

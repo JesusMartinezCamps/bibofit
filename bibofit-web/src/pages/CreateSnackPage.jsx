@@ -72,7 +72,7 @@ const CreateSnackPage = () => {
     const handleEquivalenceSuccess = (newAdjustment) => {
         setIsEquivalenceDialogOpen(false);
         setSnackForEquivalence(null);
-        toast({ title: 'Éxito', description: `Picoteo "${snackNameForToast}" creado y equivalencia aplicada.` });
+        toast({ title: 'Éxito', description: `Picoteo "${snackNameForToast}" creado y equivalencia aplicada.`, variant: 'success' });
         navigate(`/plan/dieta/${date}`);
     };
     
@@ -80,7 +80,7 @@ const CreateSnackPage = () => {
         if (!isOpen && snackForEquivalence) {
             setIsEquivalenceDialogOpen(false);
             setSnackForEquivalence(null);
-            toast({ title: 'Éxito', description: `Picoteo "${snackNameForToast}" creado y añadido al plan.` });
+            toast({ title: 'Éxito', description: `Picoteo "${snackNameForToast}" creado y añadido al plan.`, variant: 'success' });
             navigate(`/plan/dieta/${date}`);
         } else {
              setIsEquivalenceDialogOpen(isOpen);

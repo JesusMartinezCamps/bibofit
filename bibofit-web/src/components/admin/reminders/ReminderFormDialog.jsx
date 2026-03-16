@@ -224,7 +224,7 @@ const ReminderFormDialog = ({ isOpen, onOpenChange, onSave, reminder, userId, ne
 
       if (response.error) throw response.error;
 
-      toast({ title: 'Éxito', description: `Recordatorio ${reminder ? 'actualizado' : 'creado'}.` });
+      toast({ title: 'Éxito', description: `Recordatorio ${reminder ? 'actualizado' : 'creado'}.`, variant: 'success' });
       onSave();
 
     } catch (error) {

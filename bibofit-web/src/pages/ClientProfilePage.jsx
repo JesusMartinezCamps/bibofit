@@ -44,6 +44,7 @@ const ClientProfilePage = () => {
       toast({
         title: "Perfil Actualizado",
         description: "Los datos del cliente se han guardado correctamente.",
+        variant: "success",
       });
       setHasUnsavedChanges(false);
     }

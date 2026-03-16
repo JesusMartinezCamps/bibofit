@@ -102,7 +102,7 @@ const AllDietPlansPage = () => {
 
     const handleAssignSuccess = () => {
         setIsAssignDialogOpen(false);
-        toast({ title: 'Plan asignado', description: `La plantilla "${selectedTemplate.name}" se ha asignado correctamente.`});
+        toast({ title: 'Plan asignado', description: `La plantilla "${selectedTemplate.name}" se ha asignado correctamente.`, variant: 'success' });
     };
 
     const handleAssignToCenterSuccess = () => {

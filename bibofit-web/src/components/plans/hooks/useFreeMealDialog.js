@@ -220,7 +220,7 @@ export const useFreeMealDialog = ({ open, onOpenChange, userId, onSaveSuccess, i
     }
   };
   
-  const handleEquivalence = () => toast({ title: "Próximamente...", description: "La funcionalidad de equivalencia para recetas libres estará disponible pronto. ¡Gracias por tu paciencia!", variant: "info" });
+  const handleEquivalence = () => toast({ title: "Próximamente...", description: "La funcionalidad de equivalencia para recetas libres estará disponible pronto. ¡Gracias por tu paciencia!", variant: "default" });
 
   const handleAddGroup = () => {
     const newGroup = {

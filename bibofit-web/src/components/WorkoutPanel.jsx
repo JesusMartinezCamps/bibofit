@@ -47,7 +47,7 @@ const WorkoutPanel = ({ selectedDate }) => {
       newCompleted = completedExercises.filter(id => id !== exerciseId);
     } else {
       newCompleted = [...completedExercises, exerciseId];
-      toast({ title: "¡Ejercicio completado!", description: "¡Excelente trabajo! Sigue así." });
+      toast({ title: "¡Ejercicio completado!", description: "¡Excelente trabajo! Sigue así.", variant: "success" });
     }
     
     setCompletedExercises(newCompleted);

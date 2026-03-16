@@ -230,6 +230,7 @@ const UserCreatedFoodsPage = () => {
       toast({
         title: actionLabel,
         description: `Autocuadre aplicado en ${report.summary.succeededGroups}/${report.summary.processedGroups} bloques futuros.`,
+        variant: 'success',
       });
       return;
     }

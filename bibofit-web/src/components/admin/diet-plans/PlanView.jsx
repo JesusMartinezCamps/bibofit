@@ -280,7 +280,7 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOn
             toast({ title: 'Error', description: error.message, variant: 'destructive' });
         } else {
             setRecipes(prev => prev.filter(r => !(r.id === recipeToDelete.id && r.is_private === recipeToDelete.isPrivate)));
-            toast({ title: 'Éxito', description: successMessage });
+            toast({ title: 'Éxito', description: successMessage, variant: 'success' });
         }
         setIsDeleteDialogOpen(false);
         setRecipeToDelete({ id: null, isPrivate: false });
@@ -354,7 +354,7 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOn
             if (fetchNewError) throw fetchNewError;
     
             setRecipes(prev => [...prev, { ...fullNewRecord, is_private: false }]);
-            toast({ title: 'Éxito', description: `${recipe.name} añadida al plan.` });
+            toast({ title: 'Éxito', description: `${recipe.name} añadida al plan.`, variant: 'success' });
             setIsAddRecipeOpen(false);
         } catch (error) {
             toast({ title: 'Error', description: `No se pudo añadir la receta: ${error.message}`, variant: 'destructive' });

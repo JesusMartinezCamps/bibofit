@@ -314,7 +314,7 @@ const PlanRecipesView = ({ plan, readOnly = false, clientRestrictions }) => {
             if (fetchError) throw fetchError;
 
             setRecipes(prev => [...prev, fullRecord]);
-            toast({ title: 'Éxito', description: `${recipe.name} añadida al plan.` });
+            toast({ title: 'Éxito', description: `${recipe.name} añadida al plan.`, variant: 'success' });
             setIsAddRecipeOpen(false);
         } catch (error) {
             toast({ title: 'Error', description: `No se pudo añadir la receta: ${error.message}`, variant: 'destructive' });
@@ -375,7 +375,7 @@ const PlanRecipesView = ({ plan, readOnly = false, clientRestrictions }) => {
             fetchData();
         }
 
-        toast({ title: 'Éxito', description: 'La operación se completó correctamente.' });
+        toast({ title: 'Éxito', description: 'La operación se completó correctamente.', variant: 'success' });
     };
 
     if (loading) {

@@ -143,7 +143,7 @@ const TemplatePropertiesSection = ({ plan, creator, onUpdate }) => {
             } else {
                 setCenterName(''); // Clear center name if scope changed to global
             }
-            toast({ title: 'Actualizado', description: `Ámbito actualizado correctamente.` });
+            toast({ title: 'Actualizado', description: `Ámbito actualizado correctamente.`, variant: 'success' });
             if(onUpdate) onUpdate();
         }
     };

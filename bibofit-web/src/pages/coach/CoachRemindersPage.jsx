@@ -68,7 +68,7 @@ const CoachRemindersPage = () => {
         try {
             const { error } = await supabase.from('reminders').delete().eq('id', id);
             if (error) throw error;
-            toast({ title: 'Eliminado', description: 'Recordatorio eliminado correctamente.' });
+            toast({ title: 'Eliminado', description: 'Recordatorio eliminado correctamente.', variant: 'success' });
             fetchReminders();
         } catch (error) {
             toast({ title: 'Error', description: 'No se pudo eliminar.', variant: 'destructive' });

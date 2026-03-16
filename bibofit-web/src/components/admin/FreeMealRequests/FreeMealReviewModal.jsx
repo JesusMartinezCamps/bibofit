@@ -87,7 +87,7 @@ const FreeMealReviewModal = ({ isOpen, onOpenChange, freeMeal, onSuccess }) => {
             successMessage += ` ${result.reason || 'No se pudo añadir al plan del cliente.'}`;
         }
 
-        toast({ title: 'Éxito', description: successMessage });
+        toast({ title: 'Éxito', description: successMessage, variant: 'success' });
         onSuccess();
 
     } catch (error) {
@@ -145,7 +145,7 @@ const FreeMealReviewModal = ({ isOpen, onOpenChange, freeMeal, onSuccess }) => {
         .eq('id', freeMeal.id);
       if (statusError) throw statusError;
 
-      toast({ title: 'Éxito', description: 'Receta libre convertida a receta privada y añadida al plan.' });
+      toast({ title: 'Éxito', description: 'Receta libre convertida a receta privada y añadida al plan.', variant: 'success' });
       onSuccess();
     } catch (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });

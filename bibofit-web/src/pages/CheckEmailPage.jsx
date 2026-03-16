@@ -43,6 +43,7 @@ const CheckEmailPage = () => {
     toast({
       title: 'Correo reenviado',
       description: 'Te hemos enviado un nuevo enlace de confirmación.',
+      variant: 'success',
     });
   };
 
