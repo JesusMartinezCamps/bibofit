@@ -97,15 +97,15 @@ const ContentButton = ({ icon: Icon, title, to, hasPending, count, disabled }) =
   return (
     <button
       onClick={() => navigate(to)}
-      className="relative flex w-full items-center gap-3 px-3 py-2.5 min-h-[46px] text-left bg-gradient-to-r from-sky-950 to-sky-900/50 border-cyan-900/30 border-x border-b first:border-t shadow-sm transition-all duration-300 ease-out hover:from-cyan-800/70 hover:via-cyan-950/80 hover:to-cyan-900/80 hover:border-cyan-600/40 group rounded-none first:rounded-t-xl last:rounded-b-xl md:flex-col md:items-center md:justify-center md:p-6 md:text-center md:min-h-[170px] md:bg-gradient-to-br md:from-cyan-800/50 md:via-slate-850 md:to-cyan-950 md:rounded-xl md:border md:shadow-lg md:hover:shadow-cyan-500/20"
+      className="content-mgmt-btn group relative flex w-full min-h-[46px] items-center gap-3 rounded-none border-x border-b border-sky-200/85 px-3 py-2.5 text-left text-slate-800 shadow-sm transition-all duration-300 ease-out first:rounded-t-xl first:border-t last:rounded-b-xl dark:border-slate-500/45 dark:text-slate-100 dark:hover:border-slate-300/55 md:min-h-[170px] md:items-center md:justify-center md:rounded-xl md:border md:p-6 md:text-center md:shadow-lg md:hover:shadow-sky-200/40 dark:md:hover:shadow-slate-700/40"
     >
-      <Icon className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform md:w-10 md:h-10 md:mb-3 md:text-cyan-500" />
-      <span className="text-white font-semibold text-sm leading-tight flex-1 md:flex-none md:text-base">{title}</span>
+      <Icon className="h-4 w-4 text-current transition-transform group-hover:scale-110 md:mb-3 md:h-10 md:w-10" />
+      <span className="flex-1 text-sm font-semibold leading-tight md:flex-none md:text-base">{title}</span>
       {hasPending && (
         <div className="absolute top-2 right-2 md:top-3 md:right-3">
           <span className="relative flex h-4 w-4 md:h-5 md:w-5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-4 w-4 md:h-5 md:w-5 bg-purple-500 text-[9px] md:text-[10px] text-white font-bold items-center justify-center">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sky-400 opacity-70 dark:bg-slate-200"></span>
+            <span className="relative inline-flex h-4 w-4 items-center justify-center rounded-full bg-sky-600 text-[9px] font-bold text-white md:h-5 md:w-5 md:text-[10px] dark:bg-slate-200 dark:text-slate-900">
               {count > 9 ? '9+' : count}
             </span>
           </span>
@@ -117,7 +117,7 @@ const ContentButton = ({ icon: Icon, title, to, hasPending, count, disabled }) =
 
 const ContentSection = ({ title, children }) => (
   <section className="space-y-2 md:space-y-4">
-    <h2 className="text-lg md:text-2xl font-bold text-white">{title}</h2>
+    <h2 className="text-lg font-bold text-foreground md:text-2xl">{title}</h2>
     <div className="grid grid-cols-1 gap-0 md:grid-cols-2 lg:grid-cols-3 md:gap-6">{children}</div>
   </section>
 );
@@ -364,25 +364,25 @@ const ContentManagement = () => {
   const hasSearch = queryTokens.length > 0;
 
   return (
-    <div className="p-2 sm:p-3 md:p-8 text-white max-w-7xl mx-auto">
-      <h1 className="text-2xl md:text-4xl font-bold mb-3 border-b border-border pb-2 md:pb-4">
+    <div className="mx-auto max-w-7xl p-2 text-foreground sm:p-3 md:p-8">
+      <h1 className="mb-3 border-b border-border pb-2 text-2xl font-bold md:pb-4 md:text-4xl">
         Gestión de Contenidos
       </h1>
 
       <div className="mb-4 md:mb-8 space-y-2">
         <div className="relative max-w-2xl">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-300" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             placeholder="Buscar por contenido, acción o palabra clave..."
-            className="pl-10 pr-10 bg-slate-900/70 border-cyan-900/50 text-white placeholder:text-cyan-200/70"
+            className="border-border bg-background/90 pl-10 pr-10 text-foreground placeholder:text-muted-foreground dark:bg-card/80"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => setSearchQuery('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-cyan-200/80 hover:text-white transition-colors"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
               aria-label="Limpiar búsqueda"
             >
               <X className="w-4 h-4" />
@@ -390,16 +390,16 @@ const ContentManagement = () => {
           )}
         </div>
         {hasSearch && (
-          <p className="text-xs md:text-sm text-cyan-100/80">
+          <p className="text-xs text-muted-foreground md:text-sm">
             {totalResults} resultado{totalResults === 1 ? '' : 's'} de {totalItems}
           </p>
         )}
       </div>
 
       {totalResults === 0 ? (
-        <div className="rounded-xl border border-cyan-900/40 bg-slate-900/60 p-6 text-center">
-          <p className="text-white font-semibold">No se encontraron contenidos</p>
-          <p className="text-sm text-cyan-100/80 mt-1">
+        <div className="rounded-xl border border-border bg-card/70 p-6 text-center shadow-sm dark:bg-card/80">
+          <p className="font-semibold text-foreground">No se encontraron contenidos</p>
+          <p className="mt-1 text-sm text-muted-foreground">
             Prueba con términos como: usuarios, centros, recetas, entreno, invitación o pricing.
           </p>
         </div>

@@ -254,6 +254,24 @@ html:not(.dark) .app-main-shell {
   @apply border-primary/50 bg-card/80;
 }
 
+.content-mgmt-btn {
+  background-color: #cffafe;
+  background-image: linear-gradient(to right, #ddfff4, #edfffb) !important;
+}
+
+.content-mgmt-btn:hover {
+  background-image: linear-gradient(to right, #67e8f9, #a5f3fc) !important;
+}
+
+.dark .content-mgmt-btn {
+  background-color: #0e2238;
+  background-image: linear-gradient(to right, #182336, #2a374b, #5f6f85) !important;
+}
+
+.dark .content-mgmt-btn:hover {
+  background-image: linear-gradient(to right, #1d2b42, #34455d, #6f8096) !important;
+}
+
 .date-input {
   @apply pr-10;
 }
