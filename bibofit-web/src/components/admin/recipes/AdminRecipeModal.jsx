@@ -117,16 +117,15 @@ const AdminRecipeModal = ({
             setLoadingInitialData(true);
             try {
                 const [
-                    vitaminsRes, 
-                    mineralsRes, 
-                    foodsRes, 
+                    vitaminsRes,
+                    mineralsRes,
+                    foodsRes,
                     foodGroupsRes,
-                    conditionsRes, 
+                    conditionsRes,
                     sensitivitiesRes,
-                    preferredRes, 
+                    preferredRes,
                     nonPreferredRes,
                     userSensitivitiesRes,
-                    userIndividualRes,
                     userConditionsRes
                 ] = await Promise.all([
                     supabase.from('vitamins').select('id, name'),
@@ -138,7 +137,6 @@ const AdminRecipeModal = ({
                     (userId && !isTemplatePlan && !forcedRestrictions) ? supabase.from('preferred_foods').select('food(id, name)').eq('user_id', userId) : Promise.resolve({ data: [], error: null }),
                     (userId && !isTemplatePlan && !forcedRestrictions) ? supabase.from('non_preferred_foods').select('food(id, name)').eq('user_id', userId) : Promise.resolve({ data: [], error: null }),
                     (userId && !isTemplatePlan && !forcedRestrictions) ? supabase.from('user_sensitivities').select('sensitivity:sensitivities(id, name)').eq('user_id', userId) : Promise.resolve({ data: [], error: null }),
-                    (userId && !isTemplatePlan && !forcedRestrictions) ? supabase.from('user_individual_food_restrictions').select('food(id, name)').eq('user_id', userId) : Promise.resolve({ data: [], error: null }),
                     (userId && !isTemplatePlan && !forcedRestrictions) ? supabase.from('user_medical_conditions').select('condition:medical_conditions(id, name)').eq('user_id', userId) : Promise.resolve({ data: [], error: null }),
                 ]);
 
@@ -154,7 +152,6 @@ const AdminRecipeModal = ({
                     restrictions = {
                         sensitivities: forcedRestrictions.sensitivities || [],
                         medical_conditions: forcedRestrictions.medical_conditions || [],
-                        individual_food_restrictions: forcedRestrictions.individual_food_restrictions || [],
                         preferred_foods: forcedRestrictions.preferred_foods || [],
                         non_preferred_foods: forcedRestrictions.non_preferred_foods || [],
                         diet_type_id: forcedRestrictions.diet_type_id ?? null,
@@ -167,7 +164,6 @@ const AdminRecipeModal = ({
                     restrictions = {
                         sensitivities: sensitivityObjects,
                         medical_conditions: conditionObjects,
-                        individual_food_restrictions: [],
                         preferred_foods: [],
                         non_preferred_foods: []
                     };
@@ -176,7 +172,6 @@ const AdminRecipeModal = ({
                         preferred_foods: preferredRes.data?.map(i => i.food).filter(Boolean) || [],
                         non_preferred_foods: nonPreferredRes.data?.map(i => i.food).filter(Boolean) || [],
                         sensitivities: userSensitivitiesRes.data?.map(i => i.sensitivity).filter(Boolean) || [],
-                        individual_food_restrictions: userIndividualRes.data?.map(i => i.food).filter(Boolean) || [],
                         medical_conditions: userConditionsRes.data?.map(i => i.condition).filter(Boolean) || [],
                     };
                 }

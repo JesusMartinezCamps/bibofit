@@ -250,7 +250,6 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
                 const analysisRestrictions = {
                     sensitivities: allSensitivities.filter(s => planRestrictions.sensitivities.has(s.id)),
                     medical_conditions: allConditions.filter(c => planRestrictions.conditions.has(c.id)),
-                    individual_food_restrictions: [],
                     preferred_foods: [],
                     non_preferred_foods: []
                 };
@@ -355,7 +354,6 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
         return {
             sensitivities: allSensitivities.filter(s => planRestrictions.sensitivities.has(s.id)),
             medical_conditions: allConditions.filter(c => planRestrictions.conditions.has(c.id)),
-            individual_food_restrictions: [],
             preferred_foods: [],
             non_preferred_foods: []
         };

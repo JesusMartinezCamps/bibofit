@@ -72,7 +72,7 @@ const INFO_CONTENT = {
   guardrails: {
     title: 'Guardarrailes saludables',
     description:
-      'Para evitar extremos, Bibofit limita el rango. Deficit: 5% a 25% (recomendado 10% a 20%). Superavit: 3% a 15% (recomendado 5% a 10%).'
+      'Para evitar extremos, Bibofit limita el rango. Deficit: 5% a 22.5% (recomendado 10% a 20%). Superavit: 3% a 15% (recomendado 5% a 10%).'
   },
   science: {
     title: 'Base cientifica',

@@ -10,7 +10,7 @@ const BASE_RANGES = {
     recommendedMinPct: 10,
     recommendedMaxPct: 20,
     hardMinPct: 5,
-    hardMaxPct: 25
+    hardMaxPct: 22.5
   },
   [GOAL_DIRECTION.MAINTENANCE]: {
     defaultPct: 0,

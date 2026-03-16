@@ -73,7 +73,6 @@ const FreeMealApprovalModal = ({ freeMeal, isOpen, onOpenChange, onAction }) => 
   const ingredientSearchRestrictions = useMemo(() => ({
     sensitivities: planRestrictions.sensitivities.map(id => ({ id })),
     medical_conditions: planRestrictions.conditions.map(id => ({ id })),
-    individual_food_restrictions: [],
     preferred_foods: planRestrictions.preferredFoods.map(id => ({ id })),
     non_preferred_foods: planRestrictions.nonPreferredFoods.map(id => ({ id })),
   }), [planRestrictions]);

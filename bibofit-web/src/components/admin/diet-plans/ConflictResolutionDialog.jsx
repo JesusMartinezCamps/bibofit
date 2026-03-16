@@ -255,8 +255,6 @@ const ConflictResolutionDialog = ({ open, onOpenChange, conflicts, onRecipeUpdat
   const resolvedRestrictions = useMemo(() => ({
         sensitivities: clientRestrictions?.sensitivities || [],
         medical_conditions: clientRestrictions?.medical_conditions || clientRestrictions?.conditions || [],
-        individual_food_restrictions:
-            planRestrictions?.individual_food_restrictions || clientRestrictions?.individual_food_restrictions || [],
         preferred_foods: planRestrictions?.preferred_foods || clientRestrictions?.preferred_foods || [],
         non_preferred_foods: planRestrictions?.non_preferred_foods || clientRestrictions?.non_preferred_foods || [],
         diet_type_id: planRestrictions?.diet_type_id ?? clientRestrictions?.diet_type_id ?? null,
@@ -402,7 +400,7 @@ const ConflictResolutionDialog = ({ open, onOpenChange, conflicts, onRecipeUpdat
                                                             {!isResolved ? (
                                                                 <div className="space-y-2 flex-1">
                                                                     {conflicts.map((conflict, idx) => (
-                                                                        <div key={`${recipe.id}-${idx}`} className="bg-red-300/20 border border-red-500/30 rounded px-3 py-2">
+                                                                        <div key={`${recipe.id}-${idx}`} className="bg-slate-900/50 border border-red-500/30 rounded px-3 py-2">
                                                                             <div className="flex items-center gap-2 text-red-600 font-medium text-sm">
                                                                                 <AlertTriangle className=" w-3.5 h-3.5" />
                                                                                 <span>{conflict.name}</span>
@@ -423,7 +421,7 @@ const ConflictResolutionDialog = ({ open, onOpenChange, conflicts, onRecipeUpdat
                                                                         size="sm"
                                                                         variant="outline"
                                                                         onClick={() => handleEditRecipe(recipe)}
-                                                                        className="border-orange-400/60 bg-orange-400/20 text-orange-600 hover:bg-orange-700/45 hover:text-orange-100"
+                                                                        className="border-orange-400/60 bg-orange-400/20 dark:text-orange-400 text-orange-600 hover:bg-orange-700/45 hover:text-orange-100"
                                                                     >
                                                                         <Edit className="w-4 h-4 mr-2" />
                                                                         Editar receta

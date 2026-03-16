@@ -16,7 +16,6 @@ import RecipeView from '@/components/shared/RecipeView';
 const EMPTY_RESTRICTIONS = {
   sensitivities: [],
   medical_conditions: [],
-  individual_food_restrictions: [],
   preferred_foods: [],
   non_preferred_foods: [],
 };

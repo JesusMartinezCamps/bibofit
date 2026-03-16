@@ -153,14 +153,12 @@ const ListView = ({
     const sensitivities = new Set((userRestrictions?.sensitivities || []).map((s) => s.id));
     const conditions = new Set((userRestrictions?.medical_conditions || []).map((c) => c.id));
     const nonPreferred = new Set((userRestrictions?.non_preferred_foods || []).map((f) => f.id));
-    const restricted = new Set((userRestrictions?.individual_food_restrictions || []).map((f) => f.id));
 
     return {
       sensitivities,
       conditions,
       nonPreferred,
-      restricted,
-      hasAny: sensitivities.size > 0 || conditions.size > 0 || nonPreferred.size > 0 || restricted.size > 0,
+      hasAny: sensitivities.size > 0 || conditions.size > 0 || nonPreferred.size > 0,
     };
   }, [userRestrictions]);
 
@@ -361,7 +359,6 @@ const ListView = ({
                           if (!food) return;
 
                           if (restrictionSets.nonPreferred.has(food.id)) unsafeFoodsSet.add(food.name);
-                          if (restrictionSets.restricted.has(food.id)) unsafeFoodsSet.add(food.name);
 
                           const foodSensitivityIds = new Set(
                             food.food_sensitivities?.map((fs) => fs.sensitivity?.id || fs.sensitivity_id).filter(Boolean) || []

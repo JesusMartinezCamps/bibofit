@@ -37,7 +37,6 @@ export const useAssignPlan = ({ open, onOpenChange, onSuccess, preselectedClient
             return {
                 sensitivities: [],
                 conditions: [],
-                individual_food_restrictions: [],
                 preferred_foods: [],
                 non_preferred_foods: [],
                 diet_type_id: null,
@@ -48,7 +47,6 @@ export const useAssignPlan = ({ open, onOpenChange, onSuccess, preselectedClient
         return {
             sensitivities: (clientRestrictions.sensitivities || []).map(s => s.id),
             conditions: (clientRestrictions.conditions || []).map(c => c.id),
-            individual_food_restrictions: clientRestrictions.individual_food_restrictions || [],
             preferred_foods: clientRestrictions.preferred_foods || [],
             non_preferred_foods: clientRestrictions.non_preferred_foods || [],
             diet_type_id: clientRestrictions.diet_type_id ?? null,

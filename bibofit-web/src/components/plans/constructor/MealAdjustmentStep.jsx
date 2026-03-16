@@ -28,8 +28,7 @@ const MealAdjustmentStep = ({ planData, onNext, onBack }) => {
         sensitivities: [],
         medical_conditions: [],
         preferred_foods: [],
-        non_preferred_foods: [],
-        individual_food_restrictions: []
+        non_preferred_foods: []
     };
 
     const {

@@ -361,7 +361,6 @@ const combinedPlanRestrictions = useMemo(() => {
     const clientConditions = data?.profile?.user_medical_conditions?.map(c => c.medical_conditions) || [];
     const clientPreferred = data?.preferences?.preferred || [];
     const clientNonPreferred = data?.preferences?.nonPreferred || [];
-    const clientIndividual = data?.preferences?.individual || [];
 
     const planSensitivities = activePlan?.sensitivities?.map(s => s.sensitivities) || [];
     const planConditions = activePlan?.medical_conditions?.map(c => c.medical_conditions) || [];
@@ -376,7 +375,6 @@ const combinedPlanRestrictions = useMemo(() => {
     return {
         sensitivities: mergeUnique(clientSensitivities, planSensitivities),
         medical_conditions: mergeUnique(clientConditions, planConditions),
-        individual_food_restrictions: clientIndividual,
         preferred_foods: clientPreferred,
         non_preferred_foods: clientNonPreferred
     };

@@ -33,7 +33,6 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
   const [userRestrictions, setUserRestrictions] = useState({
       sensitivities: [],
       medical_conditions: [],
-      individual_food_restrictions: [],
       preferred_foods: [],
       non_preferred_foods: []
   });
@@ -51,13 +50,11 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
         const [
             sensitivitiesRes,
             conditionsRes,
-            individualRes,
             preferredRes,
             nonPreferredRes
         ] = await Promise.all([
             supabase.from('user_sensitivities').select('sensitivity:sensitivities(id, name)').eq('user_id', userId),
             supabase.from('user_medical_conditions').select('condition:medical_conditions(id, name)').eq('user_id', userId),
-            supabase.from('user_individual_food_restrictions').select('food(id, name)').eq('user_id', userId),
             supabase.from('preferred_foods').select('food(id, name)').eq('user_id', userId),
             supabase.from('non_preferred_foods').select('food(id, name)').eq('user_id', userId),
         ]);
@@ -65,7 +62,6 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
         setUserRestrictions({
             sensitivities: (sensitivitiesRes.data || []).map(s => s.sensitivity).filter(Boolean),
             medical_conditions: (conditionsRes.data || []).map(c => c.condition).filter(Boolean),
-            individual_food_restrictions: (individualRes.data || []).map(i => i.food).filter(Boolean),
             preferred_foods: (preferredRes.data || []).map(p => p.food).filter(Boolean),
             non_preferred_foods: (nonPreferredRes.data || []).map(np => np.food).filter(Boolean),
         });

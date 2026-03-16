@@ -88,12 +88,7 @@ export const getConflictInfo = (food, userRestrictions) => {
     if (userRestrictions.non_preferred_foods?.some(npf => npf.id === food.id)) {
         return { type: 'non-preferred', reason: 'No preferido' };
     }
-    
-    // Check individual food restrictions
-    if (userRestrictions.individual_food_restrictions?.some(res => res.id === food.id)) {
-      return { type: 'condition_avoid', reason: 'Restringido' };
-    }
-  
+
     // Check sensitivities
     if (userRestrictions.sensitivities?.length > 0 && food.food_sensitivities?.length > 0) {
         const userSensitivityIds = userRestrictions.sensitivities
@@ -125,11 +120,9 @@ export const getConflictInfo = (food, userRestrictions) => {
       const toAvoid = food.food_medical_conditions.find(fmc => {
         const condition = fmc.medical_conditions || fmc.condition;
         const conditionId = condition?.id ?? fmc.condition_id;
-        // Check for both 'to_avoid' and 'evitar' to be safe with DB variations
-        return conditionId !== undefined && userConditionIds.includes(conditionId) && (fmc.relation_type === 'to_avoid' || fmc.relation_type === 'evitar');
-
+        return conditionId !== undefined && userConditionIds.includes(conditionId) && normalizeRelationType(fmc.relation_type) === 'avoid';
       });
-      
+
       if (toAvoid) {
         const condition = toAvoid.medical_conditions || toAvoid.condition;
         return {
@@ -143,9 +136,7 @@ export const getConflictInfo = (food, userRestrictions) => {
       const toRecommend = food.food_medical_conditions.find(fmc => {
         const condition = fmc.medical_conditions || fmc.condition;
         const conditionId = condition?.id ?? fmc.condition_id;
-        // Check for both 'recommended' and 'recomendado'
-        return conditionId !== undefined && userConditionIds.includes(conditionId) && (fmc.relation_type === 'recommended' || fmc.relation_type === 'recomendado');
-
+        return conditionId !== undefined && userConditionIds.includes(conditionId) && normalizeRelationType(fmc.relation_type) === 'recommend';
       });
 
       if (toRecommend) {

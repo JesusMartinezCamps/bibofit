@@ -14,7 +14,6 @@ export const fetchClientRestrictionsForUser = async (userId) => {
       sensitivities: [],
       conditions: [],
       medical_conditions: [],
-      individual_food_restrictions: [],
       preferred_foods: [],
       non_preferred_foods: [],
       diet_type_id: null,
@@ -45,7 +44,6 @@ export const fetchClientRestrictionsForUser = async (userId) => {
     sensitivities: normalizedRestrictions.sensitivities || [],
     conditions: normalizedMedicalConditions,
     medical_conditions: normalizedMedicalConditions,
-    individual_food_restrictions: normalizedRestrictions.individual_food_restrictions || [],
     preferred_foods: (preferredFoods || []).map((item) => item.food).filter(Boolean),
     non_preferred_foods: (nonPreferredFoods || []).map((item) => item.food).filter(Boolean),
     diet_type_id: normalizedRestrictions.diet_type_id ?? null,
@@ -332,7 +330,6 @@ export const prepareTemplateConflictResolution = async ({
     planRestrictionsForEditor: {
       sensitivities: clientRestrictions?.sensitivities || [],
       medical_conditions: clientRestrictions?.medical_conditions || clientRestrictions?.conditions || [],
-      individual_food_restrictions: clientRestrictions?.individual_food_restrictions || [],
       preferred_foods: clientRestrictions?.preferred_foods || [],
       non_preferred_foods: clientRestrictions?.non_preferred_foods || [],
       diet_type_id: clientRestrictions?.diet_type_id ?? null,

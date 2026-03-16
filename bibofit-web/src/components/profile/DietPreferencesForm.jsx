@@ -136,7 +136,6 @@ const DietPreferencesForm = ({ userId: propUserId, onUpdate: _onUpdate }) => {
     return {
       sensitivities: sensitivityIds.map((id) => ({ id })),
       medical_conditions: medicalConditionIds.map((id) => ({ id })),
-      individual_food_restrictions: [],
       diet_type_id: formData.diet_type_id || null,
       diet_type_name: selectedDietType?.name || null,
       diet_type_rules: selectedDietType?.diet_type_food_group_rules || [],

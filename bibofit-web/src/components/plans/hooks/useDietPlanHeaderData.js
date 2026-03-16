@@ -21,7 +21,6 @@ export const useDietPlanHeaderData = ({ userId, logDate, isAdminView, toast }) =
         weightDayRes,
         preferredRes,
         nonPreferredRes,
-        individualRes,
         remindersRes,
       ] = await Promise.all([
         supabase
@@ -54,7 +53,6 @@ export const useDietPlanHeaderData = ({ userId, logDate, isAdminView, toast }) =
           .maybeSingle(),
         supabase.from('preferred_foods').select('food(id, name)').eq('user_id', userId),
         supabase.from('non_preferred_foods').select('food(id, name)').eq('user_id', userId),
-        supabase.from('user_individual_food_restrictions').select('food(id, name)').eq('user_id', userId),
         isAdminView
           ? supabase
               .from('reminders')
@@ -170,8 +168,8 @@ export const useDietPlanHeaderData = ({ userId, logDate, isAdminView, toast }) =
 
       if (remindersRes.error) throw remindersRes.error;
       setReminders(remindersRes.data || []);
-      if (preferredRes.error || nonPreferredRes.error || individualRes.error) {
-        throw preferredRes.error || nonPreferredRes.error || individualRes.error;
+      if (preferredRes.error || nonPreferredRes.error) {
+        throw preferredRes.error || nonPreferredRes.error;
       }
 
       setData({
@@ -184,7 +182,6 @@ export const useDietPlanHeaderData = ({ userId, logDate, isAdminView, toast }) =
         preferences: {
           preferred: preferredRes.data?.map((p) => p.food) || [],
           nonPreferred: nonPreferredRes.data?.map((p) => p.food) || [],
-          individual: individualRes.data?.map((p) => p.food) || [],
         },
       });
     } catch (err) {

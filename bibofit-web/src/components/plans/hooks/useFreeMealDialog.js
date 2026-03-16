@@ -44,7 +44,7 @@ export const useFreeMealDialog = ({ open, onOpenChange, userId, onSaveSuccess, i
         setAllSensitivities(sensitivitiesRes.data || []);
         setAllConditions(conditionsRes.data || []);
 
-        const currentUserRestrictions = restrictionsRes.data || { sensitivities: [], medical_conditions: [], individual_food_restrictions: [], diet_type_rules: [] };
+        const currentUserRestrictions = restrictionsRes.data || { sensitivities: [], medical_conditions: [], diet_type_rules: [] };
         setUserRestrictions(currentUserRestrictions);
 
         // ID-only format for pre-processing conflict badges on food list
