@@ -2,12 +2,13 @@ import React, { useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useToast } from '@/components/ui/use-toast';
 import { Label } from "@/components/ui/label";
-import { X, PlusCircle, Check, CircleAlert, CircleCheck, Layers, AlertTriangle } from 'lucide-react';
+import { X, PlusCircle, Check, CircleAlert, CircleCheck, Layers, AlertTriangle, ChevronRight, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { getConflictInfo } from '@/lib/restrictionChecker';
 import { PREFERENCE_TONES } from '@/components/profile/preferenceToneStyles';
 
@@ -59,6 +60,7 @@ const FoodPreferenceSelector = ({
   const { toast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [expandedGroupIds, setExpandedGroupIds] = useState(new Set());
   const isPreferred = type === 'preferred';
   const tone = isPreferred ? PREFERENCE_TONES.green : PREFERENCE_TONES.red;
   
@@ -190,15 +192,9 @@ const FoodPreferenceSelector = ({
 
   const availableItems = useMemo(() => {
     const validIds = new Set(foodOptions.map(opt => String(opt.value)));
-    const merged = allFoods
+    return allFoods
       .filter(food => validIds.has(String(food.id)) || selectedFoodIds.has(String(food.id)))
-      .sort((a, b) => {
-        const aSelected = selectedFoodIds.has(String(a.id)) ? 0 : 1;
-        const bSelected = selectedFoodIds.has(String(b.id)) ? 0 : 1;
-        if (aSelected !== bSelected) return aSelected - bSelected;
-        return a.name.localeCompare(b.name);
-      });
-    return merged;
+      .sort((a, b) => a.name.localeCompare(b.name));
   }, [allFoods, foodOptions, selectedFoodIds]);
 
   const filteredItems = useMemo(() => {
@@ -211,31 +207,54 @@ const FoodPreferenceSelector = ({
     });
   }, [availableItems, searchTerm]);
 
-  const uniqueGroups = useMemo(() => {
+  const groupedItems = useMemo(() => {
     const groupMap = new Map();
-    availableItems.forEach(food => {
-      (food.food_to_food_groups || []).forEach(fg => {
-        const groupId = fg.food_group_id;
-        const groupName = fg.food_groups?.name;
-        if (groupId && groupName && !groupMap.has(groupId)) {
-          groupMap.set(groupId, { id: groupId, name: groupName });
+
+    filteredItems.forEach((food) => {
+      const groups = food.food_to_food_groups || [];
+
+      if (groups.length === 0) {
+        const fallbackId = 'ungrouped';
+        if (!groupMap.has(fallbackId)) {
+          groupMap.set(fallbackId, { id: fallbackId, name: 'Sin grupo', foods: [] });
         }
+        groupMap.get(fallbackId).foods.push(food);
+        return;
+      }
+
+      groups.forEach((fg) => {
+        const groupId = fg.food_group_id ?? fg.food_group?.id ?? fg.food_groups?.id;
+        const groupName = fg.food_groups?.name ?? fg.food_group?.name;
+        if (!groupId || !groupName) return;
+        if (!groupMap.has(groupId)) {
+          groupMap.set(groupId, { id: groupId, name: groupName, foods: [] });
+        }
+        groupMap.get(groupId).foods.push(food);
       });
     });
-    return Array.from(groupMap.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [availableItems]);
 
-  const filteredGroups = useMemo(() => {
-    if (!searchTerm) return uniqueGroups;
-    const query = normalizeText(searchTerm);
-    return uniqueGroups.filter(g => normalizeText(g.name).includes(query));
-  }, [uniqueGroups, searchTerm]);
+    return Array.from(groupMap.values())
+      .map((group) => ({
+        ...group,
+        foods: group.foods.sort((a, b) => a.name.localeCompare(b.name)),
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [filteredItems]);
 
-  const handleToggleGroup = async (group) => {
-    const groupFoods = availableItems.filter(food =>
-      food.food_to_food_groups?.some(fg => fg.food_group_id === group.id)
-    );
-    const allSelected = groupFoods.length > 0 && groupFoods.every(f => selectedFoodIds.has(String(f.id)));
+  const toggleGroupExpanded = (groupId) => {
+    setExpandedGroupIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) {
+        next.delete(groupId);
+      } else {
+        next.add(groupId);
+      }
+      return next;
+    });
+  };
+
+  const handleToggleGroupFoods = async (groupFoods) => {
+    const allSelected = groupFoods.length > 0 && groupFoods.every((f) => selectedFoodIds.has(String(f.id)));
     if (allSelected) {
       await handleBatchRemoveFoods(groupFoods);
     } else {
@@ -290,7 +309,10 @@ const FoodPreferenceSelector = ({
         open={isModalOpen}
         onOpenChange={(open) => {
           setIsModalOpen(open);
-          if (!open) setSearchTerm('');
+          if (!open) {
+            setSearchTerm('');
+            setExpandedGroupIds(new Set());
+          }
         }}
       >
         <DialogContent className="w-[95%] max-w-xl h-[80vh] flex flex-col p-0 bg-background border-border">
@@ -321,143 +343,138 @@ const FoodPreferenceSelector = ({
 
           <ScrollArea className="flex-1 p-2">
             <div className="space-y-1">
-              {filteredGroups.length === 0 && filteredItems.length === 0 ? (
+              {groupedItems.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8 text-sm">No se encontraron resultados.</p>
               ) : (
                 <>
-                  {/* Grupos de alimentos */}
-                  {filteredGroups.length > 0 && (
-                    <>
-                      <p className="px-3 py-1.5 text-xs text-muted-foreground font-semibold uppercase tracking-wider">Grupos</p>
-                      {filteredGroups.map(group => {
-                        const groupFoods = availableItems.filter(food =>
-                          food.food_to_food_groups?.some(fg => fg.food_group_id === group.id)
-                        );
-                        const selectedCount = groupFoods.filter(f => selectedFoodIds.has(String(f.id))).length;
-                        const total = groupFoods.length;
-                        const isFullySelected = total > 0 && selectedCount === total;
-                        const isPartial = selectedCount > 0 && !isFullySelected;
-                        return (
-                          <button
-                            key={`group-${group.id}`}
-                            type="button"
-                            onClick={() => handleToggleGroup(group)}
-                            className={`w-full p-3 rounded-lg transition-colors text-left border ${
-                              isFullySelected
-                                ? tone.selectedRow
-                                : isPartial
-                                ? tone.selectedRowSoft
-                                : 'bg-transparent border-transparent hover:bg-muted/80'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <Layers className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                                <p className="text-gray-800 font-medium truncate dark:text-gray-100">{group.name}</p>
-                                <span className="text-xs text-muted-foreground whitespace-nowrap">({selectedCount}/{total})</span>
-                              </div>
-                              <div className={`flex items-center text-xs whitespace-nowrap ${
-                                isFullySelected || isPartial
-                                  ? tone.selectedRowText
-                                  : 'text-muted-foreground'
-                              }`}>
-                                {isFullySelected ? (
-                                  <><Check className="h-4 w-4 mr-1" /> Completo</>
-                                ) : isPartial ? (
-                                  <><Check className="h-4 w-4 mr-1" /> Parcial</>
-                                ) : 'Añadir grupo'}
-                              </div>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </>
-                  )}
+                  <p className="px-3 py-1.5 text-xs text-muted-foreground font-semibold uppercase tracking-wider">Grupos</p>
+                  {groupedItems.map((group) => {
+                    const groupFoods = group.foods;
+                    const selectedCount = groupFoods.filter((f) => selectedFoodIds.has(String(f.id))).length;
+                    const total = groupFoods.length;
+                    const isFullySelected = total > 0 && selectedCount === total;
+                    const isPartial = selectedCount > 0 && !isFullySelected;
+                    const isExpanded = expandedGroupIds.has(group.id);
 
-                  {/* Alimentos individuales */}
-                  {filteredItems.length > 0 && (
-                    <>
-                      {filteredGroups.length > 0 && (
-                        <p className="px-3 py-1.5 text-xs text-muted-foreground font-semibold uppercase tracking-wider mt-2">Alimentos</p>
-                      )}
-                      {filteredItems.map((food) => {
-                        const isSelected = selectedFoodIds.has(String(food.id));
-                        const foodGroups = getFoodGroupNames(food);
+                    return (
+                      <div key={`group-${group.id}`} className="rounded-lg border border-border/80 bg-transparent">
+                        <div className={`w-full p-3 rounded-lg transition-colors ${
+                          isFullySelected
+                            ? tone.selectedRow
+                            : isPartial
+                            ? tone.selectedRowSoft
+                            : 'hover:bg-muted/80'
+                        }`}>
+                          <div className="flex w-full items-center gap-2">
+                            <button
+                              type="button"
+                              onMouseDown={(event) => event.preventDefault()}
+                              onClick={() => toggleGroupExpanded(group.id)}
+                              className="flex flex-1 items-center gap-2 min-w-0 text-left"
+                            >
+                              {isExpanded ? (
+                                <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                              )}
+                              <Layers className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                              <p className="text-gray-800 font-medium truncate dark:text-gray-100">{group.name}</p>
+                              <span className="text-xs text-muted-foreground whitespace-nowrap">({selectedCount}/{total})</span>
+                            </button>
+                            <Checkbox
+                              checked={isFullySelected ? true : (isPartial ? 'indeterminate' : false)}
+                              onCheckedChange={() => handleToggleGroupFoods(groupFoods)}
+                              onMouseDown={(event) => event.preventDefault()}
+                              className="ml-auto shrink-0 border-muted-foreground/70"
+                              aria-label={`Seleccionar todo el grupo ${group.name}`}
+                            />
+                          </div>
+                        </div>
 
-                        // Conflicto unificado: dieta, sensibilidades y condiciones médicas.
-                        // Se omiten preferred/non-preferred porque este componente los gestiona.
-                        const rawConflict = userRestrictions
-                          ? getConflictInfo(food, userRestrictions)
-                          : getFoodConditionInfo(food);
+                        {isExpanded && (
+                          <div className="px-2 pb-2 space-y-1">
+                            {groupFoods.map((food) => {
+                              const isSelected = selectedFoodIds.has(String(food.id));
+                              const foodGroups = getFoodGroupNames(food);
 
-                        // Normaliza la salida de getFoodConditionInfo (fallback) al mismo formato
-                        const conflictBadge = (() => {
-                          if (!rawConflict) return null;
-                          if (['preferred', 'non-preferred'].includes(rawConflict.type)) return null;
+                              // Conflicto unificado: dieta, sensibilidades y condiciones médicas.
+                              // Se omiten preferred/non-preferred porque este componente los gestiona.
+                              const rawConflict = userRestrictions
+                                ? getConflictInfo(food, userRestrictions)
+                                : getFoodConditionInfo(food);
 
-                          // Resultado de getConflictInfo (tiene .type y .reason)
-                          if (rawConflict.type) {
-                            const cfg = CONFLICT_BADGE_CONFIG[rawConflict.type];
-                            if (!cfg) return null;
-                            const Icon = cfg.icon;
-                            return (
-                              <Badge variant="outline" className={`mt-2 text-[11px] whitespace-normal text-left h-auto py-1 ${cfg.className}`}>
-                                <Icon className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
-                                <span className="leading-tight">{rawConflict.reason}</span>
-                              </Badge>
-                            );
-                          }
+                              // Normaliza la salida de getFoodConditionInfo (fallback) al mismo formato
+                              const conflictBadge = (() => {
+                                if (!rawConflict) return null;
+                                if (['preferred', 'non-preferred'].includes(rawConflict.type)) return null;
 
-                          // Fallback: resultado de getFoodConditionInfo (tiene .variant y .label)
-                          const variantMap = {
-                            avoid:     { Icon: CircleAlert, className: 'border-red-500/50 text-red-300' },
-                            recommend: { Icon: CircleCheck, className: 'border-emerald-500/50 text-emerald-300' },
-                            mixed:     { Icon: CircleAlert, className: 'border-amber-500/50 text-amber-300' },
-                          };
-                          const v = variantMap[rawConflict.variant];
-                          if (!v) return null;
-                          return (
-                            <Badge variant="outline" className={`mt-2 text-[11px] whitespace-normal text-left h-auto py-1 ${v.className}`}>
-                              <v.Icon className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
-                              <span className="leading-tight">{rawConflict.label}</span>
-                            </Badge>
-                          );
-                        })();
+                                // Resultado de getConflictInfo (tiene .type y .reason)
+                                if (rawConflict.type) {
+                                  const cfg = CONFLICT_BADGE_CONFIG[rawConflict.type];
+                                  if (!cfg) return null;
+                                  const Icon = cfg.icon;
+                                  return (
+                                    <Badge variant="outline" className={`mt-2 text-[11px] whitespace-normal text-left h-auto py-1 ${cfg.className}`}>
+                                      <Icon className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
+                                      <span className="leading-tight">{rawConflict.reason}</span>
+                                    </Badge>
+                                  );
+                                }
 
-                        return (
-                          <button
-                            key={food.id}
-                            type="button"
-                            onClick={() => handleToggleFood(food)}
-                            className={`w-full p-3 rounded-lg transition-colors text-left border ${
-                              isSelected
-                                ? tone.selectedRow
-                                : 'bg-transparent border-transparent hover:bg-muted/80'
-                            }`}
-                          >
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="min-w-0">
-                                <p className="text-gray-800 font-medium truncate dark:text-gray-100">{food.name}</p>
-                                {foodGroups.length > 0 && (
-                                  <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                                    Grupo: {foodGroups.join(', ')}
-                                  </p>
-                                )}
-                                {conflictBadge}
-                              </div>
-                              <div className={`flex items-center text-xs ${isSelected ? tone.selectedRowText : 'text-muted-foreground'}`}>
-                                {isSelected ? (
-                                  <><Check className="h-4 w-4 mr-1" /> Activo</>
-                                ) : (
-                                  'Agregar'
-                                )}
-                              </div>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </>
-                  )}
+                                // Fallback: resultado de getFoodConditionInfo (tiene .variant y .label)
+                                const variantMap = {
+                                  avoid:     { Icon: CircleAlert, className: 'border-red-500/50 text-red-300' },
+                                  recommend: { Icon: CircleCheck, className: 'border-emerald-500/50 text-emerald-300' },
+                                  mixed:     { Icon: CircleAlert, className: 'border-amber-500/50 text-amber-300' },
+                                };
+                                const v = variantMap[rawConflict.variant];
+                                if (!v) return null;
+                                return (
+                                  <Badge variant="outline" className={`mt-2 text-[11px] whitespace-normal text-left h-auto py-1 ${v.className}`}>
+                                    <v.Icon className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
+                                    <span className="leading-tight">{rawConflict.label}</span>
+                                  </Badge>
+                                );
+                              })();
+
+                              return (
+                                <button
+                                  key={food.id}
+                                  type="button"
+                                  onMouseDown={(event) => event.preventDefault()}
+                                  onClick={() => handleToggleFood(food)}
+                                  className={`w-full p-3 rounded-lg transition-colors text-left border ${
+                                    isSelected
+                                      ? tone.selectedRow
+                                      : 'bg-transparent border-transparent hover:bg-muted/80'
+                                  }`}
+                                >
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0">
+                                      <p className="text-gray-800 font-medium truncate dark:text-gray-100">{food.name}</p>
+                                      {foodGroups.length > 0 && (
+                                        <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                                          Grupo: {foodGroups.join(', ')}
+                                        </p>
+                                      )}
+                                      {conflictBadge}
+                                    </div>
+                                    <div className={`flex items-center text-xs ${isSelected ? tone.selectedRowText : 'text-muted-foreground'}`}>
+                                      {isSelected ? (
+                                        <><Check className="h-4 w-4 mr-1" /> Activo</>
+                                      ) : (
+                                        'Agregar'
+                                      )}
+                                    </div>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </>
               )}
             </div>

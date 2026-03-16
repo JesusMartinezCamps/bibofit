@@ -45,7 +45,7 @@ const steps = [
   },
   {
     title: 'Planificación Semanal',
-description: 'Organiza tu semana marcando qué recetas vas a comer y olvídate del típico momento de: “tengo hambre, pero no sé qué me apetece”.',
+description: 'Organiza tu semana eligiendo tus recetas y olvídate de: “no sé qué comeré hoy”.',
     icon: Calendar,
     color: 'text-blue-400',
     bg: 'bg-blue-400/10'
