@@ -68,60 +68,6 @@ const VariantTreePage = () => {
     setError(null);
 
     try {
-      // Modo perfil: cargar TODAS las variantes del usuario sin filtrar por plan
-      if (isProfileMode) {
-        const { data: allUserRecipes, error: userRecipesError } = await supabase
-          .from('user_recipes')
-          .select(`
-            id,
-            user_id,
-            diet_plan_id,
-            day_meal_id,
-            type,
-            name,
-            variant_label,
-            parent_user_recipe_id,
-            source_diet_plan_recipe_id,
-            is_archived,
-            archived_at,
-            created_at,
-            day_meal:day_meal_id(name, display_order)
-          `)
-          .eq('user_id', targetUserId)
-          .in('type', ['private', 'variant']);
-
-        if (userRecipesError) throw userRecipesError;
-
-        const allPlanIds = [...new Set((allUserRecipes || []).map((r) => r.diet_plan_id).filter(Boolean))];
-        let allPlanRecipes = [];
-        if (allPlanIds.length > 0) {
-          const { data: planRecipesData, error: planRecipesError } = await supabase
-            .from('diet_plan_recipes')
-            .select(`
-              id,
-              diet_plan_id,
-              day_meal_id,
-              parent_diet_plan_recipe_id,
-              is_archived,
-              archived_at,
-              created_at,
-              custom_name,
-              recipe:recipe_id(id, name),
-              day_meal:day_meal_id(name, display_order)
-            `)
-            .in('diet_plan_id', allPlanIds);
-          if (planRecipesError) throw planRecipesError;
-          allPlanRecipes = planRecipesData || [];
-        }
-
-        setPlanInfo({ id: null, profileMode: true });
-        setPlanRecipes(allPlanRecipes.sort(byCreatedAtAsc));
-        setUserRecipes((allUserRecipes || []).sort(byCreatedAtAsc));
-        setMealLinkedVariantIds(new Set());
-        setLoading(false);
-        return;
-      }
-
       const requestedPlanId = searchParams.get('planId');
 
       let plan = null;
@@ -241,7 +187,7 @@ const VariantTreePage = () => {
     } finally {
       setLoading(false);
     }
-  }, [dateKey, isProfileMode, searchParams, targetUserId]);
+    }, [dateKey, isProfileMode, searchParams, targetUserId]);
 
   useEffect(() => {
     loadData();
@@ -678,10 +624,12 @@ const VariantTreePage = () => {
           </Card>
         )}
 
-        {!loading && !error && !planInfo && !isProfileMode && (
+        {!loading && !error && !planInfo && (
             <Card className="border-amber-500/35 bg-amber-100/45 bg-gradient-to-r from-amber-300/40 via-amber-200/30 to-amber-100/24 dark:from-amber-500/20 dark:via-amber-500/12 dark:to-transparent">
             <CardContent className="py-6 text-sm text-amber-900 dark:text-amber-100">
-              No se encontró un plan de dieta para mostrar el árbol en esta fecha.
+              {isProfileMode
+                ? 'No se encontró un plan de dieta activo para mostrar el árbol de variantes.'
+                : 'No se encontró un plan de dieta para mostrar el árbol en esta fecha.'}
             </CardContent>
           </Card>
         )}
