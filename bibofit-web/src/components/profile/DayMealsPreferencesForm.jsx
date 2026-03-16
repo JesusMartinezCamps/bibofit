@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useToast } from '@/components/ui/use-toast';
 import { Loader2, Trash2, PlusCircle, CheckCircle2 } from 'lucide-react';
@@ -13,6 +13,8 @@ const DayMealsPreferencesForm = ({ userId }) => {
   const [allDayMeals, setAllDayMeals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState('idle'); // 'idle', 'saving', 'saved', 'error'
+  const [pendingScrollMealId, setPendingScrollMealId] = useState(null);
+  const formRef = useRef(null);
 
   const findDefaultMeal = useCallback((meals) => {
     if (!Array.isArray(meals) || meals.length === 0) return null;
@@ -187,6 +189,22 @@ const DayMealsPreferencesForm = ({ userId }) => {
     };
   }, [debouncedSave]);
 
+  useEffect(() => {
+    if (!pendingScrollMealId) return;
+    const container = formRef.current;
+    if (!container) return;
+
+    const newMealCard = container.querySelector(`[data-day-meal-id="${pendingScrollMealId}"]`);
+    if (!newMealCard) return;
+
+    window.requestAnimationFrame(() => {
+      newMealCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const mealTextarea = newMealCard.querySelector('textarea');
+      mealTextarea?.focus();
+      setPendingScrollMealId(null);
+    });
+  }, [dayMeals, pendingScrollMealId]);
+
   const updateMeals = (newMeals) => {
       setDayMeals(newMeals);
       debouncedSave(newMeals);
@@ -213,6 +231,7 @@ const DayMealsPreferencesForm = ({ userId }) => {
     
     const newMealsList = [...dayMeals, newMealData].sort((a, b) => a.day_meals.display_order - b.day_meals.display_order);
     updateMeals(newMealsList);
+    setPendingScrollMealId(newMeal.id);
   };
 
   const handleRemoveMeal = (mealId, index) => {
@@ -261,7 +280,7 @@ const DayMealsPreferencesForm = ({ userId }) => {
   if (loading) return <div className="flex justify-center items-center h-20"><Loader2 className="h-6 w-6 animate-spin text-yellow-500" /></div>;
 
   return (
-    <div className="space-y-6 relative">
+    <div ref={formRef} className="space-y-6 relative">
       <div className="absolute -top-10 right-0 flex items-center gap-2">
           {saveStatus === 'saving' && <span className="text-xs text-yellow-500 flex items-center"><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Guardando...</span>}
           {saveStatus === 'saved' && <span className="text-xs text-green-500 flex items-center"><CheckCircle2 className="w-3 h-3 mr-1" /> Guardado</span>}
@@ -286,7 +305,11 @@ const DayMealsPreferencesForm = ({ userId }) => {
           const isDeleteDisabled = index === 0 || dayMeals.length <= 1;
 
           return (
-            <div key={key} className="p-4 bg-muted/65 rounded-lg border border-border space-y-3">
+            <div
+              key={key}
+              data-day-meal-id={meal.day_meal_id}
+              className="p-4 bg-muted/65 rounded-lg border border-border space-y-3"
+            >
               <div className="flex items-center justify-between">
                 <Select
                   value={String(meal.day_meal_id)}
