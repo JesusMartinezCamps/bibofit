@@ -51,7 +51,7 @@ export const ONBOARDING_STEPS = [
     showModal: true,
     modalContent: {
       title: "Qué quieres y de dónde vienes",
-      description: "Define tu objetivo. Y dime qué has intentado antes. No empezamos desde cero, empezamos desde tu historia.",
+      description: "Define tu objetivo. Y dime qué has intentado antes. No empezamos desde cero, empezamos desde tu historial.",
       tips: ["Elige un objetivo realista", "Menciona qué te funcionó antes", "Aprendemos de lo que ya probaste"]
     },
     component: 'DietObjectiveStep'

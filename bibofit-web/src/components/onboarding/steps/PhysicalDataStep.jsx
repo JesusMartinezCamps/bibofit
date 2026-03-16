@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { InputWithUnit } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
@@ -142,14 +143,7 @@ const PhysicalDataStep = ({ onNext, isLoading }) => {
     );
   });
 
-  const showBodyCompositionSection = Boolean(
-    formData.knows_ffm === 'true'
-      || formData.ffm_method
-      || formData.ffm_unit
-      || formData.ffm_value
-      || formData.fm_unit
-      || formData.fm_value
-  );
+  const showBodyCompositionSection = formData.knows_ffm === 'true';
 
   const showAthleteTypeSection = Boolean(formData.is_athlete === 'true' || formData.athlete_type);
 
@@ -169,6 +163,32 @@ const PhysicalDataStep = ({ onNext, isLoading }) => {
     mediaQuery.addListener(updateViewportState);
     return () => mediaQuery.removeListener(updateViewportState);
   }, []);
+
+  useEffect(() => {
+    if (formData.knows_ffm !== 'false') return;
+
+    setFormData((prev) => {
+      const hasBodyCompositionValues = Boolean(
+        prev.ffm_method
+        || prev.ffm_unit
+        || prev.ffm_value
+        || prev.fm_unit
+        || prev.fm_value
+      );
+
+      if (!hasBodyCompositionValues) return prev;
+
+      return {
+        ...prev,
+        ffm_method: '',
+        ffm_unit: '',
+        ffm_value: '',
+        fm_unit: '',
+        fm_value: ''
+      };
+    });
+    setErrors((prev) => ({ ...prev, ffm_value: undefined, fm_value: undefined }));
+  }, [formData.knows_ffm]);
 
   useEffect(() => {
     if (!showAdvancedFields) return;
@@ -400,48 +420,137 @@ const PhysicalDataStep = ({ onNext, isLoading }) => {
 
           {showAdvancedFields && (
             <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-1">
-                    <Label htmlFor="knows_ffm" className="text-muted-foreground">¿Conoces tu masa libre de grasa?</Label>
-                    <InfoIconButton onClick={() => setInfoModalKey('mlg')} label="masa libre de grasa" />
-                  </div>
-                  <Select
-                    value={formData.knows_ffm}
-                    onValueChange={(v) => setFormData((prev) => ({ ...prev, knows_ffm: v }))}
-                  >
-                    <SelectTrigger id="knows_ffm" type="button" className="w-full">
-                      <SelectValue placeholder="Opcional" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="true">Sí</SelectItem>
-                      <SelectItem value="false">No</SelectItem>
-                    </SelectContent>
-                  </Select>
+              <div className="space-y-2">
+                <div className="flex items-center gap-1">
+                  <Label htmlFor="knows_ffm" className="text-muted-foreground">¿Conoces tu masa libre de grasa?</Label>
+                  <InfoIconButton onClick={() => setInfoModalKey('mlg')} label="masa libre de grasa" />
                 </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center gap-1">
-                    <Label htmlFor="is_athlete" className="text-muted-foreground">¿Eres atleta?</Label>
-                    <InfoIconButton onClick={() => setInfoModalKey('athlete')} label="ser atleta" />
-                  </div>
-                  <Select
-                    value={formData.is_athlete}
-                    onValueChange={(v) => setFormData((prev) => ({ ...prev, is_athlete: v }))}
-                  >
-                    <SelectTrigger id="is_athlete" type="button" className="w-full">
-                      <SelectValue placeholder="Opcional" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="true">Sí</SelectItem>
-                      <SelectItem value="false">No</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                <Select
+                  value={formData.knows_ffm}
+                  onValueChange={(v) => setFormData((prev) => ({ ...prev, knows_ffm: v }))}
+                >
+                  <SelectTrigger id="knows_ffm" type="button" className="w-full">
+                    <SelectValue placeholder="Opcional" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="true">Sí</SelectItem>
+                    <SelectItem value="false">No</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {showBodyCompositionSection && (
                 <>
+                  <div className="space-y-4">
+                    <p className="text-xs text-muted-foreground">
+                      Puedes introducir solo un dato o varios. La calculadora usa lo que tengas disponible y estima el resto automáticamente.
+                    </p>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-1">
+                        <Label htmlFor="ffm_value" className="text-muted-foreground">Masa libre de grasa</Label>
+                        <InfoIconButton onClick={() => setInfoModalKey('mlg')} label="masa libre de grasa" />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-[210px_1fr] gap-3">
+                        <div className="rounded-md border border-border bg-background px-3 py-2 space-y-2">
+                          <p className="text-xs text-muted-foreground">Unidad</p>
+                          <label className="flex items-center gap-2 text-sm">
+                            <Checkbox
+                              checked={formData.ffm_unit === 'pct'}
+                              onCheckedChange={(checked) => {
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  ffm_unit: checked ? 'pct' : prev.ffm_unit === 'pct' ? '' : prev.ffm_unit
+                                }));
+                                setErrors((prev) => ({ ...prev, ffm_value: undefined }));
+                              }}
+                            />
+                            %
+                          </label>
+                          <label className="flex items-center gap-2 text-sm">
+                            <Checkbox
+                              checked={formData.ffm_unit === 'kg'}
+                              onCheckedChange={(checked) => {
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  ffm_unit: checked ? 'kg' : prev.ffm_unit === 'kg' ? '' : prev.ffm_unit
+                                }));
+                                setErrors((prev) => ({ ...prev, ffm_value: undefined }));
+                              }}
+                            />
+                            kg
+                          </label>
+                        </div>
+                        <InputWithUnit
+                          id="ffm_value"
+                          type="number"
+                          unit={formData.ffm_unit === 'pct' ? '%' : formData.ffm_unit === 'kg' ? 'kg' : ''}
+                          step="0.1"
+                          value={formData.ffm_value}
+                          onChange={(e) => {
+                            setFormData((prev) => ({ ...prev, ffm_value: e.target.value }));
+                            setErrors((prev) => ({ ...prev, ffm_value: undefined }));
+                          }}
+                          className="pl-12 bf-form-control"
+                          placeholder="Valor opcional"
+                        />
+                      </div>
+                      {errors.ffm_value && <p className="text-red-400 text-xs">{errors.ffm_value}</p>}
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-1">
+                        <Label htmlFor="fm_value" className="text-muted-foreground">Masa grasa</Label>
+                        <InfoIconButton onClick={() => setInfoModalKey('mg')} label="masa grasa" />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-[210px_1fr] gap-3">
+                        <div className="rounded-md border border-border bg-background px-3 py-2 space-y-2">
+                          <p className="text-xs text-muted-foreground">Unidad</p>
+                          <label className="flex items-center gap-2 text-sm">
+                            <Checkbox
+                              checked={formData.fm_unit === 'pct'}
+                              onCheckedChange={(checked) => {
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  fm_unit: checked ? 'pct' : prev.fm_unit === 'pct' ? '' : prev.fm_unit
+                                }));
+                                setErrors((prev) => ({ ...prev, fm_value: undefined }));
+                              }}
+                            />
+                            %
+                          </label>
+                          <label className="flex items-center gap-2 text-sm">
+                            <Checkbox
+                              checked={formData.fm_unit === 'kg'}
+                              onCheckedChange={(checked) => {
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  fm_unit: checked ? 'kg' : prev.fm_unit === 'kg' ? '' : prev.fm_unit
+                                }));
+                                setErrors((prev) => ({ ...prev, fm_value: undefined }));
+                              }}
+                            />
+                            kg
+                          </label>
+                        </div>
+                        <InputWithUnit
+                          id="fm_value"
+                          type="number"
+                          unit={formData.fm_unit === 'pct' ? '%' : formData.fm_unit === 'kg' ? 'kg' : ''}
+                          step="0.1"
+                          value={formData.fm_value}
+                          onChange={(e) => {
+                            setFormData((prev) => ({ ...prev, fm_value: e.target.value }));
+                            setErrors((prev) => ({ ...prev, fm_value: undefined }));
+                          }}
+                          className="pl-12 bf-form-control"
+                          placeholder="Valor opcional"
+                        />
+                      </div>
+                      {errors.fm_value && <p className="text-red-400 text-xs">{errors.fm_value}</p>}
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
                     <div className="flex items-center gap-1">
                       <Label htmlFor="ffm_method" className="text-muted-foreground">Método de medición (opcional)</Label>
@@ -476,90 +585,27 @@ const PhysicalDataStep = ({ onNext, isLoading }) => {
                       </Button>
                     </div>
                   </div>
-
-                  <div className="space-y-4">
-                    <p className="text-xs text-muted-foreground">
-                      Puedes introducir solo un dato o varios. La calculadora usa lo que tengas disponible y estima el resto automáticamente.
-                    </p>
-
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-1">
-                        <Label htmlFor="ffm_value" className="text-muted-foreground">Masa libre de grasa</Label>
-                        <InfoIconButton onClick={() => setInfoModalKey('mlg')} label="masa libre de grasa" />
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-[210px_1fr] gap-3">
-                        <Select
-                          value={formData.ffm_unit || undefined}
-                          onValueChange={(v) => {
-                            setFormData((prev) => ({ ...prev, ffm_unit: v }));
-                            setErrors((prev) => ({ ...prev, ffm_value: undefined }));
-                          }}
-                        >
-                          <SelectTrigger id="ffm_unit" type="button" className="w-full">
-                            <SelectValue placeholder="Unidad (% o kg)" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="pct">Porcentaje (%)</SelectItem>
-                            <SelectItem value="kg">Kilogramos (kg)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <InputWithUnit
-                          id="ffm_value"
-                          type="number"
-                          unit={formData.ffm_unit === 'pct' ? '%' : formData.ffm_unit === 'kg' ? 'kg' : ''}
-                          step="0.1"
-                          value={formData.ffm_value}
-                          onChange={(e) => {
-                            setFormData((prev) => ({ ...prev, ffm_value: e.target.value }));
-                            setErrors((prev) => ({ ...prev, ffm_value: undefined }));
-                          }}
-                          className="pl-12 bf-form-control"
-                          placeholder="Valor opcional"
-                        />
-                      </div>
-                      {errors.ffm_value && <p className="text-red-400 text-xs">{errors.ffm_value}</p>}
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-1">
-                        <Label htmlFor="fm_value" className="text-muted-foreground">Masa grasa</Label>
-                        <InfoIconButton onClick={() => setInfoModalKey('mg')} label="masa grasa" />
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-[210px_1fr] gap-3">
-                        <Select
-                          value={formData.fm_unit || undefined}
-                          onValueChange={(v) => {
-                            setFormData((prev) => ({ ...prev, fm_unit: v }));
-                            setErrors((prev) => ({ ...prev, fm_value: undefined }));
-                          }}
-                        >
-                          <SelectTrigger id="fm_unit" type="button" className="w-full">
-                            <SelectValue placeholder="Unidad (% o kg)" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="pct">Porcentaje (%)</SelectItem>
-                            <SelectItem value="kg">Kilogramos (kg)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <InputWithUnit
-                          id="fm_value"
-                          type="number"
-                          unit={formData.fm_unit === 'pct' ? '%' : formData.fm_unit === 'kg' ? 'kg' : ''}
-                          step="0.1"
-                          value={formData.fm_value}
-                          onChange={(e) => {
-                            setFormData((prev) => ({ ...prev, fm_value: e.target.value }));
-                            setErrors((prev) => ({ ...prev, fm_value: undefined }));
-                          }}
-                          className="pl-12 bf-form-control"
-                          placeholder="Valor opcional"
-                        />
-                      </div>
-                      {errors.fm_value && <p className="text-red-400 text-xs">{errors.fm_value}</p>}
-                    </div>
-                  </div>
                 </>
               )}
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-1">
+                  <Label htmlFor="is_athlete" className="text-muted-foreground">¿Eres atleta?</Label>
+                  <InfoIconButton onClick={() => setInfoModalKey('athlete')} label="ser atleta" />
+                </div>
+                <Select
+                  value={formData.is_athlete}
+                  onValueChange={(v) => setFormData((prev) => ({ ...prev, is_athlete: v }))}
+                >
+                  <SelectTrigger id="is_athlete" type="button" className="w-full">
+                    <SelectValue placeholder="Opcional" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="true">Sí</SelectItem>
+                    <SelectItem value="false">No</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
               {showAthleteTypeSection && (
                 <div className="space-y-2">

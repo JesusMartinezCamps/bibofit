@@ -10,19 +10,31 @@ export const sanitizeInviteToken = (value) => {
   return normalized.toLowerCase();
 };
 
-const getTokenStorage = () => {
-  if (typeof window === 'undefined') return null;
-  return window.sessionStorage;
+const getTokenStorages = () => {
+  if (typeof window === 'undefined') return [];
+  const storages = [];
+  try {
+    if (window.localStorage) storages.push(window.localStorage);
+  } catch {
+    // Ignorar almacenamiento no disponible.
+  }
+  try {
+    if (window.sessionStorage) storages.push(window.sessionStorage);
+  } catch {
+    // Ignorar almacenamiento no disponible.
+  }
+  return storages;
 };
 
 const safeRemoveStoredToken = () => {
-  const storage = getTokenStorage();
-  if (!storage) return;
-  try {
-    storage.removeItem(INVITE_TOKEN_STORAGE_KEY);
-  } catch {
-    // Ignorar errores de almacenamiento.
-  }
+  const storages = getTokenStorages();
+  storages.forEach((storage) => {
+    try {
+      storage.removeItem(INVITE_TOKEN_STORAGE_KEY);
+    } catch {
+      // Ignorar errores de almacenamiento.
+    }
+  });
 };
 
 const stripInviteTokenFromCurrentUrl = () => {
@@ -47,62 +59,71 @@ export const setStoredInviteToken = (token) => {
   const cleanToken = sanitizeInviteToken(token);
   if (!cleanToken) return null;
 
-  const storage = getTokenStorage();
-  if (!storage) return null;
+  const storages = getTokenStorages();
+  if (storages.length === 0) return null;
 
-  try {
-    storage.setItem(
-      INVITE_TOKEN_STORAGE_KEY,
-      JSON.stringify({
-        token: cleanToken,
-        storedAt: Date.now(),
-      })
-    );
-    return cleanToken;
-  } catch {
-    return null;
-  }
+  let persisted = false;
+  storages.forEach((storage) => {
+    try {
+      storage.setItem(
+        INVITE_TOKEN_STORAGE_KEY,
+        JSON.stringify({
+          token: cleanToken,
+          storedAt: Date.now(),
+        })
+      );
+      persisted = true;
+    } catch {
+      // Ignorar errores puntuales de una storage concreta.
+    }
+  });
+
+  return persisted ? cleanToken : null;
 };
 
 export const getStoredInviteToken = () => {
-  const storage = getTokenStorage();
-  if (!storage) return null;
+  const storages = getTokenStorages();
+  if (storages.length === 0) return null;
 
-  try {
-    const rawValue = storage.getItem(INVITE_TOKEN_STORAGE_KEY);
-    if (!rawValue) return null;
-
-    let parsedValue = null;
+  for (const storage of storages) {
     try {
-      parsedValue = JSON.parse(rawValue);
+      const rawValue = storage.getItem(INVITE_TOKEN_STORAGE_KEY);
+      if (!rawValue) continue;
+
+      let parsedValue = null;
+      try {
+        parsedValue = JSON.parse(rawValue);
+      } catch {
+        // Compatibilidad con valor legacy en texto plano.
+      }
+
+      const candidateToken =
+        parsedValue && typeof parsedValue === 'object'
+          ? sanitizeInviteToken(parsedValue.token)
+          : sanitizeInviteToken(rawValue);
+
+      if (!candidateToken) {
+        safeRemoveStoredToken();
+        return null;
+      }
+
+      const storedAt =
+        parsedValue && typeof parsedValue.storedAt === 'number'
+          ? parsedValue.storedAt
+          : null;
+
+      if (storedAt && Date.now() - storedAt > INVITE_TOKEN_TTL_MS) {
+        safeRemoveStoredToken();
+        return null;
+      }
+
+      return candidateToken;
     } catch {
-      // Compatibilidad con valor legacy en texto plano.
+      // Probar siguiente storage.
     }
-
-    const candidateToken =
-      parsedValue && typeof parsedValue === 'object'
-        ? sanitizeInviteToken(parsedValue.token)
-        : sanitizeInviteToken(rawValue);
-
-    if (!candidateToken) {
-      safeRemoveStoredToken();
-      return null;
-    }
-
-    const storedAt =
-      parsedValue && typeof parsedValue.storedAt === 'number'
-        ? parsedValue.storedAt
-        : null;
-
-    if (storedAt && Date.now() - storedAt > INVITE_TOKEN_TTL_MS) {
-      safeRemoveStoredToken();
-      return null;
-    }
-
-    return candidateToken;
-  } catch {
-    return null;
   }
+
+  return null;
 };
 
 export const clearStoredInviteToken = () => {

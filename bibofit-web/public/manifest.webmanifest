@@ -1,7 +1,7 @@
 {
   "name": "Bibofit",
   "short_name": "Bibofit",
-  "description": "Tu app para tener una Dieta Flexible a tu medida",
+  "description": "Tu app para tener una Dieta Flexible a medida",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

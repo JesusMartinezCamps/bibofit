@@ -378,7 +378,7 @@ const DietObjectiveStep = ({ onNext, isLoading }) => {
               </Label>
 
               {resolvedDirection === GOAL_DIRECTION_OPTIONS.MAINTENANCE ? (
-                <div className="rounded-lg border border-blue-500/25 bg-blue-500/10 p-3 text-sm text-blue-200">
+                <div className="rounded-lg border border-blue-500/25 bg-blue-500/10 p-3 text-sm text-blue-500">
                   Mantenimiento usa 0%: se conservan tus calorias de mantenimiento.
                 </div>
               ) : (
