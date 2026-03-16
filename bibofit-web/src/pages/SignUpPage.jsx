@@ -10,9 +10,9 @@ import { GoogleLogo } from '@/pages/LoginPage';
 import { PHONE_PREFIXES, validatePhone, buildE164 } from '@/lib/phonePrefixes';
 import {
   appendInviteTokenToPath,
+  captureInviteTokenFromLocation,
   getInviteTokenFromSearch,
   getStoredInviteToken,
-  setStoredInviteToken,
 } from '@/lib/invitationTokenStore';
 import { supabase } from '@/lib/supabaseClient';
 
@@ -132,8 +132,8 @@ const SignUpPage = () => {
   // Persistir token si viene en la URL
   useEffect(() => {
     if (!inviteTokenFromUrl) return;
-    setStoredInviteToken(inviteTokenFromUrl);
-  }, [inviteTokenFromUrl]);
+    captureInviteTokenFromLocation(location.search, { stripFromUrl: true });
+  }, [inviteTokenFromUrl, location.search]);
 
   // Pre-validar el token al montar — llama a peek_invitation_link sin auth
   useEffect(() => {
@@ -227,7 +227,16 @@ const SignUpPage = () => {
               variant: 'success',
             });
           }
-          if (['revoked', 'expired', 'exhausted', 'invalid_token'].includes(result.invitationRedemption?.status)) {
+          if (
+            [
+              'revoked',
+              'expired',
+              'exhausted',
+              'invalid_token',
+              'forbidden_role',
+              'ineligible_role',
+            ].includes(result.invitationRedemption?.status)
+          ) {
             toast({
               title: 'Invitación no aplicable',
               description: 'El token de invitación no está activo o no es válido.',

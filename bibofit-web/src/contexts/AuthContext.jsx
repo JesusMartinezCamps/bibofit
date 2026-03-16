@@ -25,6 +25,8 @@ export const AuthProvider = ({ children }) => {
     'revoked',
     'expired',
     'exhausted',
+    'forbidden_role',
+    'ineligible_role',
   ]);
 
   const syncProfileEmail = async (userId, authEmail, profileEmail) => {

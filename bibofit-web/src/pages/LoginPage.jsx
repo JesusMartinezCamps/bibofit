@@ -9,9 +9,9 @@ import AppIcon from '@/components/icons/AppIcon';
 import { getDefaultAuthenticatedPath, isAdminRole } from '@/lib/roles';
 import {
   appendInviteTokenToPath,
+  captureInviteTokenFromLocation,
   getInviteTokenFromSearch,
   getStoredInviteToken,
-  setStoredInviteToken,
 } from '@/lib/invitationTokenStore';
 
 // GoogleLogo.jsx
@@ -51,8 +51,8 @@ const LoginPage = () => {
 
   useEffect(() => {
     if (!inviteTokenFromUrl) return;
-    setStoredInviteToken(inviteTokenFromUrl);
-  }, [inviteTokenFromUrl]);
+    captureInviteTokenFromLocation(location.search, { stripFromUrl: true });
+  }, [inviteTokenFromUrl, location.search]);
 
   const getTargetPath = (userData) => {
     if (!userData?.onboarding_completed_at) return '/assign-diet-plan';
@@ -90,7 +90,16 @@ const LoginPage = () => {
             variant: 'success',
           });
         }
-        if (['revoked', 'expired', 'exhausted', 'invalid_token'].includes(result.invitationRedemption?.status)) {
+        if (
+          [
+            'revoked',
+            'expired',
+            'exhausted',
+            'invalid_token',
+            'forbidden_role',
+            'ineligible_role',
+          ].includes(result.invitationRedemption?.status)
+        ) {
           toast({
             title: 'Invitación no aplicable',
             description: 'El token de invitación no está activo o no es válido.',

@@ -1,12 +1,41 @@
 const INVITE_TOKEN_QUERY_PARAM = 'invite_token';
 const INVITE_TOKEN_STORAGE_KEY = 'bibofit.pending_invite_token';
 const INVITE_TOKEN_REGEX = /^[a-zA-Z0-9]{24,96}$/;
+const INVITE_TOKEN_TTL_MS = 45 * 60 * 1000;
 
 export const sanitizeInviteToken = (value) => {
   if (typeof value !== 'string') return null;
   const normalized = value.trim();
   if (!INVITE_TOKEN_REGEX.test(normalized)) return null;
   return normalized.toLowerCase();
+};
+
+const getTokenStorage = () => {
+  if (typeof window === 'undefined') return null;
+  return window.sessionStorage;
+};
+
+const safeRemoveStoredToken = () => {
+  const storage = getTokenStorage();
+  if (!storage) return;
+  try {
+    storage.removeItem(INVITE_TOKEN_STORAGE_KEY);
+  } catch {
+    // Ignorar errores de almacenamiento.
+  }
+};
+
+const stripInviteTokenFromCurrentUrl = () => {
+  if (typeof window === 'undefined' || !window.location) return;
+  try {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has(INVITE_TOKEN_QUERY_PARAM)) return;
+    url.searchParams.delete(INVITE_TOKEN_QUERY_PARAM);
+    const cleanUrl = `${url.pathname}${url.search}${url.hash}`;
+    window.history.replaceState(window.history.state, '', cleanUrl);
+  } catch {
+    // Si falla el parsing de URL, no bloquear el flujo.
+  }
 };
 
 export const getInviteTokenFromSearch = (search = '') => {
@@ -18,8 +47,17 @@ export const setStoredInviteToken = (token) => {
   const cleanToken = sanitizeInviteToken(token);
   if (!cleanToken) return null;
 
+  const storage = getTokenStorage();
+  if (!storage) return null;
+
   try {
-    window.localStorage.setItem(INVITE_TOKEN_STORAGE_KEY, cleanToken);
+    storage.setItem(
+      INVITE_TOKEN_STORAGE_KEY,
+      JSON.stringify({
+        token: cleanToken,
+        storedAt: Date.now(),
+      })
+    );
     return cleanToken;
   } catch {
     return null;
@@ -27,27 +65,52 @@ export const setStoredInviteToken = (token) => {
 };
 
 export const getStoredInviteToken = () => {
+  const storage = getTokenStorage();
+  if (!storage) return null;
+
   try {
-    const value = window.localStorage.getItem(INVITE_TOKEN_STORAGE_KEY);
-    const cleanToken = sanitizeInviteToken(value);
-    if (!cleanToken && value) {
-      window.localStorage.removeItem(INVITE_TOKEN_STORAGE_KEY);
+    const rawValue = storage.getItem(INVITE_TOKEN_STORAGE_KEY);
+    if (!rawValue) return null;
+
+    let parsedValue = null;
+    try {
+      parsedValue = JSON.parse(rawValue);
+    } catch {
+      // Compatibilidad con valor legacy en texto plano.
     }
-    return cleanToken;
+
+    const candidateToken =
+      parsedValue && typeof parsedValue === 'object'
+        ? sanitizeInviteToken(parsedValue.token)
+        : sanitizeInviteToken(rawValue);
+
+    if (!candidateToken) {
+      safeRemoveStoredToken();
+      return null;
+    }
+
+    const storedAt =
+      parsedValue && typeof parsedValue.storedAt === 'number'
+        ? parsedValue.storedAt
+        : null;
+
+    if (storedAt && Date.now() - storedAt > INVITE_TOKEN_TTL_MS) {
+      safeRemoveStoredToken();
+      return null;
+    }
+
+    return candidateToken;
   } catch {
     return null;
   }
 };
 
 export const clearStoredInviteToken = () => {
-  try {
-    window.localStorage.removeItem(INVITE_TOKEN_STORAGE_KEY);
-  } catch {
-    // Ignorar errores de almacenamiento.
-  }
+  safeRemoveStoredToken();
 };
 
-export const captureInviteTokenFromLocation = (search) => {
+export const captureInviteTokenFromLocation = (search, options = {}) => {
+  const { stripFromUrl = true } = options;
   const resolvedSearch =
     typeof search === 'string'
       ? search
@@ -58,6 +121,7 @@ export const captureInviteTokenFromLocation = (search) => {
   const token = getInviteTokenFromSearch(resolvedSearch);
   if (!token) return null;
   setStoredInviteToken(token);
+  if (stripFromUrl) stripInviteTokenFromCurrentUrl();
   return token;
 };
 
