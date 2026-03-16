@@ -40,6 +40,7 @@ const CompletionStep = () => {
       toast({
         title: "¡Configuración Exitosa!",
         description: "Tus datos han sido guardados correctamente.",
+        variant: "success"
       });
       navigate('/dashboard');
     } catch (error) {
