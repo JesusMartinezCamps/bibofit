@@ -14,11 +14,11 @@ const DietMealsStep = ({ onNext, isLoading }) => {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto pr-1">
+      <div className="flex-1 overflow-y-auto pr-6 md:pr-0">
          <DayMealsPreferencesForm userId={user?.id} />
       </div>
 
-      <div className="pt-6 mt-auto shrink-0">
+      <div className="pt-6 mt-auto shrink-0 pr-6 md:pr-0">
         <Button 
             onClick={handleNext} 
             disabled={isLoading || saveStatus === 'saving'}

@@ -10,7 +10,7 @@ const ShoppingListStep = ({ onNext, isLoading }) => {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto pr-1 space-y-6">
+      <div className="flex-1 overflow-y-auto pr-6 md:pr-0 space-y-6">
         <div className="text-center space-y-2 mb-8">
           <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
             <ShoppingCart className="w-8 h-8 text-green-500" />
@@ -43,7 +43,7 @@ const ShoppingListStep = ({ onNext, isLoading }) => {
         </div>
       </div>
 
-      <div className="pt-6 mt-auto shrink-0">
+      <div className="pt-6 mt-auto shrink-0 pr-6 md:pr-0">
         <Button 
             onClick={handleNext} 
             disabled={isLoading}

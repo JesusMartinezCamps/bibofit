@@ -35,7 +35,7 @@ const PersonalDataStep = ({ onNext, isLoading }) => {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col h-full">
-      <div className="flex-1 space-y-6 overflow-y-auto pr-1">
+      <div className="flex-1 space-y-6 overflow-y-auto pr-6 md:pr-0">
         <div className="space-y-2">
             <Label htmlFor="first_name" className="text-muted-foreground">Nombre</Label>
             <Input
@@ -72,7 +72,7 @@ const PersonalDataStep = ({ onNext, isLoading }) => {
         </div>
       </div>
 
-      <div className="pt-6 mt-auto shrink-0">
+      <div className="pt-6 mt-auto shrink-0 pr-6 md:pr-0">
         <Button 
             type="submit" 
             disabled={isLoading}

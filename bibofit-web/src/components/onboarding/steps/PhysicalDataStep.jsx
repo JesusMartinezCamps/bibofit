@@ -177,12 +177,13 @@ const PhysicalDataStep = ({ onNext, isLoading }) => {
       const container = scrollContainerRef.current;
       const target = advancedSectionRef.current;
 
-      if (target) {
-        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-
-      if (container) {
-        container.scrollBy({ top: 180, behavior: 'smooth' });
+      if (container && target) {
+        const containerTop = container.getBoundingClientRect().top;
+        const targetTop = target.getBoundingClientRect().top;
+        const scrollOffset = targetTop - containerTop;
+        if (scrollOffset > 0) {
+          container.scrollBy({ top: scrollOffset, behavior: 'smooth' });
+        }
       }
     }, 120);
 
@@ -272,7 +273,7 @@ const PhysicalDataStep = ({ onNext, isLoading }) => {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col h-full">
-      <div ref={scrollContainerRef} className="flex-1 space-y-6 overflow-y-auto pr-1">
+      <div ref={scrollContainerRef} className="flex-1 space-y-6 overflow-y-auto pr-6 md:pr-0">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="sex" className="text-muted-foreground">Sexo</Label>
@@ -605,7 +606,7 @@ const PhysicalDataStep = ({ onNext, isLoading }) => {
         </DialogContent>
       </Dialog>
 
-      <div className="pt-6 mt-auto shrink-0">
+      <div className="pt-6 mt-auto shrink-0 pr-6 md:pr-0">
         <Button
           type="submit"
           disabled={isLoading}

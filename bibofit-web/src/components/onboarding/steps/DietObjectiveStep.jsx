@@ -335,7 +335,7 @@ const DietObjectiveStep = ({ onNext, isLoading }) => {
   return (
     <TooltipProvider delayDuration={150}>
       <form onSubmit={handleSubmit} className="flex flex-col h-full">
-        <div className="flex-1 space-y-6 overflow-y-auto pr-1">
+        <div className="flex-1 space-y-6 overflow-y-auto pr-6 md:pr-0">
           <div className="space-y-3">
             <Label htmlFor="diet_goal_id" className="text-muted-foreground flex items-center gap-2">
               <Target className="w-4 h-4 text-green-500" />
@@ -482,7 +482,7 @@ const DietObjectiveStep = ({ onNext, isLoading }) => {
           </div>
         </div>
 
-        <div className="pt-6 mt-auto shrink-0">
+        <div className="pt-6 mt-auto shrink-0 pr-6 md:pr-0">
           <Button
             type="submit"
             disabled={isLoading}

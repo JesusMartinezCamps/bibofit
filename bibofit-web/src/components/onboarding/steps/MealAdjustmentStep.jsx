@@ -290,7 +290,8 @@ const MealAdjustmentStep = ({ onNext, isLoading: isStepLoading }) => {
           // to prevent flickering before CompletionStep mounts
           toast({
               title: "¡Plan Creado y Balanceado!",
-              description: "Tu plan de nutrición ha sido asignado y optimizado correctamente."
+              description: "Tu plan de nutrición ha sido asignado y optimizado correctamente.",
+              variant: "success"
           });
           onNext(); 
       } else {
@@ -332,7 +333,8 @@ const MealAdjustmentStep = ({ onNext, isLoading: isStepLoading }) => {
         if ((conflictData.autoSubstitutionsApplied || []).length > 0) {
             toast({
                 title: "Sustituciones automáticas aplicadas",
-                description: `Se ajustaron ${(conflictData.autoSubstitutionsApplied || []).length} ingredientes según tus restricciones.`
+                description: `Se ajustaron ${(conflictData.autoSubstitutionsApplied || []).length} ingredientes según tus restricciones.`,
+                variant: "success"
             });
         }
 
@@ -381,7 +383,7 @@ const MealAdjustmentStep = ({ onNext, isLoading: isStepLoading }) => {
             />
           </div>
 
-          <div className="pt-6 mt-auto shrink-0">
+          <div className="pt-6 mt-auto shrink-0 px-6">
             <Button 
                 onClick={handleFinish} 
                 disabled={assignmentLoading || isStepLoading}

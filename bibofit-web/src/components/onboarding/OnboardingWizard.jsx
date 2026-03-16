@@ -269,7 +269,7 @@ const OnboardingWizard = ({ isOpen: propIsOpen }) => {
 
       {/* Main Content Area */}
       <div className="flex-1 w-full max-w-3xl mx-auto flex flex-col min-h-0">
-        <div className={`flex-1 ${isEdgeToEdgeMobileStep ? 'px-0' : 'px-6'} py-8 md:px-8 md:py-8 flex flex-col h-full overflow-hidden`}>
+        <div className={`flex-1 ${isEdgeToEdgeMobileStep ? 'px-0' : 'pl-6 pr-0'} py-8 md:px-8 md:py-8 flex flex-col h-full overflow-hidden`}>
             <AnimatePresence mode="wait">
                 <motion.div
                     key={currentStep.id}
@@ -280,7 +280,7 @@ const OnboardingWizard = ({ isOpen: propIsOpen }) => {
                     className="flex flex-col h-full"
                 >
                     {currentStep.type === 'form' && (
-                        <div className="mb-6 md:mb-8 shrink-0 text-center md:text-left">
+                        <div className="mb-6 md:mb-8 shrink-0 text-center md:text-left pr-6 md:pr-0">
                             <h2 className="text-2xl md:text-3xl font-bold mb-2 text-white">{currentStep.title}</h2>
                             <p className="text-muted-foreground text-sm md:text-base">{currentStep.description}</p>
                         </div>

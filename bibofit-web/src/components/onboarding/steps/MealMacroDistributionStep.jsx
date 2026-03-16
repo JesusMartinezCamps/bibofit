@@ -204,7 +204,7 @@ const MealMacroDistributionStep = ({ onNext, isLoading }) => {
         />
       </div>
 
-      <div className="pt-6 mt-auto shrink-0">
+      <div className="pt-6 mt-auto shrink-0 px-6">
         <Button 
             onClick={handleNext} 
             disabled={isLoading || !isValid}
