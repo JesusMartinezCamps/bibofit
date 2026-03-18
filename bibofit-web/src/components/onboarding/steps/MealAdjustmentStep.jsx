@@ -91,9 +91,9 @@ const MealAdjustmentStep = ({ onNext, isLoading: isStepLoading }) => {
           .from('assignment_progress')
           .select('plan_data')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
-        if (progressError && progressError.code !== 'PGRST116') {
+        if (progressError) {
              // Error silently handled or logged if critical
         }
 

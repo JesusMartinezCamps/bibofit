@@ -52,8 +52,8 @@ export const OnboardingProvider = ({ children }) => {
              .from('assignment_progress')
              .select('plan_data')
              .eq('user_id', user.id)
-             .single();
-          
+             .maybeSingle();
+
           // Fetch user day meals
           const { data: meals } = await supabase
              .from('user_day_meals')

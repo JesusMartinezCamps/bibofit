@@ -165,6 +165,11 @@ const InvitationLinksPage = () => {
   const [qrViewerZoom, setQrViewerZoom] = useState(1);
   const [isLoadingViewerQr, setIsLoadingViewerQr] = useState(false);
 
+  const [selectedInvitation, setSelectedInvitation] = useState(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [detailQrDataUrl, setDetailQrDataUrl] = useState('');
+  const [isLoadingDetailQr, setIsLoadingDetailQr] = useState(false);
+
   const selectedRole = useMemo(
     () => roles.find((role) => toQueryValue(role.id) === form.roleId) || null,
     [roles, form.roleId]
@@ -513,6 +518,17 @@ const InvitationLinksPage = () => {
       setGeneratedLink(link);
       setGeneratedAt(createdInvitation.created_at || new Date().toISOString());
 
+      if (createdInvitation.id) {
+        try {
+          localStorage.setItem(
+            `bibofit_inv_${createdInvitation.id}`,
+            JSON.stringify({ link })
+          );
+        } catch {
+          // localStorage not available — non-critical
+        }
+      }
+
       if (form.generateQr) {
         await renderQr(link);
       } else {
@@ -599,6 +615,38 @@ const InvitationLinksPage = () => {
       setRevokingLinkId(null);
     }
   };
+
+  const getStoredInvitationLink = (id) => {
+    try {
+      const raw = localStorage.getItem(`bibofit_inv_${id}`);
+      if (!raw) return null;
+      return JSON.parse(raw)?.link || null;
+    } catch {
+      return null;
+    }
+  };
+
+  const handleOpenDetail = useCallback(
+    async (invitation) => {
+      setSelectedInvitation(invitation);
+      setDetailQrDataUrl('');
+      setIsDetailOpen(true);
+
+      const storedLink = getStoredInvitationLink(invitation.id);
+      if (storedLink) {
+        setIsLoadingDetailQr(true);
+        try {
+          const dataUrl = await generateQrDataUrl(storedLink);
+          setDetailQrDataUrl(dataUrl);
+        } catch {
+          setDetailQrDataUrl('');
+        } finally {
+          setIsLoadingDetailQr(false);
+        }
+      }
+    },
+    [generateQrDataUrl]
+  );
 
   const generatedAtLabel = useMemo(() => {
     if (!generatedAt) return null;
@@ -1000,7 +1048,11 @@ const InvitationLinksPage = () => {
                       : 'Sin centro';
 
                     return (
-                      <TableRow key={invitation.id}>
+                      <TableRow
+                        key={invitation.id}
+                        className="cursor-pointer hover:bg-white/5 transition-colors"
+                        onClick={() => handleOpenDetail(invitation)}
+                      >
                         <TableCell>
                           <Badge variant={status.variant}>{status.label}</Badge>
                         </TableCell>
@@ -1019,7 +1071,10 @@ const InvitationLinksPage = () => {
                         </TableCell>
                         <TableCell>{formatDateLabel(invitation.created_at)}</TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end flex-wrap gap-2">
+                          <div
+                            className="flex justify-end flex-wrap gap-2"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             <Button
                               variant="destructive"
                               size="sm"
@@ -1045,6 +1100,165 @@ const InvitationLinksPage = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* ── Detail dialog ── */}
+      <Dialog
+        open={isDetailOpen}
+        onOpenChange={(open) => {
+          setIsDetailOpen(open);
+          if (!open) {
+            setSelectedInvitation(null);
+            setDetailQrDataUrl('');
+          }
+        }}
+      >
+        <DialogContent className="w-[96vw] max-w-lg bg-card border-border text-foreground">
+          <DialogHeader>
+            <DialogTitle>Detalle de invitación</DialogTitle>
+            <DialogDescription>
+              Información completa del QR/link de invitación seleccionado.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedInvitation && (() => {
+            const inv = selectedInvitation;
+            const status = getInvitationStatus(inv);
+            const roleName = roleNameById.get(toQueryValue(inv.role_id)) || 'N/A';
+            const centerName = inv.center_id
+              ? centerNameById.get(toQueryValue(inv.center_id)) || `Centro ${inv.center_id}`
+              : 'Sin centro';
+            const storedLink = getStoredInvitationLink(inv.id);
+
+            return (
+              <div className="space-y-4 pt-2">
+                {/* Status + token */}
+                <div className="flex items-center gap-3">
+                  <Badge variant={status.variant}>{status.label}</Badge>
+                  <span className="font-mono text-xs text-muted-foreground">
+                    {inv.token_preview || 'N/A'}
+                  </span>
+                </div>
+
+                {/* Características */}
+                <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                  <div>
+                    <p className="text-muted-foreground text-xs uppercase tracking-wide mb-0.5">Destino</p>
+                    <p className="text-foreground">
+                      {inv.destination === 'login' ? 'Login (/login)' : 'Registro (/signup)'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs uppercase tracking-wide mb-0.5">Rol</p>
+                    <p className="text-foreground">{formatRoleLabel(roleName)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs uppercase tracking-wide mb-0.5">Centro</p>
+                    <p className="text-foreground">{centerName}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs uppercase tracking-wide mb-0.5">Usos</p>
+                    <p className="text-foreground">
+                      {inv.max_uses === null
+                        ? `${inv.used_uses || 0} / Ilimitado`
+                        : `${inv.used_uses || 0} / ${inv.max_uses}`}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs uppercase tracking-wide mb-0.5">Expira</p>
+                    <p className="text-foreground">
+                      {inv.expires_at ? formatDateLabel(inv.expires_at) : 'Sin expiración'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs uppercase tracking-wide mb-0.5">Creado</p>
+                    <p className="text-foreground">{formatDateLabel(inv.created_at)}</p>
+                  </div>
+                  {inv.note && (
+                    <div className="col-span-2">
+                      <p className="text-muted-foreground text-xs uppercase tracking-wide mb-0.5">Nota</p>
+                      <p className="text-foreground">{inv.note}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* QR preview + acciones */}
+                {storedLink ? (
+                  <div className="space-y-3">
+                    {isLoadingDetailQr ? (
+                      <div className="flex justify-center py-4">
+                        <Loader2 className="w-6 h-6 animate-spin text-cyan-400" />
+                      </div>
+                    ) : detailQrDataUrl ? (
+                      <div className="flex justify-center">
+                        <img
+                          src={detailQrDataUrl}
+                          alt="QR de invitación"
+                          className="w-40 h-40 rounded-sm bg-white"
+                        />
+                      </div>
+                    ) : null}
+                    <div className="flex gap-2 flex-wrap">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => handleCopy(storedLink)}
+                      >
+                        <Copy className="w-4 h-4 mr-2" />
+                        Copiar link
+                      </Button>
+                      {detailQrDataUrl && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => {
+                            setIsDetailOpen(false);
+                            openQrViewer({
+                              title: `QR · ${inv.token_preview}`,
+                              dataUrl: detailQrDataUrl,
+                            });
+                          }}
+                        >
+                          <QrCode className="w-4 h-4 mr-2" />
+                          Ver QR completo
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground border border-dashed border-input rounded-md p-3">
+                    El link completo solo está disponible justo después de generarlo en esta sesión. Para un nuevo link con estas características, genera uno nuevo.
+                  </p>
+                )}
+
+                {/* Revocar */}
+                {!inv.is_revoked && isInvitationActive(inv) && (
+                  <div className="pt-1 border-t border-border">
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => {
+                        setIsDetailOpen(false);
+                        handleRevokeInvitation(inv);
+                      }}
+                      disabled={revokingLinkId === inv.id}
+                    >
+                      {revokingLinkId === inv.id ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Ban className="w-4 h-4 mr-2" />
+                      )}
+                      Revocar este QR
+                    </Button>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={isQrViewerOpen}

@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, useRef } from 'react';
 import { supabase } from '@/lib/customSupabaseClient';
 import {
   getAuthConfirmedRedirectUrl,
@@ -15,9 +15,18 @@ import { normalizeRole } from '@/lib/roles';
 
 export const AuthContext = createContext();
 
+const formatInviteTokenForLog = (token) => {
+  if (!token || typeof token !== 'string') return 'NULL';
+  const clean = token.trim().toLowerCase();
+  if (!clean) return 'NULL';
+  if (clean.length <= 10) return clean;
+  return `${clean.slice(0, 6)}...${clean.slice(-4)}`;
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const inviteTokenFromInitialUrlRef = useRef(null);
   const TERMINAL_INVITE_STATUSES = new Set([
     'applied',
     'already_redeemed',
@@ -59,8 +68,39 @@ export const AuthProvider = ({ children }) => {
     );
   };
 
-  const redeemPendingInvitationToken = async ({ explicitToken = null, source = 'web' } = {}) => {
+  const resolveSessionInviteToken = (sessionUser) => {
+    const tokenFromUrl = inviteTokenFromInitialUrlRef.current;
+    const tokenFromMetadata = getInviteTokenFromUserMetadata(sessionUser);
+    const tokenFromStorage = getStoredInviteToken();
+    const chosenToken = tokenFromUrl || tokenFromMetadata || null;
+    const chosenSource = tokenFromUrl
+      ? 'url'
+      : tokenFromMetadata
+        ? 'user_metadata'
+        : 'none';
+
+    if (tokenFromUrl && tokenFromMetadata && tokenFromUrl !== tokenFromMetadata) {
+      console.warn(
+        `[INVITE] Token mismatch between URL and user_metadata. url=${formatInviteTokenForLog(tokenFromUrl)} metadata=${formatInviteTokenForLog(tokenFromMetadata)}`
+      );
+    }
+
+    return {
+      chosenToken,
+      chosenSource,
+      tokenFromStorage,
+    };
+  };
+
+  const redeemPendingInvitationToken = async ({
+    explicitToken = null,
+    source = 'web',
+    tokenSource = 'unknown',
+  } = {}) => {
     const inviteToken = getInviteTokenCandidate(explicitToken);
+    console.log(
+      `[INVITE] redeemPendingInvitationToken called — source=${source} tokenSource=${tokenSource} token=${formatInviteTokenForLog(inviteToken)}`
+    );
     if (!inviteToken) return { status: 'missing_token' };
 
     const userAgent =
@@ -79,14 +119,16 @@ export const AuthProvider = ({ children }) => {
 
       const payload = Array.isArray(data) ? data[0] : data;
       const status = payload?.status || 'unknown';
+      console.log(`[INVITE] redeem_invitation_link status=${status}`, payload);
 
       if (TERMINAL_INVITE_STATUSES.has(status)) {
         clearStoredInviteToken();
+        inviteTokenFromInitialUrlRef.current = null;
       }
 
       return payload || { status };
     } catch (error) {
-      console.warn('[AuthContext] Invitation redeem error:', error?.message || error);
+      console.error('[INVITE] redeem_invitation_link EXCEPTION:', error?.message || error, error);
       return { status: 'error', error: error?.message || 'invitation_redeem_failed' };
     }
   };
@@ -184,7 +226,7 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     let mounted = true;
-    captureInviteTokenFromLocation();
+    inviteTokenFromInitialUrlRef.current = captureInviteTokenFromLocation();
 
     // Backstop: if the auth fetch timeout fires but the SDK doesn't propagate
     // the error fast enough, force-unblock loading. The fetch timeout in
@@ -206,7 +248,25 @@ export const AuthProvider = ({ children }) => {
           return;
         }
 
+        console.log(`[INVITE] fetchUserSession — session=${session ? 'YES (uid=' + session.user?.id?.slice(0, 8) + '…)' : 'NULL'}`);
+
         if (session) {
+          // Redeem here covers the implicit-flow email confirmation path: the SDK
+          // parses the hash-fragment session synchronously at module load, so
+          // SIGNED_IN fires before onAuthStateChange is registered and the
+          // handleAuthEvent listener never sees it. fetchUserSession is the only
+          // reliable call site for that scenario.
+          const sessionToken = resolveSessionInviteToken(session.user);
+          console.log(
+            `[INVITE] fetchUserSession — urlToken=${sessionToken.chosenSource === 'url' ? 'SET' : 'NULL'} user_metadata.invite_token=${getInviteTokenFromUserMetadata(session.user) ? 'SET' : 'NOT SET'} storedToken=${sessionToken.tokenFromStorage ? 'SET' : 'NULL'} selected=${sessionToken.chosenSource}`
+          );
+          if (sessionToken.chosenToken) {
+            await redeemPendingInvitationToken({
+              explicitToken: sessionToken.chosenToken,
+              source: resolveRedeemSourceForSession('session_bootstrap', session.user),
+              tokenSource: sessionToken.chosenSource,
+            });
+          }
           await fetchUserProfile(session.user);
         } else {
           if (mounted) setLoading(false);
@@ -226,18 +286,21 @@ export const AuthProvider = ({ children }) => {
     fetchUserSession();
 
     const handleAuthEvent = async (event, session) => {
+      console.log(`[INVITE] handleAuthEvent — event=${event} session=${session ? 'YES' : 'NULL'} mounted=${mounted}`);
       if (!mounted) return;
 
       if (event === 'SIGNED_IN' && session) {
-        // Prefer token from user_metadata (email-signup flow sets it there).
-        // Fall back to localStorage for OAuth providers (e.g. Google) that do not
-        // propagate invite_token through user_metadata.
-        const explicitToken =
-          getInviteTokenFromUserMetadata(session.user) || getStoredInviteToken();
-        await redeemPendingInvitationToken({
-          explicitToken,
-          source: resolveRedeemSourceForSession('auth_state_signed_in', session.user),
-        });
+        // Use invite token captured from the current URL (if present) and then
+        // fall back to user_metadata. This avoids silently redeeming stale tokens
+        // from storage during unrelated sign-ins.
+        const sessionToken = resolveSessionInviteToken(session.user);
+        if (sessionToken.chosenToken) {
+          await redeemPendingInvitationToken({
+            explicitToken: sessionToken.chosenToken,
+            source: resolveRedeemSourceForSession('auth_state_signed_in', session.user),
+            tokenSource: sessionToken.chosenSource,
+          });
+        }
         await fetchUserProfile(session.user);
         return;
       }
