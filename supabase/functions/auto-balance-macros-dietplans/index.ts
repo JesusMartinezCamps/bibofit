@@ -1,6 +1,6 @@
 import { corsHeaders, jsonResponse } from "../_shared/http/cors.ts";
 import { safeNumber } from "../_shared/auto-balance/core.ts";
-import { createAdminClient } from "../_shared/auto-balance/adapters.ts";
+import { createAdminClient, loadFoodsAndGroupsContext } from "../_shared/auto-balance/adapters.ts";
 import { balanceRecipesWithSharedContext } from "../_shared/auto-balance/core-autobalance-recipe.ts";
 import type { BalanceRecipeRequest } from "../_shared/auto-balance/types.ts";
 
@@ -40,32 +40,40 @@ Deno.serve(async (req) => {
       });
     }
 
-    const allRecipeIds = [...new Set(
-      meals.flatMap((meal: any) => {
-        const fromDetailed = Array.isArray(meal?.recipes)
-          ? meal.recipes.map((recipe: MealRecipeInput) => String(recipe?.recipe_id ?? ""))
-          : [];
-        const fromLegacy = Array.isArray(meal?.recipe_ids)
-          ? meal.recipe_ids.map(String)
-          : [];
-        return [...fromDetailed, ...fromLegacy].filter(Boolean);
-      }),
-    )];
+    const supabaseAdmin = createAdminClient();
+    const recipeIdsToFetch = new Set<string>();
 
-    if (!allRecipeIds.length) {
-      return jsonResponse({ success: true, schema_version: "v1", results: [] });
+    for (const meal of meals) {
+      const detailedRecipes = Array.isArray(meal?.recipes) ? meal.recipes : [];
+      for (const recipe of detailedRecipes as MealRecipeInput[]) {
+        if (recipe?.recipe_id == null) continue;
+        const hasDetailedIngredients = Array.isArray(recipe.ingredients) && recipe.ingredients.length > 0;
+        if (!hasDetailedIngredients) recipeIdsToFetch.add(String(recipe.recipe_id));
+      }
+
+      const legacyRecipeIds = Array.isArray(meal?.recipe_ids) ? meal.recipe_ids : [];
+      for (const recipeId of legacyRecipeIds) {
+        if (recipeId != null) recipeIdsToFetch.add(String(recipeId));
+      }
     }
 
-    const supabaseAdmin = createAdminClient();
+    let recipesById = new Map<string, any>();
+    if (recipeIdsToFetch.size > 0) {
+      const { data: recipes, error: recipesError } = await supabaseAdmin
+        .from("recipes")
+        .select("id, recipe_ingredients(food_id, grams)")
+        .in("id", [...recipeIdsToFetch]);
 
-    const { data: recipes, error: recipesError } = await supabaseAdmin
-      .from("recipes")
-      .select("id, recipe_ingredients(food_id, grams)")
-      .in("id", allRecipeIds);
+      if (recipesError) throw recipesError;
+      recipesById = new Map((recipes || []).map((r: any) => [String(r.id), r]));
+    }
 
-    if (recipesError) throw recipesError;
-
-    const recipesById = new Map((recipes || []).map((r: any) => [String(r.id), r]));
+    const mealsToBalance: Array<{
+      day_meal_id: number | string;
+      target: { proteins: number; carbs: number; fats: number };
+      recipes: (BalanceRecipeRequest & { source_row_id?: number | string })[];
+    }> = [];
+    const allFoodIds: Array<string | number> = [];
 
     const results: any[] = [];
 
@@ -123,17 +131,38 @@ Deno.serve(async (req) => {
 
       if (!mealRecipes.length) continue;
 
+      mealsToBalance.push({
+        day_meal_id: meal.day_meal_id,
+        target,
+        recipes: mealRecipes,
+      });
+
+      for (const recipe of mealRecipes) {
+        for (const ingredient of recipe.ingredients || []) {
+          if (ingredient?.food_id != null) allFoodIds.push(ingredient.food_id);
+        }
+      }
+    }
+
+    if (!mealsToBalance.length) {
+      return jsonResponse({ success: true, schema_version: "v1", results: [] });
+    }
+
+    const sharedContext = await loadFoodsAndGroupsContext(supabaseAdmin, allFoodIds);
+
+    for (const meal of mealsToBalance) {
       const balancedByRecipe = await balanceRecipesWithSharedContext({
         supabaseAdmin,
-        recipes: mealRecipes,
-        targets: target,
+        recipes: meal.recipes,
+        targets: meal.target,
         options: { profile: body?.profile },
+        context: sharedContext,
       });
 
       results.push(
         ...balancedByRecipe.map((balancedRecipe, index) => ({
           recipe_id: balancedRecipe.recipe_id,
-          source_row_id: mealRecipes[index]?.source_row_id,
+          source_row_id: meal.recipes[index]?.source_row_id,
           day_meal_id: meal.day_meal_id,
           ingredients: balancedRecipe.ingredients.map((ingredient) => ({ food_id: ingredient.food_id, grams: ingredient.grams })),
         })),

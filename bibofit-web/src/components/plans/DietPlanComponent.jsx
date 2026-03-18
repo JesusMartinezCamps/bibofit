@@ -25,7 +25,7 @@ import { useDietPlanHeaderData } from './hooks/useDietPlanHeaderData';
 import { useDietMacros } from './hooks/useDietMacros';
 import { DietPlanRefreshContext } from '@/contexts/DietPlanContext';
 
-const DateTimeline = ({ currentDate, setCurrentDate, navigate, isAdminView, userId, refreshTrigger, activePlanId }) => {
+const DateTimeline = React.memo(({ currentDate, setCurrentDate, navigate, isAdminView, userId, refreshTrigger, activePlanId }) => {
     const weekDates = useMemo(() => {
         const start = subDays(currentDate, 3);
         return Array.from({ length: 7 }, (_, i) => addDays(start, i));
@@ -89,7 +89,24 @@ const DateTimeline = ({ currentDate, setCurrentDate, navigate, isAdminView, user
             </Button>
         </div>
     );
-}
+});
+
+const DietVisualizer = React.memo(({ isSticky, activePlan, viewMode, targetMacros, consumedMacros, loadingMacros, visualizerWeekDates, weekSummaryByDate, onDayClick, focusedWeekDate }) => {
+    if (!activePlan) {
+        return (
+            <div className={cn("h-full rounded-lg bg-muted/40 border border-border flex items-center justify-center", isSticky ? "p-4" : "")}>
+                <p className="text-muted-foreground text-sm italic">No hay plan de dieta activo.</p>
+            </div>
+        );
+    }
+    if (viewMode === 'list') {
+        return <MacroVisualizer currentTarget={targetMacros} actual={consumedMacros} loading={loadingMacros} isSticky={isSticky} />;
+    }
+    if (viewMode === 'week') {
+        return <WeekVisualizer weekDates={visualizerWeekDates} daySummaries={weekSummaryByDate} onDayClick={onDayClick} currentDate={focusedWeekDate} isSticky={isSticky} />;
+    }
+    return null;
+});
 
 const DietPlanComponent = () => {
   const { user: authUser } = useAuth();
@@ -147,7 +164,7 @@ const DietPlanComponent = () => {
     [currentDate]
   );
 
-  const { data, setData, activePlan, planStatus, loading, reminders, weightForDay, setWeightForDay, refreshHeaderData } =
+  const { data, setData, activePlan, planStatus, loading, reminders, weightForDay, setWeightForDay, refreshHeaderData, invalidateDateCache } =
     useDietPlanHeaderData({ userId, logDate, isAdminView, toast });
   const { targetMacros, consumedMacros, loadingMacros, refreshConsumedMacros, applyMacroDelta } = useDietMacros({
     data,
@@ -160,12 +177,13 @@ const DietPlanComponent = () => {
 
   const clientName = useMemo(() => data?.profile?.full_name || 'Cliente', [data]);
 
-  const handleDateChange = (newDate) => {
+  const handleDateChange = useCallback((newDate) => {
     setCurrentDate(newDate);
+    setFocusedWeekDate(newDate);
     const dateString = format(newDate, 'yyyy-MM-dd');
     const newPath = isAdminView ? `/plan/dieta/${userId}/${dateString}` : `/plan/dieta/${dateString}`;
     navigate(newPath, { replace: true });
-  };
+  }, [isAdminView, navigate, userId]);
   
   // Swipe gesture hook setup
   const { handlers: swipeHandlers, isSwiping, swipeOffset, swipeDirection } = useSwipeGesture({
@@ -189,43 +207,42 @@ const DietPlanComponent = () => {
 
   const onWeightLogAdded = useCallback((newLog) => {
     if (newLog) {
-        const isCurrentDayLog = format(parseISO(newLog.logged_on), 'yyyy-MM-dd') === logDate;
+        const loggedOnDate = format(parseISO(newLog.logged_on), 'yyyy-MM-dd');
+        const isCurrentDayLog = loggedOnDate === logDate;
         if (isCurrentDayLog) {
             setWeightForDay(newLog);
-          setData(prev => ({
-            ...prev,
-            closestWeight: newLog,
-            interpolatedWeight: null,
-            previousWeightLog: null,
-            nextWeightLog: null
-          }));
+            setData(prev => ({
+              ...prev,
+              closestWeight: newLog,
+              interpolatedWeight: null,
+              previousWeightLog: null,
+              nextWeightLog: null
+            }));
+            invalidateDateCache(logDate); // la UI ya es correcta, pero invalidamos para la próxima visita
         } else {
-             refreshHeaderData();
+            invalidateDateCache(loggedOnDate); // invalida esa fecha en caché
+            refreshHeaderData(true); // la interpolación de la fecha actual puede haber cambiado
         }
     } else {
-        setWeightForDay(null);
-        refreshHeaderData();
+        refreshHeaderData(true);
     }
     setTimelineRefreshTrigger(prev => prev + 1);
-  }, [logDate, refreshHeaderData, setData, setWeightForDay]);
+  }, [logDate, refreshHeaderData, invalidateDateCache, setData, setWeightForDay]);
 
   useEffect(() => {
     if (!paramDate) return;
     const parsed = parseISO(paramDate);
     if (!isValid(parsed)) return;
     setCurrentDate(prev => (parsed.getTime() === prev.getTime() ? prev : parsed));
+    setFocusedWeekDate(parsed);
   }, [paramDate]);
 
-  useEffect(() => {
-    setFocusedWeekDate(currentDate);
-  }, [currentDate]);
-
-  const handleOpenAddRecipe = (meal, date, mode = 'all') => {
+  const handleOpenAddRecipe = useCallback((meal, date, mode = 'all') => {
     setMealToAddTo(meal);
     setMealDateToAddTo(date);
     setAddRecipeMode(mode);
     setIsAddRecipeOpen(true);
-  };
+  }, []);
   
   const handleRecipeSelectedForAssignment = (recipe) => {
     setIsAddRecipeOpen(false);
@@ -296,7 +313,7 @@ const DietPlanComponent = () => {
 const handleReminderSave = () => {
     setIsReminderFormOpen(false);
     setEditingReminder(null);
-    refreshHeaderData();
+    refreshHeaderData(true); // fuerza refresco para que los recordatorios actualizados no sirvan desde caché
 };
 
 const handleEditReminder = (reminder) => {
@@ -304,7 +321,7 @@ const handleEditReminder = (reminder) => {
     setIsReminderFormOpen(true);
 };
 
-const handleDayClickInVisualizer = (date) => {
+const handleDayClickInVisualizer = useCallback((date) => {
     if (viewMode !== 'week') {
         handleDateChange(date);
         return;
@@ -314,7 +331,7 @@ const handleDayClickInVisualizer = (date) => {
     if (plannerRef.current) {
         requestAnimationFrame(() => plannerRef.current?.scrollToDay(date));
     }
-};
+}, [viewMode, handleDateChange]);
 
 const handleMealExpand = useCallback((mealId) => {
     requestAnimationFrame(() => {
@@ -380,99 +397,46 @@ const combinedPlanRestrictions = useMemo(() => {
     };
 }, [data, activePlan]);
 
+  const allSensitivities = useMemo(() => combinedPlanRestrictions?.sensitivities || [], [combinedPlanRestrictions]);
+  const allMedicalConditions = useMemo(() => combinedPlanRestrictions?.medical_conditions || [], [combinedPlanRestrictions]);
+
+  const { notes, events } = useMemo(() => ({
+    notes: reminders.filter(r => r.type === 'note'),
+    events: reminders.filter(r => r.type === 'event'),
+  }), [reminders]);
+
+  const { closestWeightDate, interpolatedWeight, relativeWeightLabel, isExactMatch, displayWeight, previousWeightLog, nextWeightLog, hasInterpolationDetails } = useMemo(() => {
+    const closestWeightDate = data?.closestWeight?.logged_on ? parseISO(data.closestWeight.logged_on) : null;
+    const interpolatedWeight = data?.interpolatedWeight;
+    const isExactMatch = !!weightForDay;
+
+    let relativeWeightLabel = "";
+    if (closestWeightDate && !weightForDay) {
+      const daysDiff = differenceInCalendarDays(currentDate, closestWeightDate);
+      if (daysDiff > 0) relativeWeightLabel = `hacía ${Math.abs(daysDiff)} días`;
+      else if (daysDiff < 0) relativeWeightLabel = `en ${Math.abs(daysDiff)} días`;
+      else relativeWeightLabel = 'hoy';
+    }
+
+    const displayWeight = isExactMatch
+      ? weightForDay
+      : (interpolatedWeight !== null && interpolatedWeight !== undefined)
+        ? { weight_kg: interpolatedWeight.toFixed(1) }
+        : data?.closestWeight;
+    const previousWeightLog = data?.previousWeightLog;
+    const nextWeightLog = data?.nextWeightLog;
+    const hasInterpolationDetails = !isExactMatch && interpolatedWeight && previousWeightLog?.logged_on && nextWeightLog?.logged_on;
+
+    return { closestWeightDate, interpolatedWeight, relativeWeightLabel, isExactMatch, displayWeight, previousWeightLog, nextWeightLog, hasInterpolationDetails };
+  }, [data, weightForDay, currentDate]);
 
   if (loading && !data) return <div className="flex justify-center items-center h-96"><Loader2 className="h-12 w-12 animate-spin text-green-500" /></div>;
-
-  const closestWeightDate = data?.closestWeight?.logged_on ? parseISO(data.closestWeight.logged_on) : null;
-  const interpolatedWeight = data?.interpolatedWeight;
-  
-  let relativeWeightLabel = "";
-  if (closestWeightDate && !weightForDay) {
-      const daysDiff = differenceInCalendarDays(currentDate, closestWeightDate);
-      if (daysDiff > 0) {
-          relativeWeightLabel = `hacía ${Math.abs(daysDiff)} días`;
-      } else if (daysDiff < 0) {
-          relativeWeightLabel = `en ${Math.abs(daysDiff)} días`;
-      } else {
-          relativeWeightLabel = 'hoy';
-      }
-  }
-  
-  const planSensitivities = activePlan?.sensitivities?.map(s => s.sensitivities) || [];
-  const clientSensitivities = data?.profile?.user_sensitivities?.map(s => s.sensitivities) || [];
-  const allSensitivities = [...planSensitivities, ...clientSensitivities].reduce((acc, current) => {
-    if (current && !acc.find(item => item.id === current.id)) {
-      acc.push(current);
-    }
-    return acc;
-  }, []);
-
-  const planMedicalConditions = activePlan?.medical_conditions?.map(mc => mc.medical_conditions) || [];
-  const clientMedicalConditions = data?.profile?.user_medical_conditions?.map(mc => mc.medical_conditions) || [];
-  const allMedicalConditions = [...planMedicalConditions, ...clientMedicalConditions].reduce((acc, current) => {
-    if (current && !acc.find(item => item.id === current.id)) {
-      acc.push(current);
-    }
-    return acc;
-  }, []);
-
-  const notes = reminders.filter(r => r.type === 'note');
-  const events = reminders.filter(r => r.type === 'event');
 
   const categoryColors = {
     'Dieta': 'bg-green-500/20 text-green-300 border-green-500/40',
     'Entreno': 'bg-red-500/20 text-red-300 border-red-500/40',
     'Personal': 'bg-blue-500/20 text-blue-300 border-blue-500/40',
   };
-
-  const renderVisualizer = (isSticky = false) => {
-    if (!activePlan) {
-        return (
-            <div className={cn("h-full rounded-lg bg-muted/40 border border-border flex items-center justify-center", isSticky ? "p-4" : "")}>
-                <p className="text-muted-foreground text-sm italic">No hay plan de dieta activo.</p>
-            </div>
-        );
-    }
-
-    if (viewMode === 'list') {
-        return (
-            <MacroVisualizer
-                currentTarget={targetMacros}
-                actual={consumedMacros}
-                loading={loadingMacros}
-                isSticky={isSticky}
-            />
-        );
-    }
-
-    if (viewMode === 'week') {
-        return (
-            <WeekVisualizer
-                weekDates={visualizerWeekDates}
-                daySummaries={weekSummaryByDate}
-                onDayClick={handleDayClickInVisualizer}
-                currentDate={focusedWeekDate}
-                isSticky={isSticky}
-            />
-        );
-    }
-
-    return null;
-  };
-
-  const isExactMatch = !!weightForDay;
-  const displayWeight = isExactMatch
-    ? weightForDay
-    : (interpolatedWeight !== null && interpolatedWeight !== undefined)
-        ? { weight_kg: interpolatedWeight.toFixed(1) }
-        : data?.closestWeight;
-  const previousWeightLog = data?.previousWeightLog;
-  const nextWeightLog = data?.nextWeightLog;
-  const hasInterpolationDetails =
-    !isExactMatch &&
-    interpolatedWeight &&
-    previousWeightLog?.logged_on &&
-    nextWeightLog?.logged_on;
 
   return (
     <div 
@@ -643,7 +607,7 @@ const combinedPlanRestrictions = useMemo(() => {
                   )}
               </div>
               <div className="hidden lg:block">
-                  {renderVisualizer()}
+                  <DietVisualizer isSticky={false} activePlan={activePlan} viewMode={viewMode} targetMacros={targetMacros} consumedMacros={consumedMacros} loadingMacros={loadingMacros} visualizerWeekDates={visualizerWeekDates} weekSummaryByDate={weekSummaryByDate} onDayClick={handleDayClickInVisualizer} focusedWeekDate={focusedWeekDate} />
               </div>
             </CardContent>
           </Card>
@@ -653,7 +617,7 @@ const combinedPlanRestrictions = useMemo(() => {
                 data-diet-sticky-visualizer="true"
                 className="lg:hidden sticky !top-0 z-30 bg-card/95 backdrop-blur-sm -mx-1 sm:mx-0 px-1 sm:px-0 py-2 rounded-b-xl shadow-[0_8px_15px_-5px_rgba(0,0,0,0.3)]"
               >
-                {renderVisualizer(true)}
+                <DietVisualizer isSticky={true} activePlan={activePlan} viewMode={viewMode} targetMacros={targetMacros} consumedMacros={consumedMacros} loadingMacros={loadingMacros} visualizerWeekDates={visualizerWeekDates} weekSummaryByDate={weekSummaryByDate} onDayClick={handleDayClickInVisualizer} focusedWeekDate={focusedWeekDate} />
               </div>
           </div>
 

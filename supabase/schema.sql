@@ -2887,26 +2887,16 @@ BEGIN
   IF v_token = '' THEN
     RETURN QUERY SELECT
       'missing_token'::text,
-      NULL::uuid,
-      NULL::integer,
-      NULL::bigint,
-      NULL::integer,
-      NULL::integer,
-      NULL::timestamptz,
-      NULL::boolean;
+      NULL::uuid, NULL::integer, NULL::bigint,
+      NULL::integer, NULL::integer, NULL::timestamptz, NULL::boolean;
     RETURN;
   END IF;
 
   IF v_token !~ '^[a-z0-9]{24,96}$' THEN
     RETURN QUERY SELECT
       'invalid_token'::text,
-      NULL::uuid,
-      NULL::integer,
-      NULL::bigint,
-      NULL::integer,
-      NULL::integer,
-      NULL::timestamptz,
-      NULL::boolean;
+      NULL::uuid, NULL::integer, NULL::bigint,
+      NULL::integer, NULL::integer, NULL::timestamptz, NULL::boolean;
     RETURN;
   END IF;
 
@@ -2921,16 +2911,12 @@ BEGIN
   IF NOT FOUND THEN
     RETURN QUERY SELECT
       'invalid_token'::text,
-      NULL::uuid,
-      NULL::integer,
-      NULL::bigint,
-      NULL::integer,
-      NULL::integer,
-      NULL::timestamptz,
-      NULL::boolean;
+      NULL::uuid, NULL::integer, NULL::bigint,
+      NULL::integer, NULL::integer, NULL::timestamptz, NULL::boolean;
     RETURN;
   END IF;
 
+  -- ── Already redeemed by this user ─────────────────────────────────────────
   SELECT iu.id
   INTO v_usage_id
   FROM public.invitation_link_usages iu
@@ -2939,10 +2925,11 @@ BEGIN
   LIMIT 1;
 
   IF v_usage_id IS NOT NULL THEN
+    -- Re-apply role/center idempotently.
     INSERT INTO public.user_roles (user_id, role_id)
     VALUES (auth.uid(), v_invitation.role_id)
-    ON CONFLICT (user_id) DO UPDATE
-      SET role_id = EXCLUDED.role_id;
+    ON CONFLICT ON CONSTRAINT user_roles_pkey              -- fixes role_id ambiguity
+    DO UPDATE SET role_id = EXCLUDED.role_id;
 
     IF v_invitation.center_id IS NULL THEN
       DELETE FROM public.user_centers uc
@@ -2954,7 +2941,8 @@ BEGIN
 
       INSERT INTO public.user_centers (user_id, center_id)
       VALUES (auth.uid(), v_invitation.center_id)
-      ON CONFLICT (user_id, center_id) DO NOTHING;
+      ON CONFLICT ON CONSTRAINT user_centers_pkey           -- fixes center_id ambiguity
+      DO NOTHING;
     END IF;
 
     RETURN QUERY SELECT
@@ -2969,6 +2957,7 @@ BEGIN
     RETURN;
   END IF;
 
+  -- ── Role eligibility checks ───────────────────────────────────────────────
   SELECT lower(r.role)
   INTO v_current_role
   FROM public.user_roles ur
@@ -2979,72 +2968,54 @@ BEGIN
   IF v_current_role IN ('admin', 'coach', 'coach-nutrition', 'coach-workout') THEN
     RETURN QUERY SELECT
       'forbidden_role'::text,
-      v_invitation.id,
-      v_invitation.role_id,
-      v_invitation.center_id,
-      v_invitation.used_uses,
-      v_invitation.max_uses,
-      v_invitation.expires_at,
-      v_invitation.is_revoked;
+      v_invitation.id, v_invitation.role_id, v_invitation.center_id,
+      v_invitation.used_uses, v_invitation.max_uses,
+      v_invitation.expires_at, v_invitation.is_revoked;
     RETURN;
   END IF;
 
   IF v_current_role IS NOT NULL AND v_current_role <> 'free' THEN
     RETURN QUERY SELECT
       'ineligible_role'::text,
-      v_invitation.id,
-      v_invitation.role_id,
-      v_invitation.center_id,
-      v_invitation.used_uses,
-      v_invitation.max_uses,
-      v_invitation.expires_at,
-      v_invitation.is_revoked;
+      v_invitation.id, v_invitation.role_id, v_invitation.center_id,
+      v_invitation.used_uses, v_invitation.max_uses,
+      v_invitation.expires_at, v_invitation.is_revoked;
     RETURN;
   END IF;
 
+  -- ── Invitation state checks ───────────────────────────────────────────────
   IF v_invitation.is_revoked THEN
     RETURN QUERY SELECT
       'revoked'::text,
-      v_invitation.id,
-      v_invitation.role_id,
-      v_invitation.center_id,
-      v_invitation.used_uses,
-      v_invitation.max_uses,
-      v_invitation.expires_at,
-      v_invitation.is_revoked;
+      v_invitation.id, v_invitation.role_id, v_invitation.center_id,
+      v_invitation.used_uses, v_invitation.max_uses,
+      v_invitation.expires_at, v_invitation.is_revoked;
     RETURN;
   END IF;
 
   IF v_invitation.expires_at IS NOT NULL AND v_invitation.expires_at <= v_now THEN
     RETURN QUERY SELECT
       'expired'::text,
-      v_invitation.id,
-      v_invitation.role_id,
-      v_invitation.center_id,
-      v_invitation.used_uses,
-      v_invitation.max_uses,
-      v_invitation.expires_at,
-      v_invitation.is_revoked;
+      v_invitation.id, v_invitation.role_id, v_invitation.center_id,
+      v_invitation.used_uses, v_invitation.max_uses,
+      v_invitation.expires_at, v_invitation.is_revoked;
     RETURN;
   END IF;
 
   IF v_invitation.max_uses IS NOT NULL AND v_invitation.used_uses >= v_invitation.max_uses THEN
     RETURN QUERY SELECT
       'exhausted'::text,
-      v_invitation.id,
-      v_invitation.role_id,
-      v_invitation.center_id,
-      v_invitation.used_uses,
-      v_invitation.max_uses,
-      v_invitation.expires_at,
-      v_invitation.is_revoked;
+      v_invitation.id, v_invitation.role_id, v_invitation.center_id,
+      v_invitation.used_uses, v_invitation.max_uses,
+      v_invitation.expires_at, v_invitation.is_revoked;
     RETURN;
   END IF;
 
+  -- ── Apply invitation ──────────────────────────────────────────────────────
   INSERT INTO public.user_roles (user_id, role_id)
   VALUES (auth.uid(), v_invitation.role_id)
-  ON CONFLICT (user_id) DO UPDATE
-    SET role_id = EXCLUDED.role_id;
+  ON CONFLICT ON CONSTRAINT user_roles_pkey                 -- fixes role_id ambiguity
+  DO UPDATE SET role_id = EXCLUDED.role_id;
 
   IF v_invitation.center_id IS NULL THEN
     DELETE FROM public.user_centers uc
@@ -3056,7 +3027,8 @@ BEGIN
 
     INSERT INTO public.user_centers (user_id, center_id)
     VALUES (auth.uid(), v_invitation.center_id)
-    ON CONFLICT (user_id, center_id) DO NOTHING;
+    ON CONFLICT ON CONSTRAINT user_centers_pkey             -- fixes center_id ambiguity
+    DO NOTHING;
   END IF;
 
   INSERT INTO public.invitation_link_usages (
@@ -3077,19 +3049,16 @@ BEGIN
     v_invitation.role_id,
     v_invitation.center_id
   )
-  ON CONFLICT ON CONSTRAINT invitation_link_usages_invitation_link_id_user_id_key DO NOTHING
+  ON CONFLICT ON CONSTRAINT invitation_link_usages_invitation_link_id_user_id_key  -- fixes invitation_link_id ambiguity
+  DO NOTHING
   RETURNING id INTO v_usage_id;
 
   IF v_usage_id IS NULL THEN
     RETURN QUERY SELECT
       'already_redeemed'::text,
-      v_invitation.id,
-      v_invitation.role_id,
-      v_invitation.center_id,
-      v_invitation.used_uses,
-      v_invitation.max_uses,
-      v_invitation.expires_at,
-      v_invitation.is_revoked;
+      v_invitation.id, v_invitation.role_id, v_invitation.center_id,
+      v_invitation.used_uses, v_invitation.max_uses,
+      v_invitation.expires_at, v_invitation.is_revoked;
     RETURN;
   END IF;
 
@@ -11918,6 +11887,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TAB
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "authenticated";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "service_role";
+
 
 
 

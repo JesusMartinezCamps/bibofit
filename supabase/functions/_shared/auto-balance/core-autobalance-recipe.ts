@@ -2,6 +2,7 @@ import { balanceRecipeCore, safeNumber } from "./core.ts";
 import {
   enrichIngredientsForCore,
   loadFoodsAndGroupsContext,
+  type FoodsAndGroupsContext,
   type createAdminClient,
 } from "./adapters.ts";
 import type {
@@ -87,17 +88,21 @@ export const balanceRecipesWithSharedContext = async ({
   recipes,
   targets,
   options = {},
+  context,
 }: {
   supabaseAdmin: SupabaseAdminClient;
   recipes: BalanceRecipeRequest[];
   targets: MacroTargets;
   options?: BalancerOptions;
+  context?: FoodsAndGroupsContext;
 }): Promise<BalanceRecipeResult[]> => {
   const normalizedRecipes = recipes.map(normalizeRecipeRequest).filter((recipe) => recipe.ingredients.length > 0);
   if (!normalizedRecipes.length) return [];
 
-  const allFoodIds = normalizedRecipes.flatMap((recipe) => recipe.ingredients.map((ingredient) => ingredient.food_id));
-  const ctx = await loadFoodsAndGroupsContext(supabaseAdmin, allFoodIds);
+  const ctx = context ?? await loadFoodsAndGroupsContext(
+    supabaseAdmin,
+    normalizedRecipes.flatMap((recipe) => recipe.ingredients.map((ingredient) => ingredient.food_id)),
+  );
   const normalizedTargets = normalizeTargets(targets);
 
   return normalizedRecipes.map((recipe) => {

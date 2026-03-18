@@ -41,7 +41,7 @@ const resolveFromRecord = async (supabaseAdmin: ReturnType<typeof createAdminCli
     fats: Math.max(0, safeNumber(targetMeal.target_fats) - safeNumber(eq.adjustment_fats)),
   };
 
-  const [planRecipesRes, plannedPrivateRes] = await Promise.all([
+  const [planRecipesRes, plannedUserRecipesRes] = await Promise.all([
     supabaseAdmin
       .from("diet_plan_recipes")
       .select("id")
@@ -49,7 +49,7 @@ const resolveFromRecord = async (supabaseAdmin: ReturnType<typeof createAdminCli
       .eq("day_meal_id", targetMeal.day_meal_id),
     supabaseAdmin
       .from("planned_meals")
-      .select("private_recipe_id")
+      .select("user_recipe_id")
       .eq("user_id", eq.user_id)
       .eq("diet_plan_id", targetMeal.diet_plan_id)
       .eq("plan_date", eq.log_date)
@@ -57,11 +57,11 @@ const resolveFromRecord = async (supabaseAdmin: ReturnType<typeof createAdminCli
   ]);
 
   if (planRecipesRes.error) throw planRecipesRes.error;
-  if (plannedPrivateRes.error) throw plannedPrivateRes.error;
+  if (plannedUserRecipesRes.error) throw plannedUserRecipesRes.error;
 
   const recipes = [
     ...((planRecipesRes.data || []).map((r: any) => ({ id: r.id, is_private: false }))),
-    ...((plannedPrivateRes.data || []).filter((r: any) => r.private_recipe_id != null).map((r: any) => ({ id: r.private_recipe_id, is_private: true }))),
+    ...((plannedUserRecipesRes.data || []).filter((r: any) => r.user_recipe_id != null).map((r: any) => ({ id: r.user_recipe_id, is_private: true }))),
   ];
 
   return {
@@ -111,29 +111,29 @@ Deno.serve(async (req) => {
     }
 
     const dietPlanRecipeIds = normalized.recipes.filter((r) => !r.is_private).map((r) => r.id);
-    const privateRecipeIds = normalized.recipes.filter((r) => r.is_private).map((r) => r.id);
+    const userRecipeIds = normalized.recipes.filter((r) => r.is_private).map((r) => r.id);
 
-    const [planRecipesRes, privateRecipesRes] = await Promise.all([
+    const [planRecipesRes, userRecipesRes] = await Promise.all([
       dietPlanRecipeIds.length
         ? supabaseAdmin
             .from("diet_plan_recipes")
             .select("id, custom_ingredients:diet_plan_recipe_ingredients(*)")
             .in("id", dietPlanRecipeIds)
         : Promise.resolve({ data: [], error: null as any }),
-      privateRecipeIds.length
+      userRecipeIds.length
         ? supabaseAdmin
-            .from("private_recipes")
-            .select("id, private_recipe_ingredients(*)")
-            .in("id", privateRecipeIds)
+            .from("user_recipes")
+            .select("id, type, recipe_ingredients(*)")
+            .in("id", userRecipeIds)
         : Promise.resolve({ data: [], error: null as any }),
     ]);
 
     if (planRecipesRes.error) throw planRecipesRes.error;
-    if (privateRecipesRes.error) throw privateRecipesRes.error;
+    if (userRecipesRes.error) throw userRecipesRes.error;
 
     const allRecipes: BalanceRecipeRequest[] = [
       ...(planRecipesRes.data || []).map((r: any) => ({ id: r.id, is_private: false, ingredients: r.custom_ingredients || [] })),
-      ...(privateRecipesRes.data || []).map((r: any) => ({ id: r.id, is_private: true, ingredients: r.private_recipe_ingredients || [] })),
+      ...(userRecipesRes.data || []).map((r: any) => ({ id: r.id, is_private: true, ingredients: r.recipe_ingredients || [] })),
     ].map((recipe: any) => ({
       recipe_id: recipe.id,
       is_private: recipe.is_private,
@@ -173,7 +173,7 @@ Deno.serve(async (req) => {
         finalAdjustments.push({
           equivalence_adjustment_id: normalized.equivalence_adjustment_id,
           diet_plan_recipe_id: row.is_private ? null : Number(recipe.recipe_id),
-          private_recipe_id: row.is_private ? Number(recipe.recipe_id) : null,
+          user_recipe_id: row.is_private ? Number(recipe.recipe_id) : null,
           food_id: original?.food_id != null ? Number(original.food_id) : null,
           original_grams: safeNumber(original?.grams, 0),
           adjusted_grams: Math.round(safeNumber(row.grams, 0) * 10) / 10,

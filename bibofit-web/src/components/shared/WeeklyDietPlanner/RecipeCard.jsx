@@ -264,7 +264,7 @@ const RecipeCard = ({
     ? { backgroundImage: `url(${imageUrl})` }
     : {
         background: isDark
-          ? 'linear-gradient(135deg, hsl(220 16% 22%) 0%, hsl(222 20% 16%) 100%)'
+          ? 'linear-gradient(135deg, hsla(220, 16%, 22%, 0.36) 0%, hsla(221, 20%, 16%, 0.32) 100%)'
           : 'linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(210 33% 96%) 100%)',
       };
 
@@ -288,12 +288,12 @@ const RecipeCard = ({
             ? (isDark ? 'bg-black/45' : 'bg-white/30')
             : (
               isPrivate
-                ? (isDark ? 'bg-violet-900/20' : 'bg-violet-200/35')
-                : (!isSafe ? (isDark ? 'bg-red-900/40' : 'bg-red-200/45') : (isDark ? 'bg-black/10' : 'bg-transparent'))
+                ? (isDark ? 'bg-violet-900/10' : 'bg-violet-200/10')
+                : (!isSafe ? (isDark ? 'bg-red-900/10' : 'bg-red-200/10') : (isDark ? 'bg-black/10' : 'bg-transparent'))
             )
         )}
         gradientClassName={cn(
-          isDark && 'bg-[linear-gradient(to_top,rgba(0,0,0,0.48)_0%,rgba(0,0,0,0.38)_40%,rgba(0,0,0,0)_100%)]'
+          isDark && 'bg-[linear-gradient(to_top,rgba(0, 0, 0, 0.24)_0%,rgba(0, 0, 0, 0.15)_40%,rgba(0,0,0,0)_100%)]'
         )}
       >
         {(lineageMeta.isVariantNode || lineageMeta.isPlanVersionNode) && (

@@ -524,8 +524,9 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
             }
             await supabase.from('snack_occurrences').delete().eq('id', occurrenceId);
             
-            if (onPlanUpdate) onPlanUpdate();
             toast({ title: 'Éxito', description: 'Picoteo eliminado de este día.', variant: 'success' });
+            if (onPlanUpdate) onPlanUpdate();
+            fetchAndSetPlanItems();
         } catch (error) {
             toast({ title: 'Error', description: `No se pudo eliminar el picoteo: ${error.message}`, variant: 'destructive' });
             fetchAndSetPlanItems();
@@ -569,6 +570,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
 
                 toast({ title: 'Éxito', description: 'Picoteo desmarcado.', variant: 'success' });
                 if (onPlanUpdate) onPlanUpdate();
+                fetchAndSetPlanItems();
             } catch (error) {
                 toast({ title: 'Error', description: `No se pudo desmarcar: ${error.message}`, variant: 'destructive' });
                 fetchAndSetPlanItems();

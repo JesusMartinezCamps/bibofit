@@ -30,7 +30,7 @@ export const useDietMacros = ({ data, activePlan, userId, logDate, viewMode, toa
 
   const refreshConsumedMacros = useCallback(
     async (isInitialLoad = false) => {
-      if (viewMode !== 'list' || !userId || !activePlan) {
+      if (!userId || !activePlan) {
         setConsumedMacros({ calories: 0, proteins: 0, carbs: 0, fats: 0 });
         setLoadingMacros(false);
         return;
@@ -174,7 +174,7 @@ export const useDietMacros = ({ data, activePlan, userId, logDate, viewMode, toa
         if (isInitialLoad) setLoadingMacros(false);
       }
     },
-    [userId, activePlan, logDate, toast, viewMode]
+    [userId, activePlan, logDate, toast]
   );
 
   const applyMacroDelta = useCallback((macroDelta) => {
@@ -191,8 +191,13 @@ export const useDietMacros = ({ data, activePlan, userId, logDate, viewMode, toa
   }, [calculateTargetMacros]);
 
   useEffect(() => {
+    if (viewMode !== 'list') {
+      setConsumedMacros({ calories: 0, proteins: 0, carbs: 0, fats: 0 });
+      setLoadingMacros(false);
+      return;
+    }
     refreshConsumedMacros(true);
-  }, [refreshConsumedMacros]);
+  }, [refreshConsumedMacros, viewMode]);
 
   return {
     targetMacros,

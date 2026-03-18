@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 
-export const RECIPE_PANEL_CLASS = 'bg-card/75 border border-border rounded-md backdrop-blur-[1px]';
+export const RECIPE_PANEL_CLASS = 'bg-card/50 border border-border rounded-md backdrop-blur-[1px]';
 
 export const RecipeCardPanel = ({ className, children }) => {
   return <div className={cn(RECIPE_PANEL_CLASS, className)}>{children}</div>;

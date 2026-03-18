@@ -216,7 +216,7 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
   return (
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent
-        className="bg-card border-border text-slate-50 max-w-2xl p-0 overflow-hidden shadow-2xl rounded-2xl"
+        className="bg-card border-border text-foreground max-w-2xl p-0 overflow-hidden shadow-2xl rounded-2xl"
         onEscapeKeyDown={(event) => {
           if (isSubmitting) event.preventDefault();
         }}
@@ -242,7 +242,7 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
             <div className="p-2.5 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/20">
               <Utensils className="w-5 h-5 text-white" />
             </div>
-            <DialogTitle className="text-xl font-semibold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
+            <DialogTitle className="text-xl font-semibold bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400 bg-clip-text text-transparent">
               Aplicar Equivalencia
             </DialogTitle>
           </div>
@@ -257,7 +257,7 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
                  {caloriesToCompensate} <span className="text-sm font-medium text-red-400/70">kcal</span>
                </span>
              </div>
-             <div className="h-8 w-px bg-slate-700/50 mx-4 hidden sm:block"></div>
+             <div className="h-8 w-px bg-border/80 mx-4 hidden sm:block"></div>
              <div className="hidden sm:flex flex-col items-end">
                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Impacto Estimado</span>
                <span className="text-sm text-muted-foreground">Se ajustarán las porciones automáticamente</span>
@@ -311,7 +311,11 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
                           <div className="flex justify-between items-start mb-2">
                              <div className={cn(
                                "px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider inline-flex items-center gap-1",
-                               isSelected ? "bg-white/20 text-white" : isTodayMeal ? "bg-blue-500/10 text-blue-400" : "bg-slate-700 text-muted-foreground"
+                               isSelected
+                                 ? "bg-white/20 text-white"
+                                 : isTodayMeal
+                                   ? "bg-blue-500/10 text-blue-700 dark:text-blue-300"
+                                   : "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200"
                              )}>
                                <CalendarDays className="w-3 h-3" />
                                {meal.subLabel}
@@ -323,14 +327,14 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
                           
                           <h3 className={cn(
                             "font-semibold text-lg leading-tight transition-colors",
-                            isSelected ? "text-white" : "text-slate-200 group-hover:text-foreground"
+                            isSelected ? "text-white" : "text-slate-900 dark:text-slate-200 group-hover:text-foreground"
                           )}>
                             {meal.label}
                           </h3>
                           
                           <div className={cn(
                             "mt-3 text-xs flex items-center gap-1 transition-colors",
-                            isSelected ? "text-blue-100" : "text-slate-500 group-hover:text-muted-foreground"
+                            isSelected ? "text-blue-100" : "text-slate-600 dark:text-slate-400 group-hover:text-muted-foreground"
                           )}>
                              <span>Objetivo original:</span>
                              <span className="font-medium">{Math.round(meal.target_calories || 0)} kcal</span>

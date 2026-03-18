@@ -2,11 +2,20 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import type { BalancerIngredientInput } from "./types.ts";
 import { safeNumber } from "./core.ts";
 
+const FOOD_GROUPS_CACHE_TTL_MS = 5 * 60 * 1000;
+let cachedFoodGroups: any[] | null = null;
+let cachedFoodGroupsAt = 0;
+
 export const createAdminClient = () => {
   return createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
   );
+};
+
+export type FoodsAndGroupsContext = {
+  foodsById: Map<string, any>;
+  groupByFoodId: Map<string, any>;
 };
 
 export const pickBestGroupByPriority = (groups: Array<{ id: string | number; name?: string }>) => {
@@ -32,17 +41,38 @@ export const pickBestGroupByPriority = (groups: Array<{ id: string | number; nam
 export const loadFoodsAndGroupsContext = async (
   supabaseAdmin: ReturnType<typeof createAdminClient>,
   foodIds: Array<string | number>,
-) => {
+): Promise<FoodsAndGroupsContext> => {
   const uniqueFoodIds = [...new Set(foodIds.map(String))];
+  if (!uniqueFoodIds.length) {
+    return {
+      foodsById: new Map<string, any>(),
+      groupByFoodId: new Map<string, any>(),
+    };
+  }
 
-  const [{ data: foods, error: foodsError }, { data: groups, error: groupsError }, { data: links, error: linksError }] = await Promise.all([
+  const loadGroups = async () => {
+    const now = Date.now();
+    if (cachedFoodGroups && now - cachedFoodGroupsAt < FOOD_GROUPS_CACHE_TTL_MS) {
+      return cachedFoodGroups;
+    }
+
+    const { data: groups, error: groupsError } = await supabaseAdmin
+      .from("food_groups")
+      .select("id, name, macro_role");
+    if (groupsError) throw groupsError;
+
+    cachedFoodGroups = groups || [];
+    cachedFoodGroupsAt = now;
+    return cachedFoodGroups;
+  };
+
+  const [{ data: foods, error: foodsError }, groups, { data: links, error: linksError }] = await Promise.all([
     supabaseAdmin.from("food").select("id, food_unit, proteins, total_carbs, total_fats").in("id", uniqueFoodIds),
-    supabaseAdmin.from("food_groups").select("id, name, macro_role"),
+    loadGroups(),
     supabaseAdmin.from("food_to_food_groups").select("food_id, food_group_id").in("food_id", uniqueFoodIds),
   ]);
 
   if (foodsError) throw foodsError;
-  if (groupsError) throw groupsError;
   if (linksError) throw linksError;
 
   const foodsById = new Map((foods || []).map((f: any) => [String(f.id), f]));
