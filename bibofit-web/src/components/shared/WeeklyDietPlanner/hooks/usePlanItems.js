@@ -267,11 +267,9 @@ export const usePlanItems = (userId, activePlan, weekDates, setPlannedMeals) => 
             .eq('diet_plan_id', activePlan.id)
             .order('display_order', { foreignTable: 'day_meals' }),
           supabase.from('food').select(`
-            *, 
-            food_sensitivities(sensitivity:sensitivities(*)), 
-            food_medical_conditions(relation_type, condition:medical_conditions(*)), 
-            food_vitamins(mg_per_100g, vitamin:vitamins(*)), 
-            food_minerals(mg_per_100g, mineral:minerals(*)), 
+            *,
+            food_sensitivities(sensitivity:sensitivities(*)),
+            food_medical_conditions(relation_type, condition:medical_conditions(*)),
             food_to_food_groups(food_group:food_groups(*))
           `).is('user_id', null),
           supabase.from('food').select(`

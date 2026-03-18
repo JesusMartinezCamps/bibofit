@@ -54,26 +54,42 @@ const RecipeEditorModal = ({
       const fetchAndEnrich = async () => {
         setLocalLoading(true);
         try {
+            // Collect food IDs already present in the recipe to enrich with micronutrients
+            const recipeIngredients = [
+                ...(recipeToEdit.recipe_ingredients || []),
+                ...(recipeToEdit.custom_ingredients || []),
+                ...(recipeToEdit.recipe?.recipe_ingredients || []),
+            ];
+            const recipeFoodIds = [...new Set(recipeIngredients.map(ing => ing.food_id).filter(Boolean))];
+
             const [
-                foodsRes, 
+                allStandardFoodsRes,
+                enrichedRecipeFoodsRes,
                 userFoodsRes,
                 vitaminsRes,
                 mineralsRes,
                 foodGroupsRes,
             ] = await Promise.all([
-                supabase.from('food').select('*, food_sensitivities(sensitivity:sensitivities(*)), food_medical_conditions(relation_type, condition:medical_conditions(*)), food_vitamins(mg_per_100g, vitamin:vitamins(*)), food_minerals(mg_per_100g, mineral:minerals(*)), food_to_food_groups(food_group:food_groups(*))').is('user_id', null),
+                // All standard foods without micronutrients — for IngredientSearch
+                supabase.from('food').select('*, food_sensitivities(sensitivity:sensitivities(*)), food_medical_conditions(relation_type, condition:medical_conditions(*)), food_to_food_groups(food_group:food_groups(*))').is('user_id', null),
+                // Only this recipe's foods with full vitamin/mineral data — for detail view
+                recipeFoodIds.length > 0
+                    ? supabase.from('food').select('*, food_sensitivities(sensitivity:sensitivities(*)), food_medical_conditions(relation_type, condition:medical_conditions(*)), food_vitamins(mg_per_100g, vitamin:vitamins(*)), food_minerals(mg_per_100g, mineral:minerals(*)), food_to_food_groups(food_group:food_groups(*))').in('id', recipeFoodIds).is('user_id', null)
+                    : Promise.resolve({ data: [], error: null }),
                 userId ? supabase.from('food').select('*, food_sensitivities(sensitivity:sensitivities(*)), food_to_food_groups(food_group:food_groups(*))').eq('user_id', userId).neq('status', 'rejected') : Promise.resolve({ data: [], error: null }),
                 supabase.from('vitamins').select('*'),
                 supabase.from('minerals').select('*'),
                 supabase.from('food_groups').select('*'),
             ]);
 
-            if (foodsRes.error || userFoodsRes.error || vitaminsRes.error || mineralsRes.error || foodGroupsRes.error) {
+            if (allStandardFoodsRes.error || enrichedRecipeFoodsRes.error || userFoodsRes.error || vitaminsRes.error || mineralsRes.error || foodGroupsRes.error) {
                 throw new Error('Failed to fetch enrichment data.');
             }
 
+            // Overlay enriched recipe foods (with vitamins/minerals) onto the full food list
+            const enrichedFoodMap = new Map((enrichedRecipeFoodsRes.data || []).map(f => [f.id, f]));
             const combinedFoods = [
-                ...(foodsRes.data || []).map(f => ({ ...f, is_user_created: false })),
+                ...(allStandardFoodsRes.data || []).map(f => ({ ...(enrichedFoodMap.get(f.id) || f), is_user_created: false })),
                 ...(userFoodsRes.data || []).map(f => ({ ...f, is_user_created: true, food_medical_conditions: [] }))
             ];
 
