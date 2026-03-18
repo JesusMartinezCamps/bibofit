@@ -1,5 +1,5 @@
 // Prefijos telefónicos internacionales ordenados numéricamente por código de marcación.
-// El valor almacenado en DB es E.164: `${code}${number}` → ej. +34600000000
+// El valor almacenado en DB es E.164: `${code}${number}` → ej. +346000000
 // Los emojis de bandera y nombres de país son solo para la UI, nunca se persisten.
 
 export const PHONE_PREFIXES = [

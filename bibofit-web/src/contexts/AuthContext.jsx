@@ -207,10 +207,6 @@ export const AuthProvider = ({ children }) => {
         }
 
         if (session) {
-          await redeemPendingInvitationToken({
-            explicitToken: getInviteTokenFromUserMetadata(session.user),
-            source: resolveRedeemSourceForSession('session_bootstrap', session.user),
-          });
           await fetchUserProfile(session.user);
         } else {
           if (mounted) setLoading(false);
@@ -233,8 +229,13 @@ export const AuthProvider = ({ children }) => {
       if (!mounted) return;
 
       if (event === 'SIGNED_IN' && session) {
+        // Prefer token from user_metadata (email-signup flow sets it there).
+        // Fall back to localStorage for OAuth providers (e.g. Google) that do not
+        // propagate invite_token through user_metadata.
+        const explicitToken =
+          getInviteTokenFromUserMetadata(session.user) || getStoredInviteToken();
         await redeemPendingInvitationToken({
-          explicitToken: getInviteTokenFromUserMetadata(session.user),
+          explicitToken,
           source: resolveRedeemSourceForSession('auth_state_signed_in', session.user),
         });
         await fetchUserProfile(session.user);
@@ -320,8 +321,9 @@ export const AuthProvider = ({ children }) => {
           explicitToken: inviteToken,
           source: 'signup_auto_session',
         });
+        await fetchUserProfile(data.user);
       }
-      
+
       return {
         success: true,
         user: data.user,

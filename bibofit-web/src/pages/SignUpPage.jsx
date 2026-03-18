@@ -366,7 +366,7 @@ const SignUpPage = () => {
                     value={phoneNumber}
                     onChange={handlePhoneNumberChange}
                     className="input-field flex-1 min-w-0"
-                    placeholder="600000000"
+                    placeholder="Opcional"
                     inputMode="numeric"
                   />
                 </div>
@@ -381,7 +381,7 @@ const SignUpPage = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="input-field w-full"
-                  placeholder="tu@email.com"
+                  placeholder="contacto@gmail.com"
                   required
                 />
               </div>
