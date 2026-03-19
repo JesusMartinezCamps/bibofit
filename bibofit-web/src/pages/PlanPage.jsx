@@ -91,7 +91,7 @@ const PlanPage = () => {
                     <Dumbbell className="w-9 h-9 md:w-16 md:h-16 text-[#F44C40]" />
                   </div>
                   <h2 className="text-xl md:text-3xl font-bold text-foreground mb-1 md:mb-3">Plan de Entreno</h2>
-                  <p className="text-muted-foreground text-[11px] leading-tight md:text-base">Próximamente disponible — tus rutinas y ejercicios aquí.</p>
+                  <p className="text-muted-foreground text-[11px] leading-tight md:text-base">Abre tu sesión de hoy con histórico de pesos y repeticiones.</p>
                 </div>
               </Link>
             </motion.div>
