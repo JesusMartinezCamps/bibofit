@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { useContextualGuide } from '@/contexts/ContextualGuideContext';
+import { GUIDE_BLOCK_IDS } from '@/config/guideBlocks';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import { useRecipeEditor } from './useRecipeEditor';
@@ -189,6 +191,7 @@ const RecipeEditorModal = ({
   });
 
   const isEditable = propIsEditable !== undefined ? propIsEditable : hookIsEditable;
+  const { triggerBlock } = useContextualGuide();
 
   const [canEditInPlace, setCanEditInPlace] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
@@ -406,6 +409,7 @@ const RecipeEditorModal = ({
     if (newMode === 'settings') {
       editingSnapshotRef.current = buildEditingSnapshot();
       setMode(newMode);
+      triggerBlock(GUIDE_BLOCK_IDS.RECIPE_EDIT);
       return;
     }
 

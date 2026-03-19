@@ -77,7 +77,7 @@ import AppLayout from '@/layouts/AppLayout';
 // Providers
 import { OnboardingProvider } from '@/contexts/OnboardingContext';
 import { SwipeGestureProvider } from '@/contexts/SwipeGestureContext';
-import { QuickStartGuideProvider } from '@/contexts/QuickStartGuideContext';
+import { ContextualGuideProvider } from '@/contexts/ContextualGuideContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import {
   getDefaultAuthenticatedPath,
@@ -282,9 +282,9 @@ function App() {
             <NotificationsProvider>
               <OnboardingProvider>
                 <SwipeGestureProvider>
-                  <QuickStartGuideProvider>
+                  <ContextualGuideProvider>
                     <AppContent />
-                  </QuickStartGuideProvider>
+                  </ContextualGuideProvider>
                 </SwipeGestureProvider>
               </OnboardingProvider>
             </NotificationsProvider>

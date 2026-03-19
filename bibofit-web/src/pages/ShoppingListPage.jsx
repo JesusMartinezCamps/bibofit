@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useContextualGuide } from '@/contexts/ContextualGuideContext';
+import { GUIDE_BLOCK_IDS } from '@/config/guideBlocks';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Loader2, Calendar, Search, X, ChevronDown, ChevronUp, Lock, ArrowLeft, Plus, Trash2, ShoppingCart, RefreshCw, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
@@ -21,6 +23,13 @@ import { getRecipeIngredients } from '@/lib/recipeEntity';
 
 const STORAGE_KEY = 'shoppingListModalMode';
 const SHOPPING_CACHE_TTL_MS = 3 * 60 * 1000;
+
+const resolveShoppingListMode = (rawMode) => {
+    if (rawMode === 'complete' || rawMode === 'planned') return rawMode;
+    if (rawMode === 'day' || rawMode === 'list') return 'complete';
+    if (rawMode === 'week') return 'planned';
+    return 'complete';
+};
 
 const normalizeText = (text) => {
     return text
@@ -251,6 +260,11 @@ const ShoppingListGroup = ({ title, icon, items, checkedItems, onCheckedChange, 
 
 const ShoppingListPage = () => {
     const { user } = useAuth();
+    const { triggerBlock } = useContextualGuide();
+
+    useEffect(() => {
+        triggerBlock(GUIDE_BLOCK_IDS.SHOPPING_LIST);
+    }, [triggerBlock]);
     const navigate = useNavigate();
     const location = useLocation();
     const { toast } = useToast();
@@ -261,8 +275,8 @@ const ShoppingListPage = () => {
     }, [location.state?.initialDate]);
 
     // Initial state from navigation or defaults with lazy initialization
-    const [listMode, setListMode] = useState(() => 
-        location.state?.initialMode || localStorage.getItem(STORAGE_KEY) || 'planned'
+    const [listMode, setListMode] = useState(() =>
+        resolveShoppingListMode(location.state?.initialMode ?? localStorage.getItem(STORAGE_KEY))
     );
 
     const [loading, setLoading] = useState(true);

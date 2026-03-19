@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useContextualGuide } from '@/contexts/ContextualGuideContext';
+import { GUIDE_BLOCK_IDS } from '@/config/guideBlocks';
 import { Helmet } from 'react-helmet';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,6 +24,11 @@ const downsampleLogs = (logs, maxPoints) => {
 
 const WeightHistoryPage = () => {
   const { user } = useAuth();
+  const { triggerBlock } = useContextualGuide();
+
+  useEffect(() => {
+    triggerBlock(GUIDE_BLOCK_IDS.WEIGHT_HISTORY);
+  }, [triggerBlock]);
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState('1M'); // 1M, 3M, 6M, CUSTOM

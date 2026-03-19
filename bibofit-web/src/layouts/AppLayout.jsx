@@ -2,7 +2,8 @@ import React, { useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Header from '@/components/Header';
 import OnboardingWizard from '@/components/onboarding/OnboardingWizard';
-import QuickStartGuideModal from '@/components/QuickStartGuideModal';
+import ContextualGuideTooltip from '@/components/contextual-guide/ContextualGuideTooltip';
+import GuideHelpCenter from '@/components/contextual-guide/GuideHelpCenter';
 import { cn } from '@/lib/utils';
 
 const noMobilePaddingPaths = [
@@ -37,7 +38,8 @@ const AppLayout = () => {
   return (
     <>
       <OnboardingWizard />
-      <QuickStartGuideModal />
+      <ContextualGuideTooltip />
+      <GuideHelpCenter />
       <Header />
       <div
         className={cn(

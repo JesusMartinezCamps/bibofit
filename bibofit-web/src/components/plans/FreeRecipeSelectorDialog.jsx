@@ -1,9 +1,17 @@
-import React from 'react';
+import React, { useEffect } from 'react';
     import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
     import { Button } from '@/components/ui/button';
     import { Plus, Repeat } from 'lucide-react';
+    import { useContextualGuide } from '@/contexts/ContextualGuideContext';
+    import { GUIDE_BLOCK_IDS } from '@/config/guideBlocks';
 
     const FreeRecipeSelectorDialog = ({ open, onOpenChange, onAddNew, onRepeat }) => {
+      const { triggerBlock } = useContextualGuide();
+
+      useEffect(() => {
+        if (open) triggerBlock(GUIDE_BLOCK_IDS.FREE_RECIPE_SELECTOR);
+      }, [open, triggerBlock]);
+
       return (
         <Dialog open={open} onOpenChange={onOpenChange}>
           <DialogContent className="bg-background border-border text-white sm:max-w-[425px]">

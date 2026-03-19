@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate, Link } from 'react-router-dom';
-import { User, GitBranch, LogOut, ChevronRight, LineChart, CalendarCheck, RotateCcw, PlayCircle, Moon, Sun } from 'lucide-react';
+import { User, GitBranch, LogOut, ChevronRight, LineChart, CalendarCheck, RotateCcw, BookOpen, Moon, Sun } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,7 +19,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import ProfileTypeSubtitle from '@/components/profile/ProfileTypeSubtitle';
-import { useQuickStartGuide } from '@/contexts/QuickStartGuideContext';
+import { useContextualGuide } from '@/contexts/ContextualGuideContext';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -27,7 +27,7 @@ const ProfilePage = () => {
   const { signOut, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { openGuide } = useQuickStartGuide();
+  const { openHelpCenter } = useContextualGuide();
   const { startRepeatOnboarding } = useOnboarding();
   const { isDark, toggleTheme } = useTheme();
   const profileName = (`${user?.first_name || ''} ${user?.last_name || ''}`).trim() || user?.full_name?.trim();
@@ -101,9 +101,9 @@ const ProfilePage = () => {
                 type="button"
                 variant="outline"
                 className="border-border bg-card text-foreground hover:bg-accent"
-                onClick={openGuide}
+                onClick={openHelpCenter}
               >
-                <PlayCircle className="mr-2 h-4 w-4" /> Repetir Guía Rápida
+                <BookOpen className="mr-2 h-4 w-4" /> Centro de Ayuda
               </Button>
               <Button
                 type="button"
@@ -127,9 +127,9 @@ const ProfilePage = () => {
                 type="button"
                 variant="outline"
                 className="border-border bg-card text-foreground hover:bg-accent"
-                onClick={openGuide}
+                onClick={openHelpCenter}
               >
-                <PlayCircle className="mr-2 h-4 w-4" /> Repetir Guía Rápida
+                <BookOpen className="mr-2 h-4 w-4" /> Centro de Ayuda
               </Button>
               <Button
                 type="button"

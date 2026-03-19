@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useContextualGuide } from '@/contexts/ContextualGuideContext';
+import { GUIDE_BLOCK_IDS } from '@/config/guideBlocks';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { format, isValid, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -32,6 +34,11 @@ const getVariantNodeName = (node) => node?.name || `Variante #${node?.id ?? 'N/A
 
 const VariantTreePage = () => {
   const { user } = useAuth();
+  const { triggerBlock } = useContextualGuide();
+
+  useEffect(() => {
+    triggerBlock(GUIDE_BLOCK_IDS.VARIANT_TREE);
+  }, [triggerBlock]);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { userId: paramUserId, date: paramDate } = useParams();

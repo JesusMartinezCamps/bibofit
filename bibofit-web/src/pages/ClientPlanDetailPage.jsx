@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useContextualGuide } from '@/contexts/ContextualGuideContext';
+import { GUIDE_BLOCK_IDS } from '@/config/guideBlocks';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
@@ -12,6 +14,11 @@ const ClientPlanDetailPage = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const { toast } = useToast();
+    const { triggerBlock } = useContextualGuide();
+
+    useEffect(() => {
+        triggerBlock(GUIDE_BLOCK_IDS.MY_PLAN);
+    }, [triggerBlock]);
 
     const [loading, setLoading] = useState(true);
     const [activePlanId, setActivePlanId] = useState(null);

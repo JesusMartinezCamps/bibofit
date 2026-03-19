@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useContextualGuide } from '@/contexts/ContextualGuideContext';
+import { GUIDE_BLOCK_IDS } from '@/config/guideBlocks';
 import { Helmet } from 'react-helmet';
 import { motion } from 'framer-motion';
 import DietPlanComponent from '@/components/plans/DietPlanComponent';
@@ -44,6 +46,11 @@ const NotificationPopup = ({ notification, onClose }) => {
 
 const DietPlanPage = () => {
   const { user } = useAuth();
+  const { triggerBlock } = useContextualGuide();
+
+  useEffect(() => {
+    triggerBlock(GUIDE_BLOCK_IDS.DIET_PLAN);
+  }, [triggerBlock]);
   const [notification, setNotification] = useState(null);
 
   const fetchAndShowNotification = useCallback(async () => {
