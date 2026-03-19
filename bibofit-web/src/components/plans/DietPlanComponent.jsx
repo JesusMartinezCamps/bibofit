@@ -523,10 +523,10 @@ const combinedPlanRestrictions = useMemo(() => {
                   <div 
                       onClick={() => navigate(`/registro-peso?date=${format(currentDate, 'yyyy-MM-dd')}${userId ? `&userId=${userId}` : ''}`)}
                       className={cn(
-                          "p-3 rounded-lg border shadow-lg text-center cursor-pointer h-auto flex flex-col justify-center w-full transition-transform hover:scale-[1.02]",
+                          "p-3 rounded-lg border shadow-lg text-center cursor-pointer h-auto flex flex-col justify-center w-full transition-colors duration-200",
                           weightForDay
-                              ? "bg-violet-100/70 dark:bg-violet-900/30 border-violet-400/60 dark:border-violet-500/50"
-                              : "bg-muted/65 border-border/80"
+                              ? "bg-violet-100/70 dark:bg-violet-900/30 border-violet-400/60 dark:border-violet-500/50 hover:bg-gradient-to-br hover:from-violet-100/70 hover:to-violet-50/80 dark:hover:from-violet-900/30 dark:hover:to-violet-700/35"
+                              : "bg-muted/65 border-border/80 hover:bg-gradient-to-br hover:from-violet-100/40 hover:to-violet-50/60 dark:hover:from-violet-900/25 dark:hover:to-violet-700/30"
                       )}
                   >
                       <h4 className={cn(
