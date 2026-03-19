@@ -28,7 +28,7 @@ const getAdjustmentsForRecipe = (dailyIngredientAdjustments, equivalenceAdjustme
     return recipeAdjustments.length > 0 ? recipeAdjustments : null;
 };
 
-const MealHeader = React.memo(({ mealName, mealId, name, items, isAnyRecipeSelectedInMeal, isFreeRecipeSelected, isPrivateRecipeSelected, mealTargetData, mealAdjustment, handleUndoEquivalence, handleAddSnack, handleAddFreeMeal, hasSnacks }) => {
+const MealHeader = React.memo(({ mealName, mealId, name, items, isAnyRecipeSelectedInMeal, isFreeRecipeSelected, isPrivateRecipeSelected, mealTargetData, mealAdjustment, handleUndoEquivalence, handleAddSnack, handleAddFreeMeal, hasSnacks, showMealTargetMacros }) => {
     const [isUndoLoading, setIsUndoLoading] = useState(false);
     const pluralize = (name) => {
         if (!name) return '';
@@ -75,10 +75,18 @@ const MealHeader = React.memo(({ mealName, mealId, name, items, isAnyRecipeSelec
             {/* Right side content (Macros + Buttons) - z-20 pointer-events-none (above trigger) */}
             <div className="flex items-center justify-between flex-grow gap-2 relative z-20 pointer-events-none">
                 {/* Macros - still pointer-events-none effectively, so clicks pass to trigger behind this div */}
-                <div>
+                <div
+                  className={cn(
+                    "overflow-hidden transition-all duration-300 ease-in-out",
+                    showMealTargetMacros
+                      ? "max-w-[420px] max-h-12 opacity-100 translate-y-0"
+                      : "max-w-0 max-h-0 opacity-0 -translate-y-1"
+                  )}
+                  aria-hidden={!showMealTargetMacros}
+                >
                     {mealTargetData ? (
-                      <MealTargetMacros mealTargetMacros={mealTargetData} adjustment={mealAdjustment} />
-                    ) : <div />}
+                      <MealTargetMacros mealTargetMacros={mealTargetData} adjustment={mealAdjustment} className="whitespace-nowrap" />
+                    ) : null}
                 </div>
 
                 {/* Buttons - restore pointer events so they are clickable */}
@@ -90,7 +98,7 @@ const MealHeader = React.memo(({ mealName, mealId, name, items, isAnyRecipeSelec
                                     <Button 
                                         size="icon" 
                                         variant="ghost" 
-                                        className="h-7 w-7 text-blue-400 hover:bg-blue-500/10 hover:text-blue-300 border border-blue-400" 
+                                        className="h-7 w-7 text-blue-400 hover:bg-blue-500/10 hover:text-blue-300 dark:text-blue-300 border border-blue-400" 
                                         style={{borderWidth: 'thin'}} 
                                         onClick={onUndoClick}
                                         disabled={isUndoLoading}
@@ -104,10 +112,10 @@ const MealHeader = React.memo(({ mealName, mealId, name, items, isAnyRecipeSelec
                             </Tooltip>
                         </TooltipProvider>
                     )}
-                    <Button size="icon" variant="ghost" className={cn("h-7 w-7 text-orange-400 dark:text-orange-400 hover:bg-orange-500/10 hover:text-orange-300 dark:hover:text-orange-300 border border-orange-400", hasSnacks && "bg-orange-300/25")} style={{borderWidth: 'thin'}} onClick={() => handleAddSnack(mealId, name)}>
+                    <Button size="icon" variant="ghost" className={cn("h-7 w-7 text-orange-400 dark:text-orange-400 hover:bg-orange-500/10 hover:text-orange-300 dark:hover:text-orange-300 border border-orange-400/40", hasSnacks && "bg-orange-600/15")} style={{borderWidth: 'thin'}} onClick={() => handleAddSnack(mealId, name)}>
                         <Apple className="h-5 w-5" />
                     </Button>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-blue-400 dark:text-blue-400 hover:bg-blue-500/10 hover:text-blue-300 dark:hover:text-blue-300 border border-[#70a3f3]" style={{borderWidth: 'thin'}} onClick={() => handleAddFreeMeal(mealId, name, mealTargetData)}>
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-blue-400 dark:text-blue-400 hover:bg-blue-500/10 hover:text-blue-300 dark:hover:text-blue-300 border border-[#70a3f3]/40" style={{borderWidth: 'thin'}} onClick={() => handleAddFreeMeal(mealId, name, mealTargetData)}>
                         <UtensilsCrossed className="h-5 w-5" />
                     </Button>
                 </div>
@@ -139,6 +147,7 @@ const ListView = ({
   handleUndoEquivalence,
   recipeStyles = [],
   onMealExpand,
+  showMealTargetMacros = false,
 }) => {
   const [searchQueries, setSearchQueries] = useState({});
   const foodById = useMemo(() => {
@@ -279,6 +288,7 @@ const ListView = ({
                 handleAddSnack={handleAddSnack}
                 handleAddFreeMeal={handleAddFreeMeal}
                 hasSnacks={hasSnacks}
+                showMealTargetMacros={showMealTargetMacros}
             />
             
             <CollapsibleContent>

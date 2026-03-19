@@ -3,7 +3,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Link, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, Calendar, List, ArrowLeft, ArrowRight, AlertTriangle, ShoppingCart, HeartPulse, ShieldAlert, Weight, StickyNote, GitBranch } from 'lucide-react';
+import { Loader2, Calendar, List, ArrowLeft, ArrowRight, AlertTriangle, ShoppingCart, HeartPulse, ShieldAlert, Weight, StickyNote, GitBranch, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import WeeklyDietPlanner from '@/components/shared/WeeklyDietPlanner/WeeklyDietPlanner';
 import { format, addDays, subDays, isValid, parseISO, isToday, isSameDay, isBefore, isAfter, startOfDay, differenceInCalendarDays } from 'date-fns';
@@ -139,6 +139,7 @@ const DietPlanComponent = () => {
   const [plannedMeals, setPlannedMeals] = useState([]);
   const [weekSummaryByDate, setWeekSummaryByDate] = useState({});
   const [focusedWeekDate, setFocusedWeekDate] = useState(getInitialDate());
+  const [showMealTargetMacros, setShowMealTargetMacros] = useState(false);
   
   const isAdminView = authUser?.id !== userId;
   const logDate = format(currentDate, 'yyyy-MM-dd');
@@ -650,7 +651,36 @@ const combinedPlanRestrictions = useMemo(() => {
               <CardHeader>
                   <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
-                          <CardTitle>{viewMode === 'list' ? 'Comidas del día' : 'Planificación de semana'}</CardTitle>
+                          {viewMode === 'list' ? (
+                            <div className="flex items-center gap-2">
+                              <CardTitle>Comidas del día</CardTitle>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-foreground transition-colors"
+                                aria-label={showMealTargetMacros ? 'Ocultar macros objetivo' : 'Mostrar macros objetivo'}
+                                aria-pressed={showMealTargetMacros}
+                                onClick={() => setShowMealTargetMacros((prev) => !prev)}
+                              >
+                                <span className="relative h-5 w-5">
+                                  <Eye
+                                    className={cn(
+                                      "absolute inset-0 h-5 w-5 transition-all duration-300 ease-in-out",
+                                      showMealTargetMacros ? "opacity-100 scale-100 rotate-0" : "opacity-0 scale-75 -rotate-6"
+                                    )}
+                                  />
+                                  <EyeOff
+                                    className={cn(
+                                      "absolute inset-0 h-5 w-5 transition-all duration-300 ease-in-out",
+                                      showMealTargetMacros ? "opacity-0 scale-75 rotate-6" : "opacity-100 scale-100 rotate-0"
+                                    )}
+                                  />
+                                </span>
+                              </Button>
+                            </div>
+                          ) : (
+                            <CardTitle>Planificación de semana</CardTitle>
+                          )}
                           {viewMode === 'week' && <CardDescription className="text-muted-foreground">Planifica tu semana y revisa la Compra Inteligente</CardDescription>}
                       </div>
                       <div className="ml-auto flex items-center gap-2 sm:gap-4">
@@ -702,6 +732,7 @@ const combinedPlanRestrictions = useMemo(() => {
                       userRestrictions={combinedPlanRestrictions}
                       onWeekSummaryChange={setWeekSummaryByDate}
                       onMealExpand={handleMealExpand}
+                      showMealTargetMacros={showMealTargetMacros}
                   />
                   )}
               </CardContent>

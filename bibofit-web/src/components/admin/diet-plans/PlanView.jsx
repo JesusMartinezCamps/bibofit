@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, Loader2, Zap, RefreshCw, Check } from 'lucide-react';
+import { Plus, Loader2, Bot, RefreshCw, Check } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import AddRecipeToPlanDialog from '@/components/plans/AddRecipeToPlanDialog';
 import AdminRecipeModal from '@/components/admin/recipes/AdminRecipeModal';
@@ -10,9 +10,12 @@ import { useToast } from '@/components/ui/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import MealTargetMacros from '@/components/shared/MealTargetMacros';
 import { format } from 'date-fns';
-import { invokeAutoBalanceBatch } from '@/lib/autoBalanceClient';
+import { invokeAutoBalanceBatch, invokeScaleDietPlan, invokeAutoBalancePlanAllMoments } from '@/lib/autoBalanceClient';
 
-const MealSection = ({ meal, recipes, onAdd, onEdit, onDelete, allFoods, userRestrictions, userDayMeal, onAutoBalance, isBalancing, isAlreadyBalanced, planUserId, readOnly = false, pendingRecalc = false }) => (
+// ---------------------------------------------------------------------------
+// MealSection — sección individual de un momento del día
+// ---------------------------------------------------------------------------
+const MealSection = ({ meal, recipes, onAdd, onEdit, onDelete, allFoods, userRestrictions, userDayMeal, onAutoBalance, isBalancing, isAlreadyBalanced, isDirty, planUserId, readOnly = false, pendingChange = null }) => (
     <div key={meal.id} className="bg-card/75 p-4 rounded-lg border border-border">
         <div className="flex items-center gap-3 mb-4 flex-wrap justify-between">
             <div className="flex items-center gap-2">
@@ -22,22 +25,22 @@ const MealSection = ({ meal, recipes, onAdd, onEdit, onDelete, allFoods, userRes
                         <Plus className="h-6 w-6" />
                     </Button>
                 )}
-                {!readOnly && recipes.length > 0 && userDayMeal && (
+                {/* Bot mini — solo visible si el momento tiene recetas, targets y hay algo dirty */}
+                {!readOnly && recipes.length > 0 && userDayMeal && isDirty && !pendingChange && (
                     <Button
+                        type="button"
                         onClick={() => onAutoBalance(userDayMeal, recipes, planUserId)}
+                        disabled={isBalancing || isAlreadyBalanced}
                         size="icon"
-                        variant="ghost"
-                        className={isAlreadyBalanced
-                            ? "h-8 w-8 text-green-500 hover:bg-green-500/10"
-                            : "h-8 w-8 text-blue-500 hover:bg-blue-500/10 hover:text-blue-400"}
-                        disabled={isBalancing || isAlreadyBalanced || pendingRecalc}
-                        title={pendingRecalc ? "Actualiza los targets antes de usar el autocuadre" : isAlreadyBalanced ? "Autocuadre ya aplicado" : "Autocuadre"}
+                        variant="outline"
+                        className="h-8 w-8 border-cyan-500 bg-cyan-400/10 text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title={isAlreadyBalanced ? "Autocuadre ya aplicado" : "Autocuadrar Macros"}
                     >
                         {isBalancing
-                            ? <Loader2 className="h-5 w-5 animate-spin" />
+                            ? <Loader2 className="h-4 w-4 animate-spin" />
                             : isAlreadyBalanced
-                                ? <Check className="h-5 w-5" />
-                                : <Zap className="h-5 w-5" />}
+                                ? <Check className="h-4 w-4" />
+                                : <Bot className="h-4 w-4" />}
                     </Button>
                 )}
             </div>
@@ -72,7 +75,22 @@ const MealSection = ({ meal, recipes, onAdd, onEdit, onDelete, allFoods, userRes
     </div>
 );
 
-const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOnly = false, isTemplate = false, pendingRecalc = false, onRecalculate }) => {
+// ---------------------------------------------------------------------------
+// PlanView
+// ---------------------------------------------------------------------------
+const PlanView = ({
+    plan,
+    onUpdate,
+    userDayMeals,
+    isAssignedPlan = false,
+    readOnly = false,
+    isTemplate = false,
+    // Nuevo sistema granular (reemplaza pendingRecalc booleano)
+    pendingChange = null,       // { type: 'linear_scale'|'macro_redistribution', oldTdee, newTdee } | null
+    dirtyMealIds = [],          // string[] de user_day_meal.id con targets recién guardados
+    onDirtyMealsCleared,        // callback para limpiar dirtyMealIds en el padre
+    onRecalculate,              // async () => void — guarda targets y actualiza savedSnapshot
+}) => {
     const { toast } = useToast();
     const [recipes, setRecipes] = useState([]);
     const [dayMeals, setDayMeals] = useState([]);
@@ -80,6 +98,7 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOn
     const [loadingData, setLoadingData] = useState(true);
     const [balancingMealId, setBalancingMealId] = useState(null);
     const [balancedMealIds, setBalancedMealIds] = useState({});
+    const [isPlanBalancing, setIsPlanBalancing] = useState(false);
 
     const [isAddRecipeOpen, setIsAddRecipeOpen] = useState(false);
     const [mealToAddTo, setMealToAddTo] = useState(null);
@@ -89,143 +108,200 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOn
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [recipeToDelete, setRecipeToDelete] = useState({ id: null, isPrivate: false });
     const [isAddingViaConflict, setIsAddingViaConflict] = useState(false);
-    
-    // Guard against race conditions for data fetching
+
     const fetchIdRef = useRef(0);
+
+    // -------------------------------------------------------------------------
+    // Advertir al cerrar/recargar la pestaña si hay cambios pendientes
+    // (la navegación SPA queda cubierta por el banner en el CardHeader)
+    // -------------------------------------------------------------------------
+    useEffect(() => {
+        const hasPendingWork = !readOnly && (pendingChange !== null || dirtyMealIds.length > 0);
+        if (!hasPendingWork) return;
+        const handler = (e) => { e.preventDefault(); e.returnValue = ''; };
+        window.addEventListener('beforeunload', handler);
+        return () => window.removeEventListener('beforeunload', handler);
+    }, [readOnly, pendingChange, dirtyMealIds]);
 
     const fetchPlanData = useCallback(async () => {
         if (!plan?.id) return;
-        
+
         const currentFetchId = ++fetchIdRef.current;
         setLoadingData(true);
-        
+
         try {
-            // 1. Fetch Foods (Try catch to handle RLS issues gracefully)
             let foodsData = [];
             try {
                 const { data, error } = await supabase.from('food')
                     .select('*, food_sensitivities(sensitivity_id), food_medical_conditions(condition_id, relation_type)');
-                
-                if (error) {
-                    console.warn("Could not fetch all foods (possibly RLS restricted):", error.message);
-                } else {
-                    foodsData = data || [];
-                }
+                if (error) console.warn("Could not fetch all foods:", error.message);
+                else foodsData = data || [];
             } catch (e) {
                 console.error("Exception fetching foods:", e);
             }
 
-            // 2. Fetch Plan Recipes with explicit nested selects
-            // We include recipe_macros to allow fallback if calculation fails due to missing foods
             const { data: planRecipesData, error: planRecipesError } = await supabase.from('diet_plan_recipes')
-                .select(`
-                    *, 
-                    recipe:recipe_id(
-                        *, 
-                        recipe_ingredients(
-                            *, 
-                            food(*)
-                        )
-                    ), 
-                    day_meal:day_meal_id!inner(id,name,display_order), 
-                    custom_ingredients:recipe_ingredients(
-                        *, 
-                        food(*)
-                    ),
-                    recipe_macros(*)
-                `)
+                .select(`*, recipe:recipe_id(*, recipe_ingredients(*, food(*))), day_meal:day_meal_id!inner(id,name,display_order), custom_ingredients:recipe_ingredients(*, food(*)), recipe_macros(*)`)
                 .eq('diet_plan_id', plan.id)
                 .eq('is_archived', false)
                 .not('day_meal_id', 'is', null);
 
-            if (planRecipesError) {
-                console.error("Error fetching plan recipes:", planRecipesError);
-                throw new Error("No se pudieron cargar las recetas del plan.");
-            }
+            if (planRecipesError) throw new Error("No se pudieron cargar las recetas del plan.");
 
-            // 3. Fetch Private Recipes
-            const { data: privateRecipesData, error: privateRecipesError } = await supabase.from('user_recipes')
-                .select(`
-                    *,
-                    recipe_ingredients(
-                        *,
-                        food(*)
-                    ),
-                    day_meal:day_meal_id!inner(id,name,display_order)
-                `)
+            const { data: privateRecipesData } = await supabase.from('user_recipes')
+                .select(`*, recipe_ingredients(*, food(*)), day_meal:day_meal_id!inner(id,name,display_order)`)
                 .eq('diet_plan_id', plan.id)
                 .in('type', ['private', 'variant'])
                 .eq('is_archived', false);
 
-            if (privateRecipesError) {
-                console.warn("Error fetching private recipes:", privateRecipesError);
-                // Non-critical, continue
-            }
-
-            // Only update state if this is the latest request
             if (currentFetchId === fetchIdRef.current) {
                 setAllFoods(foodsData);
-                
-                // Normalize recipe data structure
-                const combinedRecipes = [
-                    ...(planRecipesData || []).map(r => ({ 
-                        ...r, 
+                setRecipes([
+                    ...(planRecipesData || []).map(r => ({
+                        ...r,
                         is_private: false,
-                        // Ensure ingredients are properly accessible for RecipeCard
                         recipe_ingredients: r.recipe?.recipe_ingredients || [],
                         custom_ingredients: r.custom_ingredients || [],
-                        // Ensure macros are accessible
-                        recipe_macros: r.recipe_macros || []
+                        recipe_macros: r.recipe_macros || [],
                     })),
-                    ...(privateRecipesData || []).map(r => ({
-                        ...r,
-                        is_private: true,
-                    }))
-                ];
-
-                console.log("PlanView fetched recipes:", combinedRecipes.length);
-                setRecipes(combinedRecipes);
+                    ...(privateRecipesData || []).map(r => ({ ...r, is_private: true })),
+                ]);
             }
-
         } catch (error) {
             if (currentFetchId === fetchIdRef.current) {
-                console.error("Fetch plan data error:", error);
                 toast({ title: "Error", description: `No se pudieron cargar datos esenciales: ${error.message}`, variant: "destructive" });
             }
         } finally {
-            if (currentFetchId === fetchIdRef.current) {
-                setLoadingData(false);
-            }
+            if (currentFetchId === fetchIdRef.current) setLoadingData(false);
         }
     }, [plan.id, toast]);
 
-    useEffect(() => {
-        fetchPlanData();
-    }, [fetchPlanData]);
+    useEffect(() => { fetchPlanData(); }, [fetchPlanData]);
 
-    // Cuando los targets cambian (pendingRecalc), invalidar los balanceos previos
+    // Cuando hay un cambio global pendiente, invalidar balanceos previos
     useEffect(() => {
-        if (pendingRecalc) setBalancedMealIds({});
-    }, [pendingRecalc]);
+        if (pendingChange !== null) setBalancedMealIds({});
+    }, [pendingChange]);
 
-    // Derive dayMeals from userDayMeals prop without re-triggering the heavy DB fetch
     useEffect(() => {
         if (!userDayMeals) return;
-        const sortedMeals = userDayMeals
-            .map(m => ({
-                id: m.day_meal.id,
-                name: m.day_meal.name,
-                preferences: m.preferences,
-                display_order: m.day_meal.display_order,
-            }))
-            .sort((a, b) => a.display_order - b.display_order);
-        setDayMeals(sortedMeals);
+        setDayMeals(
+            userDayMeals
+                .map(m => ({ id: m.day_meal.id, name: m.day_meal.name, preferences: m.preferences, display_order: m.day_meal.display_order }))
+                .sort((a, b) => a.display_order - b.display_order)
+        );
     }, [userDayMeals]);
 
-    const handleAutoBalance = async (userDayMeal, momentRecipes, userId) => {
+    // -------------------------------------------------------------------------
+    // Refetch optimizado para un solo momento
+    // -------------------------------------------------------------------------
+    const refetchMealRecipes = useCallback(async (dayMealId) => {
+        const [publicRes, privateRes] = await Promise.all([
+            supabase.from('diet_plan_recipes')
+                .select('*, recipe:recipe_id(*, recipe_ingredients(*, food(*))), day_meal:day_meal_id!inner(id,name,display_order), custom_ingredients:recipe_ingredients(*, food(*)), recipe_macros(*)')
+                .eq('diet_plan_id', plan.id)
+                .eq('day_meal_id', dayMealId)
+                .eq('is_archived', false)
+                .not('day_meal_id', 'is', null),
+            supabase.from('user_recipes')
+                .select('*, recipe_ingredients(*, food(*)), day_meal:day_meal_id!inner(id,name,display_order)')
+                .eq('diet_plan_id', plan.id)
+                .eq('day_meal_id', dayMealId)
+                .in('type', ['private', 'variant'])
+                .eq('is_archived', false),
+        ]);
+        const updated = [
+            ...(publicRes.data || []).map(r => ({ ...r, is_private: false, recipe_ingredients: r.recipe?.recipe_ingredients || [], custom_ingredients: r.custom_ingredients || [], recipe_macros: r.recipe_macros || [] })),
+            ...(privateRes.data || []).map(r => ({ ...r, is_private: true })),
+        ];
+        setRecipes(prev => [...prev.filter(r => r.day_meal_id !== dayMealId), ...updated]);
+    }, [plan.id]);
+
+    // -------------------------------------------------------------------------
+    // Autocuadre de PLAN COMPLETO (escenarios 1 y 2)
+    // -------------------------------------------------------------------------
+    const handlePlanAutoBalance = useCallback(async () => {
+        if (!pendingChange || readOnly) return;
+        setIsPlanBalancing(true);
+        try {
+            if (pendingChange.type === 'linear_scale') {
+                // Optimistic: escalar gramos localmente para respuesta inmediata
+                const factor = pendingChange.newTdee / pendingChange.oldTdee;
+                setRecipes(prev => prev.map(r => ({
+                    ...r,
+                    custom_ingredients: (r.custom_ingredients || []).map(ing => ({
+                        ...ing,
+                        grams: ing.grams != null
+                            ? Math.round(Number(ing.grams) * factor / 5) * 5  // nearest 5g optimistic
+                            : ing.grams,
+                    })),
+                })));
+                // Edge function persiste con redondeo preciso
+                await invokeScaleDietPlan({
+                    diet_plan_id: plan.id,
+                    user_id: plan.user_id,
+                    old_tdee: pendingChange.oldTdee,
+                    new_tdee: pendingChange.newTdee,
+                });
+                // Guardar targets → limpia pendingChange
+                await onRecalculate?.();
+                toast({ title: 'Plan escalado', description: 'Las cantidades se han ajustado proporcionalmente.', className: 'bg-cyan-600/25 text-white' });
+            } else {
+                // macro_redistribution: primero guardar targets en BD, luego balancear
+                await onRecalculate?.();
+                await invokeAutoBalancePlanAllMoments({
+                    diet_plan_id: plan.id,
+                    user_id: plan.user_id,
+                });
+                await fetchPlanData();
+                toast({ title: 'Plan autocuadrado', description: 'Todos los momentos han sido reajustados.', className: 'bg-cyan-600/25 text-white' });
+            }
+            setBalancedMealIds({});
+        } catch (error) {
+            toast({ title: 'Error en Autocuadre', description: error.message, variant: 'destructive' });
+        } finally {
+            setIsPlanBalancing(false);
+        }
+    }, [pendingChange, readOnly, plan.id, plan.user_id, onRecalculate, fetchPlanData, toast]);
+
+    // -------------------------------------------------------------------------
+    // Autocuadre de MOMENTO(S) — escenario 3: linked meals
+    // Pulsar el Bot en cualquier momento dirty balancea TODOS los dirty juntos
+    // -------------------------------------------------------------------------
+    const handleAutoBalance = useCallback(async (userDayMeal, momentRecipes, userId) => {
         if (readOnly) return;
         const momentId = userDayMeal.id;
         const dayMealId = userDayMeal.day_meal_id;
+
+        // Si hay linked meals (dirtyMealIds), balancearlos todos a la vez
+        if (dirtyMealIds.length > 0) {
+            setBalancingMealId(momentId);
+            try {
+                await invokeAutoBalancePlanAllMoments({
+                    diet_plan_id: plan.id,
+                    user_id: userId,
+                    meal_ids: dirtyMealIds,
+                });
+                // Refetch de todos los momentos afectados
+                const affectedDayMealIds = (userDayMeals || [])
+                    .filter(udm => dirtyMealIds.includes(String(udm.id)))
+                    .map(udm => udm.day_meal_id);
+                await Promise.all(affectedDayMealIds.map(refetchMealRecipes));
+                // Marcar todos los linked como balanceados y limpiar dirty
+                const newBalanced = {};
+                dirtyMealIds.forEach(id => { newBalanced[id] = true; });
+                setBalancedMealIds(prev => ({ ...prev, ...newBalanced }));
+                onDirtyMealsCleared?.();
+                toast({ title: 'Autocuadre Exitoso', description: `${dirtyMealIds.length} momento(s) ajustados.`, className: 'bg-cyan-600/25 text-white' });
+            } catch (error) {
+                toast({ title: 'Error en Autocuadre', description: error.message, variant: 'destructive' });
+            } finally {
+                setBalancingMealId(null);
+            }
+            return;
+        }
+
+        // Sin linked meals: batch normal del momento
         setBalancingMealId(momentId);
         try {
             const recipeIds = momentRecipes.map(r => ({ id: r.id, is_private: r.is_private }));
@@ -235,60 +311,23 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOn
                 date: format(new Date(), 'yyyy-MM-dd'),
                 user_id: userId,
             });
-
             if (data.success) {
-                toast({
-                    title: 'Autocuadre Exitoso',
-                    description: `${data.recipesProcessed} de ${data.totalRecipes} recetas fueron ajustadas.`,
-                    className: 'bg-cyan-600/25 text-white'
-                });
-
-                // Fetch solo las recetas del momento afectado, no todo el plan
-                const [publicRes, privateRes] = await Promise.all([
-                    supabase.from('diet_plan_recipes')
-                        .select('*, recipe:recipe_id(*, recipe_ingredients(*, food(*))), day_meal:day_meal_id!inner(id,name,display_order), custom_ingredients:recipe_ingredients(*, food(*)), recipe_macros(*)')
-                        .eq('diet_plan_id', plan.id)
-                        .eq('day_meal_id', dayMealId)
-                        .eq('is_archived', false)
-                        .not('day_meal_id', 'is', null),
-                    supabase.from('user_recipes')
-                        .select('*, recipe_ingredients(*, food(*)), day_meal:day_meal_id!inner(id,name,display_order)')
-                        .eq('diet_plan_id', plan.id)
-                        .eq('day_meal_id', dayMealId)
-                        .in('type', ['private', 'variant'])
-                        .eq('is_archived', false),
-                ]);
-
-                const updatedMealRecipes = [
-                    ...(publicRes.data || []).map(r => ({
-                        ...r,
-                        is_private: false,
-                        recipe_ingredients: r.recipe?.recipe_ingredients || [],
-                        custom_ingredients: r.custom_ingredients || [],
-                        recipe_macros: r.recipe_macros || [],
-                    })),
-                    ...(privateRes.data || []).map(r => ({ ...r, is_private: true })),
-                ];
-
-                setRecipes(prev => [
-                    ...prev.filter(r => r.day_meal_id !== dayMealId),
-                    ...updatedMealRecipes,
-                ]);
+                await refetchMealRecipes(dayMealId);
                 setBalancedMealIds(prev => ({ ...prev, [momentId]: true }));
+                toast({ title: 'Autocuadre Exitoso', description: `${data.recipesProcessed} de ${data.totalRecipes} recetas ajustadas.`, className: 'bg-cyan-600/25 text-white' });
             } else {
-                throw new Error(data.error || 'Ocurrió un error desconocido durante el autocuadre.');
+                throw new Error(data.error || 'Error desconocido durante el autocuadre.');
             }
         } catch (error) {
-            toast({
-                title: 'Error en Autocuadre',
-                description: error.message,
-                variant: 'destructive'
-            });
+            toast({ title: 'Error en Autocuadre', description: error.message, variant: 'destructive' });
         } finally {
             setBalancingMealId(null);
         }
-    };
+    }, [readOnly, dirtyMealIds, plan.id, userDayMeals, refetchMealRecipes, onDirtyMealsCleared, toast]);
 
+    // -------------------------------------------------------------------------
+    // Handlers de recetas
+    // -------------------------------------------------------------------------
     const handleOpenAddRecipe = (meal) => {
         if (readOnly) return;
         setMealToAddTo(meal);
@@ -311,23 +350,15 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOn
 
     const confirmDeleteRecipe = async () => {
         if (!recipeToDelete.id) return;
-    
-        let promise;
-        let successMessage;
-    
+        let promise, successMessage;
         if (recipeToDelete.isPrivate) {
-            promise = supabase
-                .from('user_recipes')
-                .update({ diet_plan_id: null, day_meal_id: null })
-                .eq('id', recipeToDelete.id);
+            promise = supabase.from('user_recipes').update({ diet_plan_id: null, day_meal_id: null }).eq('id', recipeToDelete.id);
             successMessage = 'Receta privada desasignada del plan.';
         } else {
             promise = supabase.from('diet_plan_recipes').delete().eq('id', recipeToDelete.id);
             successMessage = 'Receta eliminada del plan.';
         }
-    
         const { error } = await promise;
-    
         if (error) {
             toast({ title: 'Error', description: error.message, variant: 'destructive' });
         } else {
@@ -344,71 +375,27 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOn
 
     const handleRecipeAddedToPlan = async (recipe) => {
         if (!mealToAddTo) return;
-        
         try {
-            const { data: originalRecipe, error: recipeError } = await supabase
-                .from('recipes')
-                .select('*, recipe_ingredients(*)')
-                .eq('id', recipe.id)
-                .single();
-    
+            const { data: originalRecipe, error: recipeError } = await supabase.from('recipes').select('*, recipe_ingredients(*)').eq('id', recipe.id).single();
             if (recipeError) throw recipeError;
-    
-            const { data: newPlanRecipe, error: planRecipeError } = await supabase
-                .from('diet_plan_recipes')
-                .insert({
-                    diet_plan_id: plan.id,
-                    recipe_id: recipe.id,
-                    day_meal_id: mealToAddTo.id,
-                    is_customized: true,
-                    custom_name: originalRecipe.name,
-                    custom_prep_time_min: originalRecipe.prep_time_min,
-                    custom_difficulty: originalRecipe.difficulty,
-                    custom_instructions: originalRecipe.instructions,
-                })
-                .select('id')
-                .single();
-    
+
+            const { data: newPlanRecipe, error: planRecipeError } = await supabase.from('diet_plan_recipes')
+                .insert({ diet_plan_id: plan.id, recipe_id: recipe.id, day_meal_id: mealToAddTo.id, is_customized: true, custom_name: originalRecipe.name, custom_prep_time_min: originalRecipe.prep_time_min, custom_difficulty: originalRecipe.difficulty, custom_instructions: originalRecipe.instructions })
+                .select('id').single();
             if (planRecipeError) throw planRecipeError;
-    
-            if (originalRecipe.recipe_ingredients && originalRecipe.recipe_ingredients.length > 0) {
-                const newIngredients = originalRecipe.recipe_ingredients.map(ing => ({
-                    diet_plan_recipe_id: newPlanRecipe.id,
-                    food_id: ing.food_id,
-                    grams: ing.grams,
-                }));
-    
-                const { error: ingredientsError } = await supabase
-                    .from('recipe_ingredients')
-                    .insert(newIngredients);
-    
+
+            if (originalRecipe.recipe_ingredients?.length > 0) {
+                const { error: ingredientsError } = await supabase.from('recipe_ingredients').insert(
+                    originalRecipe.recipe_ingredients.map(ing => ({ diet_plan_recipe_id: newPlanRecipe.id, food_id: ing.food_id, grams: ing.grams }))
+                );
                 if (ingredientsError) throw ingredientsError;
             }
-    
-            // Fetch the FULL new record including relations for immediate UI update
-            const { data: fullNewRecord, error: fetchNewError } = await supabase
-                .from('diet_plan_recipes')
-                .select(`
-                    *, 
-                    recipe:recipe_id(
-                        *, 
-                        recipe_ingredients(
-                            *, 
-                            food(*)
-                        )
-                    ), 
-                    day_meal:day_meal_id!inner(id,name,display_order), 
-                    custom_ingredients:recipe_ingredients(
-                        *, 
-                        food(*)
-                    ),
-                    recipe_macros(*)
-                `)
-                .eq('id', newPlanRecipe.id)
-                .single();
-            
+
+            const { data: fullNewRecord, error: fetchNewError } = await supabase.from('diet_plan_recipes')
+                .select('*, recipe:recipe_id(*, recipe_ingredients(*, food(*))), day_meal:day_meal_id!inner(id,name,display_order), custom_ingredients:recipe_ingredients(*, food(*)), recipe_macros(*)')
+                .eq('id', newPlanRecipe.id).single();
             if (fetchNewError) throw fetchNewError;
-    
+
             setRecipes(prev => [...prev, { ...fullNewRecord, is_private: false }]);
             const udm = userDayMeals?.find(u => u.day_meal_id === mealToAddTo.id);
             if (udm) setBalancedMealIds(prev => { const next = { ...prev }; delete next[udm.id]; return next; });
@@ -421,16 +408,7 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOn
 
     const handleOpenEditorForConflict = (recipeTemplate, conflicts) => {
         const userDayMealForConflict = userDayMeals?.find(udm => udm.day_meal_id === mealToAddTo.id);
-        const detachedRecipe = {
-          is_customized: false,
-          recipe: recipeTemplate,
-          day_meal_id: mealToAddTo.id,
-          dietPlanId: plan.id,
-          recipeTemplateId: recipeTemplate.id,
-          mealId: mealToAddTo.id,
-          conflicts: conflicts
-        };
-        setRecipeToEdit(detachedRecipe);
+        setRecipeToEdit({ is_customized: false, recipe: recipeTemplate, day_meal_id: mealToAddTo.id, dietPlanId: plan.id, recipeTemplateId: recipeTemplate.id, mealId: mealToAddTo.id, conflicts });
         setMealTargetMacros(userDayMealForConflict);
         setIsAddRecipeOpen(false);
         setIsAddingViaConflict(true);
@@ -439,49 +417,24 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOn
 
     const handleSaveSuccess = async (resultData, action) => {
         setIsRecipeEditorOpen(false);
-
         if ((action === 'variant_created' || action === 'customized_update') && resultData) {
             try {
-                 const { data: fullNewRecord, error: fetchNewError } = await supabase
-                     .from('diet_plan_recipes')
-                     .select(`
-                        *, 
-                        recipe:recipe_id(
-                            *, 
-                            recipe_ingredients(
-                                *, 
-                                food(*)
-                            )
-                        ), 
-                        day_meal:day_meal_id!inner(id,name,display_order), 
-                        custom_ingredients:recipe_ingredients(
-                            *, 
-                            food(*)
-                        ),
-                        recipe_macros(*)
-                     `)
-                     .eq('id', resultData.id)
-                     .single();
-                 
-                 if (fetchNewError) throw fetchNewError;
-
-                 setRecipes(prev => {
-                     if (isAddingViaConflict) {
-                        return [...prev, { ...fullNewRecord, is_private: false }];
-                     }
-                     const filtered = prev.filter(r => r.id !== recipeToEdit.id);
-                     return [...filtered, { ...fullNewRecord, is_private: false }];
-                 });
-
-            } catch (err) {
-                 console.error("Error refreshing variant data:", err);
-                 fetchPlanData(); 
+                const { data: fullNewRecord, error: fetchNewError } = await supabase.from('diet_plan_recipes')
+                    .select('*, recipe:recipe_id(*, recipe_ingredients(*, food(*))), day_meal:day_meal_id!inner(id,name,display_order), custom_ingredients:recipe_ingredients(*, food(*)), recipe_macros(*)')
+                    .eq('id', resultData.id).single();
+                if (fetchNewError) throw fetchNewError;
+                setRecipes(prev => {
+                    if (isAddingViaConflict) return [...prev, { ...fullNewRecord, is_private: false }];
+                    return [...prev.filter(r => r.id !== recipeToEdit.id), { ...fullNewRecord, is_private: false }];
+                });
+            } catch {
+                fetchPlanData();
             }
         } else {
-             fetchPlanData();
+            fetchPlanData();
         }
-    }
-    
+    };
+
     if (loadingData) {
         return <div className="flex justify-center items-center h-64"><Loader2 className="w-8 h-8 animate-spin text-green-400" /></div>;
     }
@@ -490,7 +443,9 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOn
         sensitivities: plan.sensitivities?.flatMap(s => s.sensitivities ? [s.sensitivities.id] : []) || [],
         conditions: plan.medical_conditions?.flatMap(c => c.medical_conditions ? [c.medical_conditions.id] : []) || [],
     };
-    
+
+    const dirtyMealIdSet = new Set(dirtyMealIds.map(String));
+
     return (
         <>
             <Card className="bg-card/75 border-border text-foreground dark:text-white overflow-hidden shadow-xl">
@@ -500,20 +455,35 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOn
                             <CardTitle>Momentos del Día</CardTitle>
                             <CardDescription>Gestiona las recetas para cada momento del día en este plan.</CardDescription>
                         </div>
-                        {pendingRecalc && !readOnly && onRecalculate && (
+                        {/* Botón plan-level: aparece cuando hay un cambio global pendiente */}
+                        {pendingChange && !readOnly && (
                             <Button
-                                size="sm"
-                                onClick={onRecalculate}
-                                className="bg-amber-600 hover:bg-amber-700 text-white flex-shrink-0"
+                                type="button"
+                                onClick={handlePlanAutoBalance}
+                                disabled={isPlanBalancing}
+                                variant="outline"
+                                className="flex-shrink-0 border-cyan-500 bg-cyan-400/10 text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
+                                {isPlanBalancing
+                                    ? <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    : <Bot className="w-4 h-4 mr-2" />}
+                                {pendingChange.type === 'linear_scale' ? 'Escalar plan' : 'Autocuadrar plan'}
+                            </Button>
+                        )}
+                        {/* Botón "Actualizar targets" legacy — ya no necesario con el flujo nuevo,
+                            pero se mantiene como fallback por si onRecalculate se llama de forma directa */}
+                        {!pendingChange && !readOnly && onRecalculate && false /* oculto */ && (
+                            <Button size="sm" onClick={onRecalculate} className="bg-amber-600 hover:bg-amber-700 text-white flex-shrink-0">
                                 <RefreshCw className="w-4 h-4 mr-2" />
                                 Actualizar targets
                             </Button>
                         )}
                     </div>
-                    {pendingRecalc && !readOnly && onRecalculate && (
-                        <p className="text-xs text-amber-400 mt-1">
-                            Las calorías o la distribución de macros ha cambiado. Actualiza los targets antes de usar el autocuadre.
+                    {pendingChange && !readOnly && (
+                        <p className="text-xs text-cyan-400/80 mt-1">
+                            {pendingChange.type === 'linear_scale'
+                                ? 'Las calorías han cambiado. Pulsa "Escalar plan" para ajustar las cantidades proporcionalmente.'
+                                : 'La distribución de macros ha cambiado. Pulsa "Autocuadrar plan" para reajustar todas las recetas.'}
                         </p>
                     )}
                 </CardHeader>
@@ -521,6 +491,7 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOn
                     <div className="space-y-6">
                         {dayMeals.map(meal => {
                             const udm = userDayMeals?.find(u => u.day_meal_id === meal.id);
+                            const isDirty = udm ? dirtyMealIdSet.has(String(udm.id)) : false;
                             return (
                                 <MealSection
                                     key={meal.id}
@@ -535,15 +506,17 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOn
                                     onAutoBalance={handleAutoBalance}
                                     isBalancing={balancingMealId === udm?.id}
                                     isAlreadyBalanced={!!balancedMealIds[udm?.id]}
+                                    isDirty={isDirty}
                                     planUserId={plan.user_id}
                                     readOnly={readOnly}
-                                    pendingRecalc={pendingRecalc}
+                                    pendingChange={pendingChange}
                                 />
                             );
                         })}
                     </div>
                 </CardContent>
             </Card>
+
 
             {!readOnly && (
                 <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
@@ -552,7 +525,7 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOn
                             <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                             <AlertDialogDescription>
                                 {recipeToDelete.isPrivate
-                                    ? "Esta acción desasignará la receta privada de este plan, pero no la eliminará permanentemente. Seguirá visible en el historial de Comidas Libres."
+                                    ? "Esta acción desasignará la receta privada de este plan, pero no la eliminará permanentemente."
                                     : "Esta acción eliminará la receta de este plan de dieta."}
                             </AlertDialogDescription>
                         </AlertDialogHeader>
@@ -565,7 +538,7 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOn
                     </AlertDialogContent>
                 </AlertDialog>
             )}
-            
+
             <AddRecipeToPlanDialog
                 open={isAddRecipeOpen}
                 onOpenChange={setIsAddRecipeOpen}
@@ -585,11 +558,12 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOn
                 userId={plan?.user_id}
                 planRestrictions={userRestrictions}
                 mealTargetMacros={mealTargetMacros}
-                isAdminView={!readOnly} 
+                isAdminView={!readOnly}
                 isAssignedPlan={isAssignedPlan}
                 isReadOnly={readOnly}
             />
         </>
-    )
-}
+    );
+};
+
 export default PlanView;
