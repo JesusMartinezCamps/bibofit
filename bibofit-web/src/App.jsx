@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from '@/contexts/AuthContext';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
 import LoginPage from '@/pages/LoginPage';
 import SignUpPage from '@/pages/SignUpPage';
@@ -19,12 +19,13 @@ import CreateRoutinePage from '@/pages/admin/CreateRoutinePage';
 import ClientProfilePage from '@/pages/ClientProfilePage';
 import TrainingManagementPage from '@/pages/admin/TrainingManagementPage';
 import TrainingPlanPage from '@/pages/TrainingPlanPage';
+import TrainingSessionPage from '@/pages/TrainingSessionPage';
+import CreateMesocyclePage from '@/pages/CreateMesocyclePage';
 import UserCreatedFoodsPage from '@/pages/admin/UserCreatedFoodsPage';
 import FreeMealRequestsPage from '@/pages/admin/FreeMealRequestsPage';
 import DietChangeRequestsPage from '@/pages/admin/DietChangeRequestsPage';
 import AdminDietPlanDetailPage from '@/pages/admin/AdminDietPlanDetailPage';
 import WeeklyPlannerPage from '@/pages/WeeklyPlannerPage';
-import { useAuth } from '@/contexts/AuthContext';
 import DietManagementPage from '@/pages/admin/DietManagementPage';
 import ManageStores from '@/pages/admin/ManageStores';
 import ManageAminograms from '@/pages/admin/ManageAminograms';
@@ -63,6 +64,7 @@ import ClientPlanDetailPage from '@/pages/ClientPlanDetailPage';
 import HomePage from '@/pages/HomePage';
 import ShoppingListPage from '@/pages/ShoppingListPage';
 import CommunicationPage from '@/pages/CommunicationPage';
+import BroadcastsPage from '@/pages/BroadcastsPage';
 
 // Coach Pages
 import CoachDashboard from '@/pages/CoachDashboard';
@@ -150,6 +152,7 @@ const AppRoutes = () => (
       <Route path="/assign-diet-plan" element={<ProtectedRoute><AssignDietPlanPage /></ProtectedRoute>} />
       <Route path="/shopping-list" element={<ProtectedRoute><ShoppingListPage /></ProtectedRoute>} />
       <Route path="/communication" element={<ProtectedRoute><CommunicationPage /></ProtectedRoute>} />
+      <Route path="/broadcasts" element={<ProtectedRoute><RoleProtected allowedRoles={['admin']}><BroadcastsPage /></RoleProtected></ProtectedRoute>} />
 
       {/* Coach */}
       <Route path="/coach-dashboard" element={<ProtectedRoute><CoachDashboard /></ProtectedRoute>} />
@@ -187,6 +190,9 @@ const AppRoutes = () => (
       </Route>
       <Route path="/registro-peso" element={<ProtectedRoute><WeightLogPage /></ProtectedRoute>} />
       <Route path="/plan/entreno" element={<ProtectedRoute><TrainingPlanPage /></ProtectedRoute>} />
+      <Route path="/plan/entreno/sesion" element={<ProtectedRoute><TrainingSessionPage /></ProtectedRoute>} />
+      <Route path="/plan/entreno/sesion/:routineId" element={<ProtectedRoute><TrainingSessionPage /></ProtectedRoute>} />
+      <Route path="/plan/entreno/mesociclo/nuevo" element={<ProtectedRoute><CreateMesocyclePage /></ProtectedRoute>} />
       <Route path="/create-free-recipe/:date/:mealId" element={<ProtectedRoute><CreateFreeRecipePage /></ProtectedRoute>} />
       <Route path="/create-snack/:date/:mealId" element={<ProtectedRoute><CreateSnackPage /></ProtectedRoute>} />
 

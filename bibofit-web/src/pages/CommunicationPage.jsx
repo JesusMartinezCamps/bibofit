@@ -3,6 +3,7 @@ import { useContextualGuide } from '@/contexts/ContextualGuideContext';
 import { GUIDE_BLOCK_IDS } from '@/config/guideBlocks';
 import { Helmet } from 'react-helmet';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/customSupabaseClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -204,6 +205,7 @@ const CommunicationPage = () => {
   } = useNotifications();
   const { toast } = useToast();
 
+  const navigate = useNavigate();
   const isAdmin = isAdminRole(user?.role);
   const isCoach = isCoachRole(user?.role);
   const isStaff = isStaffRole(user?.role);
@@ -739,6 +741,17 @@ const CommunicationPage = () => {
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <h1 className="font-semibold text-foreground">Comunicaciones</h1>
+            {isAdmin && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 gap-1.5 text-muted-foreground hover:text-foreground"
+                onClick={() => navigate('/broadcasts')}
+              >
+                <Megaphone className="h-4 w-4" />
+                <span className="text-xs">Difusión</span>
+              </Button>
+            )}
             {isStaff && (
               <Button
                 size="sm"
