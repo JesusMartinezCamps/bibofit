@@ -10,9 +10,7 @@ import { cn } from '@/lib/utils';
 import IngredientSearch from '@/components/plans/IngredientSearch';
 import { supabase } from '@/lib/supabaseClient';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useAutoFrameAccess } from '@/hooks/useAutoFrameAccess';
 import { useToast } from '@/components/ui/use-toast';
-import { Link } from 'react-router-dom';
 import { isUserCreatedFood } from '@/lib/foodIdentity';
 
 const SimpleHeader = ({ title, className, titleClassName }) => (
@@ -37,10 +35,10 @@ const RecipeEditorModal = ({
     // Backward-compatible alias. Prefer `isTemplate` in callers.
     isTemplatePlan = false,
     asPage = false,
+    mealTargetMacros = null,
 }) => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { canUseAutoFrame, message: autoFrameMessage, link: autoFrameLink } = useAutoFrameAccess();
 
   const [localLoading, setLocalLoading] = useState(true);
   const [enrichedRecipe, setEnrichedRecipe] = useState(null);
@@ -106,7 +104,8 @@ const RecipeEditorModal = ({
                 
                 if (!foodDetails) return null;
 
-                let adjustedQuantity = ing.grams || ing.quantity;
+                const rawQty = ing.grams ?? ing.quantity;
+                let adjustedQuantity = rawQty != null ? Number(rawQty) : 0;
                 if (adjustments && Array.isArray(adjustments)) {
                      const adj = adjustments.find(a => String(a.food_id) === String(foodId));
                      if (adj) adjustedQuantity = adj.adjusted_grams;
@@ -172,8 +171,12 @@ const RecipeEditorModal = ({
     isEditable: hookIsEditable,
     handleAddIngredient,
     handleRemoveIngredient,
-    hasInitialConflicts
-  } = useRecipeEditor({ 
+    isBaseRecipe,
+    isUserBranch,
+    hasMetadataChanges,
+    changedMetadataFields,
+    checkEditabilityForSave,
+  } = useRecipeEditor({
       recipeToEdit: enrichedRecipe, 
       onSaveSuccess, 
       isAdminView, 
@@ -187,10 +190,19 @@ const RecipeEditorModal = ({
 
   const isEditable = propIsEditable !== undefined ? propIsEditable : hookIsEditable;
 
+  const [canEditInPlace, setCanEditInPlace] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [scrollToFoodId, setScrollToFoodId] = useState(null);
   const [isLeaveConfirmOpen, setIsLeaveConfirmOpen] = useState(false);
   const [isModeSwitchConfirmOpen, setIsModeSwitchConfirmOpen] = useState(false);
+  // Diálogo info: se guardarán solo los metadatos (cuando también hay cambios de ingredientes)
+  const [isSaveMetaInfoOpen, setIsSaveMetaInfoOpen] = useState(false);
+  // Diálogo de elección y forzado (reservados para flujos futuros)
+  const [isSaveChoiceOpen, setIsSaveChoiceOpen] = useState(false);
+  const [isForcedVariantOpen, setIsForcedVariantOpen] = useState(false);
+  const [forcedVariantReason] = useState('');
+  // Diálogo de confirmación de conflictos (ya no bloquea, solo avisa)
+  const [isConflictConfirmOpen, setIsConflictConfirmOpen] = useState(false);
   const [pendingMode, setPendingMode] = useState(null);
   const [quickEditIngredientKey, setQuickEditIngredientKey] = useState(null);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
@@ -251,6 +263,26 @@ const RecipeEditorModal = ({
     if (!baseline) return false;
     return baseline !== buildEditingSnapshot();
   }, [buildEditingSnapshot]);
+
+  // Comprueba si la receta puede guardarse in-place (sin crear variante).
+  // Solo aplica a ramas del usuario (variant/private_recipe) sin historial comido ni hijos.
+  useEffect(() => {
+    if (!open || loading || localLoading) {
+      setCanEditInPlace(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+    checkEditabilityForSave().then((result) => {
+      if (!cancelled) {
+        setCanEditInPlace(result.canModifyInPlace && !result.hasEatenRecords && !result.hasChildren);
+      }
+    }).catch(() => {
+      if (!cancelled) setCanEditInPlace(false);
+    });
+
+    return () => { cancelled = true; };
+  }, [open, loading, localLoading, checkEditabilityForSave]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
@@ -430,14 +462,79 @@ const RecipeEditorModal = ({
     setScrollToFoodId(newIngredientData.food_id);
   }
 
-  const handleSaveClick = async () => {
-    const success = await handleSubmit('save');
+  const finalizeSave = async (saveMode = 'auto') => {
+    const success = await handleSubmit('save', saveMode);
     if (success) {
       closeBaselineSnapshotRef.current = null;
       closeBaselineKeyRef.current = null;
       onOpenChange(false);
       setIsSearching(false);
     }
+  };
+
+  // Guardar todo in-place (ingredientes + metadatos) — solo para recetas limpias sin historial.
+  const doInPlaceSave = async () => {
+    const success = await handleSubmit('save', 'in_place');
+    if (success) {
+      closeBaselineSnapshotRef.current = null;
+      closeBaselineKeyRef.current = null;
+      onOpenChange(false);
+      setIsSearching(false);
+    }
+  };
+
+  // Guardar solo metadatos en-place (nombre, dificultad, instrucciones, etc.)
+  // Si la receta es limpia y hay cambios de ingredientes, guarda todo in-place.
+  // Si no es limpia pero hay cambios de ingredientes, avisa antes de continuar.
+  const handleMetadataSave = () => {
+    if (hasIngredientChanges && canEditInPlace) {
+      doInPlaceSave();
+      return;
+    }
+    if (hasIngredientChanges) {
+      setIsSaveMetaInfoOpen(true);
+      return;
+    }
+    doMetadataSave();
+  };
+
+  const doMetadataSave = async () => {
+    const success = await handleSubmit('save', 'metadata_only');
+    if (success) {
+      closeBaselineSnapshotRef.current = null;
+      closeBaselineKeyRef.current = null;
+      onOpenChange(false);
+      setIsSearching(false);
+    }
+  };
+
+  // Crear nueva variante (rama). Con confirmación si hay conflictos.
+  const handleVariantSave = async () => {
+    if (hasCriticalConflicts) {
+      setIsConflictConfirmOpen(true);
+      return;
+    }
+    await finalizeSave('auto');
+  };
+
+  const handleConflictConfirmed = async () => {
+    setIsConflictConfirmOpen(false);
+    await finalizeSave('auto');
+  };
+
+  const handleChoiceModifyInPlace = async () => {
+    setIsSaveChoiceOpen(false);
+    await finalizeSave('in_place');
+  };
+
+  const handleChoiceCreateVariant = async () => {
+    setIsSaveChoiceOpen(false);
+    await finalizeSave('auto');
+  };
+
+  const handleForcedHideAndVariant = async () => {
+    setIsForcedVariantOpen(false);
+    await finalizeSave('hide_and_variant');
   };
 
   const handleSaveAndLeave = async () => {
@@ -544,38 +641,9 @@ const RecipeEditorModal = ({
   
   const effectiveIsTemplate = isTemplate || isTemplatePlan;
 
-  const saveButtonText = useMemo(() => {
-      if (hasCriticalConflicts) return "Resolver conflictos";
-      if (!hasChanges) return "Sin cambios";
-      if (effectiveIsTemplate) return "Guardar cambios";
-      if (hasIngredientChanges) return "Crear variante";
-      return "Guardar";
-  }, [hasCriticalConflicts, hasChanges, effectiveIsTemplate, hasIngredientChanges]);
-
-  // Button is disabled if:
-  // 1. Submitting
-  // 2. No changes (unless we want to allow saving 'no changes' but requirements say "enable only if actual changes")
-  // 3. Has active critical conflicts
-  const isButtonDisabled = isSubmitting || !hasChanges || hasCriticalConflicts;
-
-  const handleBlockedFeature = () => {
-      toast({
-          title: "Funcionalidad Premium",
-          description: (
-              <div className="flex flex-col gap-2">
-                  <span>{autoFrameMessage}</span>
-                  <Link to={autoFrameLink} className="text-green-400 underline font-bold" onClick={() => onOpenChange(false)}>
-                      Ver Planes
-                  </Link>
-              </div>
-          ),
-          variant: "destructive"
-      });
-  };
-
   // Determine if we should disable auto-balance in RecipeView
-  // Disabled if no changes, no premium, OR if it's a template (templates don't have personal targets usually)
-  const shouldDisableAutoBalance = !hasIngredientChanges || !canUseAutoFrame || effectiveIsTemplate;
+  // Disabled if no changes OR if it's a template (templates don't have personal targets usually)
+  const shouldDisableAutoBalance = !hasIngredientChanges || effectiveIsTemplate;
 
   const innerContent = totalLoading ? (
     <div className="flex justify-center items-center h-full min-h-[400px]">
@@ -650,43 +718,81 @@ const RecipeEditorModal = ({
             onRemoveIngredient={isEditable && !readOnly ? handleRemoveIngredient : undefined}
             onAddIngredientClick={isEditable && !readOnly ? openIngredientSearch : undefined}
             disableAutoBalance={shouldDisableAutoBalance}
-            onAutoBalanceBlocked={!canUseAutoFrame ? handleBlockedFeature : undefined}
             enableStickyMacros={true}
             isTemplate={effectiveIsTemplate}
             quickEditIngredientKey={quickEditIngredientKey}
             onQuickEditConsumed={() => setQuickEditIngredientKey(null)}
             onFoodCreated={handleInlineFoodCreated}
             hideMacrosTitle={false}
+            mealTargetMacros={mealTargetMacros}
           />
         )}
 
         {!isSearching && isEditable && !readOnly && (
-          <div className="flex justify-center pt-4 px-2 gap-4 pb-4">
+          <div className="flex justify-center pt-4 px-2 gap-3 pb-4 flex-wrap">
             <TooltipProvider>
+              {/* Botón "Guardar cambios" — metadatos en-place (siempre) o ingredientes si receta es limpia */}
+              {(() => {
+                const canSaveInPlace = hasMetadataChanges || (hasIngredientChanges && canEditInPlace);
+                return (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span tabIndex={0}>
+                        <Button
+                          type="button"
+                          onClick={handleMetadataSave}
+                          disabled={isSubmitting || !canSaveInPlace}
+                          className={cn(
+                            "bg-gradient-to-r from-blue-700 to-blue-900 hover:from-blue-600 hover:to-blue-800 text-white font-bold transition-all duration-300",
+                            "disabled:opacity-40 disabled:cursor-not-allowed",
+                            canSaveInPlace && "border border-blue-400/40 shadow-[0_0_12px_rgba(59,130,246,0.3)]"
+                          )}
+                        >
+                          {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          Guardar cambios
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    {!canSaveInPlace && (
+                      <TooltipContent className="bg-card border-border text-white">
+                        <p>
+                          {hasIngredientChanges
+                            ? 'Esta receta no puede modificarse directamente. Usa "Crear variante".'
+                            : 'Cambia nombre, preparación, dificultad o estilo para habilitar.'}
+                        </p>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                );
+              })()}
+
+              {/* Botón "Crear variante" — siempre cyan, solo ingredientes */}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span tabIndex={0}>
                     <Button
                       type="button"
-                      onClick={handleSaveClick}
-                      disabled={isButtonDisabled}
+                      onClick={handleVariantSave}
+                      disabled={isSubmitting || !hasChanges}
                       className={cn(
-                        "bg-gradient-to-r from-[#550d4f] to-[#2f0596] hover:from-[#6b1062] hover:to-[#3b06bb] text-white font-bold transition-all duration-300",
-                        "disabled:opacity-80 disabled:cursor-not-allowed disabled:from-blue-700/50 disabled:to-blue-800/70",
-                        (hasChanges && !hasCriticalConflicts && (hasInitialConflicts || hasIngredientChanges)) && "from-cyan-600 to-blue-700 hover:from-cyan-500 hover:to-blue-600 border border-cyan-400/55 shadow-[0_0_15px_rgba(6,182,212,0.35)]"
+                        "bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-500 hover:to-blue-600 text-white font-bold transition-all duration-300",
+                        "disabled:opacity-40 disabled:cursor-not-allowed disabled:from-slate-600 disabled:to-slate-700",
+                        hasChanges && "border border-cyan-400/55 shadow-[0_0_15px_rgba(6,182,212,0.35)]"
                       )}
                     >
                       {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      {saveButtonText}
+                      Crear variante
                     </Button>
                   </span>
                 </TooltipTrigger>
-                {isButtonDisabled && (
+                {!hasChanges && (
                   <TooltipContent className="bg-card border-border text-white">
-                    {hasCriticalConflicts
-                      ? <p className="text-red-400">Debes resolver todos los conflictos antes de guardar.</p>
-                      : <p>Realiza cambios en la receta para habilitar el guardado.</p>
-                    }
+                    <p>Modifica ingredientes o preparación para crear una nueva variante.</p>
+                  </TooltipContent>
+                )}
+                {hasChanges && hasCriticalConflicts && (
+                  <TooltipContent className="bg-card border-border text-white">
+                    <p className="text-orange-400">Hay conflictos con las restricciones. Podrás confirmar antes de guardar.</p>
                   </TooltipContent>
                 )}
               </Tooltip>
@@ -697,12 +803,120 @@ const RecipeEditorModal = ({
     </>
   );
 
+  // Diálogos de guardado compartidos entre modo página y modo modal
+  const saveDialogs = (
+    <>
+      {/* Info: guardar solo metadatos cuando también hay cambios de ingredientes */}
+      {(() => {
+        const joinWithAnd = (items) => {
+          if (items.length === 0) return '';
+          if (items.length === 1) return items[0];
+          if (items.length === 2) return `${items[0]} y ${items[1]}`;
+          return `${items.slice(0, -1).join(', ')} y ${items[items.length - 1]}`;
+        };
+        const fieldsSummary = joinWithAnd(changedMetadataFields);
+        return (
+          <Dialog open={isSaveMetaInfoOpen} onOpenChange={setIsSaveMetaInfoOpen}>
+            <DialogContent className="max-w-sm">
+              <DialogTitle>Solo se guardarán algunos cambios</DialogTitle>
+              <DialogDescription asChild>
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  <p>
+                    Solo se guardarán los cambios en:{' '}
+                    <span className="text-white font-medium">{fieldsSummary}</span>.
+                  </p>
+                  <p>Los cambios en los alimentos <span className="text-cyan-400 font-medium">no se guardarán</span> — usa "Crear variante" para eso.</p>
+                </div>
+              </DialogDescription>
+              <div className="flex flex-col gap-2 pt-1">
+                <Button onClick={() => { setIsSaveMetaInfoOpen(false); doMetadataSave(); }} className="w-full bg-blue-700 hover:bg-blue-600 text-white">
+                  {fieldsSummary ? `Entendido, guardar ${fieldsSummary}` : 'Entendido, guardar cambios'}
+                </Button>
+                <Button variant="ghost" onClick={() => setIsSaveMetaInfoOpen(false)} className="w-full">
+                  Cancelar
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
+
+      {/* Confirmación de conflictos: avisa pero no bloquea */}
+      <Dialog open={isConflictConfirmOpen} onOpenChange={setIsConflictConfirmOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogTitle>Hay conflictos en esta receta</DialogTitle>
+          <DialogDescription asChild>
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <p>Esta receta contiene ingredientes que generan conflictos con las restricciones del usuario:</p>
+              <ul className="list-disc pl-4 space-y-1 text-orange-400">
+                {criticalConflicts.map((c, i) => (
+                  <li key={i}>{c.restrictionName || c.type}</li>
+                ))}
+              </ul>
+              <p>¿Seguro que quieres guardar de todas formas?</p>
+            </div>
+          </DialogDescription>
+          <div className="flex flex-col gap-2 pt-1">
+            <Button onClick={handleConflictConfirmed} className="w-full bg-orange-600 hover:bg-orange-700 text-white">
+              Sí, guardar con conflictos
+            </Button>
+            <Button variant="ghost" onClick={() => setIsConflictConfirmOpen(false)} className="w-full">
+              Cancelar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Elección: modificar in-place vs crear variante (rama sin hijos ni registros comidos) */}
+      <Dialog open={isSaveChoiceOpen} onOpenChange={setIsSaveChoiceOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogTitle>¿Cómo quieres guardar los cambios?</DialogTitle>
+          <DialogDescription>
+            Puedes modificar esta receta directamente o guardar los cambios como una nueva versión.
+          </DialogDescription>
+          <div className="flex flex-col gap-2 pt-1">
+            <Button onClick={handleChoiceModifyInPlace} className="w-full bg-violet-600 hover:bg-violet-700 text-white">
+              Modificar esta receta
+            </Button>
+            <Button onClick={handleChoiceCreateVariant} className="w-full bg-cyan-600 hover:bg-cyan-700 text-white">
+              Crear nueva versión
+            </Button>
+            <Button variant="ghost" onClick={() => setIsSaveChoiceOpen(false)} className="w-full">
+              Cancelar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Forzado: ocultar + crear variante (tiene hijos o registros comidos) */}
+      <Dialog open={isForcedVariantOpen} onOpenChange={setIsForcedVariantOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogTitle>Esta receta no se puede modificar directamente</DialogTitle>
+          <DialogDescription>
+            {forcedVariantReason === 'eaten'
+              ? 'Bibofit usa los registros de esta receta para calcular tu historial calórico. No se puede modificar, pero puedes ocultarla y crear una nueva versión.'
+              : 'Otras versiones de tu receta dependen de esta. No se puede modificar directamente para no perder la trazabilidad, pero puedes ocultarla y crear una nueva versión.'}
+          </DialogDescription>
+          <div className="flex flex-col gap-2 pt-1">
+            <Button onClick={handleForcedHideAndVariant} className="w-full bg-cyan-600 hover:bg-cyan-700 text-white">
+              Ocultar esta versión y crear nueva
+            </Button>
+            <Button variant="ghost" onClick={() => setIsForcedVariantOpen(false)} className="w-full">
+              Cancelar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+
   if (asPage) {
     return (
       <>
         <div className="flex flex-col h-full bg-[#0C101D] text-white">
           {innerContent}
         </div>
+        {saveDialogs}
         <Dialog open={isModeSwitchConfirmOpen} onOpenChange={handleModeSwitchDialogOpenChange}>
           <DialogContent className="max-w-sm">
             <DialogTitle>¿Cambiar de modo sin guardar?</DialogTitle>
@@ -760,6 +974,7 @@ const RecipeEditorModal = ({
           {innerContent}
         </DialogContent>
       </Dialog>
+      {saveDialogs}
       <Dialog open={isModeSwitchConfirmOpen} onOpenChange={handleModeSwitchDialogOpenChange}>
         <DialogContent className="max-w-sm">
           <DialogTitle>¿Cambiar de modo sin guardar?</DialogTitle>

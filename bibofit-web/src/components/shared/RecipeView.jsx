@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
   Bot,
@@ -14,11 +14,20 @@ import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import IngredientSearch from '@/components/plans/IngredientSearch';
 import { supabase } from '@/lib/customSupabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { invokeAutoBalanceRecipe } from '@/lib/autoBalanceClient';
+import {
+  AUTO_BALANCE_FEATURES,
+  consumeAutobalanceQuota,
+  fetchAutobalanceQuotaSnapshot,
+  getFeatureQuotaEntry,
+  getQuotaUpgradeMessage,
+  releaseAutobalanceQuota,
+} from '@/lib/autobalanceQuotaService';
 import RecipeImageUpload from '@/components/admin/recipes/RecipeImageUpload';
 import EditableField from '@/components/shared/recipe-view/EditableField';
 import IngredientCard from '@/components/shared/recipe-view/IngredientCard';
@@ -141,6 +150,7 @@ const RecipeView = ({
   const [servingMultiplier, setServingMultiplier] = useState(1);
   const [showMultiplierEasterEgg, setShowMultiplierEasterEgg] = useState(false);
   const [internalRecipeStyles, setInternalRecipeStyles] = useState([]);
+  const [autobalanceQuotaSnapshot, setAutobalanceQuotaSnapshot] = useState(null);
 
   const safeFoods = allFoods || [];
   const safeVitamins = allVitamins || [];
@@ -166,10 +176,37 @@ const RecipeView = ({
     () => scaleMacrosByMultiplier(totalMacros, servingMultiplier),
     [totalMacros, servingMultiplier]
   );
+  const recipeAutobalanceQuota = useMemo(
+    () =>
+      getFeatureQuotaEntry(
+        autobalanceQuotaSnapshot,
+        AUTO_BALANCE_FEATURES.RECIPE_EQUIVALENCE
+      ),
+    [autobalanceQuotaSnapshot]
+  );
+  const quotaBlocked = !!recipeAutobalanceQuota?.is_limited && Number(recipeAutobalanceQuota?.remaining || 0) <= 0;
+  const quotaTooltipMessage = getQuotaUpgradeMessage();
+
+  const loadAutobalanceQuotaSnapshot = useCallback(async () => {
+    if (!user?.id) {
+      setAutobalanceQuotaSnapshot(null);
+      return;
+    }
+    try {
+      const snapshot = await fetchAutobalanceQuotaSnapshot();
+      setAutobalanceQuotaSnapshot(snapshot);
+    } catch (error) {
+      console.error('Error loading autobalance quota snapshot:', error);
+    }
+  }, [user?.id]);
 
   useEffect(() => {
     setServingMultiplier(1);
   }, [recipe?.id, recipe?.name, recipe?.updated_at, recipe?.created_at]);
+
+  useEffect(() => {
+    loadAutobalanceQuotaSnapshot();
+  }, [loadAutobalanceQuotaSnapshot]);
 
   useEffect(() => {
     if (!showMultiplierEasterEgg) return;
@@ -346,7 +383,28 @@ const RecipeView = ({
     }
 
     setIsBalancing(true);
+    const operationId = crypto.randomUUID();
+    let quotaConsumption = null;
     try {
+      quotaConsumption = await consumeAutobalanceQuota({
+        featureKey: AUTO_BALANCE_FEATURES.RECIPE_EQUIVALENCE,
+        operationId,
+        origin: 'recipe_view',
+        metadata: {
+          recipe_id: recipe?.id || null,
+          recipe_type: recipe?.type || null,
+        },
+      });
+
+      if (quotaConsumption && quotaConsumption.allowed === false) {
+        toast({
+          title: 'Límite alcanzado',
+          description: quotaTooltipMessage,
+          variant: 'destructive',
+        });
+        return;
+      }
+
       const ingredientsForFunction = (recipe?.ingredients || [])
         .map((ing) => ({
           food_id: Number(ing.food_id || ing.food?.id),
@@ -373,16 +431,31 @@ const RecipeView = ({
       });
 
       onIngredientsChange(newIngredients);
+      const remainingText =
+        quotaConsumption?.consumed && Number.isFinite(Number(quotaConsumption?.remaining))
+          ? ` Te quedan ${quotaConsumption.remaining}/${quotaConsumption.limit} usos.`
+          : '';
       toast({
         title: 'Receta autocuadrada',
-        description: 'Se han ajustado las cantidades.',
+        description: `Se han ajustado las cantidades.${remainingText}`,
         className: 'bg-cyan-600/25 text-white border-none backdrop-blur-md',
       });
     } catch (error) {
+      if (quotaConsumption?.consumed) {
+        try {
+          await releaseAutobalanceQuota({
+            featureKey: AUTO_BALANCE_FEATURES.RECIPE_EQUIVALENCE,
+            operationId,
+          });
+        } catch (rollbackError) {
+          console.error('Error rolling back autobalance quota consumption:', rollbackError);
+        }
+      }
       console.error('Auto-balance error:', error);
       toast({ title: 'Error al autocuadrar', description: error.message, variant: 'destructive' });
     } finally {
       setIsBalancing(false);
+      loadAutobalanceQuotaSnapshot();
     }
   };
 
@@ -616,7 +689,7 @@ const RecipeView = ({
         )}
       >
         {!hideMacrosTitle && (
-          <h3 className="text-xl font-semibold mb-3 border-b border-border pb-2 bg-clip-text text-transparent bg-gradient-to-r from-emerald-700 to-teal-700 dark:from-green-300 dark:to-teal-400">
+          <h3 className="text-l font-semibold mb-3 border-b border-border pb-2 bg-clip-text text-transparent bg-gradient-to-r from-emerald-700 to-teal-700 dark:from-green-300 dark:to-teal-400">
             Macros Totales
           </h3>
         )}
@@ -752,26 +825,56 @@ const RecipeView = ({
 
           {showAutoBalance && resolvedTargets && (
             <div className="mt-4 pt-2 border-t border-border">
-              <Button
-                type="button"
-                onClick={() => {
-                  if (disableAutoBalance && onAutoBalanceBlocked) {
-                    onAutoBalanceBlocked();
-                    return;
-                  }
-                  handleAutoBalance();
-                }}
-                disabled={isBalancing || (disableAutoBalance && !onAutoBalanceBlocked)}
-                variant="outline"
-                className="w-full bg-muted border-cyan-500 bg-cyan-400/10 text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300 mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isBalancing ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Bot className="w-4 h-4 mr-2" />
-                )}
-                Autocuadrar Macros
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="block">
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          if (quotaBlocked) {
+                            toast({
+                              title: 'Límite alcanzado',
+                              description: quotaTooltipMessage,
+                              variant: 'destructive',
+                            });
+                            return;
+                          }
+                          if (disableAutoBalance && onAutoBalanceBlocked) {
+                            onAutoBalanceBlocked();
+                            return;
+                          }
+                          handleAutoBalance();
+                        }}
+                        disabled={
+                          isBalancing ||
+                          quotaBlocked ||
+                          (disableAutoBalance && !onAutoBalanceBlocked)
+                        }
+                        variant="outline"
+                        className="w-full bg-muted border-cyan-500 bg-cyan-400/10 text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300 mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isBalancing ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Bot className="w-4 h-4 mr-2" />
+                        )}
+                        Autocuadrar Macros
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  {quotaBlocked && (
+                    <TooltipContent className="max-w-xs">
+                      {quotaTooltipMessage}
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
+              {recipeAutobalanceQuota?.is_limited && (
+                <p className="mt-2 text-xs text-muted-foreground text-center">
+                  Usos de autocuadre recetas/equivalencias: {recipeAutobalanceQuota.remaining}/{recipeAutobalanceQuota.limit}
+                </p>
+              )}
             </div>
           )}
         </div>

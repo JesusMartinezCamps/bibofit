@@ -2,8 +2,9 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus, Loader2, Bot, RefreshCw, Check } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import AddRecipeToPlanDialog from '@/components/plans/AddRecipeToPlanDialog';
-import AdminRecipeModal from '@/components/admin/recipes/AdminRecipeModal';
+import RecipeEditorModal from '@/components/shared/RecipeEditorModal/RecipeEditorModal';
 import PlanRecipeCard from './PlanRecipeCard';
 import { supabase } from '@/lib/supabaseClient';
 import { useToast } from '@/components/ui/use-toast';
@@ -11,11 +12,37 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import MealTargetMacros from '@/components/shared/MealTargetMacros';
 import { format } from 'date-fns';
 import { invokeAutoBalanceBatch, invokeScaleDietPlan, invokeAutoBalancePlanAllMoments } from '@/lib/autoBalanceClient';
+import {
+    AUTO_BALANCE_FEATURES,
+    consumeAutobalanceQuota,
+    fetchAutobalanceQuotaSnapshot,
+    getFeatureQuotaEntry,
+    getQuotaUpgradeMessage,
+    releaseAutobalanceQuota,
+} from '@/lib/autobalanceQuotaService';
 
 // ---------------------------------------------------------------------------
 // MealSection — sección individual de un momento del día
 // ---------------------------------------------------------------------------
-const MealSection = ({ meal, recipes, onAdd, onEdit, onDelete, allFoods, userRestrictions, userDayMeal, onAutoBalance, isBalancing, isAlreadyBalanced, isDirty, planUserId, readOnly = false, pendingChange = null }) => (
+const MealSection = ({
+    meal,
+    recipes,
+    onAdd,
+    onEdit,
+    onDelete,
+    allFoods,
+    userRestrictions,
+    userDayMeal,
+    onAutoBalance,
+    isBalancing,
+    isAlreadyBalanced,
+    isDirty,
+    planUserId,
+    readOnly = false,
+    pendingChange = null,
+    quotaBlocked = false,
+    quotaTooltipMessage = '',
+}) => (
     <div key={meal.id} className="bg-card/75 p-4 rounded-lg border border-border">
         <div className="flex items-center gap-3 mb-4 flex-wrap justify-between">
             <div className="flex items-center gap-2">
@@ -27,21 +54,34 @@ const MealSection = ({ meal, recipes, onAdd, onEdit, onDelete, allFoods, userRes
                 )}
                 {/* Bot mini — solo visible si el momento tiene recetas, targets y hay algo dirty */}
                 {!readOnly && recipes.length > 0 && userDayMeal && isDirty && !pendingChange && (
-                    <Button
-                        type="button"
-                        onClick={() => onAutoBalance(userDayMeal, recipes, planUserId)}
-                        disabled={isBalancing || isAlreadyBalanced}
-                        size="icon"
-                        variant="outline"
-                        className="h-8 w-8 border-cyan-500 bg-cyan-400/10 text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                        title={isAlreadyBalanced ? "Autocuadre ya aplicado" : "Autocuadrar Macros"}
-                    >
-                        {isBalancing
-                            ? <Loader2 className="h-4 w-4 animate-spin" />
-                            : isAlreadyBalanced
-                                ? <Check className="h-4 w-4" />
-                                : <Bot className="h-4 w-4" />}
-                    </Button>
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <span>
+                                    <Button
+                                        type="button"
+                                        onClick={() => onAutoBalance(userDayMeal, recipes, planUserId)}
+                                        disabled={isBalancing || isAlreadyBalanced || quotaBlocked}
+                                        size="icon"
+                                        variant="outline"
+                                        className="h-8 w-8 border-cyan-500 bg-cyan-400/10 text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title={quotaBlocked ? 'Límite alcanzado' : (isAlreadyBalanced ? "Autocuadre ya aplicado" : "Autocuadrar Macros")}
+                                    >
+                                        {isBalancing
+                                            ? <Loader2 className="h-4 w-4 animate-spin" />
+                                            : isAlreadyBalanced
+                                                ? <Check className="h-4 w-4" />
+                                                : <Bot className="h-4 w-4" />}
+                                    </Button>
+                                </span>
+                            </TooltipTrigger>
+                            {quotaBlocked && (
+                                <TooltipContent className="max-w-xs">
+                                    {quotaTooltipMessage}
+                                </TooltipContent>
+                            )}
+                        </Tooltip>
+                    </TooltipProvider>
                 )}
             </div>
             {userDayMeal && (
@@ -108,6 +148,7 @@ const PlanView = ({
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [recipeToDelete, setRecipeToDelete] = useState({ id: null, isPrivate: false });
     const [isAddingViaConflict, setIsAddingViaConflict] = useState(false);
+    const [autobalanceQuotaSnapshot, setAutobalanceQuotaSnapshot] = useState(null);
 
     const fetchIdRef = useRef(0);
 
@@ -178,6 +219,19 @@ const PlanView = ({
 
     useEffect(() => { fetchPlanData(); }, [fetchPlanData]);
 
+    const loadAutobalanceQuotaSnapshot = useCallback(async () => {
+        try {
+            const snapshot = await fetchAutobalanceQuotaSnapshot();
+            setAutobalanceQuotaSnapshot(snapshot);
+        } catch (error) {
+            console.error('Error loading my-plan autobalance quota snapshot:', error);
+        }
+    }, []);
+
+    useEffect(() => {
+        loadAutobalanceQuotaSnapshot();
+    }, [loadAutobalanceQuotaSnapshot]);
+
     // Cuando hay un cambio global pendiente, invalidar balanceos previos
     useEffect(() => {
         if (pendingChange !== null) setBalancedMealIds({});
@@ -223,7 +277,24 @@ const PlanView = ({
     const handlePlanAutoBalance = useCallback(async () => {
         if (!pendingChange || readOnly) return;
         setIsPlanBalancing(true);
+        const operationId = crypto.randomUUID();
+        let quotaConsumption = null;
         try {
+            quotaConsumption = await consumeAutobalanceQuota({
+                featureKey: AUTO_BALANCE_FEATURES.MY_PLAN,
+                operationId,
+                origin: 'my_plan',
+                metadata: {
+                    plan_id: plan.id,
+                    pending_change_type: pendingChange.type,
+                },
+            });
+
+            if (quotaConsumption && quotaConsumption.allowed === false) {
+                toast({ title: 'Límite alcanzado', description: getQuotaUpgradeMessage(), variant: 'destructive' });
+                return;
+            }
+
             if (pendingChange.type === 'linear_scale') {
                 // Optimistic: escalar gramos localmente para respuesta inmediata
                 const factor = pendingChange.newTdee / pendingChange.oldTdee;
@@ -245,7 +316,15 @@ const PlanView = ({
                 });
                 // Guardar targets → limpia pendingChange
                 await onRecalculate?.();
-                toast({ title: 'Plan escalado', description: 'Las cantidades se han ajustado proporcionalmente.', className: 'bg-cyan-600/25 text-white' });
+                // Sincronizar UI con los gramos precisos guardados en BD
+                // (el update optimista usaba nearest-5g para todos los ingredientes,
+                // la edge function aplica redondeo por tramos: <5g→0.5g, 5-20g→1g, >20g→5g)
+                await fetchPlanData();
+                const remainingText =
+                    quotaConsumption?.consumed && Number.isFinite(Number(quotaConsumption?.remaining))
+                        ? ` Te quedan ${quotaConsumption.remaining}/${quotaConsumption.limit} usos.`
+                        : '';
+                toast({ title: 'Plan escalado', description: `Las cantidades se han ajustado proporcionalmente.${remainingText}`, className: 'bg-cyan-600/25 text-white' });
             } else {
                 // macro_redistribution: primero guardar targets en BD, luego balancear
                 await onRecalculate?.();
@@ -254,15 +333,34 @@ const PlanView = ({
                     user_id: plan.user_id,
                 });
                 await fetchPlanData();
-                toast({ title: 'Plan autocuadrado', description: 'Todos los momentos han sido reajustados.', className: 'bg-cyan-600/25 text-white' });
+                const remainingText =
+                    quotaConsumption?.consumed && Number.isFinite(Number(quotaConsumption?.remaining))
+                        ? ` Te quedan ${quotaConsumption.remaining}/${quotaConsumption.limit} usos.`
+                        : '';
+                toast({ title: 'Plan autocuadrado', description: `Todos los momentos han sido reajustados.${remainingText}`, className: 'bg-cyan-600/25 text-white' });
             }
             setBalancedMealIds({});
+            // Limpiar dirtyMealIds: onRecalculate (handleSaveMealConfig) los vuelve a poblar
+            // porque detecta que los targets cambiaron con el nuevo TDEE, pero tras un
+            // plan-level operation ya no hay nada pendiente por momento.
+            onDirtyMealsCleared?.();
         } catch (error) {
+            if (quotaConsumption?.consumed) {
+                try {
+                    await releaseAutobalanceQuota({
+                        featureKey: AUTO_BALANCE_FEATURES.MY_PLAN,
+                        operationId,
+                    });
+                } catch (rollbackError) {
+                    console.error('Error rolling back my-plan quota consumption:', rollbackError);
+                }
+            }
             toast({ title: 'Error en Autocuadre', description: error.message, variant: 'destructive' });
         } finally {
             setIsPlanBalancing(false);
+            loadAutobalanceQuotaSnapshot();
         }
-    }, [pendingChange, readOnly, plan.id, plan.user_id, onRecalculate, fetchPlanData, toast]);
+    }, [pendingChange, readOnly, plan.id, plan.user_id, onRecalculate, onDirtyMealsCleared, fetchPlanData, toast, loadAutobalanceQuotaSnapshot]);
 
     // -------------------------------------------------------------------------
     // Autocuadre de MOMENTO(S) — escenario 3: linked meals
@@ -272,11 +370,30 @@ const PlanView = ({
         if (readOnly) return;
         const momentId = userDayMeal.id;
         const dayMealId = userDayMeal.day_meal_id;
+        const operationId = crypto.randomUUID();
+        let quotaConsumption = null;
 
-        // Si hay linked meals (dirtyMealIds), balancearlos todos a la vez
-        if (dirtyMealIds.length > 0) {
-            setBalancingMealId(momentId);
-            try {
+        setBalancingMealId(momentId);
+        try {
+            quotaConsumption = await consumeAutobalanceQuota({
+                featureKey: AUTO_BALANCE_FEATURES.MY_PLAN,
+                operationId,
+                origin: 'my_plan',
+                metadata: {
+                    plan_id: plan.id,
+                    day_meal_id: dayMealId,
+                    user_day_meal_id: momentId,
+                    uses_linked_meals: dirtyMealIds.length > 0,
+                },
+            });
+
+            if (quotaConsumption && quotaConsumption.allowed === false) {
+                toast({ title: 'Límite alcanzado', description: getQuotaUpgradeMessage(), variant: 'destructive' });
+                return;
+            }
+
+            // Si hay linked meals (dirtyMealIds), balancearlos todos a la vez
+            if (dirtyMealIds.length > 0) {
                 await invokeAutoBalancePlanAllMoments({
                     diet_plan_id: plan.id,
                     user_id: userId,
@@ -292,18 +409,15 @@ const PlanView = ({
                 dirtyMealIds.forEach(id => { newBalanced[id] = true; });
                 setBalancedMealIds(prev => ({ ...prev, ...newBalanced }));
                 onDirtyMealsCleared?.();
-                toast({ title: 'Autocuadre Exitoso', description: `${dirtyMealIds.length} momento(s) ajustados.`, className: 'bg-cyan-600/25 text-white' });
-            } catch (error) {
-                toast({ title: 'Error en Autocuadre', description: error.message, variant: 'destructive' });
-            } finally {
-                setBalancingMealId(null);
+                const remainingText =
+                    quotaConsumption?.consumed && Number.isFinite(Number(quotaConsumption?.remaining))
+                        ? ` Te quedan ${quotaConsumption.remaining}/${quotaConsumption.limit} usos.`
+                        : '';
+                toast({ title: 'Autocuadre Exitoso', description: `${dirtyMealIds.length} momento(s) ajustados.${remainingText}`, className: 'bg-cyan-600/25 text-white' });
+                return;
             }
-            return;
-        }
 
-        // Sin linked meals: batch normal del momento
-        setBalancingMealId(momentId);
-        try {
+            // Sin linked meals: batch normal del momento
             const recipeIds = momentRecipes.map(r => ({ id: r.id, is_private: r.is_private }));
             const data = await invokeAutoBalanceBatch({
                 moment_id: momentId,
@@ -314,16 +428,31 @@ const PlanView = ({
             if (data.success) {
                 await refetchMealRecipes(dayMealId);
                 setBalancedMealIds(prev => ({ ...prev, [momentId]: true }));
-                toast({ title: 'Autocuadre Exitoso', description: `${data.recipesProcessed} de ${data.totalRecipes} recetas ajustadas.`, className: 'bg-cyan-600/25 text-white' });
+                const remainingText =
+                    quotaConsumption?.consumed && Number.isFinite(Number(quotaConsumption?.remaining))
+                        ? ` Te quedan ${quotaConsumption.remaining}/${quotaConsumption.limit} usos.`
+                        : '';
+                toast({ title: 'Autocuadre Exitoso', description: `${data.recipesProcessed} de ${data.totalRecipes} recetas ajustadas.${remainingText}`, className: 'bg-cyan-600/25 text-white' });
             } else {
                 throw new Error(data.error || 'Error desconocido durante el autocuadre.');
             }
         } catch (error) {
+            if (quotaConsumption?.consumed) {
+                try {
+                    await releaseAutobalanceQuota({
+                        featureKey: AUTO_BALANCE_FEATURES.MY_PLAN,
+                        operationId,
+                    });
+                } catch (rollbackError) {
+                    console.error('Error rolling back my-plan meal quota consumption:', rollbackError);
+                }
+            }
             toast({ title: 'Error en Autocuadre', description: error.message, variant: 'destructive' });
         } finally {
             setBalancingMealId(null);
+            loadAutobalanceQuotaSnapshot();
         }
-    }, [readOnly, dirtyMealIds, plan.id, userDayMeals, refetchMealRecipes, onDirtyMealsCleared, toast]);
+    }, [readOnly, dirtyMealIds, plan.id, userDayMeals, refetchMealRecipes, onDirtyMealsCleared, toast, loadAutobalanceQuotaSnapshot]);
 
     // -------------------------------------------------------------------------
     // Handlers de recetas
@@ -445,6 +574,9 @@ const PlanView = ({
     };
 
     const dirtyMealIdSet = new Set(dirtyMealIds.map(String));
+    const myPlanQuota = getFeatureQuotaEntry(autobalanceQuotaSnapshot, AUTO_BALANCE_FEATURES.MY_PLAN);
+    const myPlanQuotaBlocked = !!myPlanQuota?.is_limited && Number(myPlanQuota?.remaining || 0) <= 0;
+    const myPlanQuotaMessage = getQuotaUpgradeMessage();
 
     return (
         <>
@@ -457,18 +589,31 @@ const PlanView = ({
                         </div>
                         {/* Botón plan-level: aparece cuando hay un cambio global pendiente */}
                         {pendingChange && !readOnly && (
-                            <Button
-                                type="button"
-                                onClick={handlePlanAutoBalance}
-                                disabled={isPlanBalancing}
-                                variant="outline"
-                                className="flex-shrink-0 border-cyan-500 bg-cyan-400/10 text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                {isPlanBalancing
-                                    ? <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                    : <Bot className="w-4 h-4 mr-2" />}
-                                {pendingChange.type === 'linear_scale' ? 'Escalar plan' : 'Autocuadrar plan'}
-                            </Button>
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <span>
+                                            <Button
+                                                type="button"
+                                                onClick={handlePlanAutoBalance}
+                                                disabled={isPlanBalancing || myPlanQuotaBlocked}
+                                                variant="outline"
+                                                className="flex-shrink-0 border-cyan-500 bg-cyan-400/10 text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                {isPlanBalancing
+                                                    ? <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                    : <Bot className="w-4 h-4 mr-2" />}
+                                                {pendingChange.type === 'linear_scale' ? 'Escalar plan' : 'Autocuadrar plan'}
+                                            </Button>
+                                        </span>
+                                    </TooltipTrigger>
+                                    {myPlanQuotaBlocked && (
+                                        <TooltipContent className="max-w-xs">
+                                            {myPlanQuotaMessage}
+                                        </TooltipContent>
+                                    )}
+                                </Tooltip>
+                            </TooltipProvider>
                         )}
                         {/* Botón "Actualizar targets" legacy — ya no necesario con el flujo nuevo,
                             pero se mantiene como fallback por si onRecalculate se llama de forma directa */}
@@ -484,6 +629,11 @@ const PlanView = ({
                             {pendingChange.type === 'linear_scale'
                                 ? 'Las calorías han cambiado. Pulsa "Escalar plan" para ajustar las cantidades proporcionalmente.'
                                 : 'La distribución de macros ha cambiado. Pulsa "Autocuadrar plan" para reajustar todas las recetas.'}
+                        </p>
+                    )}
+                    {myPlanQuota?.is_limited && !readOnly && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                            Usos de autocuadre en my-plan: {myPlanQuota.remaining}/{myPlanQuota.limit}
                         </p>
                     )}
                 </CardHeader>
@@ -510,6 +660,8 @@ const PlanView = ({
                                     planUserId={plan.user_id}
                                     readOnly={readOnly}
                                     pendingChange={pendingChange}
+                                    quotaBlocked={myPlanQuotaBlocked}
+                                    quotaTooltipMessage={myPlanQuotaMessage}
                                 />
                             );
                         })}
@@ -550,7 +702,7 @@ const PlanView = ({
                 isConstructor={true}
             />
 
-            <AdminRecipeModal
+            <RecipeEditorModal
                 open={isRecipeEditorOpen}
                 onOpenChange={setIsRecipeEditorOpen}
                 recipeToEdit={recipeToEdit}
@@ -559,8 +711,7 @@ const PlanView = ({
                 planRestrictions={userRestrictions}
                 mealTargetMacros={mealTargetMacros}
                 isAdminView={!readOnly}
-                isAssignedPlan={isAssignedPlan}
-                isReadOnly={readOnly}
+                readOnly={readOnly}
             />
         </>
     );
