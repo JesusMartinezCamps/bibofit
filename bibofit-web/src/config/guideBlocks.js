@@ -17,6 +17,7 @@
  */
 
 export const GUIDE_BLOCK_IDS = {
+  WELCOME: 'welcome',
   DASHBOARD: 'dashboard',
   DIET_PLAN: 'diet-plan',
   SHOPPING_LIST: 'shopping-list',
@@ -31,6 +32,25 @@ export const GUIDE_BLOCK_IDS = {
 };
 
 export const GUIDE_BLOCKS = [
+  // ─── WELCOME ─────────────────────────────────────────────────────────────────
+  {
+    id: 'welcome',
+    section: 'Inicio',
+    title: 'Bienvenido a Bibofit',
+    route: '/profile',
+    completeRoute: '/dashboard',
+    icon: { name: 'AppIcon', className: 'h-6 w-6 text-primary' },
+    steps: [
+      {
+        title: 'El Centro de Ayuda siempre está contigo',
+        icon: { name: 'BookOpen', className: 'h-4 w-4 text-primary' },
+        content:
+          'Pulsa en tu foto de perfil en la esquina superior derecha de la pantalla para acceder al Centro de Ayuda. Desde ahí puedes repasar la guía de cualquier sección de la app en cualquier momento.',
+        targetId: 'header-profile-button',
+      },
+    ],
+  },
+
   // ─── DASHBOARD ───────────────────────────────────────────────────────────────
   {
     id: 'dashboard',

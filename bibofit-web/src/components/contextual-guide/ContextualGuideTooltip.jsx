@@ -1,19 +1,19 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useContextualGuide } from '@/contexts/ContextualGuideContext';
 import GuideIcon from '@/components/contextual-guide/GuideIcon';
+import { useNavigate } from 'react-router-dom';
 
 /**
  * ContextualGuideTooltip
  *
- * Floating card that renders at the bottom of the viewport.
- * It's designed to overlay content without fully blocking it —
- * so users can see the UI being described while reading the explanation.
+ * Floating card at the bottom of the viewport.
+ * The backdrop blocks all interaction with the app while the guide is open —
+ * the user must interact with the card (X to close, or navigate steps).
  *
- * Future v2: use targetId to position near the highlighted element
- * and add a spotlight overlay.
+ * If activeBlock.completeRoute is set, "Entendido" navigates there after marking seen.
  */
 const ContextualGuideTooltip = () => {
   const {
@@ -25,16 +25,13 @@ const ContextualGuideTooltip = () => {
     completeBlock,
     closeBlock,
   } = useContextualGuide();
+  const navigate = useNavigate();
 
-  // Close on Escape
-  useEffect(() => {
-    if (!isOpen) return;
-    const handler = (e) => {
-      if (e.key === 'Escape') closeBlock();
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [isOpen, closeBlock]);
+  const handleComplete = async () => {
+    const route = activeBlock?.completeRoute;
+    await completeBlock();
+    if (route) navigate(route);
+  };
 
   if (!isOpen || !activeBlock) return null;
 
@@ -47,10 +44,10 @@ const ContextualGuideTooltip = () => {
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Subtle backdrop — doesn't block interaction, just dims slightly */}
+          {/* Backdrop — pointer-events-auto blocks all interaction outside the card */}
           <motion.div
             key="guide-backdrop"
-            className="fixed inset-0 z-[9000] bg-black/30 pointer-events-none"
+            className="fixed inset-0 z-[9000] bg-black/30"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -140,7 +137,7 @@ const ContextualGuideTooltip = () => {
                 {isLast ? (
                   <Button
                     size="sm"
-                    onClick={completeBlock}
+                    onClick={handleComplete}
                     className="bg-green-600 hover:bg-green-700 text-white gap-1.5"
                   >
                     <CheckCircle2 className="h-4 w-4" />

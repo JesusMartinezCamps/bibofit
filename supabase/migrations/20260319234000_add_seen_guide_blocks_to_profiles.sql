@@ -12,6 +12,7 @@ ALTER TABLE public.profiles
 -- get all block IDs pre-populated so they don't see the new guides again.
 UPDATE public.profiles
 SET seen_guide_blocks = ARRAY[
+  'welcome',
   'dashboard',
   'diet-plan',
   'shopping-list',

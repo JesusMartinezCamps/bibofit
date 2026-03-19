@@ -24,6 +24,8 @@ import {
   SlidersHorizontal,
   LayoutList,
   Repeat2,
+  User,
+  BookOpen,
 } from 'lucide-react';
 import AppIcon from '@/components/icons/AppIcon';
 
@@ -57,6 +59,8 @@ const ICON_MAP = {
   SlidersHorizontal,
   LayoutList,
   Repeat2,
+  User,
+  BookOpen,
 };
 
 /**

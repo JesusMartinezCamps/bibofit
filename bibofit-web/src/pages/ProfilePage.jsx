@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Helmet } from 'react-helmet';
 import { useAuth } from '@/contexts/AuthContext';
@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import ProfileTypeSubtitle from '@/components/profile/ProfileTypeSubtitle';
 import { useContextualGuide } from '@/contexts/ContextualGuideContext';
+import { GUIDE_BLOCK_IDS } from '@/config/guideBlocks';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -27,7 +28,11 @@ const ProfilePage = () => {
   const { signOut, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { openHelpCenter } = useContextualGuide();
+  const { openHelpCenter, triggerBlock } = useContextualGuide();
+
+  useEffect(() => {
+    triggerBlock(GUIDE_BLOCK_IDS.WELCOME);
+  }, [triggerBlock]);
   const { startRepeatOnboarding } = useOnboarding();
   const { isDark, toggleTheme } = useTheme();
   const profileName = (`${user?.first_name || ''} ${user?.last_name || ''}`).trim() || user?.full_name?.trim();
