@@ -7,13 +7,51 @@ import type {
   ProfileName,
 } from "./types.ts";
 
-const PRESERVATION_PRIORITY: Record<string, number> = {
-  "Verduras y Hortalizas": 5,
-  "Frutas": 5,
-  "Legumbres": 4,
-  "Frutos secos": 3,
-  "Semillas": 3,
+const PRESERVATION_PRIORITY_BY_KEY: Record<string, number> = {
+  "verduras y hortalizas": 5,
+  "frutas": 5,
+  "legumbres": 4,
+  "frutos secos": 3,
+  "semillas": 3,
 };
+
+const CANONICAL_GROUP_BY_KEY: Record<string, string> = {
+  "verduras y hortalizas": "Verduras y Hortalizas",
+  "frutas": "Frutas",
+  "legumbres": "Legumbres",
+  "frutos secos": "Frutos secos",
+  "semillas": "Semillas",
+  "lacteos": "Lácteos",
+  "huevos": "Huevos",
+  "cereales": "Cereales",
+  "pseudocereales": "Pseudocereales",
+  "tuberculos y raices": "Tubérculos y raíces",
+  "panes": "Panes",
+  "pastas": "Pastas",
+};
+
+const normalizeTextKey = (value: unknown) =>
+  String(value || "")
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+
+const canonicalGroupName = (groupName?: string) => {
+  const key = normalizeTextKey(groupName);
+  return CANONICAL_GROUP_BY_KEY[key] || String(groupName || "").trim();
+};
+
+const normalizeMacroRole = (role?: string): "protein" | "carb" | "fat" | "mixed" => {
+  const key = normalizeTextKey(role);
+  if (key === "protein" || key === "proteins" || key === "proteina" || key === "proteinas") return "protein";
+  if (key === "carb" || key === "carbs" || key === "carbohidrato" || key === "carbohidratos" || key === "hidratos") return "carb";
+  if (key === "fat" || key === "fats" || key === "grasa" || key === "grasas" || key === "lipidos" || key === "lipids") return "fat";
+  return "mixed";
+};
+
+const preservationScore = (groupName?: string) => PRESERVATION_PRIORITY_BY_KEY[normalizeTextKey(groupName)] || 1;
 
 const safeNum = (x: unknown, def = 0) => {
   const n = typeof x === "string" ? parseFloat(x) : x;
@@ -44,9 +82,23 @@ const normalizeProfile = (p: unknown): ProfileName => {
   return "balanced";
 };
 
-const isVegGroup = (groupName?: string) => groupName === "Verduras y Hortalizas";
-const isLegumeGroup = (groupName?: string) => groupName === "Legumbres";
-const isDairyOrEggsGroup = (groupName?: string) => groupName === "Lácteos" || groupName === "Huevos";
+const isVegGroup = (groupName?: string) => canonicalGroupName(groupName) === "Verduras y Hortalizas";
+const isFruitGroup = (groupName?: string) => canonicalGroupName(groupName) === "Frutas";
+const isLegumeGroup = (groupName?: string) => canonicalGroupName(groupName) === "Legumbres";
+const isNutsGroup = (groupName?: string) => canonicalGroupName(groupName) === "Frutos secos";
+const isSeedsGroup = (groupName?: string) => canonicalGroupName(groupName) === "Semillas";
+const isDairyOrEggsGroup = (groupName?: string) => {
+  const normalized = canonicalGroupName(groupName);
+  return normalized === "Lácteos" || normalized === "Huevos";
+};
+const isCerealLikeGroup = (groupName?: string) => {
+  const normalized = canonicalGroupName(groupName);
+  return normalized === "Cereales" ||
+    normalized === "Pseudocereales" ||
+    normalized === "Tubérculos y raíces" ||
+    normalized === "Panes" ||
+    normalized === "Pastas";
+};
 
 const perUnitMacros = (unitKind: "unidades" | "gramos", foodData?: BalancerFoodData) => {
   const per = unitKind === "unidades" ? 1 : 1 / 100;
@@ -77,10 +129,16 @@ type WorkIngredient = {
   groupName: string;
   preservation: number;
   isVeg: boolean;
+  isFruit: boolean;
   isLegume: boolean;
+  isNut: boolean;
+  isSeed: boolean;
+  isCerealLike: boolean;
   isPriority: boolean;
 
   minQty: number;
+  softMinQty: number;
+  softMinWeight: number;
   maxQty: number;
   locked: boolean;
 };
@@ -134,6 +192,19 @@ export const balanceRecipeCore = (
 
   const VEG_SOFT_CAP = profile === "lowcarb_satiety" ? 450 : profile === "highcarb_performance" ? 350 : 400;
   const LAMBDA_VEG_VOLUME = 0.0025;
+  const LAMBDA_VEG_BALANCE = 9;
+  const VEG_MAX_RATIO = 2.25;
+  const VEG_BALANCE_BLEND = 0.65;
+  const LAMBDA_SOFT_MIN_BASE = 0.8;
+  const LAMBDA_SOFT_MIN_UNIT = 1.6;
+  const LAMBDA_SOFT_MIN_GROUP = 1.2;
+
+  const UNIT_SOFT_MIN = 0.5;
+  const FRUIT_UNIT_SOFT_MIN = 1;
+  const NUTS_SOFT_MIN_GRAMS = 15;
+  const SEEDS_SOFT_MIN_GRAMS = 5;
+  const LEGUME_SOFT_MIN_GRAMS = 15;
+  const CEREAL_SOFT_MIN_GRAMS = 15;
 
   // ── Fase 0: Volumen culinario mínimo para verduras ───────────────────────────
   // Calibrado para que "3 verduras en un plato de 500 kcal" den ~35g c/u,
@@ -167,8 +238,8 @@ export const balanceRecipeCore = (
   const targetCalories = tp * 4 + tc * 4 + tf * 9;
 
   const strongProteinPresent = ingredients.some((ing) => {
-    const role = String(ing.macro_role || "mixed");
-    const groupName = String(ing.group_name || "");
+    const role = normalizeMacroRole(String(ing.macro_role || "mixed"));
+    const groupName = canonicalGroupName(String(ing.group_name || ""));
     return role === "protein" && !isLegumeGroup(groupName);
   });
 
@@ -177,12 +248,16 @@ export const balanceRecipeCore = (
       ? "unidades"
       : "gramos";
 
-    const groupName = String(ing.group_name || "");
-    const role = String(ing.macro_role || "mixed");
+    const groupName = canonicalGroupName(String(ing.group_name || ""));
+    const role = normalizeMacroRole(String(ing.macro_role || "mixed"));
 
     const isVeg = isVegGroup(groupName);
+    const isFruit = isFruitGroup(groupName);
     const isLegume = isLegumeGroup(groupName);
-    const isPriority = !!PRESERVATION_PRIORITY[groupName];
+    const isNut = isNutsGroup(groupName);
+    const isSeed = isSeedsGroup(groupName);
+    const isCerealLike = isCerealLikeGroup(groupName);
+    const isPriority = preservationScore(groupName) > 1;
 
     const unitStep = isDairyOrEggsGroup(groupName) ? 1 : 0.5;
     const step = unitKind === "unidades" ? unitStep : 5;
@@ -193,15 +268,46 @@ export const balanceRecipeCore = (
     const vNorm2 = ppu * ppu + cpu * cpu + fpu * fpu;
 
     let minQty = safeNum(ing.minQty, 0);
-    let maxQty = Number.isFinite(ing.maxQty) ? safeNum(ing.maxQty) : Infinity;
+    let maxQty = safeNum(ing.maxQty, Infinity);
+    let softMinQty = 0;
+    let softMinWeight = LAMBDA_SOFT_MIN_BASE;
 
     if (isPriority && baseQty > 0) minQty = Math.max(minQty, unitKind === "unidades" ? unitStep : 5);
     if (unitKind === "gramos" && strongProteinPresent && role === "protein" && !isLegume) {
       minQty = Math.max(minQty, 50);
     }
+    if (unitKind === "gramos" && isNut) minQty = Math.max(minQty, NUTS_SOFT_MIN_GRAMS);
+    if (unitKind === "gramos" && isSeed) minQty = Math.max(minQty, SEEDS_SOFT_MIN_GRAMS);
+
+    if (!ing.locked) {
+      if (unitKind === "unidades") {
+        softMinQty = Math.max(softMinQty, isFruit ? FRUIT_UNIT_SOFT_MIN : UNIT_SOFT_MIN);
+        softMinWeight = Math.max(softMinWeight, LAMBDA_SOFT_MIN_UNIT);
+      }
+      if (unitKind === "gramos" && isNut) {
+        softMinQty = Math.max(softMinQty, NUTS_SOFT_MIN_GRAMS);
+        softMinWeight = Math.max(softMinWeight, LAMBDA_SOFT_MIN_GROUP);
+      }
+      if (unitKind === "gramos" && isSeed) {
+        softMinQty = Math.max(softMinQty, SEEDS_SOFT_MIN_GRAMS);
+        softMinWeight = Math.max(softMinWeight, LAMBDA_SOFT_MIN_GROUP);
+      }
+      if (unitKind === "gramos" && isLegume) {
+        softMinQty = Math.max(softMinQty, LEGUME_SOFT_MIN_GRAMS);
+        softMinWeight = Math.max(softMinWeight, LAMBDA_SOFT_MIN_GROUP);
+      }
+      if (unitKind === "gramos" && isCerealLike) {
+        softMinQty = Math.max(softMinQty, CEREAL_SOFT_MIN_GRAMS);
+        softMinWeight = Math.max(softMinWeight, LAMBDA_SOFT_MIN_GROUP);
+      }
+    }
 
     minQty = roundToStep(minQty, step);
     maxQty = Number.isFinite(maxQty) ? roundToStep(maxQty, step) : maxQty;
+    softMinQty = roundToStep(
+      clamp(softMinQty, minQty, Number.isFinite(maxQty) ? maxQty : softMinQty),
+      step,
+    );
 
     return {
       food_id: ing.food_id,
@@ -219,11 +325,17 @@ export const balanceRecipeCore = (
       vNorm2,
       role,
       groupName,
-      preservation: PRESERVATION_PRIORITY[groupName] || 1,
+      preservation: preservationScore(groupName),
       isVeg,
+      isFruit,
       isLegume,
+      isNut,
+      isSeed,
+      isCerealLike,
       isPriority,
       minQty,
+      softMinQty,
+      softMinWeight,
       maxQty,
       locked: !!ing.locked,
     };
@@ -235,9 +347,10 @@ export const balanceRecipeCore = (
   // (ej. 10g de cebolla). Se ejecuta antes de la optimización macro.
   // ────────────────────────────────────────────────────────────────────────────
   if (targetCalories > 0) {
-    const numVegs = work.filter(
-      (w) => w.isVeg && !w.locked && w.baseQty > 0 && w.unitKind === "gramos",
-    ).length;
+    const vegIngredients = work.filter(
+      (w) => w.isVeg && !w.locked && w.unitKind === "gramos",
+    );
+    const numVegs = vegIngredients.length;
 
     if (numVegs > 0) {
       // sqrt en ambos ejes: amortigua crecimiento en dietas altas en calorías
@@ -246,18 +359,82 @@ export const balanceRecipeCore = (
       const vegMinRaw = VEG_VOL_BASE * kcalScale / Math.sqrt(numVegs);
       const vegMin = roundToStep(clamp(vegMinRaw, VEG_VOL_FLOOR, VEG_VOL_CEILING), 5);
 
-      for (const w of work) {
-        if (!w.isVeg || w.locked || w.baseQty <= 0 || w.unitKind !== "gramos") continue;
-
-        if (w.baseQty < vegMin) {
-          // El template tenía cantidad insuficiente — corrección culinaria.
-          // Actualizamos baseQty para que el anchorPenalty no luche contra esto.
+      for (const w of vegIngredients) {
+        if (w.quantity < vegMin) {
+          // También aplica cuando venían en 0g: si están en la receta, deben "existir".
           w.quantity = vegMin;
-          w.baseQty = vegMin;
+          w.baseQty = Math.max(w.baseQty, vegMin);
         }
         // Siempre proteger el mínimo absoluto (ej: 20g de ajo si el template dice 5g)
         w.minQty = Math.max(w.minQty, roundToStep(VEG_VOL_FLOOR, w.step));
+        w.softMinQty = Math.max(w.softMinQty, vegMin);
+        w.softMinWeight = Math.max(w.softMinWeight, LAMBDA_SOFT_MIN_GROUP);
       }
+
+      // Reequilibrio inicial para evitar plantillas con desbalance extremo entre verduras.
+      const vegByGroup = new Map<string, WorkIngredient[]>();
+      for (const w of vegIngredients) {
+        const key = `${w.groupName}:${w.unitKind}`;
+        if (!vegByGroup.has(key)) vegByGroup.set(key, []);
+        vegByGroup.get(key)!.push(w);
+      }
+
+      for (const groupItems of vegByGroup.values()) {
+        if (groupItems.length < 2) continue;
+        const positives = groupItems.filter((w) => w.quantity > 0);
+        if (positives.length < 2) continue;
+
+        const maxQty = Math.max(...positives.map((w) => w.quantity));
+        const minQty = Math.max(1, Math.min(...positives.map((w) => w.quantity)));
+        if (maxQty / minQty <= VEG_MAX_RATIO) continue;
+
+        const equalTarget = groupItems.reduce((sum, w) => sum + w.quantity, 0) / groupItems.length;
+        for (const w of groupItems) {
+          const blended = w.quantity * (1 - VEG_BALANCE_BLEND) + equalTarget * VEG_BALANCE_BLEND;
+          const normalized = roundToStep(
+            clamp(blended, w.minQty, Number.isFinite(w.maxQty) ? w.maxQty : blended),
+            w.step,
+          );
+          w.quantity = normalized;
+          w.baseQty = Math.max(w.baseQty, normalized);
+        }
+      }
+    }
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // FASE 0B — Presencia culinaria mínima (suave)
+  // Si el alimento está en la receta, intentamos evitar que quede en 0 absoluto.
+  // ────────────────────────────────────────────────────────────────────────────
+  {
+    const hasUnlockedLegume = work.some((w) => !w.locked && w.unitKind === "gramos" && w.isLegume);
+    const hasUnlockedCereal = work.some((w) => !w.locked && w.unitKind === "gramos" && w.isCerealLike);
+
+    for (const w of work) {
+      if (w.locked) continue;
+
+      if (w.unitKind === "gramos") {
+        if (w.isLegume && hasUnlockedCereal) {
+          w.softMinQty = Math.max(w.softMinQty, LEGUME_SOFT_MIN_GRAMS);
+          w.softMinWeight = Math.max(w.softMinWeight, LAMBDA_SOFT_MIN_GROUP);
+        }
+        if (w.isCerealLike && hasUnlockedLegume) {
+          w.softMinQty = Math.max(w.softMinQty, CEREAL_SOFT_MIN_GRAMS);
+          w.softMinWeight = Math.max(w.softMinWeight, LAMBDA_SOFT_MIN_GROUP);
+        }
+      }
+
+      if (w.softMinQty <= 0 || w.quantity >= w.softMinQty) continue;
+
+      const seeded = roundToStep(
+        clamp(w.softMinQty, w.minQty, Number.isFinite(w.maxQty) ? w.maxQty : w.softMinQty),
+        w.step,
+      );
+      if (seeded <= w.quantity) continue;
+
+      w.quantity = seeded;
+      // Mantener un ancla >0 reduce la probabilidad de "colapso a cero" posterior.
+      w.baseQty = Math.max(w.baseQty, seeded);
     }
   }
 
@@ -423,9 +600,26 @@ export const balanceRecipeCore = (
       // Distribución proporcional del delta entre miembros.
       // Cada miembro recibe sQuant × (su_qty / total_qty), preservando las proporciones
       // de la receta plantilla. Para grupos con qty=0, se reparte a partes iguales.
-      const shares = grp.indices.map((idx) =>
-        grpTotalQty > 0 ? work[idx].quantity / grpTotalQty : 1 / n
-      );
+      const isVegGramGroup = grp.indices.every((idx) => work[idx].isVeg && work[idx].unitKind === "gramos");
+      let shares: number[];
+
+      if (isVegGramGroup) {
+        // Para verduras evitamos "arrastrar" desbalances 200g vs 20g.
+        // cbrt suaviza aún más la ventaja del ingrediente grande.
+        const weighted = grp.indices.map((idx) => {
+          const w = work[idx];
+          const anchor = Math.max(w.quantity, w.baseQty, VEG_VOL_FLOOR);
+          return Math.cbrt(anchor);
+        });
+        const sumWeighted = weighted.reduce((acc, value) => acc + value, 0);
+        shares = sumWeighted > 0
+          ? weighted.map((value) => value / sumWeighted)
+          : grp.indices.map(() => 1 / n);
+      } else {
+        shares = grp.indices.map((idx) =>
+          grpTotalQty > 0 ? work[idx].quantity / grpTotalQty : 1 / n
+        );
+      }
 
       const newQtys = grp.indices.map((idx, j) => {
         const m = work[idx];
@@ -449,7 +643,7 @@ export const balanceRecipeCore = (
       const err2 = dPp * dPp + dCp * dCp + dFp * dFp;
 
       // Penalizaciones agregadas de todos los miembros del grupo.
-      let presPenalty = 0, rolePenalty = 0, anchorPenalty = 0, volumePenalty = 0;
+      let presPenalty = 0, rolePenalty = 0, anchorPenalty = 0, volumePenalty = 0, softMinPenalty = 0;
 
       for (let j = 0; j < grp.indices.length; j++) {
         const idx = grp.indices[j];
@@ -491,6 +685,23 @@ export const balanceRecipeCore = (
           const over = newQtys[j] - VEG_SOFT_CAP;
           if (over > 0) volumePenalty += LAMBDA_VEG_VOLUME * over * over;
         }
+
+        if (m.softMinQty > 0 && newQtys[j] < m.softMinQty) {
+          const miss = m.softMinQty - newQtys[j];
+          softMinPenalty += m.softMinWeight * miss * miss;
+        }
+      }
+
+      let vegBalancePenalty = 0;
+      if (isVegGramGroup && grp.indices.length >= 2) {
+        const positive = newQtys.filter((q) => q > 0);
+        if (positive.length >= 2) {
+          const maxQty = Math.max(...positive);
+          const minQty = Math.max(1, Math.min(...positive));
+          const ratio = maxQty / minQty;
+          const overRatio = Math.max(0, ratio - VEG_MAX_RATIO);
+          vegBalancePenalty = LAMBDA_VEG_BALANCE * overRatio * overRatio;
+        }
       }
 
       // P4: penaliza grupos que ya cubren demasiado del macro dominante cuando
@@ -511,7 +722,8 @@ export const balanceRecipeCore = (
         p4DominancePenalty = LAMBDA_P4 * overcoverage * overcoverage;
       }
 
-      const score = err2 + presPenalty + rolePenalty + anchorPenalty + volumePenalty + p4DominancePenalty;
+      const score = err2 + presPenalty + rolePenalty + anchorPenalty + volumePenalty + softMinPenalty +
+        vegBalancePenalty + p4DominancePenalty;
 
       if (score < bestScore) {
         bestScore = score;
@@ -546,6 +758,13 @@ export const balanceRecipeCore = (
     let finalQty = roundToStep(ing.quantity, ing.step);
     finalQty = clamp(finalQty, ing.minQty, Number.isFinite(ing.maxQty) ? ing.maxQty : Infinity);
     finalQty = roundToStep(finalQty, ing.step);
+
+    if (!ing.locked && ing.unitKind === "unidades" && ing.softMinQty > 0 && finalQty === 0) {
+      finalQty = roundToStep(
+        clamp(ing.softMinQty, ing.minQty, Number.isFinite(ing.maxQty) ? ing.maxQty : ing.softMinQty),
+        ing.step,
+      );
+    }
 
     if (ing.isPriority && ing.baseQty > 0 && finalQty === 0) {
       const minNonZero = ing.unitKind === "unidades" ? ing.step : 5;
