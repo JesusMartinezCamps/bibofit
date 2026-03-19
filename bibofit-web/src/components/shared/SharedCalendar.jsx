@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Apple, Dumbbell, Scale, Leaf, PlusCircle, Bell } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Apple, Dumbbell, Scale, Leaf, PlusCircle, Bell, Eye, EyeOff } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useNavigate } from 'react-router-dom';
@@ -12,10 +12,11 @@ import { useToast } from '@/components/ui/use-toast';
 import { format, isSameDay, startOfWeek, endOfWeek, eachDayOfInterval, addDays, isWithinInterval, parseISO, add, sub } from 'date-fns';
 import ReminderFormDialog from '@/components/admin/reminders/ReminderFormDialog';
 import { isStaffRole } from '@/lib/roles';
+import { readBooleanViewPreference, UI_VIEW_PREFERENCE_KEYS, writeBooleanViewPreference } from '@/lib/uiViewPreferences';
 
 const capitalize = (value) => value ? value.charAt(0).toUpperCase() + value.slice(1) : 0;
 
-const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger }) => {
+const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger, enableViewToggle = false }) => {
   const { user: authUser } = useAuth();
   // Ensure we have a userId, preferring the prop but falling back to the authenticated user
   const userId = propUserId || authUser?.id;
@@ -33,6 +34,10 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
   const [selectedReminder, setSelectedReminder] = useState(null);
   const [newReminderPrefill, setNewReminderPrefill] = useState(null);
   const [activeReminderTooltipId, setActiveReminderTooltipId] = useState(null);
+  const [isMiniView, setIsMiniView] = useState(() =>
+    readBooleanViewPreference(UI_VIEW_PREFERENCE_KEYS.DASHBOARD_CALENDAR_MINI, true)
+  );
+  const [miniEventCountsByDate, setMiniEventCountsByDate] = useState({});
 
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -63,6 +68,16 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
       ]);
 
       const formattedEvents = {};
+      const countsByDate = {};
+      const incrementMiniCount = (date, type, amount = 1) => {
+        if (!date || !type || amount <= 0) return;
+        const key = format(parseISO(date), 'yyyy-MM-dd');
+        if (!countsByDate[key]) {
+          countsByDate[key] = { meal: 0, snack: 0, weight: 0 };
+        }
+        countsByDate[key][type] = (countsByDate[key][type] || 0) + amount;
+      };
+
       const addEvent = (date, event) => {
         if (!date) return;
         const key = format(parseISO(date), 'yyyy-MM-dd');
@@ -80,7 +95,10 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
 
       if (advisoriesRes.data) advisoriesRes.data.forEach(a => addEvent(a.assigned_date, { title: a.item_name, type: a.item_type }));
       if (workoutsRes.data) workoutsRes.data.forEach(w => addEvent(w.performed_on, { title: w.routines?.focus, type: 'workout' }));
-      if (weightLogsRes.data) weightLogsRes.data.forEach(l => addEvent(l.logged_on, { title: `${l.weight_kg} kg`, type: 'weight' }));
+      if (weightLogsRes.data) weightLogsRes.data.forEach(l => {
+        addEvent(l.logged_on, { title: `${l.weight_kg} kg`, type: 'weight' });
+        incrementMiniCount(l.logged_on, 'weight');
+      });
 
       // Diet plan slots + logs
       let totalSlots = 0;
@@ -105,9 +123,10 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
           const mealCount = {};
           mealLogsData?.forEach(l => mealCount[l.log_date] = (mealCount[l.log_date] || 0) + 1);
 
-          Object.entries(mealCount).forEach(([date, count]) =>
-            addEvent(date, { title: `${count}/${totalSlots}`, type: 'diet_log' })
-          );
+          Object.entries(mealCount).forEach(([date, count]) => {
+            addEvent(date, { title: `${count}/${totalSlots}`, type: 'diet_log' });
+            incrementMiniCount(date, 'meal', Number(count) || 0);
+          });
         }
       } else {
         setTotalMealSlots(0);
@@ -123,10 +142,12 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
           } else {
               addEvent(log.log_date, { title: `0/${totalSlots}`, type: 'diet_log', hasSnack: true });
           }
+          incrementMiniCount(log.log_date, 'snack');
         });
       }
 
       setEvents(formattedEvents);
+      setMiniEventCountsByDate(countsByDate);
       setReminders(remindersRes?.data || []);
 
     } catch (err) {
@@ -151,6 +172,10 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
   useEffect(() => {
     fetchEventsAndReminders();
   }, [fetchEventsAndReminders, currentDate, refreshTrigger]);
+
+  useEffect(() => {
+    writeBooleanViewPreference(UI_VIEW_PREFERENCE_KEYS.DASHBOARD_CALENDAR_MINI, isMiniView);
+  }, [isMiniView]);
 
   // ---------- CALENDAR DAYS ----------
   const calendarDays = useMemo(() => {
@@ -205,9 +230,36 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
 
   {/* HEADER */}
   <div className="flex items-center justify-between mb-4">
-    <h2 className="pl-4 text-3xl font-bold bg-gradient-to-r from-emerald-700 to-emerald-500 dark:from-white dark:to-green-300 bg-clip-text text-transparent">
-      {capitalize(currentDate.toLocaleString("es-ES", { month: "long" }))} {currentDate.getFullYear()}
-    </h2>
+    <div className="pl-4 flex items-center gap-2">
+      <h2 className="text-3xl font-bold bg-gradient-to-r from-emerald-700 to-emerald-500 dark:from-white dark:to-green-300 bg-clip-text text-transparent">
+        {capitalize(currentDate.toLocaleString("es-ES", { month: "long" }))} {currentDate.getFullYear()}
+      </h2>
+      {enableViewToggle && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-emerald-500 dark:text-green-300 hover:text-emerald-600 dark:hover:text-green-200 transition-colors"
+          aria-label={isMiniView ? 'Cambiar a calendario enriquecido' : 'Cambiar a calendario mini'}
+          aria-pressed={isMiniView}
+          onClick={() => setIsMiniView((prev) => !prev)}
+        >
+          <span className="relative h-5 w-5">
+            <Eye
+              className={cn(
+                "absolute inset-0 h-5 w-5 transition-all duration-300 ease-in-out",
+                isMiniView ? "opacity-0 scale-75 -rotate-6" : "opacity-100 scale-100 rotate-0"
+              )}
+            />
+            <EyeOff
+              className={cn(
+                "absolute inset-0 h-5 w-5 transition-all duration-300 ease-in-out",
+                isMiniView ? "opacity-100 scale-100 rotate-0" : "opacity-0 scale-75 rotate-6"
+              )}
+            />
+          </span>
+        </Button>
+      )}
+    </div>
     <div className="flex space-x-2">
       <Button variant="ghost" size="icon" onClick={() => setCurrentDate(add(currentDate, { months: -1 }))}>
         <ChevronLeft />
@@ -236,6 +288,22 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
 
       const isToday = isSameDay(day, new Date());
       const isCurrentMonth = day.getMonth() === currentDate.getMonth();
+      const dayMiniCounts = miniEventCountsByDate[dateString] || { meal: 0, snack: 0, weight: 0 };
+      const weightMiniDots = Array.from({ length: dayMiniCounts.weight }, (_, idx) => ({
+        key: `weight-${dateString}-${idx}`,
+        className: 'bg-violet-400',
+        title: 'Registro de peso',
+      }));
+      const snackMiniDots = Array.from({ length: dayMiniCounts.snack }, (_, idx) => ({
+        key: `snack-${dateString}-${idx}`,
+        className: 'bg-orange-400',
+        title: 'Picoteo registrado',
+      }));
+      const mealMiniDots = Array.from({ length: dayMiniCounts.meal }, (_, idx) => ({
+        key: `meal-${dateString}-${idx}`,
+        className: 'bg-green-400',
+        title: 'Receta marcada como comida',
+      }));
 
       return (
       <div
@@ -349,66 +417,110 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
           </div>
 
           {/* ---------- EVENT CHIPS (workout, diet_log, weight) ---------- */}
-          <div className="space-y-1">
-            {dayEvents.map((event, index) => {
-              const chipKey = `${event.type}-${index}`;
-              let style = {};
-              let classes = "";
+          <div
+            className={cn(
+              "overflow-hidden transition-all duration-300 ease-in-out",
+              isMiniView ? "max-h-0 opacity-0" : "max-h-40 opacity-100"
+            )}
+          >
+            <div className="space-y-1">
+              {dayEvents.map((event, index) => {
+                const chipKey = `${event.type}-${index}`;
+                let style = {};
+                let classes = "";
 
-              if (event.type === 'diet_log') {
-                const [done, total] = event.title.split('/').map(Number);
-                let fromColor = 'hsl(var(--muted))';
-                let textColor = 'hsl(var(--foreground))';
-                if (done === total && total > 0) {
-                  fromColor = 'hsl(145 63% 30% / 0.9)';
-                  textColor = 'hsl(0 0% 98%)';
-                } else if (done >= total / 2 && total > 0) {
-                  fromColor = 'hsl(145 48% 40% / 0.45)';
+                if (event.type === 'diet_log') {
+                  const [done, total] = event.title.split('/').map(Number);
+                  let fromColor = 'hsl(var(--muted))';
+                  let textColor = 'hsl(var(--foreground))';
+                  if (done === total && total > 0) {
+                    fromColor = 'hsl(145 63% 30% / 0.9)';
+                    textColor = 'hsl(0 0% 98%)';
+                  } else if (done >= total / 2 && total > 0) {
+                    fromColor = 'hsl(145 48% 40% / 0.45)';
+                  }
+
+                  if (event.hasSnack) {
+                    style.background = `linear-gradient(to right, ${fromColor}, hsl(41 95% 52% / 0.32))`;
+                    classes = 'border-green-700/60 dark:border-green-500/60';
+                  } else {
+                    style.backgroundColor = fromColor;
+                    classes = 'border-green-700/60 dark:border-green-500/60';
+                  }
+
+                  style.color = textColor;
                 }
 
-                if (event.hasSnack) {
-                  style.background = `linear-gradient(to right, ${fromColor}, hsl(41 95% 52% / 0.32))`;
-                  classes = 'border-green-700/60 dark:border-green-500/60';
-                } else {
-                  style.backgroundColor = fromColor;
-                  classes = 'border-green-700/60 dark:border-green-500/60';
-                }
+                return (
+                  <motion.div
+                    key={chipKey}
+                    className={cn(
+                      "event-chip pt-0 flex items-center justify-center text-[11px] sm:text-xs truncate pointer-events-none sm:pointer-events-auto",
+                      event.type === 'workout' && "bg-red-500/15 text-red-700 dark:text-red-200 border border-red-500/35",
+                      event.type === 'weight' && "bg-purple-500/15 text-purple-700 dark:text-purple-200 border border-purple-500/35",
+                      event.type === 'diet_log' && `border ${classes}`
+                    )}
+                    style={event.type === 'diet_log' ? style : {}}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    onClick={(e) => {
+                      if (typeof window !== 'undefined' && window.innerWidth < 640) return;
+                      e.stopPropagation();
+                      if (event.type === 'weight') {
+                        navigate(`/registro-peso?date=${dateString}&userId=${userId}`);
+                        return;
+                      }
+                      if (event.type === 'diet_log') {
+                        const path = isClientView
+                          ? `/plan/dieta/${dateString}`
+                          : `/plan/dieta/${userId}/${dateString}`;
+                        navigate(path);
+                      }
+                    }}
+                  >
+                    <div className="hidden sm:flex">{eventIcons[event.type]}</div>
+                    {event.title}
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
 
-                style.color = textColor;
-              }
-
-              return (
-                <motion.div
-                  key={chipKey}
-                  className={cn(
-                    "event-chip flex items-center justify-center text-[11px] sm:text-xs truncate pointer-events-none sm:pointer-events-auto",
-                    event.type === 'workout' && "bg-red-500/15 text-red-700 dark:text-red-200 border border-red-500/35",
-                    event.type === 'weight' && "bg-purple-500/15 text-purple-700 dark:text-purple-200 border border-purple-500/35",
-                    event.type === 'diet_log' && `border ${classes}`
-                  )}
-                  style={event.type === 'diet_log' ? style : {}}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  onClick={(e) => {
-                    if (typeof window !== 'undefined' && window.innerWidth < 640) return;
-                    e.stopPropagation();
-                    if (event.type === 'weight') {
-                      navigate(`/registro-peso?date=${dateString}&userId=${userId}`);
-                      return;
-                    }
-                    if (event.type === 'diet_log') {
-                      const path = isClientView
-                        ? `/plan/dieta/${dateString}`
-                        : `/plan/dieta/${userId}/${dateString}`;
-                      navigate(path);
-                    }
-                  }}
-                >
-                  <div className="hidden sm:flex">{eventIcons[event.type]}</div>
-                  {event.title}
-                </motion.div>
-              );
-            })}
+          <div
+            className={cn(
+              "overflow-hidden transition-all duration-300 ease-in-out",
+              isMiniView ? "max-h-32 opacity-100" : "max-h-0 opacity-0"
+            )}
+          >
+            <div className="mt-0 min-h-[52px] px-1 flex flex-col justify-start gap-1.5">
+              <div className="flex flex-wrap justify-center gap-1 min-h-[8px]">
+                {weightMiniDots.map((dot) => (
+                  <div
+                    key={dot.key}
+                    className={cn('w-2 h-2 rounded-full', dot.className)}
+                    title={dot.title}
+                  />
+                ))}
+              </div>
+              <div className="flex flex-wrap justify-center gap-1 min-h-[8px]">
+                {snackMiniDots.map((dot) => (
+                  <div
+                    key={dot.key}
+                    className={cn('w-2 h-2 rounded-full', dot.className)}
+                    title={dot.title}
+                  />
+                ))}
+              </div>
+              <div className="flex flex-wrap justify-center gap-1 min-h-[8px]">
+                {mealMiniDots.map((dot) => (
+                  <div
+                    key={dot.key}
+                    className={cn('w-2 h-2 rounded-full', dot.className)}
+                    title={dot.title}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       );

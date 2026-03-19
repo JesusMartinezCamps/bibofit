@@ -24,6 +24,7 @@ import { useDietTimelineEvents } from './hooks/useDietTimelineEvents';
 import { useDietPlanHeaderData } from './hooks/useDietPlanHeaderData';
 import { useDietMacros } from './hooks/useDietMacros';
 import { DietPlanRefreshContext } from '@/contexts/DietPlanContext';
+import { readBooleanViewPreference, UI_VIEW_PREFERENCE_KEYS, writeBooleanViewPreference } from '@/lib/uiViewPreferences';
 
 const DateTimeline = React.memo(({ currentDate, setCurrentDate, navigate, isAdminView, userId, refreshTrigger, activePlanId }) => {
     const weekDates = useMemo(() => {
@@ -139,7 +140,9 @@ const DietPlanComponent = () => {
   const [plannedMeals, setPlannedMeals] = useState([]);
   const [weekSummaryByDate, setWeekSummaryByDate] = useState({});
   const [focusedWeekDate, setFocusedWeekDate] = useState(getInitialDate());
-  const [showMealTargetMacros, setShowMealTargetMacros] = useState(false);
+  const [showMealTargetMacros, setShowMealTargetMacros] = useState(() =>
+    readBooleanViewPreference(UI_VIEW_PREFERENCE_KEYS.DIETPLAN_LIST_SHOW_TARGET_MACROS, false)
+  );
   
   const isAdminView = authUser?.id !== userId;
   const logDate = format(currentDate, 'yyyy-MM-dd');
@@ -173,6 +176,10 @@ const DietPlanComponent = () => {
     observer.observe(sentinel);
     return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    writeBooleanViewPreference(UI_VIEW_PREFERENCE_KEYS.DIETPLAN_LIST_SHOW_TARGET_MACROS, showMealTargetMacros);
+  }, [showMealTargetMacros]);
 
   const visualizerWeekDates = useMemo(
     () => Array.from({ length: 7 }, (_, i) => addDays(currentDate, i)),

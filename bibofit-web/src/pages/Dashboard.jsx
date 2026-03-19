@@ -99,7 +99,7 @@ const Dashboard = () => {
           <div className="h-full flex flex-col">
             <div className="flex-grow">
               {/* Force userId to ensure personal calendar renders correctly */}
-              {user && <SharedCalendar userId={user.id} />}
+              {user && <SharedCalendar userId={user.id} enableViewToggle={true} />}
             </div>
           </div>
         </motion.div>
