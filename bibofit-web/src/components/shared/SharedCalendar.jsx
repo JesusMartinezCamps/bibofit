@@ -492,34 +492,40 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
               isMiniView ? "max-h-32 opacity-100" : "max-h-0 opacity-0"
             )}
           >
-            <div className="mt-0 min-h-[52px] px-1 flex flex-col justify-start gap-1.5">
-              <div className="flex flex-wrap justify-center gap-1 min-h-[8px]">
-                {weightMiniDots.map((dot) => (
-                  <div
-                    key={dot.key}
-                    className={cn('w-2 h-2 rounded-full', dot.className)}
-                    title={dot.title}
-                  />
-                ))}
-              </div>
-              <div className="flex flex-wrap justify-center gap-1 min-h-[8px]">
-                {snackMiniDots.map((dot) => (
-                  <div
-                    key={dot.key}
-                    className={cn('w-2 h-2 rounded-full', dot.className)}
-                    title={dot.title}
-                  />
-                ))}
-              </div>
-              <div className="flex flex-wrap justify-center gap-1 min-h-[8px]">
-                {mealMiniDots.map((dot) => (
-                  <div
-                    key={dot.key}
-                    className={cn('w-2 h-2 rounded-full', dot.className)}
-                    title={dot.title}
-                  />
-                ))}
-              </div>
+            <div className="mt-2 min-h-[52px] px-1 flex flex-col justify-start gap-1.5">
+              {weightMiniDots.length > 0 && (
+                <div className="flex flex-wrap justify-center gap-1">
+                  {weightMiniDots.map((dot) => (
+                    <div
+                      key={dot.key}
+                      className={cn('w-2 h-2 rounded-full', dot.className)}
+                      title={dot.title}
+                    />
+                  ))}
+                </div>
+              )}
+              {snackMiniDots.length > 0 && (
+                <div className="flex flex-wrap justify-center gap-1">
+                  {snackMiniDots.map((dot) => (
+                    <div
+                      key={dot.key}
+                      className={cn('w-2 h-2 rounded-full', dot.className)}
+                      title={dot.title}
+                    />
+                  ))}
+                </div>
+              )}
+              {mealMiniDots.length > 0 && (
+                <div className="flex flex-wrap justify-center gap-1">
+                  {mealMiniDots.map((dot) => (
+                    <div
+                      key={dot.key}
+                      className={cn('w-2 h-2 rounded-full', dot.className)}
+                      title={dot.title}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
