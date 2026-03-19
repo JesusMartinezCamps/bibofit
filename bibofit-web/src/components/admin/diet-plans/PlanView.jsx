@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, Loader2, Zap } from 'lucide-react';
+import { Plus, Loader2, Zap, RefreshCw, Check } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import AddRecipeToPlanDialog from '@/components/plans/AddRecipeToPlanDialog';
 import AdminRecipeModal from '@/components/admin/recipes/AdminRecipeModal';
@@ -12,7 +12,7 @@ import MealTargetMacros from '@/components/shared/MealTargetMacros';
 import { format } from 'date-fns';
 import { invokeAutoBalanceBatch } from '@/lib/autoBalanceClient';
 
-const MealSection = ({ meal, recipes, onAdd, onEdit, onDelete, allFoods, userRestrictions, userDayMeal, onAutoBalance, isBalancing, planUserId, readOnly = false }) => (
+const MealSection = ({ meal, recipes, onAdd, onEdit, onDelete, allFoods, userRestrictions, userDayMeal, onAutoBalance, isBalancing, isAlreadyBalanced, planUserId, readOnly = false, pendingRecalc = false }) => (
     <div key={meal.id} className="bg-card/75 p-4 rounded-lg border border-border">
         <div className="flex items-center gap-3 mb-4 flex-wrap justify-between">
             <div className="flex items-center gap-2">
@@ -22,15 +22,22 @@ const MealSection = ({ meal, recipes, onAdd, onEdit, onDelete, allFoods, userRes
                         <Plus className="h-6 w-6" />
                     </Button>
                 )}
-                {!readOnly && recipes.length > 0 && (
-                    <Button 
-                        onClick={() => onAutoBalance(userDayMeal.id, recipes, planUserId)} 
-                        size="icon" 
-                        variant="ghost" 
-                        className="h-8 w-8 text-blue-500 hover:bg-blue-500/10 hover:text-blue-400"
-                        disabled={isBalancing}
+                {!readOnly && recipes.length > 0 && userDayMeal && (
+                    <Button
+                        onClick={() => onAutoBalance(userDayMeal, recipes, planUserId)}
+                        size="icon"
+                        variant="ghost"
+                        className={isAlreadyBalanced
+                            ? "h-8 w-8 text-green-500 hover:bg-green-500/10"
+                            : "h-8 w-8 text-blue-500 hover:bg-blue-500/10 hover:text-blue-400"}
+                        disabled={isBalancing || isAlreadyBalanced || pendingRecalc}
+                        title={pendingRecalc ? "Actualiza los targets antes de usar el autocuadre" : isAlreadyBalanced ? "Autocuadre ya aplicado" : "Autocuadre"}
                     >
-                        {isBalancing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Zap className="h-5 w-5" />}
+                        {isBalancing
+                            ? <Loader2 className="h-5 w-5 animate-spin" />
+                            : isAlreadyBalanced
+                                ? <Check className="h-5 w-5" />
+                                : <Zap className="h-5 w-5" />}
                     </Button>
                 )}
             </div>
@@ -65,13 +72,14 @@ const MealSection = ({ meal, recipes, onAdd, onEdit, onDelete, allFoods, userRes
     </div>
 );
 
-const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOnly = false, isTemplate = false }) => {
+const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOnly = false, isTemplate = false, pendingRecalc = false, onRecalculate }) => {
     const { toast } = useToast();
     const [recipes, setRecipes] = useState([]);
     const [dayMeals, setDayMeals] = useState([]);
     const [allFoods, setAllFoods] = useState([]);
     const [loadingData, setLoadingData] = useState(true);
-    const [isBalancing, setIsBalancing] = useState(false);
+    const [balancingMealId, setBalancingMealId] = useState(null);
+    const [balancedMealIds, setBalancedMealIds] = useState({});
 
     const [isAddRecipeOpen, setIsAddRecipeOpen] = useState(false);
     const [mealToAddTo, setMealToAddTo] = useState(null);
@@ -177,18 +185,8 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOn
 
                 console.log("PlanView fetched recipes:", combinedRecipes.length);
                 setRecipes(combinedRecipes);
-
-                const sortedMeals = (userDayMeals || [])
-                    .map(m => ({
-                        id: m.day_meal.id,
-                        name: m.day_meal.name,
-                        preferences: m.preferences,
-                        display_order: m.day_meal.display_order,
-                    }))
-                    .sort((a, b) => a.display_order - b.display_order);
-                setDayMeals(sortedMeals);
             }
-            
+
         } catch (error) {
             if (currentFetchId === fetchIdRef.current) {
                 console.error("Fetch plan data error:", error);
@@ -199,15 +197,36 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOn
                 setLoadingData(false);
             }
         }
-    }, [plan.id, userDayMeals, toast]);
+    }, [plan.id, toast]);
 
     useEffect(() => {
         fetchPlanData();
     }, [fetchPlanData]);
 
-    const handleAutoBalance = async (momentId, momentRecipes, userId) => {
+    // Cuando los targets cambian (pendingRecalc), invalidar los balanceos previos
+    useEffect(() => {
+        if (pendingRecalc) setBalancedMealIds({});
+    }, [pendingRecalc]);
+
+    // Derive dayMeals from userDayMeals prop without re-triggering the heavy DB fetch
+    useEffect(() => {
+        if (!userDayMeals) return;
+        const sortedMeals = userDayMeals
+            .map(m => ({
+                id: m.day_meal.id,
+                name: m.day_meal.name,
+                preferences: m.preferences,
+                display_order: m.day_meal.display_order,
+            }))
+            .sort((a, b) => a.display_order - b.display_order);
+        setDayMeals(sortedMeals);
+    }, [userDayMeals]);
+
+    const handleAutoBalance = async (userDayMeal, momentRecipes, userId) => {
         if (readOnly) return;
-        setIsBalancing(true);
+        const momentId = userDayMeal.id;
+        const dayMealId = userDayMeal.day_meal_id;
+        setBalancingMealId(momentId);
         try {
             const recipeIds = momentRecipes.map(r => ({ id: r.id, is_private: r.is_private }));
             const data = await invokeAutoBalanceBatch({
@@ -223,7 +242,39 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOn
                     description: `${data.recipesProcessed} de ${data.totalRecipes} recetas fueron ajustadas.`,
                     className: 'bg-cyan-600/25 text-white'
                 });
-                fetchPlanData(); 
+
+                // Fetch solo las recetas del momento afectado, no todo el plan
+                const [publicRes, privateRes] = await Promise.all([
+                    supabase.from('diet_plan_recipes')
+                        .select('*, recipe:recipe_id(*, recipe_ingredients(*, food(*))), day_meal:day_meal_id!inner(id,name,display_order), custom_ingredients:recipe_ingredients(*, food(*)), recipe_macros(*)')
+                        .eq('diet_plan_id', plan.id)
+                        .eq('day_meal_id', dayMealId)
+                        .eq('is_archived', false)
+                        .not('day_meal_id', 'is', null),
+                    supabase.from('user_recipes')
+                        .select('*, recipe_ingredients(*, food(*)), day_meal:day_meal_id!inner(id,name,display_order)')
+                        .eq('diet_plan_id', plan.id)
+                        .eq('day_meal_id', dayMealId)
+                        .in('type', ['private', 'variant'])
+                        .eq('is_archived', false),
+                ]);
+
+                const updatedMealRecipes = [
+                    ...(publicRes.data || []).map(r => ({
+                        ...r,
+                        is_private: false,
+                        recipe_ingredients: r.recipe?.recipe_ingredients || [],
+                        custom_ingredients: r.custom_ingredients || [],
+                        recipe_macros: r.recipe_macros || [],
+                    })),
+                    ...(privateRes.data || []).map(r => ({ ...r, is_private: true })),
+                ];
+
+                setRecipes(prev => [
+                    ...prev.filter(r => r.day_meal_id !== dayMealId),
+                    ...updatedMealRecipes,
+                ]);
+                setBalancedMealIds(prev => ({ ...prev, [momentId]: true }));
             } else {
                 throw new Error(data.error || 'Ocurrió un error desconocido durante el autocuadre.');
             }
@@ -234,7 +285,7 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOn
                 variant: 'destructive'
             });
         } finally {
-            setIsBalancing(false);
+            setBalancingMealId(null);
         }
     };
 
@@ -253,7 +304,8 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOn
 
     const handleDeleteRecipeFromPlan = (recipeId, isPrivate) => {
         if (readOnly) return;
-        setRecipeToDelete({ id: recipeId, isPrivate });
+        const recipe = recipes.find(r => r.id === recipeId && r.is_private === isPrivate);
+        setRecipeToDelete({ id: recipeId, isPrivate, dayMealId: recipe?.day_meal_id });
         setIsDeleteDialogOpen(true);
     };
 
@@ -280,10 +332,14 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOn
             toast({ title: 'Error', description: error.message, variant: 'destructive' });
         } else {
             setRecipes(prev => prev.filter(r => !(r.id === recipeToDelete.id && r.is_private === recipeToDelete.isPrivate)));
+            if (recipeToDelete.dayMealId) {
+                const udm = userDayMeals?.find(u => u.day_meal_id === recipeToDelete.dayMealId);
+                if (udm) setBalancedMealIds(prev => { const next = { ...prev }; delete next[udm.id]; return next; });
+            }
             toast({ title: 'Éxito', description: successMessage, variant: 'success' });
         }
         setIsDeleteDialogOpen(false);
-        setRecipeToDelete({ id: null, isPrivate: false });
+        setRecipeToDelete({ id: null, isPrivate: false, dayMealId: null });
     };
 
     const handleRecipeAddedToPlan = async (recipe) => {
@@ -354,6 +410,8 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOn
             if (fetchNewError) throw fetchNewError;
     
             setRecipes(prev => [...prev, { ...fullNewRecord, is_private: false }]);
+            const udm = userDayMeals?.find(u => u.day_meal_id === mealToAddTo.id);
+            if (udm) setBalancedMealIds(prev => { const next = { ...prev }; delete next[udm.id]; return next; });
             toast({ title: 'Éxito', description: `${recipe.name} añadida al plan.`, variant: 'success' });
             setIsAddRecipeOpen(false);
         } catch (error) {
@@ -437,28 +495,52 @@ const PlanView = ({ plan, onUpdate, userDayMeals, isAssignedPlan = false, readOn
         <>
             <Card className="bg-card/75 border-border text-foreground dark:text-white overflow-hidden shadow-xl">
                 <CardHeader>
-                    <CardTitle>Momentos del Día</CardTitle>
-                    <CardDescription>Gestiona las recetas para cada momento del día en este plan.</CardDescription>
+                    <div className="flex items-start justify-between gap-4">
+                        <div>
+                            <CardTitle>Momentos del Día</CardTitle>
+                            <CardDescription>Gestiona las recetas para cada momento del día en este plan.</CardDescription>
+                        </div>
+                        {pendingRecalc && !readOnly && onRecalculate && (
+                            <Button
+                                size="sm"
+                                onClick={onRecalculate}
+                                className="bg-amber-600 hover:bg-amber-700 text-white flex-shrink-0"
+                            >
+                                <RefreshCw className="w-4 h-4 mr-2" />
+                                Actualizar targets
+                            </Button>
+                        )}
+                    </div>
+                    {pendingRecalc && !readOnly && onRecalculate && (
+                        <p className="text-xs text-amber-400 mt-1">
+                            Las calorías o la distribución de macros ha cambiado. Actualiza los targets antes de usar el autocuadre.
+                        </p>
+                    )}
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-6">
-                        {dayMeals.map(meal => (
-                            <MealSection
-                                key={meal.id}
-                                meal={meal}
-                                recipes={recipes.filter(r => r.day_meal_id === meal.id)}
-                                allFoods={allFoods}
-                                onAdd={handleOpenAddRecipe}
-                                onEdit={handleEditRecipe}
-                                onDelete={handleDeleteRecipeFromPlan}
-                                userRestrictions={userRestrictions}
-                                userDayMeal={userDayMeals?.find(udm => udm.day_meal_id === meal.id)}
-                                onAutoBalance={handleAutoBalance}
-                                isBalancing={isBalancing}
-                                planUserId={plan.user_id}
-                                readOnly={readOnly}
-                            />
-                        ))}
+                        {dayMeals.map(meal => {
+                            const udm = userDayMeals?.find(u => u.day_meal_id === meal.id);
+                            return (
+                                <MealSection
+                                    key={meal.id}
+                                    meal={meal}
+                                    recipes={recipes.filter(r => r.day_meal_id === meal.id)}
+                                    allFoods={allFoods}
+                                    onAdd={handleOpenAddRecipe}
+                                    onEdit={handleEditRecipe}
+                                    onDelete={handleDeleteRecipeFromPlan}
+                                    userRestrictions={userRestrictions}
+                                    userDayMeal={udm}
+                                    onAutoBalance={handleAutoBalance}
+                                    isBalancing={balancingMealId === udm?.id}
+                                    isAlreadyBalanced={!!balancedMealIds[udm?.id]}
+                                    planUserId={plan.user_id}
+                                    readOnly={readOnly}
+                                    pendingRecalc={pendingRecalc}
+                                />
+                            );
+                        })}
                     </div>
                 </CardContent>
             </Card>

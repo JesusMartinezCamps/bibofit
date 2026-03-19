@@ -211,6 +211,7 @@ const IngredientCard = ({
   const hasConflict = !is_ghost && ['condition_avoid', 'sensitivity', 'non-preferred', 'diet_type_excluded', 'diet_type_limited'].includes(conflictType);
   const isRecommended = !is_ghost && ['condition_recommend', 'preferred'].includes(conflictType);
   const isUserCreated = !!ingredient.is_user_created || !!food.is_user_created || !!food.user_id;
+  const isEditingCompactMobile = isEditing;
 
   if (displayAsBullet) {
     return (
@@ -314,7 +315,8 @@ const IngredientCard = ({
     <div
       data-ingredient-food-id={food.id}
       className={cn(
-        'p-3 rounded-lg border transition-all duration-300',
+        'rounded-lg border transition-all duration-300',
+        isEditingCompactMobile ? 'p-2 sm:p-3' : 'p-3',
         statusColorClasses
           .split(' ')
           .filter((c) => (
@@ -327,31 +329,40 @@ const IngredientCard = ({
     >
       <div
         className={cn(
-          'grid items-start gap-2',
+          'grid items-start',
+          isEditingCompactMobile ? 'gap-1.5 sm:gap-2' : 'gap-2',
           canManageIngredient
             ? 'grid-cols-[minmax(2rem,5%)_minmax(0,1fr)_minmax(2rem,5%)]'
             : 'grid-cols-1'
         )}
       >
         {canManageIngredient && (
-          <div className="flex justify-center pt-1">
+          <div
+            className={cn(
+              'flex justify-center',
+              isEditing ? 'items-center h-8 sm:h-9' : 'pt-1'
+            )}
+          >
             <button
               onClick={onReplace}
-              className="bg-blue-600/90 text-white rounded-full p-1 transition-opacity hover:bg-blue-500 shadow-lg"
+              className={cn(
+                'bg-blue-600/90 text-white rounded-full transition-opacity hover:bg-blue-500 shadow-lg',
+                isEditingCompactMobile ? 'p-0.5 sm:p-1' : 'p-1'
+              )}
               title="Reemplazar ingrediente"
             >
-              <ArrowRightLeft className="w-4 h-4" />
+              <ArrowRightLeft className={cn(isEditingCompactMobile ? 'w-3.5 h-3.5 sm:w-4 sm:h-4' : 'w-4 h-4')} />
             </button>
           </div>
         )}
 
         <div className="min-w-0">
           {isEditing ? (
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center">
+            <div className={cn('flex flex-col', isEditingCompactMobile ? 'gap-1.5 sm:gap-2' : 'gap-2')}>
+              <div className="flex items-center gap-1 min-h-8 sm:min-h-9">
                 <div className="w-3/5 flex flex-col justify-center transition-all min-w-0">
                   <div
-                    className="font-semibold"
+                    className={cn('font-semibold', isEditingCompactMobile ? 'text-sm sm:text-base' : '')}
                     style={{ color: statusColorClasses.split(' ').find((c) => c.startsWith('text-'))?.replace('text-', '') }}
                   >
                     {food.name}
@@ -365,9 +376,12 @@ const IngredientCard = ({
                         type="number"
                         value={quantity}
                         onChange={onQuantityChange}
-                        className="input-field bg-transparent border-dashed w-20 text-center"
+                        className={cn(
+                          'input-field bg-transparent border-dashed text-center',
+                          isEditingCompactMobile ? 'h-8 w-14 sm:h-9 sm:w-20 text-sm' : 'w-20'
+                        )}
                       />
-                      <span className="text-sm font-normal text-muted-foreground ml-1">{unitLabel}</span>
+                      <span className={cn('font-normal text-muted-foreground ml-1', isEditingCompactMobile ? 'text-xs sm:text-sm' : 'text-sm')}>{unitLabel}</span>
                     </div>
                     {safeMultiplier !== 1 && (
                       <span className="text-[10px] text-cyan-300 mt-0.5">
@@ -378,8 +392,13 @@ const IngredientCard = ({
                   </div>
                 </div>
               </div>
-              <div className="w-full">
-                {renderMacros({ macros: scaledMacros, isFreeMealView })}
+              <div className={cn('w-full', isEditingCompactMobile && 'px-1 sm:px-0')}>
+                {renderMacros({
+                  macros: scaledMacros,
+                  isFreeMealView,
+                  smallText: isEditingCompactMobile,
+                  fullWidth: isEditingCompactMobile,
+                })}
               </div>
             </div>
           ) : (
@@ -436,13 +455,21 @@ const IngredientCard = ({
         </div>
 
         {canManageIngredient && (
-          <div className="flex justify-center pt-1">
+          <div
+            className={cn(
+              'flex justify-center',
+              isEditing ? 'items-center h-8 sm:h-9' : 'pt-1'
+            )}
+          >
             <button
               onClick={onRemove}
-              className="bg-red-600/90 text-white rounded-full p-1 transition-opacity hover:bg-red-500 shadow-lg"
+              className={cn(
+                'bg-red-600/90 text-white rounded-full transition-opacity hover:bg-red-500 shadow-lg',
+                isEditingCompactMobile ? 'p-0.5 sm:p-1' : 'p-1'
+              )}
               title="Eliminar ingrediente"
             >
-              <X className="w-4 h-4" />
+              <X className={cn(isEditingCompactMobile ? 'w-3.5 h-3.5 sm:w-4 sm:h-4' : 'w-4 h-4')} />
             </button>
           </div>
         )}
@@ -450,7 +477,8 @@ const IngredientCard = ({
         {isEditing && (vitamins.length > 0 || minerals.length > 0) && (
           <div
             className={cn(
-              'mt-2 pt-2 border-t border-border/50 flex flex-wrap gap-1.5 col-span-full'
+              'border-t border-border/50 flex flex-wrap gap-1.5 col-span-full',
+              isEditingCompactMobile ? 'mt-1.5 pt-1.5 sm:mt-2 sm:pt-2' : 'mt-2 pt-2'
             )}
           >
             {vitamins.map((v) => (

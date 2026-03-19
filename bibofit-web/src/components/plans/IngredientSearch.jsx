@@ -60,10 +60,9 @@ const IngredientSearch = ({
   const [foodToCreate, setFoodToCreate] = useState(null);
 
   const getFoodGroupNames = (food) => {
-    const directGroups = (food?.food_to_food_groups || [])
-      .map((fg) => fg?.food_group?.name || fg?.food_group_name)
+    return (food?.food_to_food_groups || [])
+      .map((fg) => fg?.food_groups?.name || fg?.food_group?.name || fg?.food_group_name)
       .filter(Boolean);
-    return directGroups;
   };
 
   const getRecommendedConditionNames = (food) => {
@@ -252,8 +251,7 @@ const IngredientSearch = ({
   return (
     <>
       <FoodLookupPanel
-        title="Buscar Ingrediente"
-        showHeader={true}
+        showHeader={false}
         onBack={onBack}
         searchTerm={searchTerm}
         onSearchTermChange={setSearchTerm}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Helmet } from 'react-helmet';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabaseClient';
 import { useToast } from '@/components/ui/use-toast';
@@ -92,8 +92,8 @@ const CreateSnackPage = () => {
         setLoadingInitialData(true);
         try {
             const [foodsRes, userCreatedFoodsRes, restrictionsRes, activePlanRes, preferredFoodsRes, nonPreferredFoodsRes] = await Promise.all([
-                supabase.from('food').select(`*, food_to_food_groups(food_group_id), food_sensitivities(sensitivities(id, name)), food_medical_conditions(medical_conditions(id, name), relation_type)`).is('user_id', null),
-                supabase.from('food').select(`*, food_to_food_groups(food_group_id), food_sensitivities(sensitivities(id, name)), food_medical_conditions(medical_conditions(id, name), relation_type)`).eq('user_id', targetUserId).neq('status', 'rejected'),
+                supabase.from('food').select(`*, food_to_food_groups(food_group_id, food_groups(id, name)), food_sensitivities(sensitivities(id, name)), food_medical_conditions(medical_conditions(id, name), relation_type)`).is('user_id', null),
+                supabase.from('food').select(`*, food_to_food_groups(food_group_id, food_groups(id, name)), food_sensitivities(sensitivities(id, name)), food_medical_conditions(medical_conditions(id, name), relation_type)`).eq('user_id', targetUserId).neq('status', 'rejected'),
                 supabase.rpc('get_user_restrictions', { p_user_id: targetUserId }),
                 supabase.from('diet_plans').select('id').eq('user_id', targetUserId).eq('is_active', true).maybeSingle(), // Use maybeSingle for safety
                 supabase.from('preferred_foods').select('food(*)').eq('user_id', targetUserId),
@@ -223,30 +223,19 @@ const CreateSnackPage = () => {
         }
     };
     
+    const handleBack = () => {
+        if (view === 'search') {
+            setView('main');
+        } else {
+            navigate(`/plan/dieta/${date}`);
+        }
+    };
+
     const getTitle = () => {
         switch (view) {
           case 'search': return 'Añadir Ingrediente';
           default: return 'Añadir Picoteo';
         }
-    };
-
-    const BackButton = () => {
-        if (view === 'search') {
-            return (
-                <Button variant="ghost" onClick={() => setView('main')} className="flex items-center gap-2 text-muted-foreground hover:text-foreground hover:bg-muted">
-                    <ArrowLeft size={18} />
-                    Volver al picoteo
-                </Button>
-            );
-        }
-        return (
-            <Button variant="ghost" asChild>
-                <Link to={`/plan/dieta/${date}`} className="flex items-center gap-2 text-muted-foreground hover:text-foreground hover:bg-muted">
-                    <ArrowLeft size={18} />
-                    Volver al Plan
-                </Link>
-            </Button>
-        );
     };
 
     return (
@@ -255,14 +244,16 @@ const CreateSnackPage = () => {
                 <title>Añadir Picoteo - Gsus Martz</title>
                 <meta name="description" content="Crea y añade un picoteo a tu plan de dieta." />
             </Helmet>
-            <div className="container mx-auto max-w-4xl pt-0 pb-8 px-0 sm:pt-8 sm:px-4">
-                <div className="rounded-2xl border border-border bg-card/55 p-3 sm:p-6 shadow-sm">
-                    <div className="mb-0 sm:mb-6">
-                        <BackButton />
-                    </div>
-                    <Card className="bg-card/90 border-border text-foreground shadow-sm">
+            <div className="container mx-auto max-w-4xl pt-0 pb-0 px-0 sm:pt-8 sm:pb-8 sm:px-4">
+                <div className="sm:rounded-2xl sm:border sm:border-border sm:bg-card/55 sm:p-6 sm:shadow-sm">
+                    <Card className="bg-card/90 border-0 sm:border sm:border-border text-foreground shadow-none sm:shadow-sm rounded-none sm:rounded-xl">
                         <CardHeader>
-                            <CardTitle className="text-3xl font-bold text-orange-400">{getTitle()}</CardTitle>
+                            <CardTitle className="flex items-center gap-3 text-3xl font-bold text-orange-400">
+                                <Button variant="ghost" size="icon" onClick={handleBack} className="text-muted-foreground hover:text-foreground hover:bg-muted shrink-0">
+                                    <ArrowLeft size={22} />
+                                </Button>
+                                {getTitle()}
+                            </CardTitle>
                         </CardHeader>
                         <CardContent>
                             {renderContent()}

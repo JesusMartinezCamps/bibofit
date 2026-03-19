@@ -217,11 +217,11 @@ TotalRow.displayName = 'TotalRow';
 /* ============================================================
    COMPONENTE PRINCIPAL
    ============================================================ */
-const MealMacroConfiguration = ({ 
-    meals, 
-    onSaveConfiguration, 
-    effectiveTdee, 
-    macrosPct, 
+const MealMacroConfiguration = ({
+    meals,
+    onSaveConfiguration,
+    effectiveTdee,
+    macrosPct,
     shouldAutoExpand,
     hideSaveButton = false,
     onConfigChange,
@@ -424,7 +424,7 @@ const MealMacroConfiguration = ({
           className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down"
         >
           <CardContent className={cn("px-0 sm:px-6 pb-4", readOnly && "pointer-events-none opacity-50")}>
-             
+
             {!isInteractive && !readOnly && (
                 <div className="px-4 mb-4">
                     <div className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-500/30 rounded-lg p-4 flex items-start gap-3">

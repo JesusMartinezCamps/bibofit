@@ -870,16 +870,18 @@ const ShoppingListPage = () => {
                     </div>
                 ) : !error && (
                     <div className="space-y-6 pb-20 animate-in fade-in duration-500">
-                        <PrivateShoppingList 
-                            items={filteredData.privateItems} 
-                            onAdd={handleAddPrivateItem} 
-                            onToggle={handleTogglePrivateItem} 
-                            onRemove={handleRemovePrivateItem} 
-                            loading={loadingPrivate} 
-                            searchQuery={searchQuery}
-                            isOpen={openSections.private}
-                            onOpenChange={() => toggleSection('private')}
-                        />
+                        {(!searchQuery.trim() || filteredData.privateItems.length > 0) && (
+                            <PrivateShoppingList
+                                items={filteredData.privateItems}
+                                onAdd={handleAddPrivateItem}
+                                onToggle={handleTogglePrivateItem}
+                                onRemove={handleRemovePrivateItem}
+                                loading={loadingPrivate}
+                                searchQuery={searchQuery}
+                                isOpen={openSections.private}
+                                onOpenChange={() => toggleSection('private')}
+                            />
+                        )}
                         
                         <ShoppingListGroup 
                             title="Proteínas" 
@@ -929,15 +931,32 @@ const ShoppingListPage = () => {
                             colorClass="text-muted-foreground"
                         />
 
-                        {(!filteredData.privateItems.length && 
-                          !filteredData.listData.proteins.length && 
-                          !filteredData.listData.carbs.length && 
-                          !filteredData.listData.fats.length && 
+                        {((listMode === 'planned' || !filteredData.privateItems.length) &&
+                          !filteredData.listData.proteins.length &&
+                          !filteredData.listData.carbs.length &&
+                          !filteredData.listData.fats.length &&
                           !filteredData.listData.others.length) && (
-                            <div className="text-center py-12 bg-card/30 rounded-xl border border-dashed border-border">
-                                <ShoppingCart className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                                <p className="text-muted-foreground text-lg">No se encontraron artículos.</p>
-                                <p className="text-muted-foreground text-sm mt-1">Prueba a cambiar el modo de vista o añadir artículos privados.</p>
+                            <div className="text-center py-12 bg-card/30 rounded-xl border border-dashed border-border flex flex-col items-center gap-4">
+                                {listMode === 'planned' ? (
+                                    <>
+                                        <Calendar className="w-12 h-12 text-gray-600" />
+                                        <p className="text-muted-foreground text-lg">No hay comidas planificadas.</p>
+                                        <p className="text-muted-foreground text-sm">Planifica tu semana para generar la lista automáticamente.</p>
+                                        <Button
+                                            onClick={() => navigate(`/plan/dieta/${format(new Date(), 'yyyy-MM-dd')}`, { state: { initialViewMode: 'week' } })}
+                                            className="gap-2"
+                                        >
+                                            <Calendar className="w-4 h-4" />
+                                            Ir a Planificación Semanal
+                                        </Button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <ShoppingCart className="w-12 h-12 text-gray-600" />
+                                        <p className="text-muted-foreground text-lg">No se encontraron artículos.</p>
+                                        <p className="text-muted-foreground text-sm mt-1">Prueba a cambiar el modo de vista o añadir artículos privados.</p>
+                                    </>
+                                )}
                             </div>
                         )}
                     </div>

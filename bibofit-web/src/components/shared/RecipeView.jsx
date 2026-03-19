@@ -127,6 +127,7 @@ const RecipeView = ({
   onFoodCreated,
   recipeStyles = null,
   isConflictCorrectionMode = false,
+  hideMacrosTitle = false,
 }) => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -533,8 +534,12 @@ const RecipeView = ({
     >
       <div className="text-center mt-6 relative z-10">
         {recipeImageUrl && (
-          <div className="mb-4 overflow-hidden rounded-xl border border-border/70 bg-card/85">
+          <div
+            data-recipe-hero-image-wrapper
+            className="mb-4 overflow-hidden rounded-xl border border-border/70 bg-card/85"
+          >
             <img
+              data-recipe-hero-image
               src={recipeImageUrl}
               alt={`Imagen de ${recipe.name || 'receta'}`}
               className="w-full h-44 sm:h-56 object-cover"
@@ -544,21 +549,25 @@ const RecipeView = ({
         )}
 
         {isEditing ? (
-          <EditableField
-            value={recipe.name}
-            onChange={(e) => onFormChange({ target: { name: 'name', value: e.target.value } })}
-            isEditing
-            placeholder="Nombre de la Receta"
-            type="textarea"
-            textareaRows={1}
-            textareaMinHeight="1.2em"
-            className="text-3xl font-bold leading-tight whitespace-pre-wrap break-normal resize-none text-center w-full"
-          />
+          <div data-recipe-title-anchor>
+            <EditableField
+              value={recipe.name}
+              onChange={(e) => onFormChange({ target: { name: 'name', value: e.target.value } })}
+              isEditing
+              placeholder="Nombre de la Receta"
+              type="textarea"
+              textareaRows={1}
+              textareaMinHeight="1.2em"
+              className="text-3xl font-bold leading-tight whitespace-pre-wrap break-normal resize-none text-center w-full"
+            />
+          </div>
         ) : (
           <>
-            <h2 className="text-3xl font-bold text-center break-words bg-clip-text text-transparent bg-gradient-to-r from-emerald-700 to-teal-700 dark:from-green-300 dark:to-teal-400">
-              {recipe.name}
-            </h2>
+            <div data-recipe-title-anchor>
+              <h2 className="text-3xl font-bold text-center break-words bg-clip-text text-transparent bg-gradient-to-r from-emerald-700 to-teal-700 dark:from-green-300 dark:to-teal-400">
+                {recipe.name}
+              </h2>
+            </div>
             <div className="flex justify-center gap-3 mt-2">
               {redCount > 0 && (
                 <span className="flex items-center text-sm text-red-400 gap-1.5 bg-red-900/20 px-2 py-1 rounded-full border border-red-500/30">
@@ -597,144 +606,6 @@ const RecipeView = ({
 
       {headerSlot && <div className="relative z-10">{headerSlot}</div>}
 
-      {shouldShowMetaFields && (
-        <div
-          className={cn(
-            'grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 rounded-lg relative z-10',
-            isEditing ? 'sm:p-0.5' : 'p-3 bg-muted/65'
-          )}
-        >
-          <div className={cn('min-w-0', !isEditing && 'flex flex-col items-center justify-center text-center')}>
-            <div className={cn('flex items-center gap-1 sm:gap-2 text-foreground dark:text-gray-200 font-semibold', !isEditing && 'justify-center')}>
-              {!isEditing && <ChefHat className="w-4 h-4 text-muted-foreground shrink-0" />}
-              <span className="truncate">Dificultad</span>
-            </div>
-            <div className="mt-1">
-              <EditableField
-                value={recipe.difficulty}
-                onChange={(value) => onFormChange({ target: { name: 'difficulty', value } })}
-                isEditing={isEditing}
-                placeholder="No especificada"
-                type="select"
-                options={[
-                  { value: 'Fácil', label: 'Fácil' },
-                  { value: 'Media', label: 'Media' },
-                  { value: 'Difícil', label: 'Difícil' },
-                ]}
-                className={isEditing ? 'py-1 pr-1 pl-2' : ''}
-              />
-            </div>
-          </div>
-
-          <div className={cn('min-w-0', !isEditing && 'flex flex-col items-center justify-center text-center')}>
-            <div className={cn('flex items-center gap-1 sm:gap-2 text-foreground dark:text-gray-200 font-semibold', !isEditing && 'justify-center')}>
-              {!isEditing && <UtensilsCrossed className="w-4 h-4 text-muted-foreground shrink-0" />}
-              <span className="truncate">Estilo</span>
-            </div>
-            <div className="mt-1">
-              {isEditing ? (
-                <EditableField
-                  value={recipeStyleId ? String(recipeStyleId) : undefined}
-                  onChange={(value) => onFormChange({ target: { name: 'recipe_style_id', value } })}
-                  isEditing={isEditing}
-                  placeholder="No definido"
-                  type="select"
-                  options={safeRecipeStyles.map((style) => ({
-                    value: String(style.id),
-                    label: style.name,
-                  }))}
-                  className={isEditing ? 'py-1 pr-1 pl-2' : ''}
-                />
-              ) : (
-                <span className="text-muted-foreground">{recipeStyleName || 'No definido'}</span>
-              )}
-            </div>
-          </div>
-
-          <div className={cn('min-w-0', !isEditing && 'flex flex-col items-center justify-center text-center')}>
-            <div className={cn('flex items-center gap-1 sm:gap-2 text-foreground dark:text-gray-200 font-semibold', !isEditing && 'justify-center')}>
-              {!isEditing && <Clock className="w-4 h-4 text-muted-foreground shrink-0" />}
-              <span className="truncate">Tiempo</span>
-            </div>
-            <div className="mt-1">
-              {isEditing ? (
-                <div className="relative inline-flex items-center">
-                  <Input
-                    type="number"
-                    value={recipe.prep_time_min}
-                    onChange={(e) => onFormChange({ target: { name: 'prep_time_min', value: e.target.value } })}
-                    className="input-field bg-transparent border-dashed w-16 text-center p-0.5 pr-7"
-                  />
-                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs pointer-events-none">min</span>
-                </div>
-              ) : (
-                <span className="text-muted-foreground">{recipe.prep_time_min ? `${recipe.prep_time_min} min` : 'N/A'}</span>
-              )}
-            </div>
-          </div>
-
-          <div className={cn('min-w-0 relative', !isEditing && 'flex flex-col items-center justify-center text-center')}>
-            <div className="text-foreground dark:text-gray-200 font-semibold">Multiplicador</div>
-            <div className={cn('mt-1 flex items-center gap-1', !isEditing && 'justify-center')}>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="h-9 w-9 border-input bg-card/80 hover:bg-muted hover:text-muted-foreground text-foreground dark:text-gray-200 shrink-0"
-                onClick={() => setServingMultiplier((prev) => clampMultiplier(prev - 1))}
-                disabled={servingMultiplier <= 1}
-              >
-                <Minus className="w-4 h-4" />
-              </Button>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-xs pointer-events-none">x</span>
-                <Input
-                  type="number"
-                  min={1}
-                  max={20}
-                  value={servingMultiplier}
-                  onChange={(e) => setServingMultiplier(clampMultiplier(e.target.value))}
-                  className="h-7 w-10 text-center pl-4 pr-1 input-field bg-transparent border-dashed font-semibold"
-                />
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="h-9 w-9 border-input bg-card/80 hover:bg-muted hover:text-muted-foreground text-foreground dark:text-gray-200 shrink-0"
-                onClick={handleIncreaseMultiplier}
-              >
-                <Plus className="w-4 h-4" />
-              </Button>
-            </div>
-            <div
-              className={cn(
-                'absolute -top-8 left-1/2 -translate-x-1/2 rounded-md bg-card/95 border border-cyan-500/30 px-2 py-1 text-[11px] text-cyan-100 whitespace-nowrap shadow-lg transition-all duration-200',
-                showMultiplierEasterEgg ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
-              )}
-            >
-              ¡Pero bueno! Suficiente comida así...
-            </div>
-          </div>
-        </div>
-      )}
-
-      {shouldShowPreparationSection && (
-        <div className="relative z-10">
-          <h3 className="text-xl font-semibold mb-3 border-b border-border pb-2 bg-clip-text text-transparent bg-gradient-to-r from-emerald-700 to-teal-700 dark:from-green-300 dark:to-teal-400">
-            Preparacion
-          </h3>
-          <EditableField
-            value={recipe.instructions}
-            onChange={(e) => onFormChange({ target: { name: 'instructions', value: e.target.value } })}
-            isEditing={isEditing}
-            placeholder="Anade aqui las instrucciones..."
-            type={isEditing ? 'textarea' : 'p'}
-            className="text-muted-foreground whitespace-pre-wrap"
-          />
-        </div>
-      )}
-
       <div
         className={cn(
           enableStickyMacros &&
@@ -744,9 +615,11 @@ const RecipeView = ({
           'z-30'
         )}
       >
-        <h3 className="text-xl font-semibold mb-3 border-b border-border pb-2 bg-clip-text text-transparent bg-gradient-to-r from-emerald-700 to-teal-700 dark:from-green-300 dark:to-teal-400">
-          Macros Totales
-        </h3>
+        {!hideMacrosTitle && (
+          <h3 className="text-xl font-semibold mb-3 border-b border-border pb-2 bg-clip-text text-transparent bg-gradient-to-r from-emerald-700 to-teal-700 dark:from-green-300 dark:to-teal-400">
+            Macros Totales
+          </h3>
+        )}
         <MacroSummaryGrid macros={scaledTotalMacros} />
         {isEditing && resolvedTargets && !isTemplate && (
           <div className="mt-4">
@@ -758,7 +631,51 @@ const RecipeView = ({
         )}
       </div>
 
-      {actionButton && <div className="my-4 relative z-10">{actionButton}</div>}
+      {!isEditing && (
+        <div className="relative z-10 flex flex-col items-center">
+          <div className="text-sm font-semibold text-foreground mb-1 text-center">Multiplicador</div>
+          <div className="flex items-center justify-center gap-1">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-9 w-9 border-input bg-card/80 hover:bg-muted hover:text-muted-foreground text-foreground dark:text-gray-200 shrink-0"
+              onClick={() => setServingMultiplier((prev) => clampMultiplier(prev - 1))}
+              disabled={servingMultiplier <= 1}
+            >
+              <Minus className="w-4 h-4" />
+            </Button>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs pointer-events-none">x</span>
+              <Input
+                type="number"
+                min={1}
+                max={20}
+                value={servingMultiplier}
+                onChange={(e) => setServingMultiplier(clampMultiplier(e.target.value))}
+                className="h-9 w-12 text-center pl-4 pr-1 input-field bg-transparent border-dashed font-semibold"
+              />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-9 w-9 border-input bg-card/80 hover:bg-muted hover:text-muted-foreground text-foreground dark:text-gray-200 shrink-0"
+              onClick={handleIncreaseMultiplier}
+            >
+              <Plus className="w-4 h-4" />
+            </Button>
+          </div>
+          <div
+            className={cn(
+              'absolute -top-8 left-1/2 -translate-x-1/2 rounded-md bg-card/95 border border-cyan-500/30 px-2 py-1 text-[11px] text-cyan-100 whitespace-nowrap shadow-lg transition-all duration-200',
+              showMultiplierEasterEgg ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+            )}
+          >
+            ¡Pero bueno! Suficiente comida así...
+          </div>
+        </div>
+      )}
 
       <div className="relative z-10">
         <div className="flex justify-between items-center mb-3 border-b border-border pb-2">
@@ -859,6 +776,102 @@ const RecipeView = ({
           )}
         </div>
       </div>
+
+      {actionButton && <div className="my-4 relative z-10">{actionButton}</div>}
+
+      {shouldShowPreparationSection && (
+        <div className="relative z-10">
+          <h3 className="text-xl font-semibold mb-3 border-b border-border pb-2 bg-clip-text text-transparent bg-gradient-to-r from-emerald-700 to-teal-700 dark:from-green-300 dark:to-teal-400">
+            Preparacion
+          </h3>
+          <EditableField
+            value={recipe.instructions}
+            onChange={(e) => onFormChange({ target: { name: 'instructions', value: e.target.value } })}
+            isEditing={isEditing}
+            placeholder="Anade aqui las instrucciones..."
+            type={isEditing ? 'textarea' : 'p'}
+            className="text-muted-foreground whitespace-pre-wrap"
+          />
+        </div>
+      )}
+
+      {shouldShowMetaFields && (
+        <div
+          className={cn(
+            'grid grid-cols-3 gap-2 sm:gap-3 rounded-lg relative z-10',
+            isEditing ? 'sm:p-0.5' : 'p-3 bg-muted/65'
+          )}
+        >
+          <div className={cn('min-w-0', !isEditing && 'flex flex-col items-center justify-center text-center')}>
+            <div className={cn('flex items-center gap-1 sm:gap-2 text-foreground dark:text-gray-200 font-semibold', !isEditing && 'justify-center')}>
+              {!isEditing && <ChefHat className="w-4 h-4 text-muted-foreground shrink-0" />}
+              <span className="truncate">Dificultad</span>
+            </div>
+            <div className="mt-1">
+              <EditableField
+                value={recipe.difficulty}
+                onChange={(value) => onFormChange({ target: { name: 'difficulty', value } })}
+                isEditing={isEditing}
+                placeholder="No especificada"
+                type="select"
+                options={[
+                  { value: 'Fácil', label: 'Fácil' },
+                  { value: 'Media', label: 'Media' },
+                  { value: 'Difícil', label: 'Difícil' },
+                ]}
+                className={isEditing ? 'py-1 pr-1 pl-2' : ''}
+              />
+            </div>
+          </div>
+
+          <div className={cn('min-w-0', !isEditing && 'flex flex-col items-center justify-center text-center')}>
+            <div className={cn('flex items-center gap-1 sm:gap-2 text-foreground dark:text-gray-200 font-semibold', !isEditing && 'justify-center')}>
+              {!isEditing && <UtensilsCrossed className="w-4 h-4 text-muted-foreground shrink-0" />}
+              <span className="truncate">Estilo</span>
+            </div>
+            <div className="mt-1">
+              {isEditing ? (
+                <EditableField
+                  value={recipeStyleId ? String(recipeStyleId) : undefined}
+                  onChange={(value) => onFormChange({ target: { name: 'recipe_style_id', value } })}
+                  isEditing={isEditing}
+                  placeholder="No definido"
+                  type="select"
+                  options={safeRecipeStyles.map((style) => ({
+                    value: String(style.id),
+                    label: style.name,
+                  }))}
+                  className={isEditing ? 'py-1 pr-1 pl-2' : ''}
+                />
+              ) : (
+                <span className="text-muted-foreground">{recipeStyleName || 'No definido'}</span>
+              )}
+            </div>
+          </div>
+
+          <div className={cn('min-w-0', !isEditing && 'flex flex-col items-center justify-center text-center')}>
+            <div className={cn('flex items-center gap-1 sm:gap-2 text-foreground dark:text-gray-200 font-semibold', !isEditing && 'justify-center')}>
+              {!isEditing && <Clock className="w-4 h-4 text-muted-foreground shrink-0" />}
+              <span className="truncate">Tiempo</span>
+            </div>
+            <div className="mt-1">
+              {isEditing ? (
+                <div className="relative inline-flex items-center">
+                  <Input
+                    type="number"
+                    value={recipe.prep_time_min}
+                    onChange={(e) => onFormChange({ target: { name: 'prep_time_min', value: e.target.value } })}
+                    className="input-field bg-transparent border-dashed w-16 text-center p-0.5 pr-7"
+                  />
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs pointer-events-none">min</span>
+                </div>
+              ) : (
+                <span className="text-muted-foreground">{recipe.prep_time_min ? `${recipe.prep_time_min} min` : 'N/A'}</span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <IngredientQuickEditDialog
         open={!!quantityEditorIngredient}

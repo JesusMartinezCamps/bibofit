@@ -244,6 +244,30 @@ export const useRecipeEditor = ({ recipeToEdit, onSaveSuccess, isAdminView, user
     handleIngredientsChange(ingredients.filter(ing => (ing.local_id || ing.id) !== identifier));
   };
 
+  const normalizeFormForComparison = useCallback((data) => ({
+    name: String(data?.name ?? ''),
+    instructions: String(data?.instructions ?? ''),
+    prep_time_min:
+      data?.prep_time_min === '' || data?.prep_time_min === null || data?.prep_time_min === undefined
+        ? null
+        : Number(data.prep_time_min),
+    difficulty: String(data?.difficulty ?? ''),
+    recipe_style_id: String(data?.recipe_style_id ?? ''),
+  }), []);
+
+  const hasFormChanged = useCallback((current, baseline) => {
+    const normalizedCurrent = normalizeFormForComparison(current);
+    const normalizedBaseline = normalizeFormForComparison(baseline);
+
+    return (
+      normalizedCurrent.name !== normalizedBaseline.name ||
+      normalizedCurrent.instructions !== normalizedBaseline.instructions ||
+      normalizedCurrent.prep_time_min !== normalizedBaseline.prep_time_min ||
+      normalizedCurrent.difficulty !== normalizedBaseline.difficulty ||
+      normalizedCurrent.recipe_style_id !== normalizedBaseline.recipe_style_id
+    );
+  }, [normalizeFormForComparison]);
+
   const hasIngredientChanges = useMemo(() => {
       if (ingredients.length !== originalIngredients.length) return true;
       
@@ -258,8 +282,8 @@ export const useRecipeEditor = ({ recipeToEdit, onSaveSuccess, isAdminView, user
   }, [ingredients, originalIngredients]);
 
   const hasChanges = useMemo(() => {
-    return JSON.stringify(formData) !== JSON.stringify(initialFormData) || hasIngredientChanges;
-  }, [formData, initialFormData, hasIngredientChanges]);
+    return hasFormChanged(formData, initialFormData) || hasIngredientChanges;
+  }, [formData, initialFormData, hasIngredientChanges, hasFormChanged]);
 
   const handleSubmit = useCallback(async (actionType = 'save') => {
     if (!hasChanges) {
@@ -298,7 +322,7 @@ export const useRecipeEditor = ({ recipeToEdit, onSaveSuccess, isAdminView, user
             setFormData((prev) => ({ ...prev, name: forcedVariantName }));
         }
 
-        const isSimpleUpdate = !hasIngredientChanges && JSON.stringify(finalFormData) !== JSON.stringify(initialFormData);
+        const isSimpleUpdate = !hasIngredientChanges && hasFormChanged(finalFormData, initialFormData);
         const isVariantNode =
             recipeToEdit.type === 'variant' ||
             recipeToEdit.user_recipe_type === 'variant';
@@ -417,7 +441,7 @@ export const useRecipeEditor = ({ recipeToEdit, onSaveSuccess, isAdminView, user
     } finally {
         setIsSubmitting(false);
     }
-}, [hasChanges, formData, ingredients, originalIngredients, recipeToEdit, userId, onSaveSuccess, toast, isAdminView, initialFormData, hasIngredientChanges, isTemplate, allFoods]);
+}, [hasChanges, formData, ingredients, originalIngredients, recipeToEdit, userId, onSaveSuccess, toast, isAdminView, initialFormData, hasIngredientChanges, isTemplate, allFoods, hasFormChanged]);
   
   const isEditable = isAdminView || isAdminRole(user?.role) || isCoachRole(user?.role) || (recipeToEdit && (
       recipeToEdit.is_private ||

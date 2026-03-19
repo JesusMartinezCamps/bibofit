@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Helmet } from 'react-helmet';
-import { useNavigate, useParams, Link, useLocation } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabaseClient';
 import { useToast } from '@/components/ui/use-toast';
@@ -305,18 +305,13 @@ const CreateFreeRecipePage = () => {
     return 'Crear Receta Libre';
   };
 
-  const BackButton = () => (
-    <Button variant="ghost" asChild>
-      <Link
-        to={view === 'main' ? `/plan/dieta/${date}` : '#'}
-        onClick={view !== 'main' ? () => setView('main') : undefined}
-        className="flex items-center gap-2 text-muted-foreground hover:text-foreground hover:bg-muted"
-      >
-        <ArrowLeft size={18} />
-        {view === 'main' ? 'Volver al Plan' : 'Volver a la receta'}
-      </Link>
-    </Button>
-  );
+  const handleBack = () => {
+    if (view === 'search') {
+      setView('main');
+    } else {
+      navigate(`/plan/dieta/${date}`);
+    }
+  };
 
   return (
     <>
@@ -325,14 +320,15 @@ const CreateFreeRecipePage = () => {
         <meta name="description" content="Crea y añade una receta libre a tu plan de dieta." />
       </Helmet>
 
-      <div className="container mx-auto max-w-4xl pt-0 pb-8 px-4 sm:pt-8">
-        <div className="mb-0 sm:mb-6">
-          <BackButton />
-        </div>
-
+      <div className="container mx-auto max-w-4xl pt-0 pb-0 px-0 sm:pt-8 sm:pb-8 sm:px-4">
         <Card className="bg-card/75 dark:bg-[#0C101D] border-border text-white">
           <CardHeader>
-            <CardTitle className="text-3xl font-bold text-green-400">{getTitle()}</CardTitle>
+            <CardTitle className="flex items-center gap-3 text-3xl font-bold text-green-400">
+              <Button variant="ghost" size="icon" onClick={handleBack} className="text-muted-foreground hover:text-foreground hover:bg-muted shrink-0">
+                <ArrowLeft size={22} />
+              </Button>
+              {getTitle()}
+            </CardTitle>
             {view === 'main' && hasSavedDraft && (
               <div className="flex items-center gap-2 text-xs text-green-400">
                 <CheckCircle2 size={12} />

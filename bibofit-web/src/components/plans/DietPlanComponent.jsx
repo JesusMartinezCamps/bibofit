@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef, useContext } from 'react';
 import { useToast } from '@/components/ui/use-toast';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Loader2, Calendar, List, ArrowLeft, ArrowRight, AlertTriangle, ShoppingCart, HeartPulse, ShieldAlert, Weight, StickyNote, GitBranch } from 'lucide-react';
@@ -112,6 +112,7 @@ const DietPlanComponent = () => {
   const { user: authUser } = useAuth();
   const { userId: paramUserId, date: paramDate } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
 
   const userId = paramUserId || authUser.id;
@@ -125,7 +126,7 @@ const DietPlanComponent = () => {
   };
 
   const [currentDate, setCurrentDate] = useState(getInitialDate());
-  const [viewMode, setViewMode] = useState('list');
+  const [viewMode, setViewMode] = useState(location.state?.initialViewMode || 'list');
   const [isAddRecipeOpen, setIsAddRecipeOpen] = useState(false);
   const [mealToAddTo, setMealToAddTo] = useState(null);
   const [mealDateToAddTo, setMealDateToAddTo] = useState(null);
@@ -142,6 +143,8 @@ const DietPlanComponent = () => {
   const isAdminView = authUser?.id !== userId;
   const logDate = format(currentDate, 'yyyy-MM-dd');
   const plannerRef = useRef(null);
+  const stickysentinel = useRef(null);
+  const [isVisualizerStuck, setIsVisualizerStuck] = useState(false);
   const { registerPlannerRef } = useContext(DietPlanRefreshContext);
   useEffect(() => { registerPlannerRef(plannerRef); }, [registerPlannerRef]);
 
@@ -157,6 +160,17 @@ const DietPlanComponent = () => {
       sessionStorage.setItem(SCROLL_KEY, String(Math.round(window.scrollY)));
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const sentinel = stickysentinel.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsVisualizerStuck(!entry.isIntersecting),
+      { threshold: 0, rootMargin: '0px' }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
   }, []);
 
   const visualizerWeekDates = useMemo(
@@ -613,11 +627,12 @@ const combinedPlanRestrictions = useMemo(() => {
           </Card>
 
           <div className="lg:hidden contents">
+              <div ref={stickysentinel} className="h-0 w-full" aria-hidden="true" />
               <div
                 data-diet-sticky-visualizer="true"
                 className="lg:hidden sticky !top-0 z-30 bg-card/95 backdrop-blur-sm -mx-1 sm:mx-0 px-1 sm:px-0 py-2 rounded-b-xl shadow-[0_8px_15px_-5px_rgba(0,0,0,0.3)]"
               >
-                <DietVisualizer isSticky={true} activePlan={activePlan} viewMode={viewMode} targetMacros={targetMacros} consumedMacros={consumedMacros} loadingMacros={loadingMacros} visualizerWeekDates={visualizerWeekDates} weekSummaryByDate={weekSummaryByDate} onDayClick={handleDayClickInVisualizer} focusedWeekDate={focusedWeekDate} />
+                <DietVisualizer isSticky={isVisualizerStuck} activePlan={activePlan} viewMode={viewMode} targetMacros={targetMacros} consumedMacros={consumedMacros} loadingMacros={loadingMacros} visualizerWeekDates={visualizerWeekDates} weekSummaryByDate={weekSummaryByDate} onDayClick={handleDayClickInVisualizer} focusedWeekDate={focusedWeekDate} />
               </div>
           </div>
 

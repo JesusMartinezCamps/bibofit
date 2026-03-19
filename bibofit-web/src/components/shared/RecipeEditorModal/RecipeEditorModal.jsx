@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import { useRecipeEditor } from './useRecipeEditor';
@@ -190,7 +190,11 @@ const RecipeEditorModal = ({
   const [isSearching, setIsSearching] = useState(false);
   const [scrollToFoodId, setScrollToFoodId] = useState(null);
   const [isLeaveConfirmOpen, setIsLeaveConfirmOpen] = useState(false);
+  const [isModeSwitchConfirmOpen, setIsModeSwitchConfirmOpen] = useState(false);
+  const [pendingMode, setPendingMode] = useState(null);
   const [quickEditIngredientKey, setQuickEditIngredientKey] = useState(null);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const [isMobileHeaderHidden, setIsMobileHeaderHidden] = useState(false);
   const ingredientsContainerRef = useRef(null);
   const searchScrollSnapshotRef = useRef({
     innerScrollTop: 0,
@@ -199,6 +203,101 @@ const RecipeEditorModal = ({
   });
   const shouldRestoreSearchScrollRef = useRef(false);
   const shouldForceBottomScrollRef = useRef(false);
+  const editingSnapshotRef = useRef(null);
+  const closeBaselineSnapshotRef = useRef(null);
+  const closeBaselineKeyRef = useRef(null);
+
+  const normalizeFormSnapshot = useCallback((data) => ({
+    name: String(data?.name ?? '').trim(),
+    instructions: String(data?.instructions ?? ''),
+    prep_time_min: data?.prep_time_min === '' || data?.prep_time_min === null || data?.prep_time_min === undefined
+      ? null
+      : Number(data.prep_time_min),
+    difficulty: String(data?.difficulty ?? ''),
+    recipe_style_id: String(data?.recipe_style_id ?? ''),
+  }), []);
+
+  const normalizeIngredientsSnapshot = useCallback((list) => (
+    (Array.isArray(list) ? list : []).map((ing) => ({
+      food_id: String(ing?.food_id ?? ing?.food?.id ?? ''),
+      grams: ing?.grams === '' || ing?.grams === null || ing?.grams === undefined
+        ? 0
+        : Number(ing.grams),
+    }))
+  ), []);
+
+  const buildEditingSnapshot = useCallback(() => JSON.stringify({
+    form: normalizeFormSnapshot(formData),
+    ingredients: normalizeIngredientsSnapshot(ingredients),
+  }), [formData, ingredients, normalizeFormSnapshot, normalizeIngredientsSnapshot]);
+
+  useEffect(() => {
+    if (!open || loading || localLoading) return;
+
+    const baselineKey = [
+      enrichedRecipe?.id ?? 'no-id',
+      enrichedRecipe?.updated_at ?? '',
+      mode,
+    ].join('|');
+
+    if (closeBaselineKeyRef.current !== baselineKey) {
+      closeBaselineSnapshotRef.current = buildEditingSnapshot();
+      closeBaselineKeyRef.current = baselineKey;
+    }
+  }, [open, loading, localLoading, enrichedRecipe?.id, enrichedRecipe?.updated_at, mode, buildEditingSnapshot]);
+
+  const hasUnsavedChangesForClose = useCallback(() => {
+    const baseline = closeBaselineSnapshotRef.current;
+    if (!baseline) return false;
+    return baseline !== buildEditingSnapshot();
+  }, [buildEditingSnapshot]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const mediaQuery = window.matchMedia('(max-width: 639px)');
+    const applyViewport = (matches) => setIsMobileViewport(matches);
+    applyViewport(mediaQuery.matches);
+
+    const handler = (event) => applyViewport(event.matches);
+    mediaQuery.addEventListener('change', handler);
+
+    return () => {
+      mediaQuery.removeEventListener('change', handler);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!open || !ingredientsContainerRef.current || isSearching || !isMobileViewport) {
+      setIsMobileHeaderHidden(false);
+      return undefined;
+    }
+
+    const scroller = ingredientsContainerRef.current;
+
+    const syncHeaderVisibility = () => {
+      const titleAnchor = scroller.querySelector('[data-recipe-title-anchor]');
+      if (!titleAnchor) {
+        setIsMobileHeaderHidden(false);
+        return;
+      }
+
+      // Deterministic rule using scroll coordinates:
+      // compact mode starts when the bottom edge of the title container
+      // has moved above the top edge of the visible scroll area.
+      const titleBottomInContent = titleAnchor.offsetTop + titleAnchor.offsetHeight;
+      const shouldHideHeader = scroller.scrollTop >= titleBottomInContent;
+      setIsMobileHeaderHidden(shouldHideHeader);
+    };
+
+    syncHeaderVisibility();
+    scroller.addEventListener('scroll', syncHeaderVisibility, { passive: true });
+    window.addEventListener('resize', syncHeaderVisibility);
+
+    return () => {
+      scroller.removeEventListener('scroll', syncHeaderVisibility);
+      window.removeEventListener('resize', syncHeaderVisibility);
+    };
+  }, [open, isSearching, isMobileViewport, mode, enrichedRecipe?.id, enrichedRecipe?.image_url, enrichedRecipe?.img_url]);
 
   useEffect(() => {
     if (scrollToFoodId && ingredientsContainerRef.current) {
@@ -267,25 +366,57 @@ const RecipeEditorModal = ({
     setIsSearching(false);
   };
 
-  const handleModeChange = async (checked) => {
+  const handleModeChange = (checked) => {
     if (readOnly) return;
     const newMode = checked ? 'view' : 'settings';
-    // Auto-save when switching to view if there are any changes (admin or client).
-    // For clients: metadata-only → update in-place; ingredient changes → creates variant.
-    const shouldAutoSave = mode === 'settings' && newMode === 'view' && hasChanges;
-    if (shouldAutoSave) {
-      const success = await handleSubmit('replace');
-      if (!success) return;
+    if (newMode === mode) return;
+
+    if (newMode === 'settings') {
+      editingSnapshotRef.current = buildEditingSnapshot();
+      setMode(newMode);
+      return;
     }
+
+    const snapshotAtEditStart = editingSnapshotRef.current;
+    const hasRealChangesSinceEditStart =
+      !!snapshotAtEditStart && snapshotAtEditStart !== buildEditingSnapshot();
+
+    if (mode === 'settings' && hasRealChangesSinceEditStart) {
+      setPendingMode(newMode);
+      setIsModeSwitchConfirmOpen(true);
+      return;
+    }
+
+    editingSnapshotRef.current = null;
     setMode(newMode);
+  };
+
+  const handleConfirmModeSwitch = () => {
+    if (pendingMode) setMode(pendingMode);
+    editingSnapshotRef.current = null;
+    setPendingMode(null);
+    setIsModeSwitchConfirmOpen(false);
+  };
+
+  const handleCancelModeSwitch = () => {
+    setPendingMode(null);
+    setIsModeSwitchConfirmOpen(false);
+  };
+
+  const handleModeSwitchDialogOpenChange = (nextOpen) => {
+    setIsModeSwitchConfirmOpen(nextOpen);
+    if (!nextOpen) setPendingMode(null);
   };
 
   const handleClose = () => {
     if (isSubmitting) return;
-    if (asPage && hasChanges) {
+    if (asPage && hasUnsavedChangesForClose()) {
       setIsLeaveConfirmOpen(true);
       return;
     }
+    editingSnapshotRef.current = null;
+    closeBaselineSnapshotRef.current = null;
+    closeBaselineKeyRef.current = null;
     onOpenChange(false);
     setIsSearching(false);
   };
@@ -302,6 +433,8 @@ const RecipeEditorModal = ({
   const handleSaveClick = async () => {
     const success = await handleSubmit('save');
     if (success) {
+      closeBaselineSnapshotRef.current = null;
+      closeBaselineKeyRef.current = null;
       onOpenChange(false);
       setIsSearching(false);
     }
@@ -311,6 +444,8 @@ const RecipeEditorModal = ({
     setIsLeaveConfirmOpen(false);
     const success = await handleSubmit('save');
     if (success) {
+      closeBaselineSnapshotRef.current = null;
+      closeBaselineKeyRef.current = null;
       onOpenChange(false);
       setIsSearching(false);
     }
@@ -449,29 +584,39 @@ const RecipeEditorModal = ({
   ) : (
     <>
       {(!isSearching) && (
-        (isEditable && !readOnly) ? (
-          <ViewModeToggle
-            mode={mode}
-            onModeChange={handleModeChange}
-            loading={isSubmitting}
-            className={cn("flex-shrink-0", headerBgClass)}
-            hasChanges={hasChanges}
-            isClientRequestView={isClientRequestView}
-            switchCheckedColor={toggleSwitchColor}
-            activeIconColor={activeIconColor}
-            saveLabel={hasIngredientChanges ? "Crear variante" : "Guardar"}
-            leftElement={asPage ? (
-              <button
-                onClick={handleClose}
-                className="text-muted-foreground hover:text-foreground h-8 w-8 flex items-center justify-center transition-colors"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </button>
-            ) : null}
-          />
-        ) : (
-          <SimpleHeader title={formData.name} className={headerBgClass} titleClassName={titleClassName} />
-        )
+        <div
+          className={cn(
+            'overflow-hidden transition-all duration-300 ease-out',
+            isMobileViewport && isMobileHeaderHidden
+              ? 'max-h-0 opacity-0 -translate-y-2 pointer-events-none'
+              : 'max-h-24 opacity-100 translate-y-0'
+          )}
+        >
+          {(isEditable && !readOnly) ? (
+            <ViewModeToggle
+              mode={mode}
+              onModeChange={handleModeChange}
+              loading={isSubmitting}
+              className={cn("flex-shrink-0", headerBgClass)}
+              hasChanges={hasChanges}
+              isClientRequestView={isClientRequestView}
+              switchCheckedColor={toggleSwitchColor}
+              activeIconColor={activeIconColor}
+              showSaveIndicator={false}
+              saveLabel={hasIngredientChanges ? "Crear variante" : "Guardar"}
+              leftElement={asPage ? (
+                <button
+                  onClick={handleClose}
+                  className="text-muted-foreground hover:text-foreground h-8 w-8 flex items-center justify-center transition-colors"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </button>
+              ) : null}
+            />
+          ) : (
+            <SimpleHeader title={formData.name} className={headerBgClass} titleClassName={titleClassName} />
+          )}
+        </div>
       )}
 
       <div ref={ingredientsContainerRef} className="flex-1 overflow-y-auto styled-scrollbar-green">
@@ -511,6 +656,7 @@ const RecipeEditorModal = ({
             quickEditIngredientKey={quickEditIngredientKey}
             onQuickEditConsumed={() => setQuickEditIngredientKey(null)}
             onFoodCreated={handleInlineFoodCreated}
+            hideMacrosTitle={false}
           />
         )}
 
@@ -557,6 +703,29 @@ const RecipeEditorModal = ({
         <div className="flex flex-col h-full bg-[#0C101D] text-white">
           {innerContent}
         </div>
+        <Dialog open={isModeSwitchConfirmOpen} onOpenChange={handleModeSwitchDialogOpenChange}>
+          <DialogContent className="max-w-sm">
+            <DialogTitle>¿Cambiar de modo sin guardar?</DialogTitle>
+            <DialogDescription>
+              Tienes cambios sin guardar. Puedes cambiar de modo y guardar despues.
+            </DialogDescription>
+            <div className="flex flex-col gap-2 pt-1">
+              <Button
+                onClick={handleConfirmModeSwitch}
+                className="w-full bg-amber-600 hover:bg-amber-700 text-white"
+              >
+                Cambiar de modo
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={handleCancelModeSwitch}
+                className="w-full"
+              >
+                Seguir editando
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
         <Dialog open={isLeaveConfirmOpen} onOpenChange={setIsLeaveConfirmOpen}>
           <DialogContent className="max-w-sm">
             <DialogTitle>{hasIngredientChanges ? "¿Crear variante?" : "¿Guardar cambios?"}</DialogTitle>
@@ -585,11 +754,36 @@ const RecipeEditorModal = ({
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="bg-[#0C101D] border-border text-white w-[95vw] max-w-4xl p-0 flex flex-col h-[90vh]">
-        {innerContent}
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog open={open} onOpenChange={handleClose}>
+        <DialogContent className="bg-[#0C101D] border-border text-white w-[95vw] max-w-4xl p-0 flex flex-col h-[90vh]">
+          {innerContent}
+        </DialogContent>
+      </Dialog>
+      <Dialog open={isModeSwitchConfirmOpen} onOpenChange={handleModeSwitchDialogOpenChange}>
+        <DialogContent className="max-w-sm">
+          <DialogTitle>¿Cambiar de modo sin guardar?</DialogTitle>
+          <DialogDescription>
+            Tienes cambios sin guardar. Puedes cambiar de modo y guardar despues.
+          </DialogDescription>
+          <div className="flex flex-col gap-2 pt-1">
+            <Button
+              onClick={handleConfirmModeSwitch}
+              className="w-full bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              Cambiar de modo
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={handleCancelModeSwitch}
+              className="w-full"
+            >
+              Seguir editando
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
