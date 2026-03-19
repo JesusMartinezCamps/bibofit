@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useContextualGuide } from '@/contexts/ContextualGuideContext';
+import GuideIcon from '@/components/contextual-guide/GuideIcon';
 
 /**
  * ContextualGuideTooltip
@@ -68,12 +69,9 @@ const ContextualGuideTooltip = () => {
             <div className="pointer-events-auto w-full max-w-lg bg-card border border-border rounded-2xl shadow-2xl overflow-hidden">
               {/* Top bar: block title + close */}
               <div className="flex items-center justify-between px-4 pt-4 pb-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-lg leading-none">{activeBlock.icon}</span>
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    {activeBlock.title}
-                  </span>
-                </div>
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  {activeBlock.title}
+                </span>
                 <div className="flex items-center gap-3">
                   {/* Step dots */}
                   <div className="flex gap-1.5">
@@ -110,9 +108,12 @@ const ContextualGuideTooltip = () => {
                   transition={{ duration: 0.18 }}
                   className="px-4 pb-4"
                 >
-                  <h3 className="text-base font-semibold text-foreground mb-1.5">
-                    {step.title}
-                  </h3>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    {step.icon && <GuideIcon icon={step.icon} />}
+                    <h3 className="text-base font-semibold text-foreground">
+                      {step.title}
+                    </h3>
+                  </div>
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     {step.content}
                   </p>

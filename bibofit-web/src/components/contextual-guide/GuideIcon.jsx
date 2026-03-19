@@ -1,8 +1,29 @@
 import React from 'react';
 import {
-  Eye, Scale, GitBranch, Bot, ScanSearch, Lock,
-  ShoppingCart, ArrowRightLeft, X, Plus, Search,
+  Eye,
+  Scale,
+  GitBranch,
+  Bot,
+  ScanSearch,
+  Lock,
+  ShoppingCart,
+  ArrowRightLeft,
+  X,
+  Plus,
+  Search,
   Calendar,
+  CalendarCheck,
+  Apple,
+  ChefHat,
+  UtensilsCrossed,
+  MessageSquare,
+  Settings,
+  BarChart3,
+  Bell,
+  TrendingUp,
+  SlidersHorizontal,
+  LayoutList,
+  Repeat2,
 } from 'lucide-react';
 import AppIcon from '@/components/icons/AppIcon';
 
@@ -24,6 +45,18 @@ const ICON_MAP = {
   Plus,
   Search,
   Calendar,
+  CalendarCheck,
+  Apple,
+  ChefHat,
+  UtensilsCrossed,
+  MessageSquare,
+  Settings,
+  BarChart3,
+  Bell,
+  TrendingUp,
+  SlidersHorizontal,
+  LayoutList,
+  Repeat2,
 };
 
 /**

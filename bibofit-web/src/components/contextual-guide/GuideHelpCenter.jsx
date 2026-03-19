@@ -1,9 +1,11 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, PlayCircle, RotateCcw, BookOpen, CheckCircle2 } from 'lucide-react';
+import { X, RotateCcw, BookOpen, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useContextualGuide } from '@/contexts/ContextualGuideContext';
 import { GUIDE_BLOCKS } from '@/config/guideBlocks';
+import GuideIcon from '@/components/contextual-guide/GuideIcon';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 // Group blocks by section
 const SECTIONS = GUIDE_BLOCKS.reduce((acc, block) => {
@@ -22,10 +24,17 @@ const GuideHelpCenter = () => {
     replayBlock,
     resetBlock,
   } = useContextualGuide();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  const handleReplay = (blockId) => {
+  const handleReplay = (block) => {
     closeHelpCenter();
-    replayBlock(blockId);
+    if (block.route && location.pathname !== block.route) {
+      navigate(block.route);
+      setTimeout(() => replayBlock(block.id), 300);
+    } else {
+      replayBlock(block.id);
+    }
   };
 
   const handleResetAll = async () => {
@@ -108,13 +117,14 @@ const GuideHelpCenter = () => {
                     {SECTIONS[sectionName].map((block) => {
                       const seen = seenBlocks.has(block.id);
                       return (
-                        <div
+                        <button
                           key={block.id}
-                          className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border"
+                          onClick={() => handleReplay(block)}
+                          className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border hover:bg-accent transition-colors cursor-pointer text-left"
                         >
                           {/* Icon + seen indicator */}
-                          <div className="relative shrink-0">
-                            <span className="text-2xl">{block.icon}</span>
+                          <div className="relative shrink-0 w-8 h-8 flex items-center justify-center">
+                            <GuideIcon icon={block.icon} />
                             {seen && (
                               <span className="absolute -bottom-1 -right-1 text-green-500">
                                 <CheckCircle2 className="h-3.5 w-3.5" />
@@ -129,23 +139,10 @@ const GuideHelpCenter = () => {
                             </p>
                             <p className="text-xs text-muted-foreground">
                               {block.steps.length}{' '}
-                              {block.steps.length === 1 ? 'paso' : 'pasos'}
+                              {block.steps.length === 1 ? 'paso' : 'pasos'} · {seen ? 'Repasar' : 'Ver guía'}
                             </p>
                           </div>
-
-                          {/* Action */}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleReplay(block.id)}
-                            className="shrink-0 gap-1.5 text-muted-foreground hover:text-foreground"
-                          >
-                            <PlayCircle className="h-4 w-4" />
-                            <span className="hidden sm:inline">
-                              {seen ? 'Repasar' : 'Ver'}
-                            </span>
-                          </Button>
-                        </div>
+                        </button>
                       );
                     })}
                   </div>
