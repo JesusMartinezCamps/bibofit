@@ -15,6 +15,7 @@ const ConflictBadge = ({ conflict }) => {
     'condition_avoid': { icon: <AlertTriangle size={14} />, color: 'bg-red-500/20 text-red-300 border-red-500/30' },
     'condition_recommend': { icon: <ThumbsUp size={14} />, color: 'bg-green-500/20 text-green-300 border-green-500/30' },
     'sensitivity': { icon: <AlertTriangle size={14} />, color: 'bg-orange-500/20 text-orange-300 border-orange-500/30' },
+    'individual_restriction': { icon: <AlertTriangle size={14} />, color: 'bg-red-500/20 text-red-300 border-red-500/30' },
   };
 
   const { icon, color } = config[conflict.type] || {};
@@ -105,6 +106,7 @@ const IngredientRowConflict = ({
       case 'sensitivity':
         return 'border-orange-500/50';
       case 'condition_avoid':
+      case 'individual_restriction':
         return 'border-red-500/50';
       default:
         return 'border-border';

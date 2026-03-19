@@ -229,6 +229,7 @@ const AppRoutes = () => (
       <Route path="/admin-panel/content/centers" element={<ProtectedRoute adminOnly><CentersManagementPage /></ProtectedRoute>} />
       <Route path="/admin-panel/content/pricing" element={<ProtectedRoute adminOnly><PricingManagementPage /></ProtectedRoute>} />
       <Route path="/admin-panel/content/invitation-links" element={<ProtectedRoute adminOnly><InvitationLinksPage /></ProtectedRoute>} />
+      <Route path="/admin-panel/content/invitation-links/new" element={<ProtectedRoute adminOnly><InvitationLinksPage /></ProtectedRoute>} />
       <Route path="/admin-panel/reminders" element={<ProtectedRoute adminOnly><RemindersManagerPage /></ProtectedRoute>} />
       <Route path="/admin-panel/reminders/:userId" element={<ProtectedRoute adminOnly><RemindersManagerPage /></ProtectedRoute>} />
     </Route>

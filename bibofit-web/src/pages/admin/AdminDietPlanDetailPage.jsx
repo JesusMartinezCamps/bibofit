@@ -38,6 +38,8 @@ const AdminDietPlanDetailPage = ({
     const [meals, setMeals] = useState([]);
     const [savedSnapshot, setSavedSnapshot] = useState(null);
     const [userSelectedTdee, setUserSelectedTdee] = useState(null);
+    // IDs de user_day_meals cuyos targets cambiaron desde el último autocuadre
+    const [dirtyMealIds, setDirtyMealIds] = useState([]);
     const debounceTimeout = useRef(null);
 
     // Check if we should focus on the macros section
@@ -55,14 +57,25 @@ const AdminDietPlanDetailPage = ({
         return applicableOverride ? applicableOverride.manual_calories : calculatedTdee;
     }, [userSelectedTdee, calculatedTdee, calorieOverrides]);
 
-    const pendingRecalc = useMemo(() => {
-        if (!savedSnapshot || !meals.length || isTemplate) return false;
-        return (
-            savedSnapshot.tdee !== effectiveTdee ||
+    /**
+     * pendingChange: describe qué tipo de cambio global hay pendiente de aplicar.
+     *   null               → sin cambios pendientes
+     *   { type: 'linear_scale', oldTdee, newTdee }   → solo cambiaron calorías, misma distribución
+     *   { type: 'macro_redistribution', oldTdee, newTdee } → cambió la distribución de macros
+     *     (si además cambiaron las calorías, macro_redistribution tiene prioridad porque
+     *      el re-balance completo ya incorpora el nuevo TDEE)
+     */
+    const pendingChange = useMemo(() => {
+        if (!savedSnapshot || !meals.length || isTemplate) return null;
+        const tdeeChanged = savedSnapshot.tdee !== effectiveTdee;
+        const macrosChanged = (
             savedSnapshot.macrosPct.protein !== macrosPct.protein ||
             savedSnapshot.macrosPct.carbs !== macrosPct.carbs ||
             savedSnapshot.macrosPct.fat !== macrosPct.fat
         );
+        if (!tdeeChanged && !macrosChanged) return null;
+        if (macrosChanged) return { type: 'macro_redistribution', oldTdee: savedSnapshot.tdee, newTdee: effectiveTdee };
+        return { type: 'linear_scale', oldTdee: savedSnapshot.tdee, newTdee: effectiveTdee };
     }, [savedSnapshot, effectiveTdee, macrosPct, meals.length, isTemplate]);
 
     const handleOverridesUpdate = useCallback((savedOverride, deletedId) => {
@@ -235,6 +248,18 @@ const AdminDietPlanDetailPage = ({
             return { id: meal.id, protein_pct: meal.protein_pct, carbs_pct: meal.carbs_pct, fat_pct: meal.fat_pct, target_proteins, target_carbs, target_fats, target_calories };
         });
 
+        // Detectar qué meals cambian sus targets para marcarlos como dirty en PlanView
+        const changedMealIds = computedUpdates
+            .filter(u => {
+                const prev = meals.find(m => m.id === u.id);
+                return prev && (
+                    prev.target_proteins !== u.target_proteins ||
+                    prev.target_carbs !== u.target_carbs ||
+                    prev.target_fats !== u.target_fats
+                );
+            })
+            .map(u => String(u.id));
+
         // Optimistic update: reflejar cambios en UI antes de esperar al servidor
         const previousMeals = meals;
         const previousSnapshot = savedSnapshot;
@@ -267,6 +292,10 @@ const AdminDietPlanDetailPage = ({
                 throw new Error(errorMsg || 'Ocurrió un error al guardar.');
             }
 
+            // Marcar meals cuyos targets cambiaron → PlanView mostrará el Bot en esas secciones
+            if (changedMealIds.length > 0) {
+                setDirtyMealIds(prev => [...new Set([...prev, ...changedMealIds])]);
+            }
             toast({ title: 'Guardado', description: 'Configuración de macros por comida guardada.', variant: 'success' });
         } catch (error) {
             setMeals(previousMeals);
@@ -375,7 +404,9 @@ const AdminDietPlanDetailPage = ({
                             userDayMeals={meals}
                             isAssignedPlan={true}
                             readOnly={!canEditRecipes}
-                            pendingRecalc={pendingRecalc}
+                            pendingChange={pendingChange}
+                            dirtyMealIds={dirtyMealIds}
+                            onDirtyMealsCleared={() => setDirtyMealIds([])}
                             onRecalculate={() => handleSaveMealConfig(meals)}
                         />
                     </>

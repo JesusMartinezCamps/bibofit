@@ -29,6 +29,13 @@ const mappingAppliesToConflict = (mapping, conflict) => {
         return true;
     }
 
+    // Individual restrictions are personal (taste, intolerance, preference).
+    // Any mapping for the source food is a valid substitution candidate —
+    // the target safety check in getConflictWithSubstitutions handles the rest.
+    if (conflict?.type === 'individual_restriction') {
+        return true;
+    }
+
     return contexts.some((ctx) => {
         if (!ctx || typeof ctx !== 'object') return false;
 
@@ -87,6 +94,27 @@ export const getConflictInfo = (food, userRestrictions) => {
     // Check for non-preferred foods
     if (userRestrictions.non_preferred_foods?.some(npf => npf.id === food.id)) {
         return { type: 'non-preferred', reason: 'No preferido' };
+    }
+
+    // Check for user-level individual food restrictions
+    const individualFoodRestrictions =
+        userRestrictions.individual_food_restrictions ||
+        userRestrictions.restricted_foods ||
+        [];
+    if (individualFoodRestrictions.length > 0) {
+        const isIndividuallyRestricted = individualFoodRestrictions.some((item) => {
+            const restrictedFoodId = extractId(item);
+            if (restrictedFoodId === undefined || restrictedFoodId === null) return false;
+            return String(restrictedFoodId) === String(food.id);
+        });
+
+        if (isIndividuallyRestricted) {
+            return {
+                type: 'individual_restriction',
+                reason: `Restricción individual: ${food?.name || 'Alimento'}`,
+                food_id: food?.id ?? null
+            };
+        }
     }
 
     // Check sensitivities

@@ -22,6 +22,18 @@ const IngredientComparison = ({ original, requested, allFoods, clientRestriction
             return { className: 'bg-green-500/40 text-green-300', message: '' };
         }
 
+        const individualRestrictions = clientRestrictions.individual_food_restrictions || [];
+        const hasIndividualRestriction = individualRestrictions.some((item) => {
+            const restrictedId = item?.id ?? item;
+            return String(restrictedId) === String(food.id);
+        });
+        if (hasIndividualRestriction) {
+            return {
+                className: 'bg-red-700/50 text-red-200',
+                message: `Conflicto: restricción individual (${food.name})`
+            };
+        }
+
         if (clientRestrictions.sensitivities && food.food_sensitivities) {
             for (const clientSens of clientRestrictions.sensitivities) {
                 if (food.food_sensitivities.some(fs => fs.sensitivity_id === clientSens.id)) {

@@ -476,3 +476,91 @@ export const saveFreeRecipe = async ({ recipeId, userId, formData, ingredients, 
 // Mantenido por compatibilidad con código que aún lo llame durante la transición.
 // @deprecated — usar createVariant para variantes personales, submitPlanAmendment para solicitudes al coach.
 export const submitChangeRequest = submitPlanAmendment;
+
+// =============================================================================
+// GUARD DE TRAZABILIDAD
+// =============================================================================
+
+/**
+ * Comprueba si un nodo de user_recipe puede editarse in-place.
+ * Un nodo NO puede editarse in-place si:
+ *  - Tiene registros de comida (daily_meal_logs) — datos históricos de calorías
+ *  - Tiene ramas hijas (otras variantes creadas a partir de él) — evita huérfanos
+ */
+export const checkRecipeEditability = async (recipeId) => {
+    const [eatenRes, childrenRes] = await Promise.all([
+        supabase
+            .from('daily_meal_logs')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_recipe_id', recipeId),
+        supabase
+            .from('user_recipes')
+            .select('id', { count: 'exact', head: true })
+            .eq('parent_user_recipe_id', recipeId)
+            .eq('is_archived', false),
+    ]);
+
+    const hasEatenRecords = (eatenRes.count ?? 0) > 0;
+    const hasChildren = (childrenRes.count ?? 0) > 0;
+
+    return {
+        canModifyInPlace: !hasEatenRecords && !hasChildren,
+        hasEatenRecords,
+        hasChildren,
+    };
+};
+
+/**
+ * Actualiza in-place una user_recipe (variante personal) y reemplaza sus ingredientes.
+ * Solo usar cuando checkRecipeEditability devuelva canModifyInPlace: true.
+ */
+export const updateUserRecipeInPlace = async ({ recipeId, formData, ingredients }) => {
+    try {
+        const { error: updateError } = await supabase
+            .from('user_recipes')
+            .update({
+                name: formData.name,
+                instructions: formData.instructions || null,
+                prep_time_min: formData.prep_time_min ? parseInt(formData.prep_time_min) : null,
+                difficulty: formData.difficulty || null,
+                recipe_style_id: parseRecipeStyleId(formData.recipe_style_id),
+            })
+            .eq('id', recipeId);
+
+        if (updateError) throw updateError;
+
+        // Reemplazar ingredientes
+        const { error: deleteError } = await supabase
+            .from('recipe_ingredients')
+            .delete()
+            .eq('user_recipe_id', recipeId);
+
+        if (deleteError) throw deleteError;
+
+        const ingredientsData = ingredients
+            .map(ing => ({
+                user_recipe_id: recipeId,
+                food_id: parseInt(ing.food_id),
+                grams: parseFloat(ing.grams || ing.quantity || 0),
+                locked: !!ing.locked,
+            }))
+            .filter(i => !isNaN(i.food_id));
+
+        if (ingredientsData.length > 0) {
+            const { error: ingError } = await supabase
+                .from('recipe_ingredients')
+                .insert(ingredientsData);
+            if (ingError) throw ingError;
+        }
+
+        return {
+            success: true,
+            message: 'Receta actualizada correctamente.',
+            data: { id: recipeId },
+            action: 'updated_in_place',
+        };
+    } catch (error) {
+        console.error('Error updating user recipe in-place:', error);
+        return { success: false, message: `Error al actualizar la receta: ${error.message}` };
+    }
+};

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Moon, Sun, X, Info } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Moon, Sun, X, Info, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import OnboardingModal from './OnboardingModal';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ONBOARDING_STEPS } from '@/lib/onboarding/onboardingConfig';
+import { useAuth } from '@/hooks/useAuth';
 
 // Existing Steps
 import IntroStep from './steps/IntroStep';
@@ -38,6 +39,7 @@ const STEP_SHORT_LABEL = {
 
 const OnboardingWizard = ({ isOpen: propIsOpen }) => {
   const { isDark, toggleTheme } = useTheme();
+  const { signOut } = useAuth();
   const {
     currentStep,
     currentStepIndex,
@@ -228,6 +230,16 @@ const OnboardingWizard = ({ isOpen: propIsOpen }) => {
               <X className="h-5 w-5" />
             </Button>
           )}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={signOut}
+            className="text-muted-foreground hover:text-foreground hover:bg-muted"
+            aria-label="Cerrar sesión"
+            disabled={isLoading}
+          >
+            <LogOut className="h-5 w-5" />
+          </Button>
         </div>
       </div>
 

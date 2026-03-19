@@ -103,28 +103,56 @@ const AssignRecipeDialog = ({ recipe, open, onOpenChange, onAssigned, preselecte
     }
 
     const checkSensitivities = async () => {
-      const { data: userSensitivities, error: userSensitivitiesError } = await supabase
-        .from('user_sensitivities')
-        .select('sensitivity_id')
-        .eq('user_id', selectedClientId);
+      const [
+        { data: userSensitivities, error: userSensitivitiesError },
+        { data: userIndividualFoods, error: userIndividualFoodsError },
+        { data: recipeSensitivities, error: recipeSensitivitiesError },
+        { data: recipeIngredients, error: recipeIngredientsError },
+      ] = await Promise.all([
+        supabase
+          .from('user_sensitivities')
+          .select('sensitivity_id')
+          .eq('user_id', selectedClientId),
+        supabase
+          .from('user_individual_food_restrictions')
+          .select('food_id, food:food_id(id, name)')
+          .eq('user_id', selectedClientId),
+        supabase
+          .from('recipe_sensitivities')
+          .select('sensitivities(id, name)')
+          .eq('recipe_id', recipe.id),
+        supabase
+          .from('recipe_ingredients')
+          .select('food_id, food:food_id(id, name)')
+          .eq('recipe_id', recipe.id),
+      ]);
 
-      if (userSensitivitiesError) return;
-      const userSensitivityIds = userSensitivities.map(a => a.sensitivity_id);
+      if (userSensitivitiesError || userIndividualFoodsError || recipeSensitivitiesError || recipeIngredientsError) return;
 
-      const { data: recipeSensitivities, error: recipeSensitivitiesError } = await supabase
-        .from('recipe_sensitivities')
-        .select('sensitivities(id, name)')
-        .eq('recipe_id', recipe.id);
-      
-      if (recipeSensitivitiesError) return;
-      
-      const conflicts = recipeSensitivities.filter(ra => userSensitivityIds.includes(ra.sensitivities.id));
-      
-      if (conflicts.length > 0) {
-        setWarnings([`El cliente tiene sensibilidad a: ${conflicts.map(c => c.sensitivities.name).join(', ')}.`]);
-      } else {
-        setWarnings([]);
+      const userSensitivityIds = (userSensitivities || []).map((a) => a.sensitivity_id);
+      const sensitivityConflicts = (recipeSensitivities || []).filter((ra) => userSensitivityIds.includes(ra.sensitivities.id));
+      const warningsList = [];
+
+      if (sensitivityConflicts.length > 0) {
+        warningsList.push(
+          `El cliente tiene sensibilidad a: ${sensitivityConflicts.map((c) => c.sensitivities.name).join(', ')}.`
+        );
       }
+
+      const userIndividualFoodIds = new Set((userIndividualFoods || []).map((entry) => entry.food_id));
+      const individualFoodConflicts = (recipeIngredients || [])
+        .filter((entry) => userIndividualFoodIds.has(entry.food_id))
+        .map((entry) => entry.food?.name)
+        .filter(Boolean);
+      const uniqueIndividualFoodConflicts = [...new Set(individualFoodConflicts)];
+
+      if (uniqueIndividualFoodConflicts.length > 0) {
+        warningsList.push(
+          `El cliente restringe alimentos específicos: ${uniqueIndividualFoodConflicts.join(', ')}.`
+        );
+      }
+
+      setWarnings(warningsList);
     };
 
     checkSensitivities();

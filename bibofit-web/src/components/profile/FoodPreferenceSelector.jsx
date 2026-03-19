@@ -41,6 +41,7 @@ const isRecommendRelation = (relationType) => {
 // Mapeo de tipo de conflicto → estilos del badge
 const CONFLICT_BADGE_CONFIG = {
   sensitivity:         { icon: AlertTriangle, className: 'border-red-500/50 text-red-300' },
+  individual_restriction: { icon: AlertTriangle, className: 'border-red-500/50 text-red-300' },
   condition_avoid:     { icon: CircleAlert,   className: 'border-red-500/50 text-red-300' },
   condition_recommend: { icon: CircleCheck,   className: 'border-emerald-500/50 text-emerald-300' },
   diet_type_excluded:  { icon: AlertTriangle, className: 'border-red-500/50 text-red-300' },

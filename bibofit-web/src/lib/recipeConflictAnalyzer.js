@@ -41,7 +41,7 @@ const pushUnique = (arr, item) => {
 };
 
 export const analyzeRecipeConflicts = ({ recipe, allFoods = [], userRestrictions }) => {
-  const conflicts = { sensitivities: [], conditions: [] };
+  const conflicts = { sensitivities: [], conditions: [], individual_foods: [] };
   const recommendations = { conditions: [] };
   const unsafeFoodNames = new Set();
   const recommendedFoodNames = new Set();
@@ -83,6 +83,18 @@ export const analyzeRecipeConflicts = ({ recipe, allFoods = [], userRestrictions
           (conflictInfo.reason || '').replace('Sensibilidad: ', '') ||
           'Sensibilidad',
       });
+      return;
+    }
+
+    if (conflictInfo.type === 'individual_restriction') {
+      const detail = {
+        id: food.id ? `food-${food.id}` : `food-${food.name || 'unknown'}`,
+        name: conflictInfo.reason || `Restricción individual: ${food.name || 'Alimento'}`,
+      };
+
+      pushUnique(conflicts.individual_foods, detail);
+      // Compatibilidad con vistas que hoy solo evalúan `conflicts.conditions.length`.
+      pushUnique(conflicts.conditions, detail);
       return;
     }
 
@@ -136,4 +148,3 @@ export const analyzeRecipeConflicts = ({ recipe, allFoods = [], userRestrictions
 
   return { conflicts, recommendations, unsafeFoodNames, recommendedFoodNames };
 };
-

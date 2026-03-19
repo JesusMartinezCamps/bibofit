@@ -23,7 +23,11 @@ const DietChangeRequestsPage = () => {
     const [loadingUsers, setLoadingUsers] = useState(true);
     const [loadingRequests, setLoadingRequests] = useState(false);
     const [allFoods, setAllFoods] = useState([]);
-    const [clientRestrictions, setClientRestrictions] = useState({ conditions: [], sensitivities: [] });
+    const [clientRestrictions, setClientRestrictions] = useState({
+        conditions: [],
+        sensitivities: [],
+        individual_food_restrictions: []
+    });
 
     const fetchUsersData = useCallback(async () => {
         setLoadingUsers(true);
@@ -116,19 +120,33 @@ const DietChangeRequestsPage = () => {
             if (error) throw error;
             setUserChangeRequests(data);
 
-            const { data: conditionsData, error: conditionsError } = await supabase.from('user_medical_conditions')
-                .select('medical_conditions(id, name)')
-                .eq('user_id', user.user_id);
-            if (conditionsError) throw conditionsError;
+            const [
+                { data: conditionsData, error: conditionsError },
+                { data: sensitivitiesData, error: sensitivitiesError },
+                { data: individualFoodsData, error: individualFoodsError },
+            ] = await Promise.all([
+                supabase
+                    .from('user_medical_conditions')
+                    .select('medical_conditions(id, name)')
+                    .eq('user_id', user.user_id),
+                supabase
+                    .from('user_sensitivities')
+                    .select('sensitivities(id, name)')
+                    .eq('user_id', user.user_id),
+                supabase
+                    .from('user_individual_food_restrictions')
+                    .select('food:food_id(id, name)')
+                    .eq('user_id', user.user_id),
+            ]);
 
-            const { data: sensitivitiesData, error: sensitivitiesError } = await supabase.from('user_sensitivities')
-                .select('sensitivities(id, name)')
-                .eq('user_id', user.user_id);
+            if (conditionsError) throw conditionsError;
             if (sensitivitiesError) throw sensitivitiesError;
+            if (individualFoodsError) throw individualFoodsError;
             
             setClientRestrictions({
                 conditions: conditionsData.map(c => c.medical_conditions),
                 sensitivities: sensitivitiesData.map(s => s.sensitivities),
+                individual_food_restrictions: (individualFoodsData || []).map((entry) => entry.food).filter(Boolean),
             });
 
 
@@ -151,7 +169,7 @@ const DietChangeRequestsPage = () => {
         setActiveTab(value);
         setSelectedUser(null);
         setUserChangeRequests([]);
-        setClientRestrictions({ conditions: [], sensitivities: [] });
+        setClientRestrictions({ conditions: [], sensitivities: [], individual_food_restrictions: [] });
     };
 
     const getCurrentUsers = () => {

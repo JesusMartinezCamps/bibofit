@@ -20,6 +20,7 @@ const ConflictBadge = ({ conflict }) => {
     'condition_avoid':     { icon: <AlertTriangle size={14} />, color: 'bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/35' },
     'condition_recommend': { icon: <ThumbsUp size={14} />,      color: 'bg-green-500/15 text-green-900 dark:text-green-300 border-green-500/35' },
     'sensitivity':         { icon: <AlertTriangle size={14} />, color: 'bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/35' },
+    'individual_restriction': { icon: <AlertTriangle size={14} />, color: 'bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/35' },
     'diet_type_excluded':  { icon: <AlertTriangle size={14} />, color: 'bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/35' },
     'diet_type_limited':   { icon: <AlertTriangle size={14} />, color: 'bg-orange-500/15 text-orange-700 dark:text-orange-300 border-orange-500/35' },
   };
@@ -47,7 +48,7 @@ const IngredientSearch = ({
   onIngredientAdded,
   availableFoods,
   userRestrictions,
-  onBack = () => {},
+  onBack,
   onOpenCreateFoodModal,
   onFoodCreated,
   createFoodUserId,
@@ -140,6 +141,7 @@ const IngredientSearch = ({
             'diet_type_excluded': 3, // Mismo nivel que sensibilidad: advertencia roja
             'non-preferred': 4,
             'diet_type_limited': 4,  // Mismo nivel que no-preferido: advertencia naranja
+            'individual_restriction': 5,
             'condition_avoid': 5
         };
         
@@ -187,6 +189,7 @@ const IngredientSearch = ({
       case 'diet_type_limited':
         return 'border-orange-500/50 hover:border-orange-500 bg-orange-500/12 dark:bg-orange-900/10';
       case 'sensitivity':
+      case 'individual_restriction':
       case 'diet_type_excluded':
         return 'border-red-500/50 hover:border-red-500 bg-red-500/12 dark:bg-red-900/10';
       case 'condition_avoid':
@@ -253,6 +256,7 @@ const IngredientSearch = ({
       <FoodLookupPanel
         showHeader={false}
         onBack={onBack}
+        showBackInSearch={typeof onBack === 'function'}
         searchTerm={searchTerm}
         onSearchTermChange={setSearchTerm}
         onSearchKeyDown={handleSearchKeyDown}

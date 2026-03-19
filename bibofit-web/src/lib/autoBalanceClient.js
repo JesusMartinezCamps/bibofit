@@ -105,3 +105,31 @@ export const invokeAutoBalanceEquivalence = async ({ equivalence_adjustment_id, 
     recipes,
   });
 };
+
+/**
+ * Escala linealmente todos los ingredientes de un plan cuando solo cambian las calorías
+ * (misma distribución de macros). Más ligero que el motor de balanceo completo.
+ */
+export const invokeScaleDietPlan = async ({ diet_plan_id, user_id, old_tdee, new_tdee }) => {
+  return invokeAutoBalanceFunction('scale-diet-plan-ingredients', {
+    diet_plan_id,
+    user_id,
+    old_tdee,
+    new_tdee,
+  });
+};
+
+/**
+ * Balancea todos los momentos de un plan en una sola llamada.
+ * Más eficiente que N llamadas a auto-balance-macros-batch porque comparte
+ * el contexto de alimentos entre todos los momentos.
+ *
+ * @param meal_ids - Opcional. Si se pasa, solo balancea esos momentos (útil para linked meals).
+ */
+export const invokeAutoBalancePlanAllMoments = async ({ diet_plan_id, user_id, meal_ids }) => {
+  return invokeAutoBalanceFunction('auto-balance-plan-all-moments', {
+    diet_plan_id,
+    user_id,
+    ...(meal_ids?.length ? { meal_ids } : {}),
+  });
+};

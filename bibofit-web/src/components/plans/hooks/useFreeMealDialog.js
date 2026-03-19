@@ -14,7 +14,7 @@ export const useFreeMealDialog = ({ open, onOpenChange, userId, onSaveSuccess, i
   const [ingredients, setIngredients] = useState([]);
   const [mealDate, setMealDate] = useState(new Date());
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [userRestrictions, setUserRestrictions] = useState({ sensitivities: [], conditions: [] });
+  const [userRestrictions, setUserRestrictions] = useState({ sensitivities: [], conditions: [], individual_food_restrictions: [] });
   const [allSensitivities, setAllSensitivities] = useState([]);
   const [allConditions, setAllConditions] = useState([]);
   const [availableFoods, setAvailableFoods] = useState([]);
@@ -50,9 +50,11 @@ export const useFreeMealDialog = ({ open, onOpenChange, userId, onSaveSuccess, i
         // ID-only format for pre-processing conflict badges on food list
         const sensitivityIds = (currentUserRestrictions.sensitivities || []).map(s => s?.id ?? s);
         const conditionIds = (currentUserRestrictions.medical_conditions || []).map(c => c?.id ?? c);
+        const individualFoodIds = (currentUserRestrictions.individual_food_restrictions || []).map(f => f?.id ?? f);
 
         const getConflictTypeForFood = (food) => {
           if (!food) return null;
+          if (individualFoodIds.includes(food.id)) return 'individual_restriction';
           const hasConditionAvoid = food.food_medical_conditions?.some(fmc =>
             conditionIds.includes(fmc.condition_id) && fmc.relation_type === 'contraindicated'
           );
@@ -114,14 +116,27 @@ export const useFreeMealDialog = ({ open, onOpenChange, userId, onSaveSuccess, i
 
   const conflictingIngredientsData = useMemo(() => {
       const conflicts = [];
+      const sensitivityIds = (userRestrictions.sensitivities || []).map((s) => s?.id ?? s);
+      const conditionIds = (userRestrictions.conditions || userRestrictions.medical_conditions || []).map((c) => c?.id ?? c);
+      const individualFoodIds = (userRestrictions.individual_food_restrictions || []).map((f) => f?.id ?? f);
+
       ingredients.forEach(ing => {
           if (ing.is_free) return;
           const food = availableFoods.find(f => String(f.id) === String(ing.food_id));
           if (!food || !food.conflictType) return;
 
+          if (food.conflictType === 'individual_restriction' && individualFoodIds.includes(food.id)) {
+              conflicts.push({
+                id: `${food.id}-individual`,
+                foodName: food.name,
+                restrictionName: 'Restricción individual',
+                isPathology: false
+              });
+          }
+
           if (food.conflictType === 'condition_avoid') {
               const conflictingConditions = food.food_medical_conditions
-                  .filter(fmc => fmc.relation_type === 'contraindicated' && userRestrictions.conditions.includes(fmc.condition_id))
+                  .filter(fmc => fmc.relation_type === 'contraindicated' && conditionIds.includes(fmc.condition_id))
                   .map(fmc => allConditions.find(c => c.id === fmc.condition_id)?.name)
                   .filter(Boolean);
 
@@ -132,7 +147,7 @@ export const useFreeMealDialog = ({ open, onOpenChange, userId, onSaveSuccess, i
 
           if (food.conflictType === 'sensitivity') {
               const conflictingSensitivities = food.food_sensitivities
-                  .filter(fs => userRestrictions.sensitivities.includes(fs.sensitivity_id))
+                  .filter(fs => sensitivityIds.includes(fs.sensitivity_id))
                   .map(fs => allSensitivities.find(s => s.id === fs.sensitivity_id)?.name)
                   .filter(Boolean);
               

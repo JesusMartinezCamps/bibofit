@@ -9,6 +9,9 @@ import {
     saveDietPlanRecipe,
     updateRecipeDetails,
     versionDietPlanRecipe,
+    checkRecipeEditability,
+    updateUserRecipeInPlace,
+    archiveUserRecipe,
 } from './recipeService';
 import {
     buildDiffSummary,
@@ -192,7 +195,7 @@ export const useRecipeEditor = ({ recipeToEdit, onSaveSuccess, isAdminView, user
       if (['condition_avoid', 'sensitivity', 'individual_restriction', 'non-preferred', 'diet_type_excluded', 'diet_type_limited'].includes(info.type)) {
         computedConflicts.push({
           foodId: food.id,
-          type: info.type === 'individual_restriction' ? 'condition_avoid' : info.type,
+          type: info.type,
           restrictionName: info.reason
         });
       } else if (['condition_recommend', 'preferred'].includes(info.type)) {
@@ -268,24 +271,76 @@ export const useRecipeEditor = ({ recipeToEdit, onSaveSuccess, isAdminView, user
     );
   }, [normalizeFormForComparison]);
 
+  // ---------------------------------------------------------------------------
+  // Clasificación del nodo de receta
+  // ---------------------------------------------------------------------------
+
+  // Una rama del usuario vive en user_recipes (variant / private_recipe)
+  const isUserBranch = useMemo(() => {
+      if (!recipeToEdit) return false;
+      return (
+          recipeToEdit.type === 'variant' ||
+          recipeToEdit.type === 'private_recipe' ||
+          recipeToEdit.is_private === true ||
+          recipeToEdit.is_private_recipe === true ||
+          Boolean(recipeToEdit.parent_user_recipe_id) ||
+          recipeToEdit.user_recipe_type === 'variant' ||
+          recipeToEdit.user_recipe_type === 'private'
+      );
+  }, [recipeToEdit]);
+
+  // Una receta base vive en diet_plan_recipes (nodo del plan, no rama personal)
+  const isBaseRecipe = useMemo(() => {
+      if (!recipeToEdit) return false;
+      return !isUserBranch && recipeToEdit.type !== 'free_recipe';
+  }, [recipeToEdit, isUserBranch]);
+
+  // Guard de trazabilidad: ¿puede editarse in-place?
+  const checkEditabilityForSave = useCallback(async () => {
+      if (!recipeToEdit?.id || !isUserBranch) return { canModifyInPlace: false, hasEatenRecords: false, hasChildren: false };
+      return checkRecipeEditability(recipeToEdit.id);
+  }, [recipeToEdit?.id, isUserBranch]);
+
   const hasIngredientChanges = useMemo(() => {
-      if (ingredients.length !== originalIngredients.length) return true;
-      
-      return ingredients.some((ing, i) => {
-          const orig = originalIngredients[i];
-          const ingGrams = ing.grams === '' || ing.grams === null ? 0 : Number(ing.grams);
-          const origGrams = orig.grams === '' || orig.grams === null ? 0 : Number(orig.grams);
-          
-          return (ing.food_id !== orig.food_id) || 
-                 (ingGrams !== origGrams);
+      const normalizeGrams = (v) => (v == null || v === '') ? 0 : Number(v);
+      const normalize = (ing) => ({
+          food_id: String(ing.food_id ?? ing.food?.id ?? ''),
+          grams: normalizeGrams(ing.grams),
+      });
+
+      const current = ingredients.map(normalize).sort((a, b) => a.food_id.localeCompare(b.food_id));
+      const original = originalIngredients.map(normalize).sort((a, b) => a.food_id.localeCompare(b.food_id));
+
+      if (current.length !== original.length) return true;
+
+      return current.some((ing, i) => {
+          const orig = original[i];
+          return ing.food_id !== orig.food_id || ing.grams !== orig.grams;
       });
   }, [ingredients, originalIngredients]);
 
-  const hasChanges = useMemo(() => {
-    return hasFormChanged(formData, initialFormData) || hasIngredientChanges;
-  }, [formData, initialFormData, hasIngredientChanges, hasFormChanged]);
+  const hasMetadataChanges = useMemo(() => {
+    return hasFormChanged(formData, initialFormData);
+  }, [formData, initialFormData, hasFormChanged]);
 
-  const handleSubmit = useCallback(async (actionType = 'save') => {
+  // Lista de campos de metadata que han cambiado (para mostrar en diálogos informativos)
+  const changedMetadataFields = useMemo(() => {
+    const fields = [];
+    if (String(formData?.name ?? '') !== String(initialFormData?.name ?? '')) fields.push('nombre');
+    if (String(formData?.instructions ?? '') !== String(initialFormData?.instructions ?? '')) fields.push('preparación');
+    const newTime = formData?.prep_time_min == null || formData?.prep_time_min === '' ? null : Number(formData.prep_time_min);
+    const oldTime = initialFormData?.prep_time_min == null || initialFormData?.prep_time_min === '' ? null : Number(initialFormData.prep_time_min);
+    if (newTime !== oldTime) fields.push('tiempo');
+    if (String(formData?.difficulty ?? '') !== String(initialFormData?.difficulty ?? '')) fields.push('dificultad');
+    if (String(formData?.recipe_style_id ?? '') !== String(initialFormData?.recipe_style_id ?? '')) fields.push('estilo');
+    return fields;
+  }, [formData, initialFormData]);
+
+  const hasChanges = useMemo(() => {
+    return hasMetadataChanges || hasIngredientChanges;
+  }, [hasMetadataChanges, hasIngredientChanges]);
+
+  const handleSubmit = useCallback(async (actionType = 'save', saveMode = 'auto') => {
     if (!hasChanges) {
         if (actionType === 'replace') return true; 
         toast({ title: "Sin cambios", description: "No has realizado ninguna modificación." });
@@ -359,7 +414,38 @@ export const useRecipeEditor = ({ recipeToEdit, onSaveSuccess, isAdminView, user
         const diffSummary = buildDiffSummary(originalIngredients, sanitizedIngredients, foodsById);
         const variantLabel = inferVariantLabel(diffSummary);
 
-        if (recipeToEdit.type === 'private_recipe' || recipeToEdit.is_private_recipe || recipeToEdit.type === 'variant') {
+        // Path explícito: guardar solo metadatos en-place (nombre, instrucciones, dificultad, etc.)
+        // No crea nueva rama ni toca ingredientes. Válido para ramas del usuario Y recetas base.
+        if (saveMode === 'metadata_only' && recipeToEdit.id) {
+            const recipeType = isUserBranch
+                ? (isVariantNode ? 'variant' : 'user_recipe')
+                : 'diet_plan_recipe';
+            result = await updateRecipeDetails({
+                recipeId: recipeToEdit.id,
+                recipeType,
+                updates: finalFormData,
+            });
+        } else if (saveMode === 'in_place' && recipeToEdit.id && isUserBranch) {
+            result = await updateUserRecipeInPlace({
+                recipeId: recipeToEdit.id,
+                formData: finalFormData,
+                ingredients: sanitizedIngredients,
+            });
+        } else if (saveMode === 'hide_and_variant' && recipeToEdit.id && isUserBranch) {
+            // Ocultar versión actual (preserva datos históricos) y crear rama hija
+            await archiveUserRecipe(recipeToEdit.id);
+            result = await createVariant({
+                parentNodeId: recipeToEdit.id,
+                parentNodeType: 'user_recipe',
+                userId: recipeToEdit.user_id || userId,
+                formData: finalFormData,
+                ingredients: sanitizedIngredients,
+                variantLabel,
+                diffSummary,
+                dietPlanId: recipeToEdit.diet_plan_id,
+                dayMealId: recipeToEdit.day_meal_id,
+            });
+        } else if (recipeToEdit.type === 'private_recipe' || recipeToEdit.is_private_recipe || recipeToEdit.type === 'variant') {
             // En nodos del árbol personal (private/variant), si hay cambios de ingredientes:
             // crear nueva variante hija para conservar historial.
             result = await createVariant({
@@ -470,6 +556,11 @@ export const useRecipeEditor = ({ recipeToEdit, onSaveSuccess, isAdminView, user
     isEditable,
     handleAddIngredient,
     handleRemoveIngredient,
-    hasInitialConflicts
+    hasInitialConflicts,
+    isBaseRecipe,
+    isUserBranch,
+    checkEditabilityForSave,
+    hasMetadataChanges,
+    changedMetadataFields,
   };
 };

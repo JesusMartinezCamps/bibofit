@@ -10,7 +10,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 const ConflictResolutionDialog = ({ open, onOpenChange, conflicts, onRecipeUpdate, onResolveComplete, clientRestrictions, planRestrictions, targetUserId = null }) => {
     const [editingRecipe, setEditingRecipe] = useState(null);
     const [resolvedRecipes, setResolvedRecipes] = useState(new Set());
-    const criticalConflictTypes = useMemo(() => new Set(['condition_avoid', 'sensitivity', 'non-preferred', 'diet_type_excluded']), []);
+    const criticalConflictTypes = useMemo(
+        () => new Set(['condition_avoid', 'sensitivity', 'individual_restriction', 'non-preferred', 'diet_type_excluded']),
+        []
+    );
     useEffect(() => {
         if (!open) return;
         setResolvedRecipes(new Set());

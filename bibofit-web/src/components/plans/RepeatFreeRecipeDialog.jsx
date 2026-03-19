@@ -51,12 +51,14 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
             sensitivitiesRes,
             conditionsRes,
             preferredRes,
-            nonPreferredRes
+            nonPreferredRes,
+            individualFoodsRes
         ] = await Promise.all([
             supabase.from('user_sensitivities').select('sensitivity:sensitivities(id, name)').eq('user_id', userId),
             supabase.from('user_medical_conditions').select('condition:medical_conditions(id, name)').eq('user_id', userId),
             supabase.from('preferred_foods').select('food(id, name)').eq('user_id', userId),
             supabase.from('non_preferred_foods').select('food(id, name)').eq('user_id', userId),
+            supabase.from('user_individual_food_restrictions').select('food:food_id(id, name)').eq('user_id', userId),
         ]);
 
         setUserRestrictions({
@@ -64,6 +66,7 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
             medical_conditions: (conditionsRes.data || []).map(c => c.condition).filter(Boolean),
             preferred_foods: (preferredRes.data || []).map(p => p.food).filter(Boolean),
             non_preferred_foods: (nonPreferredRes.data || []).map(np => np.food).filter(Boolean),
+            individual_food_restrictions: (individualFoodsRes.data || []).map(i => i.food).filter(Boolean),
         });
 
       // 2. Fetch Free Recipes with deep food relations

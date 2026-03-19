@@ -224,7 +224,7 @@ const IngredientQuickEditDialog = ({
             const conflictType = ingredient.conflictType;
             const conflictDetails = ingredient.conflictDetails || [];
             const recommendationDetails = ingredient.recommendationDetails || [];
-            const isConflict = ['condition_avoid', 'sensitivity', 'non-preferred'].includes(conflictType);
+            const isConflict = ['condition_avoid', 'sensitivity', 'individual_restriction', 'non-preferred'].includes(conflictType);
             const isRecommended = ['condition_recommend', 'preferred'].includes(conflictType);
             if (!isConflict && !isRecommended) return null;
 
@@ -244,6 +244,8 @@ const IngredientQuickEditDialog = ({
               switch (conflictType) {
                 case 'sensitivity':
                   return 'Sensibilidad';
+                case 'individual_restriction':
+                  return 'Restricción individual';
                 case 'condition_avoid':
                   return 'Condición médica (evitar)';
                 case 'non-preferred':

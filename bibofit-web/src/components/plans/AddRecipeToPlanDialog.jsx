@@ -122,8 +122,12 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
         [preselectedMeal]
     );
     const normalizeIds = useCallback((items = []) => {
-        if (!Array.isArray(items)) return [];
-        return items
+        const normalizedItems = Array.isArray(items)
+            ? items
+            : items instanceof Set
+                ? Array.from(items)
+                : [];
+        return normalizedItems
             .map(item => (typeof item === 'object' ? item?.id : item))
             .filter(id => id !== undefined && id !== null);
     }, []);
@@ -142,10 +146,24 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
             const templateConditionIds = normalizeIds(
                 propPlanRestrictions?.conditions || propPlanRestrictions?.medical_conditions || []
             );
+            const templateIndividualFoodIds = normalizeIds(
+                propPlanRestrictions?.individual_food_restrictions || []
+            );
+            const templateIndividualFoods = (
+                Array.isArray(propPlanRestrictions?.individual_food_restrictions)
+                    ? propPlanRestrictions.individual_food_restrictions
+                    : propPlanRestrictions?.individual_food_restrictions instanceof Set
+                        ? Array.from(propPlanRestrictions.individual_food_restrictions)
+                        : []
+            )
+                .map((item) => (item && typeof item === 'object' ? item : null))
+                .filter(Boolean);
 
             setPlanRestrictions({
                 sensitivities: new Set(templateSensitivityIds),
-                conditions: new Set(templateConditionIds)
+                conditions: new Set(templateConditionIds),
+                individual_food_restrictions: new Set(templateIndividualFoodIds),
+                individual_food_objects: templateIndividualFoods,
             });
             return;
         }
@@ -156,13 +174,18 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
         }
 
         try {
-            const [sensitivitiesRes, conditionsRes] = await Promise.all([
+            const [sensitivitiesRes, conditionsRes, individualFoodsRes] = await Promise.all([
                 supabase.from('user_sensitivities').select('sensitivity_id').eq('user_id', userId),
-                supabase.from('user_medical_conditions').select('condition_id').eq('user_id', userId)
+                supabase.from('user_medical_conditions').select('condition_id').eq('user_id', userId),
+                supabase
+                    .from('user_individual_food_restrictions')
+                    .select('food_id, food:food_id(id, name)')
+                    .eq('user_id', userId),
             ]);
             
             if (sensitivitiesRes.error) throw sensitivitiesRes.error;
             if (conditionsRes.error) throw conditionsRes.error;
+            if (individualFoodsRes.error) throw individualFoodsRes.error;
             
             const [allSensitivitiesRes, allConditionsRes] = await Promise.all([
                 supabase.from('sensitivities').select('id, name'),
@@ -174,11 +197,18 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
 
             setPlanRestrictions({
                 sensitivities: new Set(sensitivitiesRes.data.map(s => s.sensitivity_id)),
-                conditions: new Set(conditionsRes.data.map(c => c.condition_id))
+                conditions: new Set(conditionsRes.data.map(c => c.condition_id)),
+                individual_food_restrictions: new Set((individualFoodsRes.data || []).map((f) => f.food_id)),
+                individual_food_objects: (individualFoodsRes.data || []).map((entry) => entry.food).filter(Boolean),
             });
         } catch (error) {
             toast({ title: "Error", description: "No se pudieron cargar las restricciones del cliente.", variant: "destructive" });
-            setPlanRestrictions({ sensitivities: new Set(), conditions: new Set() });
+            setPlanRestrictions({
+                sensitivities: new Set(),
+                conditions: new Set(),
+                individual_food_restrictions: new Set(),
+                individual_food_objects: [],
+            });
         }
     }, [userId, isTemplate, toast, propPlanRestrictions, normalizeIds]);
     
@@ -247,9 +277,22 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
                 const ingredientSource = isFromPlan && !isPrivate ? recipe : baseRecipe;
                 const ingredients = getRecipeIngredients(ingredientSource);
 
+                const individualFoodById = new Map();
+                (planRestrictions.individual_food_objects || []).forEach((item) => {
+                    if (!item?.id) return;
+                    individualFoodById.set(String(item.id), { id: item.id, name: item.name || null });
+                });
+                (planRestrictions.individual_food_restrictions || new Set()).forEach((foodId) => {
+                    const key = String(foodId);
+                    if (individualFoodById.has(key)) return;
+                    const foodMatch = (foodsRes.data || []).find((food) => String(food.id) === key);
+                    individualFoodById.set(key, { id: foodId, name: foodMatch?.name || null });
+                });
+
                 const analysisRestrictions = {
                     sensitivities: allSensitivities.filter(s => planRestrictions.sensitivities.has(s.id)),
                     medical_conditions: allConditions.filter(c => planRestrictions.conditions.has(c.id)),
+                    individual_food_restrictions: Array.from(individualFoodById.values()),
                     preferred_foods: [],
                     non_preferred_foods: []
                 };
@@ -347,17 +390,35 @@ const AddRecipeToPlanDialog = ({ open, onOpenChange, dietPlanId, isTemplate = fa
     }
 
     const fullUserRestrictions = useMemo(() => {
-        if (propPlanRestrictions?.sensitivities || propPlanRestrictions?.medical_conditions || propPlanRestrictions?.preferred_foods || propPlanRestrictions?.non_preferred_foods) {
+        if (
+            propPlanRestrictions?.sensitivities ||
+            propPlanRestrictions?.medical_conditions ||
+            propPlanRestrictions?.individual_food_restrictions ||
+            propPlanRestrictions?.preferred_foods ||
+            propPlanRestrictions?.non_preferred_foods
+        ) {
             return propPlanRestrictions;
         }
         if (!planRestrictions) return {};
+        const individualFoodById = new Map();
+        (planRestrictions.individual_food_objects || []).forEach((item) => {
+            if (!item?.id) return;
+            individualFoodById.set(String(item.id), { id: item.id, name: item.name || null });
+        });
+        (planRestrictions.individual_food_restrictions || new Set()).forEach((foodId) => {
+            const key = String(foodId);
+            if (individualFoodById.has(key)) return;
+            const foodMatch = (allFoods || []).find((food) => String(food.id) === key);
+            individualFoodById.set(key, { id: foodId, name: foodMatch?.name || null });
+        });
         return {
             sensitivities: allSensitivities.filter(s => planRestrictions.sensitivities.has(s.id)),
             medical_conditions: allConditions.filter(c => planRestrictions.conditions.has(c.id)),
+            individual_food_restrictions: Array.from(individualFoodById.values()),
             preferred_foods: [],
             non_preferred_foods: []
         };
-    }, [propPlanRestrictions, planRestrictions, allSensitivities, allConditions]);
+    }, [propPlanRestrictions, planRestrictions, allSensitivities, allConditions, allFoods]);
 
     // Grouping and Filtering Logic
     const groupedRecipeData = useMemo(() => {

@@ -35,8 +35,8 @@ Deno.serve(async (req) => {
         : Promise.resolve({ data: [], error: null as any }),
       privateRecipeIds.length
         ? supabaseAdmin
-            .from("private_recipes")
-            .select("id, private_recipe_ingredients(*)")
+            .from("user_recipes")
+            .select("id, recipe_ingredients(*)")
             .in("id", privateRecipeIds)
         : Promise.resolve({ data: [], error: null as any }),
     ]);
@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
 
     const recipes: BalanceRecipeRequest[] = [
       ...(planRecipesRes.data || []).map((r: any) => ({ id: r.id, is_private: false, ingredients: r.custom_ingredients || [] })),
-      ...(privateRecipesRes.data || []).map((r: any) => ({ id: r.id, is_private: true, ingredients: r.private_recipe_ingredients || [] })),
+      ...(privateRecipesRes.data || []).map((r: any) => ({ id: r.id, is_private: true, ingredients: r.recipe_ingredients || [] })),
     ].map((recipe: any) => ({
       recipe_id: recipe.id,
       is_private: recipe.is_private,

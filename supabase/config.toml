@@ -368,6 +368,12 @@ verify_jwt = false
 [functions.auto-balance-equivalence]
 verify_jwt = false
 
+[functions.scale-diet-plan-ingredients]
+verify_jwt = false
+
+[functions.auto-balance-plan-all-moments]
+verify_jwt = false
+
 [functions.get-substitutions-for-food]
 verify_jwt = false
 
