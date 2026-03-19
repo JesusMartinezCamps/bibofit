@@ -32,6 +32,7 @@ const AppLayout = () => {
     location.pathname.startsWith(path)
   );
   const isProfileDataPage = location.pathname === '/profile/data';
+  const isPlanOverviewPage = location.pathname === '/plan';
 
   return (
     <>
@@ -44,6 +45,7 @@ const AppLayout = () => {
           shouldRemoveMobilePadding && 'px-0 sm:px-0',
           isProfileDataPage && 'sm:px-6'
         )}
+        style={isPlanOverviewPage ? { paddingBottom: 0 } : undefined}
       >
         <Outlet />
       </div>
