@@ -75,6 +75,25 @@ const roundToStep = (x: number, step: number) => {
   return Math.round(x / step) * step;
 };
 
+const squaredMacroError = (
+  dP: number,
+  dC: number,
+  dF: number,
+  targets: { tp: number; tc: number; tf: number },
+  tolerances: { p: number; c: number; f: number },
+) => {
+  let wP = 1 + Math.abs(dP) / (targets.tp + 10);
+  let wC = 1 + Math.abs(dC) / (targets.tc + 10);
+  let wF = 1 + Math.abs(dF) / (targets.tf + 10);
+
+  // Cuando hay exceso real de macro, priorizar su reducción.
+  if (dC < -tolerances.c) wC *= 12;
+  if (dP < -tolerances.p) wP *= 6;
+  if (dF < -tolerances.f) wF *= 6;
+
+  return wP * dP * dP + wC * dC * dC + wF * dF * dF;
+};
+
 const normalizeProfile = (p: unknown): ProfileName => {
   const v = String(p || "balanced").toLowerCase();
   if (v === "lowcarb" || v === "lowcarb_satiety" || v === "lowcarb-satiety") return "lowcarb_satiety";
@@ -640,7 +659,13 @@ export const balanceRecipeCore = (
         dCp -= appliedDeltas[j] * m.cpu;
         dFp -= appliedDeltas[j] * m.fpu;
       }
-      const err2 = dPp * dPp + dCp * dCp + dFp * dFp;
+      const err2 = squaredMacroError(
+        dPp,
+        dCp,
+        dFp,
+        { tp, tc, tf },
+        { p: MACRO_TOL_P, c: MACRO_TOL_C, f: MACRO_TOL_F },
+      );
 
       // Penalizaciones agregadas de todos los miembros del grupo.
       let presPenalty = 0, rolePenalty = 0, anchorPenalty = 0, volumePenalty = 0, softMinPenalty = 0;
@@ -754,7 +779,165 @@ export const balanceRecipeCore = (
     curK = curP * 4 + curC * 4 + curF * 9;
   }
 
+  // ────────────────────────────────────────────────────────────────────────────
+  // FASE R — Macro repair estricto y resolución de conflicto
+  // Prioridad absoluta: cerrar macros (especialmente exceso de CH).
+  // Si no hay salida con ajustes finos, se podan ingredientes carb-dominantes.
+  // ────────────────────────────────────────────────────────────────────────────
+  const forceZeroFoodIds = new Set<string>();
+  {
+    const getCardinalityByGroup = () => {
+      const map = new Map<string, number>();
+      for (const w of work) {
+        if (w.locked || w.quantity <= 0) continue;
+        map.set(w.groupName, (map.get(w.groupName) || 0) + 1);
+      }
+      return map;
+    };
+
+    const carbDominanceScore = (w: WorkIngredient, cardinalityByGroup: Map<string, number>) => {
+      const carbPer = w.cpu;
+      const proteinPer = w.ppu;
+      const fatPer = w.fpu;
+      const groupCardinality = cardinalityByGroup.get(w.groupName) || 1;
+      const groupBonus = groupCardinality > 2 ? (groupCardinality - 2) * 0.2 : 0;
+      const sourceBonus = (w.isLegume || w.isCerealLike) ? 0.35 : 0;
+      return carbPer - 0.45 * proteinPer - 0.1 * fatPer + groupBonus + sourceBonus;
+    };
+
+    const strictRepairStep = () => {
+      const dP = tp - curP;
+      const dC = tc - curC;
+      const dF = tf - curF;
+      const currentErr = squaredMacroError(
+        dP,
+        dC,
+        dF,
+        { tp, tc, tf },
+        { p: MACRO_TOL_P, c: MACRO_TOL_C, f: MACRO_TOL_F },
+      );
+
+      let bestImprovement = 0;
+      let bestIdx = -1;
+      let bestDelta = 0;
+
+      for (let i = 0; i < work.length; i++) {
+        const w = work[i];
+        if (forceZeroFoodIds.has(String(w.food_id))) continue;
+        if (w.locked || w.vNorm2 === 0) continue;
+
+        const down = w.quantity - w.step;
+        const canDown = down >= w.minQty;
+        const canUp = w.quantity + w.step <= w.maxQty;
+
+        const candidateDeltas: number[] = [];
+        if (canDown) candidateDeltas.push(-w.step);
+        if (canUp) candidateDeltas.push(w.step);
+
+        for (const delta of candidateDeltas) {
+          // En reparación estricta, evitar subir CH si ya estamos pasados.
+          if (delta > 0 && dC < -MACRO_TOL_C && w.cpu > 0) continue;
+
+          const nextDP = dP - delta * w.ppu;
+          const nextDC = dC - delta * w.cpu;
+          const nextDF = dF - delta * w.fpu;
+          const nextErr = squaredMacroError(
+            nextDP,
+            nextDC,
+            nextDF,
+            { tp, tc, tf },
+            { p: MACRO_TOL_P, c: MACRO_TOL_C, f: MACRO_TOL_F },
+          );
+          const improvement = currentErr - nextErr;
+          if (improvement > bestImprovement + 1e-9) {
+            bestImprovement = improvement;
+            bestIdx = i;
+            bestDelta = delta;
+          }
+        }
+      }
+
+      if (bestIdx < 0 || bestDelta === 0) return false;
+      const w = work[bestIdx];
+      w.quantity = roundToStep(clamp(w.quantity + bestDelta, w.minQty, w.maxQty), w.step);
+      curP += bestDelta * w.ppu;
+      curC += bestDelta * w.cpu;
+      curF += bestDelta * w.fpu;
+      curK = curP * 4 + curC * 4 + curF * 9;
+      return true;
+    };
+
+    // 1) Repair fino con prioridad macro.
+    for (let i = 0; i < 80; i++) {
+      const dP = tp - curP;
+      const dC = tc - curC;
+      const dF = tf - curF;
+      const done = Math.abs(dP) <= MACRO_TOL_P && Math.abs(dC) <= MACRO_TOL_C && Math.abs(dF) <= MACRO_TOL_F;
+      if (done) break;
+      if (!strictRepairStep()) break;
+    }
+
+    // 2) Si CH sigue pasado, poda carb-dominante por ingrediente (puede ir a 0).
+    let dC = tc - curC;
+    if (dC < -MACRO_TOL_C) {
+      const cardinalityByGroup = getCardinalityByGroup();
+      const candidates = work
+        .map((w, idx) => ({ w, idx }))
+        .filter(({ w }) =>
+          !w.locked &&
+          w.quantity > 0 &&
+          w.cpu > 0 &&
+          (w.isLegume || w.isCerealLike || w.role === "carb") &&
+          !w.isVeg &&
+          !w.isFruit,
+        )
+        .map(({ w, idx }) => ({
+          idx,
+          score: carbDominanceScore(w, cardinalityByGroup),
+        }))
+        .sort((a, b) => b.score - a.score);
+
+      for (const candidate of candidates) {
+        const w = work[candidate.idx];
+        if (dC >= -MACRO_TOL_C) break;
+        if (w.quantity <= 0) continue;
+
+        const removedQty = w.quantity;
+        curP -= removedQty * w.ppu;
+        curC -= removedQty * w.cpu;
+        curF -= removedQty * w.fpu;
+        w.quantity = 0;
+        // Congelamos este ingrediente para evitar que vuelva a entrar en esta ejecución.
+        w.cap = 0;
+        forceZeroFoodIds.add(String(w.food_id));
+        dC = tc - curC;
+      }
+      curK = curP * 4 + curC * 4 + curF * 9;
+
+      // 3) Reajuste final tras poda.
+      for (let i = 0; i < 80; i++) {
+        const dP2 = tp - curP;
+        const dC2 = tc - curC;
+        const dF2 = tf - curF;
+        const done = Math.abs(dP2) <= MACRO_TOL_P && Math.abs(dC2) <= MACRO_TOL_C && Math.abs(dF2) <= MACRO_TOL_F;
+        if (done) break;
+        if (!strictRepairStep()) break;
+      }
+    }
+  }
+
   return work.map((ing) => {
+    if (forceZeroFoodIds.has(String(ing.food_id))) {
+      return {
+        food_id: ing.food_id,
+        quantity: 0,
+        grams: 0,
+        ingredient_row_id: ing.ingredient_row_id,
+        recipe_id: ing.recipe_id,
+        is_private: ing.is_private,
+      };
+    }
+
     let finalQty = roundToStep(ing.quantity, ing.step);
     finalQty = clamp(finalQty, ing.minQty, Number.isFinite(ing.maxQty) ? ing.maxQty : Infinity);
     finalQty = roundToStep(finalQty, ing.step);

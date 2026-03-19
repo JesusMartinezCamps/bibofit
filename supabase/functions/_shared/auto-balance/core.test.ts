@@ -7,6 +7,21 @@ const assert = (condition: unknown, message: string) => {
 const toQtyMap = (rows: Array<{ food_id: string | number; quantity: number }>) =>
   new Map(rows.map((row) => [String(row.food_id), row.quantity]));
 
+const macroTotals = (rows: any[]) => {
+  let proteins = 0;
+  let carbs = 0;
+  let fats = 0;
+  for (const row of rows) {
+    const q = Number(row.quantity || 0);
+    const unitKind = row.food_data?.food_unit === "unidades" ? "unidades" : "gramos";
+    const per = unitKind === "unidades" ? 1 : 1 / 100;
+    proteins += Number(row.food_data?.proteins || 0) * per * q;
+    carbs += Number(row.food_data?.total_carbs || 0) * per * q;
+    fats += Number(row.food_data?.total_fats || 0) * per * q;
+  }
+  return { proteins, carbs, fats };
+};
+
 Deno.test("normaliza macro_role carbs y carb de forma equivalente", () => {
   const buildIngredients = (carbRole: string) => ([
     { food_id: "arroz", quantity: 120, group_name: "Cereales", macro_role: carbRole, food_data: { food_unit: "gramos", proteins: 7, total_carbs: 77, total_fats: 0.6 } },
@@ -78,4 +93,33 @@ Deno.test("aplica minimo de frutos secos y semillas y mantiene unidad minima", (
   assert((map.get("avellanas") || 0) >= 15, "Frutos secos deberian quedar en >= 15g");
   assert((map.get("chia") || 0) >= 5, "Semillas deberian quedar en >= 5g");
   assert((map.get("huevo") || 0) >= 1, "Unidades deberian quedar en >= 1");
+});
+
+Deno.test("prioriza cierre de CH cuando hay muchas legumbres con pollo", () => {
+  const target = { proteins: 55, carbs: 45, fats: 15 };
+  const input = [
+    { food_id: "pollo", quantity: 85, group_name: "Carnes blancas", macro_role: "protein", food_data: { food_unit: "gramos", proteins: 31, total_carbs: 0, total_fats: 3.6 } },
+    { food_id: "soja", quantity: 65, group_name: "Legumbres", macro_role: "protein", food_data: { food_unit: "gramos", proteins: 52, total_carbs: 34, total_fats: 1.2 } },
+    { food_id: "lenteja", quantity: 35, group_name: "Legumbres", macro_role: "protein", food_data: { food_unit: "gramos", proteins: 25, total_carbs: 60, total_fats: 1.0 } },
+    { food_id: "garbanzo", quantity: 45, group_name: "Legumbres", macro_role: "protein", food_data: { food_unit: "gramos", proteins: 21, total_carbs: 61, total_fats: 6.0 } },
+    { food_id: "alubia", quantity: 35, group_name: "Legumbres", macro_role: "protein", food_data: { food_unit: "gramos", proteins: 23, total_carbs: 60, total_fats: 1.0 } },
+    { food_id: "coco", quantity: 20, group_name: "Frutas", macro_role: "fat", food_data: { food_unit: "gramos", proteins: 7, total_carbs: 24, total_fats: 64 } },
+  ];
+
+  const out = balanceRecipeCore(input, target, {});
+  const outWithFood = out.map((row) => ({
+    ...row,
+    food_data: input.find((i) => String(i.food_id) === String(row.food_id))?.food_data,
+  }));
+  const totals = macroTotals(outWithFood);
+  const qty = toQtyMap(out);
+  const legumeIds = ["soja", "lenteja", "garbanzo", "alubia"];
+  const inputLegumeSum = input
+    .filter((row) => legumeIds.includes(String(row.food_id)))
+    .reduce((sum, row) => sum + Number(row.quantity || 0), 0);
+  const outputLegumeSum = legumeIds.reduce((sum, id) => sum + Number(qty.get(id) || 0), 0);
+
+  assert(Math.abs(totals.carbs - target.carbs) <= Math.max(5, target.carbs * 0.05), `Carbs fuera de tolerancia: ${totals.carbs.toFixed(2)} vs ${target.carbs}`);
+  assert((qty.get("pollo") || 0) > 0, "Pollo no deberia desaparecer");
+  assert(outputLegumeSum < inputLegumeSum, "Deberia reducir claramente el bloque de legumbres para cerrar CH");
 });
