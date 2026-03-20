@@ -82,7 +82,7 @@ const PlanPage = () => {
               transition={{ duration: 0.6, ease: "easeOut" }}
             >
               <Link
-                to="/plan/entreno"
+                to={`/plan/entreno/${dietDate}`}
                 className="group block rounded-2xl bg-muted/65 border-2 border-border/80 hover:border-[#F44C40] transition-all duration-300 h-[clamp(128px,19vh,180px)] md:h-72 relative overflow-hidden flex flex-col justify-center items-center p-4 md:p-8"
               >
                 <div className="absolute -inset-px bg-gradient-to-r from-red-500/20 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />

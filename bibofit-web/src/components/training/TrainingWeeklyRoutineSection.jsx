@@ -183,7 +183,7 @@ const TrainingWeeklyRoutineSection = ({
                           <Button
                             size="icon"
                             variant="ghost"
-                            className="h-8 w-8 text-[#F44C40] hover:bg-[#F44C40]/10 border border-[#F44C40]/40"
+                            className="h-8 w-8 text-[#F44C40]/40 dark:text-red-500 dark:bg-red-500/10 dark:hover:bg-red-500/20 hover:bg-[#F44C40]/10 border border-[#F44C40]/40"
                             style={{ borderWidth: 'thin' }}
                             title="Abrir día de entrenamiento"
                             onClick={(e) => { e.stopPropagation(); onOpenDay(day.id); }}
