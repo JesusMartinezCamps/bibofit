@@ -4,7 +4,7 @@ import { useNavigate, useLocation, useParams } from 'react-router-dom'
 import {
   ArrowLeft, Info, Flame, Shuffle, FileText,
   Search, X, Check, AlertTriangle, CheckCircle2,
-  ChevronDown, ChevronUp, TrendingUp,
+  ChevronDown, ChevronUp, ChevronRight, TrendingUp,
   Dumbbell, Clock, SkipForward, Timer, Pause, Play,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -269,84 +269,10 @@ function MediaStrip({ phases }) {
 
 // ─── Rest Timer ───────────────────────────────────────────────────────────────
 
-function RestTimer({ seconds, total, onSkip }) {
-  const safeTotal = Math.max(total || REST_DEFAULT_SECONDS, 1)
-  const pct = Math.max(0, Math.min(100, (seconds / safeTotal) * 100))
-  const intensity = 1 - (seconds / safeTotal)
-  const tone = intensity > 0.67 ? 'hard' : intensity > 0.33 ? 'mid' : 'easy'
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
-      className={cn(
-        'mt-2.5 rounded-xl border px-3 py-2.5 shadow-sm',
-        tone === 'hard'
-          ? 'border-red-500/30 bg-red-500/10'
-          : tone === 'mid'
-          ? 'border-amber-500/30 bg-amber-500/10'
-          : 'border-emerald-500/30 bg-emerald-500/10'
-      )}
-    >
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className={cn(
-            'w-8 h-8 rounded-lg flex items-center justify-center',
-            tone === 'hard'
-              ? 'bg-red-500/15 text-red-500'
-              : tone === 'mid'
-              ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
-              : 'bg-emerald-500/15 text-emerald-500'
-          )}>
-            <Clock className="w-4 h-4" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold leading-none">
-              Descanso
-            </p>
-            <p className={cn(
-              'font-mono tabular-nums text-base font-bold mt-1 leading-none',
-              tone === 'hard'
-                ? 'text-red-500'
-                : tone === 'mid'
-                ? 'text-amber-600 dark:text-amber-400'
-                : 'text-emerald-500'
-            )}>
-              {fmt(seconds)}
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={onSkip}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-card/70 border border-border text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <SkipForward className="w-3.5 h-3.5" />
-          Saltar
-        </button>
-      </div>
-
-      <div className="mt-2 h-1.5 rounded-full bg-border overflow-hidden">
-        <div
-          className={cn(
-            'h-full transition-[width] duration-1000 ease-linear',
-            tone === 'hard'
-              ? 'bg-red-500'
-              : tone === 'mid'
-              ? 'bg-amber-500'
-              : 'bg-emerald-500'
-          )}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <p className="mt-1.5 text-[10px] text-muted-foreground">
-        Al terminar, se inicia automáticamente la siguiente serie.
-      </p>
-    </motion.div>
-  )
-}
 
 // ─── Session Summary Modal ────────────────────────────────────────────────────
 
-function SummaryModal({ open, summary, onClose, exerciseName, totalSets }) {
+function SummaryModal({ open, summary, onClose, exerciseName, totalSets, nextExerciseName }) {
   if (!summary) return null
 
   const rows = [
@@ -403,8 +329,17 @@ function SummaryModal({ open, summary, onClose, exerciseName, totalSets }) {
             {/* CTA */}
             <div className="p-4">
               <Button onClick={onClose} className="w-full h-12 gap-2 bg-primary hover:bg-primary/90">
-                <Check className="w-4 h-4" />
-                Continuar sesión
+                {nextExerciseName ? (
+                  <>
+                    <ChevronRight className="w-4 h-4" />
+                    Siguiente: {nextExerciseName}
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4" />
+                    Finalizar entreno
+                  </>
+                )}
               </Button>
             </div>
           </motion.div>
@@ -815,13 +750,15 @@ const ACTION_CHIPS = [
 export default function ExerciseSessionPage() {
   const navigate  = useNavigate()
   const location  = useLocation()
-  const { blockExerciseId } = useParams()
+  const { blockExerciseId, weeklyDayId } = useParams()
 
   // ── Datos del ejercicio: vienen de location.state (pasado por WorkoutDayPage)
   //    o se usa el mock si se accede directamente a la ruta demo
   const stateExercise      = location.state?.exercise    || null
   const workoutId          = location.state?.workoutId   ?? null
   const workoutExerciseId  = location.state?.workoutExerciseId ?? null
+  const allExercises       = useMemo(() => location.state?.allExercises ?? [], [location.state?.allExercises]) // eslint-disable-line react-hooks/exhaustive-deps
+  const exerciseMap        = useMemo(() => location.state?.exerciseMap  ?? [], [location.state?.exerciseMap])  // eslint-disable-line react-hooks/exhaustive-deps
   const [resolvedWorkoutExerciseId, setResolvedWorkoutExerciseId] = useState(null)
   const effectiveWorkoutExerciseId = workoutExerciseId ?? resolvedWorkoutExerciseId
 
@@ -1266,17 +1203,52 @@ export default function ExerciseSessionPage() {
     setCurrentSetSecs(0)
   }, [configuredRestSeconds, ensureSessionStarted, initialSets, restSecs, setMetaById, persistSetProgress])
 
+  const currentExerciseIndex = useMemo(() => {
+    if (!allExercises.length) return -1
+    const idx = allExercises.findIndex(e => String(e.blockExerciseId) === String(blockExerciseId))
+    return idx >= 0 ? idx : 0
+  }, [allExercises, blockExerciseId])
+
+  const nextExercise = useMemo(() => {
+    if (currentExerciseIndex < 0 || !allExercises.length) return null
+    return allExercises[currentExerciseIndex + 1] ?? null
+  }, [allExercises, currentExerciseIndex])
+
+  const navigatingToNextRef = useRef(false)
+
+  const navigateToExercise = useCallback((ex) => {
+    navigatingToNextRef.current = true
+    const mapping = exerciseMap.find(
+      m => String(m.block_exercise_id) === String(ex.blockExerciseId)
+    )
+    navigate(
+      `/plan/entreno/dia/${weeklyDayId}/ejercicio/${ex.blockExerciseId}`,
+      {
+        state: {
+          exercise: ex,
+          workoutId,
+          workoutExerciseId: mapping?.workout_exercise_id ?? null,
+          allExercises,
+          exerciseMap,
+          weeklyDayId,
+        },
+      }
+    )
+  }, [exerciseMap, navigate, weeklyDayId, workoutId, allExercises])
+
   // ── Ejercicio completado ───────────────────────────────────────────────────────
   const handleAllCompleted = useCallback(() => {
     const now = new Date()
 
-    // Guardar timing del ejercicio
     if (workoutId && effectiveWorkoutExerciseId && exerciseStartedAt.current) {
       timingService.recordExerciseTiming(effectiveWorkoutExerciseId, exerciseStartedAt.current, now)
-      timingService.finishWorkout(workoutId, now)
+      // Solo cerrar el workout si es el último ejercicio del día
+      const isLastExercise = !allExercises.length || currentExerciseIndex >= allExercises.length - 1
+      if (isLastExercise) {
+        timingService.finishWorkout(workoutId, now)
+      }
     }
 
-    // Calcular resumen local (inmediato, sin esperar DB)
     const localSummary = timingService.computeLocalSummary({
       sessionStartedAt: sessionStartedAt.current || now,
       warmupStartedAt: warmupStartedAt.current,
@@ -1285,7 +1257,7 @@ export default function ExerciseSessionPage() {
     })
     setSummary(localSummary)
     setShowSummary(true)
-  }, [workoutId, effectiveWorkoutExerciseId])
+  }, [workoutId, effectiveWorkoutExerciseId, allExercises, currentExerciseIndex])
 
   const updateSet = useCallback((id, data) => {
     setSetData(prev => {
@@ -1313,7 +1285,6 @@ export default function ExerciseSessionPage() {
   }, [persistNotes])
 
   const allCompleted = initialSets.every(s => setData[s.id]?.completed)
-  const hasSessionStarted = sessionStartedAt.current instanceof Date
 
   // Mostrar resumen automáticamente al completar todos los sets
   useEffect(() => {
@@ -1344,7 +1315,7 @@ export default function ExerciseSessionPage() {
         void persistNotes()
       }
 
-      if (workoutId && sessionStartedAt.current instanceof Date) {
+      if (workoutId && sessionStartedAt.current instanceof Date && !navigatingToNextRef.current) {
         void timingService.finishWorkout(workoutId, new Date())
       }
     }
@@ -1355,72 +1326,218 @@ export default function ExerciseSessionPage() {
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <header className="px-4 pt-3 pb-2 bg-background/95 backdrop-blur-sm sticky top-0 z-20 border-b border-border">
-        <div className="flex items-center justify-between">
-          <button onClick={() => navigate(-1)}
-            className="p-1.5 -ml-1 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted">
+
+        {/* Fila 1: Botón atrás + pills de ejercicios del día */}
+        <div className="flex items-center gap-2 mb-2.5">
+          <button
+            onClick={() => navigate(-1)}
+            className="p-1.5 -ml-1 flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted"
+          >
             <ArrowLeft className="w-5 h-5" />
           </button>
 
-          <button
-            type="button"
-            onClick={toggleSessionChrono}
-            disabled={!hasSessionStarted}
-            className={cn(
-              'flex flex-col items-center rounded-lg px-2 py-1 transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
-              !hasSessionStarted || !isSessionRunning
-                ? 'bg-amber-500/10 hover:bg-amber-500/15'
-                : 'hover:bg-muted/60'
-            )}
-          >
-            <div className="flex items-center gap-1.5">
-              {hasSessionStarted && isSessionRunning ? (
-                <Pause className="w-3.5 h-3.5 text-muted-foreground" />
-              ) : (
-                <Play className="w-3.5 h-3.5 text-amber-500" />
-              )}
-              <span className="text-base font-bold font-mono tabular-nums text-foreground tracking-tight">
-                {fmt(sessionSecs)}
-              </span>
+          {allExercises.length > 0 ? (
+            <div className="flex-1 flex gap-1.5 overflow-x-auto no-scrollbar">
+              {allExercises.map((ex, idx) => {
+                const isCurrent = String(ex.blockExerciseId) === String(blockExerciseId)
+                return (
+                  <button
+                    key={ex.blockExerciseId}
+                    onClick={() => { if (!isCurrent) navigateToExercise(ex) }}
+                    title={ex.name}
+                    className={cn(
+                      'flex-shrink-0 min-w-[28px] h-7 px-2 rounded-full text-xs font-bold border transition-all active:scale-95',
+                      isCurrent
+                        ? 'text-white border-transparent'
+                        : 'bg-muted border-border text-muted-foreground hover:text-foreground'
+                    )}
+                    style={isCurrent ? { background: T, borderColor: T } : {}}
+                  >
+                    {idx + 1}
+                  </button>
+                )
+              })}
             </div>
-            <span className="text-[10px] text-muted-foreground uppercase tracking-widest">
-              {!hasSessionStarted ? 'Crono' : isSessionRunning ? 'Sesión' : 'Pausado'}
-            </span>
-          </button>
+          ) : (
+            <p className="flex-1 text-sm font-semibold text-foreground truncate">{exercise.name}</p>
+          )}
+        </div>
 
-          <div className="flex flex-col items-end min-w-[52px]">
-            {activeSetId && !setData[activeSetId]?.completed ? (
-              <>
-                <span className="text-sm font-bold font-mono tabular-nums" style={{ color: T }}>
-                  {fmt(currentSetSecs)}
+        {/* Fila 2: Zona de acción / cronómetro — se transforma según la fase */}
+        <AnimatePresence mode="wait" initial={false}>
+          {restSecs !== null ? (
+            (() => {
+              const safeTotal = Math.max(configuredRestSeconds || REST_DEFAULT_SECONDS, 1)
+              const pct = Math.max(0, Math.min(100, (restSecs / safeTotal) * 100))
+              const intensity = 1 - (restSecs / safeTotal)
+              const tone = intensity > 0.67 ? 'hard' : intensity > 0.33 ? 'mid' : 'easy'
+              return (
+                <motion.div
+                  key="rest"
+                  initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.15 }}
+                  className={cn(
+                    'flex items-center gap-3 px-3 py-2 rounded-xl border',
+                    tone === 'hard' ? 'border-red-500/30 bg-red-500/10'
+                      : tone === 'mid' ? 'border-amber-500/30 bg-amber-500/10'
+                      : 'border-emerald-500/30 bg-emerald-500/10'
+                  )}
+                >
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <Clock className={cn(
+                      'w-3.5 h-3.5',
+                      tone === 'hard' ? 'text-red-500' : tone === 'mid' ? 'text-amber-500' : 'text-emerald-500'
+                    )} />
+                    <div>
+                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold leading-none">
+                        Descanso
+                      </p>
+                      <p className={cn(
+                        'font-mono tabular-nums text-base font-bold mt-0.5 leading-none',
+                        tone === 'hard' ? 'text-red-500'
+                          : tone === 'mid' ? 'text-amber-600 dark:text-amber-400'
+                          : 'text-emerald-500'
+                      )}>
+                        {fmt(restSecs)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex-1 h-1.5 rounded-full bg-border overflow-hidden">
+                    <div
+                      className={cn(
+                        'h-full transition-[width] duration-1000 ease-linear',
+                        tone === 'hard' ? 'bg-red-500' : tone === 'mid' ? 'bg-amber-500' : 'bg-emerald-500'
+                      )}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                  <button
+                    onClick={() => finishRestAndStartNextSet(true)}
+                    className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-card/70 border border-border text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <SkipForward className="w-3.5 h-3.5" />
+                    Saltar
+                  </button>
+                </motion.div>
+              )
+            })()
+          ) : workPhase === 'idle' ? (
+            <motion.div
+              key="idle"
+              initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.15 }}
+            >
+              <Button
+                variant="outline"
+                onClick={startWarmupPhase}
+                className="w-full h-10 border-orange-400/40 text-orange-600 hover:text-orange-500 hover:bg-orange-500/10"
+              >
+                <Flame className="w-4 h-4 mr-2" />
+                Iniciar calentamiento
+              </Button>
+            </motion.div>
+          ) : workPhase === 'warmup' ? (
+            <motion.div
+              key="warmup"
+              initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.15 }}
+              className="flex items-center gap-2"
+            >
+              <div className="flex flex-col flex-1 min-w-0 pl-1">
+                <span className="text-base font-bold font-mono tabular-nums text-foreground tracking-tight leading-none">
+                  {fmt(sessionSecs)}
                 </span>
-                <span className="text-[10px] text-muted-foreground uppercase tracking-widest">Serie</span>
-              </>
-            ) : (
-              <div className="w-[52px]" />
-            )}
-          </div>
-        </div>
+                <span className="text-[10px] text-muted-foreground uppercase tracking-widest mt-0.5">
+                  {isSessionRunning ? 'Calentamiento' : 'Pausado'}
+                </span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleSessionChrono}
+                className="flex-shrink-0 h-9 px-3 gap-1.5 border-orange-400/40 text-orange-600 hover:text-orange-500 hover:bg-orange-500/10"
+              >
+                {isSessionRunning ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                {isSessionRunning ? 'Pausar' : 'Reanudar'}
+              </Button>
+              <Button
+                size="sm"
+                onClick={finishWarmupPhase}
+                className="flex-shrink-0 h-9 px-4"
+                style={{ background: '#f59e0b', color: 'white' }}
+              >
+                Listo
+              </Button>
+            </motion.div>
+          ) : workPhase === 'work_ready' ? (
+            <motion.div
+              key="work_ready"
+              initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.15 }}
+            >
+              <Button
+                onClick={startEffectiveSetsPhase}
+                className="w-full h-10 text-white"
+                style={{ background: T }}
+              >
+                Iniciar series efectivas
+              </Button>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="work"
+              initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.15 }}
+              className="flex items-center justify-between"
+            >
+              <button
+                type="button"
+                onClick={toggleSessionChrono}
+                className={cn(
+                  'flex flex-col rounded-lg px-2 py-1 transition-colors',
+                  !isSessionRunning ? 'bg-amber-500/10 hover:bg-amber-500/15' : 'hover:bg-muted/60'
+                )}
+              >
+                <div className="flex items-center gap-1.5">
+                  {isSessionRunning ? (
+                    <Pause className="w-3.5 h-3.5 text-muted-foreground" />
+                  ) : (
+                    <Play className="w-3.5 h-3.5 text-amber-500" />
+                  )}
+                  <span className="text-base font-bold font-mono tabular-nums text-foreground tracking-tight">
+                    {fmt(sessionSecs)}
+                  </span>
+                </div>
+                <span className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                  {isSessionRunning ? 'Sesión' : 'Pausado'}
+                </span>
+              </button>
 
-        <div className="mt-2.5 flex gap-1.5">
-          {initialSets.map(s => (
-            <div key={s.id} className={cn(
-              'h-1.5 flex-1 rounded-full transition-all duration-300',
-              setData[s.id]?.completed ? 'bg-primary'
-                : s.id === activeSetId ? 'bg-[#F44C40]'
-                : 'bg-border'
-            )} />
-          ))}
-        </div>
-
-        <AnimatePresence initial={false}>
-          {restSecs !== null && (
-            <RestTimer
-              seconds={restSecs}
-              total={configuredRestSeconds}
-              onSkip={() => finishRestAndStartNextSet(true)}
-            />
+              {activeSetId && !setData[activeSetId]?.completed && (
+                <div className="flex flex-col items-end">
+                  <span className="text-sm font-bold font-mono tabular-nums" style={{ color: T }}>
+                    {fmt(currentSetSecs)}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-widest">Serie</span>
+                </div>
+              )}
+            </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Fila 3: Barra de progreso de series (solo en fase work) */}
+        {workPhase === 'work' && (
+          <div className="mt-2.5 flex gap-1.5">
+            {initialSets.map(s => (
+              <div key={s.id} className={cn(
+                'h-1.5 flex-1 rounded-full transition-all duration-300',
+                setData[s.id]?.completed ? 'bg-primary'
+                  : s.id === activeSetId ? 'bg-[#F44C40]'
+                  : 'bg-border'
+              )} />
+            ))}
+          </div>
+        )}
       </header>
 
       {/* ── Cuerpo ─────────────────────────────────────────────────────────── */}
@@ -1466,59 +1583,6 @@ export default function ExerciseSessionPage() {
         <div className="px-4 pb-6 space-y-2">
 
           <SectionDivider label="Calentamiento" count={`${warmupSets.length} series`} tone="warmup" />
-
-          {workPhase === 'idle' && (
-            <div className="flex justify-center">
-              <Button
-                variant="outline"
-                onClick={startWarmupPhase}
-                className="w-[75%] h-12 border-orange-400/40 text-orange-600 hover:text-orange-500 hover:bg-orange-500/10"
-              >
-                <Flame className="w-4 h-4 mr-2" />
-                Iniciar calentamiento
-              </Button>
-            </div>
-          )}
-
-          {workPhase === 'warmup' && (
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={toggleSessionChrono}
-                className="basis-[75%] h-12 border-orange-400/40 text-orange-600 hover:text-orange-500 hover:bg-orange-500/10"
-              >
-                {isSessionRunning ? (
-                  <>
-                    <Pause className="w-4 h-4 mr-2" />
-                    Pausar calentamiento
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-4 h-4 mr-2" />
-                    Reanudar calentamiento
-                  </>
-                )}
-              </Button>
-              <Button
-                onClick={finishWarmupPhase}
-                className="basis-[25%] h-12"
-                style={{ background: '#f59e0b', color: 'white' }}
-              >
-                Listo
-              </Button>
-            </div>
-          )}
-
-          {workPhase === 'work_ready' && (
-            <div className="flex justify-center">
-              <Button
-                onClick={startEffectiveSetsPhase}
-                className="w-[75%] h-12 bg-[#F44C40] hover:bg-[#E23C32] text-white"
-              >
-                Iniciar series efectivas
-              </Button>
-            </div>
-          )}
 
           <button
             onClick={toggleWarmupList}
@@ -1603,7 +1667,15 @@ export default function ExerciseSessionPage() {
         summary={summary}
         exerciseName={exercise.name}
         totalSets={initialSets.length}
-        onClose={() => { setShowSummary(false); navigate(-1) }}
+        nextExerciseName={nextExercise?.name ?? null}
+        onClose={() => {
+          setShowSummary(false)
+          if (nextExercise) {
+            navigateToExercise(nextExercise)
+          } else {
+            navigate(`/plan/entreno/dia/${weeklyDayId}`)
+          }
+        }}
       />
     </div>
   )

@@ -42,7 +42,7 @@ const PlanPage = () => {
           >
             <Link
               to={weightLogPath}
-              className="group block rounded-2xl bg-violet-100/70 dark:bg-violet-900/30 border-2 border-violet-400/60 dark:border-violet-500/50 transition-all duration-300 relative overflow-hidden h-14 md:h-16 px-4 md:px-6 hover:bg-gradient-to-br hover:from-violet-100/70 hover:to-violet-50/80 dark:hover:from-violet-900/30 dark:hover:to-violet-700/35"
+              className="group block rounded-2xl bg-muted/65 dark:bg-violet-900/10 border-2 border-violet-400/60 dark:border-violet-500/50 transition-all duration-300 relative overflow-hidden h-14 md:h-16 px-4 md:px-6 hover:bg-gradient-to-br hover:from-violet-100/70 hover:to-violet-50/80 dark:hover:from-violet-900/30 dark:hover:to-violet-700/35"
             >
               <div className="absolute -inset-px bg-gradient-to-r from-violet-500/20 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               <div className="relative h-full flex items-center justify-center gap-3">

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
 import LoginPage from '@/pages/LoginPage';
@@ -115,6 +115,11 @@ const RoleProtected = ({ allowedRoles, children }) => {
   return children;
 };
 
+const RedirectWithParams = ({ to, param }) => {
+  const params = useParams();
+  return <Navigate to={`${to}/${params[param]}`} replace />;
+};
+
 const SmartLayout = () => {
   const { user, loading } = useAuth();
   if (loading) return (
@@ -196,11 +201,10 @@ const AppRoutes = () => (
       <Route path="/plan/entreno" element={<ProtectedRoute><Navigate to={`/plan/entreno/${format(new Date(), 'yyyy-MM-dd')}`} replace /></ProtectedRoute>} />
       <Route path="/plan/entreno/:date" element={<ProtectedRoute><TrainingPlanPage /></ProtectedRoute>} />
       <Route path="/plan/entreno/rutina/nueva" element={<ProtectedRoute><CreateMesocyclePage /></ProtectedRoute>} />
-      <Route path="/plan/entreno/rutina/edita" element={<ProtectedRoute><RoutineDayWorkspacePage /></ProtectedRoute>} />
-      <Route path="/plan/entreno/rutina/edita/:weeklyDayId" element={<ProtectedRoute><RoutineDayWorkspacePage /></ProtectedRoute>} />
+      <Route path="/plan/entreno/rutina/edita" element={<Navigate to="/plan/entreno/rutina/editar" replace />} />
+      <Route path="/plan/entreno/rutina/edita/:weeklyDayId" element={<RedirectWithParams to="/plan/entreno/rutina/editar" param="weeklyDayId" />} />
       <Route path="/plan/entreno/rutina/editar" element={<ProtectedRoute><RoutineDayWorkspacePage /></ProtectedRoute>} />
       <Route path="/plan/entreno/rutina/editar/:weeklyDayId" element={<ProtectedRoute><RoutineDayWorkspacePage /></ProtectedRoute>} />
-      <Route path="/plan/entreno/mesociclo/nuevo" element={<Navigate to="/plan/entreno/rutina/nueva" replace />} />
       <Route path="/plan/entreno/dia/:weeklyDayId" element={<ProtectedRoute><WorkoutDayPage /></ProtectedRoute>} />
       <Route path="/plan/entreno/dia/:weeklyDayId/ejercicio/:blockExerciseId" element={<ProtectedRoute><ExerciseSessionPage /></ProtectedRoute>} />
       <Route path="/plan/entreno/ejercicio-demo" element={<ProtectedRoute><ExerciseSessionPage /></ProtectedRoute>} />

@@ -1,311 +1,53 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, Dumbbell, Flame, Loader2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useAuth } from '@/contexts/AuthContext'
-import { useToast } from '@/components/ui/use-toast'
-import { supabase } from '@/lib/supabaseClient'
-import { getDateKey, getTrainingZoneCatalogs, getTrainingZoneSnapshot } from '@/lib/training/trainingPlanService'
-import {
-  addExerciseToBlock,
-  getWorkoutDayDetail,
-  updateBlockExerciseConfig,
-} from '@/lib/training/workoutSessionService'
 import TrainingDayEditor from '@/components/training/shared/day-editor/TrainingDayEditor'
-
-const BLOCK_LABELS = {
-  torso: 'Torso',
-  pierna: 'Piernas',
-  fullbody: 'Full Body',
-  push: 'Empuje',
-  pull: 'Tiron',
-  core: 'Core',
-  cardio: 'Cardio',
-  movilidad: 'Movilidad',
-  custom: 'Bloque',
-}
-
-const normalizeDayData = (day, blocks) => ({
-  id: day.id,
-  name: day.name || `Dia ${day.day_index}`,
-  dayIndex: day.day_index,
-  blocks: (blocks || []).map((block) => ({
-    id: block.id,
-    blockType: block.block_type,
-    blockOrder: block.block_order,
-    name: block.name,
-    exercises: (block.training_block_exercises || [])
-      .sort((a, z) => a.exercise_order - z.exercise_order)
-      .map((be) => ({
-        blockExerciseId: be.id,
-        blockId: block.id,
-        exerciseId: be.exercises?.id,
-        name: be.exercises?.name || 'Ejercicio',
-        isKeyExercise: Boolean(be.is_key_exercise),
-        targetSets: be.target_sets,
-        targetRepsMin: be.target_reps_min,
-        targetRepsMax: be.target_reps_max,
-        equipment: be.equipment?.name || null,
-        preferredEquipmentId: be.equipment?.id ? String(be.equipment.id) : '',
-        targetRir: be.target_rir ?? null,
-        restSeconds: be.rest_seconds ?? 120,
-        tempo: be.tempo ?? null,
-        notes: be.notes ?? null,
-      })),
-  })),
-})
-
-const exerciseToConfigShape = (exercise) => ({
-  target_sets: String(exercise.targetSets ?? 3),
-  target_reps_min: String(exercise.targetRepsMin ?? 8),
-  target_reps_max: String(exercise.targetRepsMax ?? 10),
-  target_rir: exercise.targetRir ?? null,
-  rest_seconds: exercise.restSeconds ?? 120,
-  tempo: exercise.tempo ?? null,
-  notes: exercise.notes ?? '',
-  is_key_exercise: exercise.isKeyExercise ?? false,
-  preferred_equipment_id: exercise.preferredEquipmentId ?? '',
-})
-
-const ensureOneKeyExercise = (exercises) => {
-  if (!exercises.length) return exercises
-  if (exercises.some((exercise) => exercise.isKeyExercise)) return exercises
-  return exercises.map((exercise, idx) => ({ ...exercise, isKeyExercise: idx === 0 }))
-}
+import { useRoutineNavigation } from '@/hooks/useRoutineNavigation'
+import {
+  BLOCK_LABELS,
+  ensureOneKeyExercise,
+  exerciseToConfigShape,
+  mapConfigPatchToExercise,
+} from '@/lib/training/workoutDayHelpers'
 
 export default function RoutineDayWorkspacePage() {
-  const navigate = useNavigate()
-  const location = useLocation()
-  const { weeklyDayId } = useParams()
-  const { user } = useAuth()
-  const { toast } = useToast()
+  const navigate            = useNavigate()
+  const location            = useLocation()
+  const { weeklyDayId }     = useParams()
 
-  const [loading, setLoading] = useState(true)
-  const [savingConfig, setSavingConfig] = useState(false)
-  const [days, setDays] = useState([])
-  const [catalogs, setCatalogs] = useState(null)
-  const [currentDayIdx, setCurrentDayIdx] = useState(0)
-  const selectedRouteDayId = weeklyDayId ? String(weeklyDayId) : null
+  const {
+    days,
+    activeDay,
+    activeIdx: currentDayIdx,
+    isFirst: isFirstDay,
+    isLast: isLastDay,
+    loading,
+    savingConfig,
+    catalogs,
+    progressValue,
+    goToDayIdx,
+    updateDayLocal,
+    updateBlockExercisesLocal,
+    removeExerciseAtIndex,
+    buildDraftExerciseForBlock,
+    persistExerciseConfig,
+    handleDeleteExercise,
+    persistDayName,
+  } = useRoutineNavigation(weeklyDayId)
+
+  // Estado local: ejercicio a abrir automáticamente al montar (viene de location.state)
   const [pendingOpenExerciseId, setPendingOpenExerciseId] = useState(() => {
     const id = location.state?.openExerciseId
     return id ? String(id) : null
   })
-
-  const activeDay = days[currentDayIdx] || null
-  const isFirstDay = currentDayIdx === 0
-  const isLastDay = currentDayIdx === Math.max(days.length - 1, 0)
-
-  const goToDayIdx = useCallback((nextIdx) => {
-    const safeIdx = Math.max(0, Math.min(nextIdx, days.length - 1))
-    setCurrentDayIdx(safeIdx)
-    const nextDay = days[safeIdx]
-    if (nextDay?.id) {
-      navigate(`/plan/entreno/rutina/editar/${String(nextDay.id)}`, { replace: true })
-    }
-  }, [days, navigate])
-
-  const updateDayLocal = useCallback((dayId, updater) => {
-    setDays((prev) =>
-      prev.map((day) => (day.id === dayId ? updater(day) : day))
-    )
-  }, [])
-
-  const updateBlockExercisesLocal = useCallback((dayId, blockId, updater) => {
-    updateDayLocal(dayId, (day) => ({
-      ...day,
-      blocks: day.blocks.map((block) =>
-        block.id === blockId
-          ? { ...block, exercises: updater(block.exercises || [], block) }
-          : block
-      ),
-    }))
-  }, [updateDayLocal])
-
-  const removeExerciseAtIndex = useCallback((dayId, blockId, exerciseIdx) => {
-    updateBlockExercisesLocal(dayId, blockId, (exercises) =>
-      ensureOneKeyExercise(exercises.filter((_, idx) => idx !== exerciseIdx))
-    )
-  }, [updateBlockExercisesLocal])
-
-  const mapConfigPatchToExercise = useCallback((patch) => {
-    const next = {}
-    if ('target_sets' in patch) next.targetSets = Number.parseInt(String(patch.target_sets), 10) || 0
-    if ('target_reps_min' in patch) next.targetRepsMin = Number.parseInt(String(patch.target_reps_min), 10) || 0
-    if ('target_reps_max' in patch) next.targetRepsMax = Number.parseInt(String(patch.target_reps_max), 10) || 0
-    if ('target_rir' in patch) next.targetRir = patch.target_rir ?? null
-    if ('rest_seconds' in patch) next.restSeconds = Number.parseInt(String(patch.rest_seconds), 10) || 120
-    if ('tempo' in patch) next.tempo = patch.tempo ?? null
-    if ('notes' in patch) next.notes = patch.notes ?? null
-    if ('is_key_exercise' in patch) next.isKeyExercise = patch.is_key_exercise === true
-    if ('preferred_equipment_id' in patch) next.preferredEquipmentId = patch.preferred_equipment_id || ''
-    return next
-  }, [])
-
-  const buildDraftExercise = useCallback((blockId, exercise, isFirstInBlock) => {
-    const equipmentName = (catalogs?.equipment || []).find(
-      (equipment) => String(equipment.id) === String(exercise.equipment_id)
-    )?.name || null
-
-    return {
-      blockExerciseId: `draft-${blockId}-${Date.now()}-${Math.random().toString(16).slice(2, 7)}`,
-      blockId,
-      exerciseId: exercise.id,
-      name: exercise.name,
-      isKeyExercise: isFirstInBlock,
-      targetSets: 3,
-      targetRepsMin: 8,
-      targetRepsMax: 10,
-      equipment: equipmentName,
-      preferredEquipmentId: exercise.equipment_id ? String(exercise.equipment_id) : '',
-      targetRir: 1,
-      restSeconds: 120,
-      tempo: 'estricta',
-      notes: null,
-      _isDraftNew: true,
-    }
-  }, [catalogs?.equipment])
-
-  const persistExerciseConfig = useCallback(async ({ dayId, blockId, exerciseIdx, exercise, isNew }) => {
-    if (!exercise) return
-
-    setSavingConfig(true)
-    try {
-      if (isNew || exercise._isDraftNew) {
-        const newRecord = await addExerciseToBlock(blockId, {
-          exerciseId: exercise.exerciseId,
-          config: exerciseToConfigShape(exercise),
-          exerciseOrder: exerciseIdx + 1,
-        })
-
-        updateBlockExercisesLocal(dayId, blockId, (exercises) =>
-          exercises.map((item, idx) =>
-            idx === exerciseIdx
-              ? { ...item, blockExerciseId: newRecord.id, _isDraftNew: false }
-              : item
-          )
-        )
-      } else {
-        await updateBlockExerciseConfig(exercise.blockExerciseId, exerciseToConfigShape(exercise))
-      }
-    } catch (error) {
-      console.error('Error persisting exercise config:', error)
-      toast({
-        title: 'No se pudo guardar el ejercicio',
-        description: error?.message || 'Intentalo de nuevo en unos segundos.',
-        variant: 'destructive',
-      })
-    } finally {
-      setSavingConfig(false)
-    }
-  }, [toast, updateBlockExercisesLocal])
-
-  const persistDayName = useCallback(async (dayId, name) => {
-    try {
-      const { error } = await supabase
-        .from('training_weekly_days')
-        .update({ name: (name || '').trim() || null })
-        .eq('id', dayId)
-
-      if (error) throw error
-    } catch (error) {
-      console.error('Error updating day name:', error)
-      toast({
-        title: 'No se pudo guardar el nombre del dia',
-        description: error?.message || 'Intentalo de nuevo.',
-        variant: 'destructive',
-      })
-    }
-  }, [toast])
-
-  const handleDeleteExercise = useCallback(async ({ dayId, blockId, exerciseIdx, exercise }) => {
-    if (!exercise) return
-
-    if (exercise._isDraftNew) {
-      removeExerciseAtIndex(dayId, blockId, exerciseIdx)
-      return
-    }
-
-    try {
-      const { error } = await supabase
-        .from('training_block_exercises')
-        .delete()
-        .eq('id', exercise.blockExerciseId)
-
-      if (error) throw error
-      removeExerciseAtIndex(dayId, blockId, exerciseIdx)
-    } catch (error) {
-      console.error('Error deleting exercise:', error)
-      toast({
-        title: 'No se pudo eliminar el ejercicio',
-        description: error?.message || 'Intentalo de nuevo.',
-        variant: 'destructive',
-      })
-    }
-  }, [removeExerciseAtIndex, toast])
-
-  const loadRoutineDays = useCallback(async () => {
-    if (!user?.id) return
-
-    setLoading(true)
-    try {
-      const [snapshotData, catalogsData] = await Promise.all([
-        getTrainingZoneSnapshot(user.id, getDateKey(new Date())),
-        getTrainingZoneCatalogs(),
-      ])
-
-      const snapshotDays = (snapshotData?.days || [])
-        .slice()
-        .sort((a, b) => (a.day_index || 0) - (b.day_index || 0))
-
-      if (!snapshotDays.length) {
-        setDays([])
-        setCatalogs(catalogsData)
-        return
-      }
-
-      const details = await Promise.all(snapshotDays.map((day) => getWorkoutDayDetail(day.id)))
-      const normalizedDays = details
-        .map(({ day, blocks }) => normalizeDayData(day, blocks))
-        .sort((a, b) => a.dayIndex - b.dayIndex)
-
-      setDays(normalizedDays)
-      setCatalogs(catalogsData)
-
-      const preferredDayId = String(snapshotData?.nextSessionDay?.weekly_day_id || normalizedDays[0]?.id || '')
-      const preferredIdx = normalizedDays.findIndex((day) => String(day.id) === preferredDayId)
-      const safeIdx = preferredIdx >= 0 ? preferredIdx : 0
-      setCurrentDayIdx(safeIdx)
-    } catch (error) {
-      console.error('Error loading routine day workspace:', error)
-      toast({
-        title: 'No se pudo cargar la rutina',
-        description: error?.message || 'Intentalo de nuevo en unos segundos.',
-        variant: 'destructive',
-      })
-    } finally {
-      setLoading(false)
-    }
-  }, [toast, user?.id])
-
-  useEffect(() => {
-    loadRoutineDays()
-  }, [loadRoutineDays])
-
-  useEffect(() => {
-    if (!days.length || !selectedRouteDayId) return
-    const nextIdx = days.findIndex((day) => String(day.id) === selectedRouteDayId)
-    if (nextIdx >= 0) setCurrentDayIdx(nextIdx)
-  }, [days, selectedRouteDayId])
 
   useEffect(() => {
     const id = location.state?.openExerciseId
     if (id) setPendingOpenExerciseId(String(id))
   }, [location.state])
 
-  const progressValue = useMemo(() => {
-    if (!days.length) return 0
-    return ((currentDayIdx + 1) / days.length) * 100
-  }, [currentDayIdx, days.length])
+  // ── Render ───────────────────────────────────────────────────────────────────
 
   if (loading) {
     return (
@@ -441,7 +183,7 @@ export default function RoutineDayWorkspacePage() {
                   exercises={block.exercises}
                   exerciseOptions={catalogs?.exercises || []}
                   equipmentOptions={catalogs?.equipment || []}
-                  addButtonLabel="Anadir ejercicio"
+                  addButtonLabel="Añadir ejercicio"
                   emptyMessage="Sin ejercicios en este bloque"
                   showAddButton={true}
                   animateCards={false}
@@ -474,7 +216,7 @@ export default function RoutineDayWorkspacePage() {
                       newExerciseIdx = exercises.length
                       return [
                         ...exercises,
-                        buildDraftExercise(block.id, exercise, exercises.length === 0),
+                        buildDraftExerciseForBlock(block.id, exercise, exercises.length === 0),
                       ]
                     })
                     return { exerciseIdx: newExerciseIdx, isNew: true }

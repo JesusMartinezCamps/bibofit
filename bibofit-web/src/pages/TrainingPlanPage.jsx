@@ -202,6 +202,12 @@ const TrainingPlanPage = () => {
     return new Date();
   });
 
+  useEffect(() => {
+    if (!dateParam || !isValid(parseISO(dateParam))) {
+      navigate(`/plan/entreno/${format(new Date(), 'yyyy-MM-dd')}`, { replace: true });
+    }
+  }, [dateParam, navigate]);
+
   const handleDateChange = useCallback((newDate) => {
     setCurrentDate(newDate);
     navigate(`/plan/entreno/${format(newDate, 'yyyy-MM-dd')}`, { replace: true });

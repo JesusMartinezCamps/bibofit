@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowLeft, Play, Dumbbell,
@@ -6,31 +6,17 @@ import {
   CheckCircle2, Flame,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import {
-  getWorkoutDayDetail,
-  createOrGetWorkoutSession,
-  getPreviousExerciseSets,
-  updateBlockExerciseConfig,
-  addExerciseToBlock,
-} from '@/lib/training/workoutSessionService'
-import { getTrainingZoneCatalogs } from '@/lib/training/trainingPlanService'
 import TrainingDayEditor from '@/components/training/shared/day-editor/TrainingDayEditor'
+import { useWorkoutDayDetail } from '@/hooks/useWorkoutDayDetail'
+import { useWorkoutSession } from '@/hooks/useWorkoutSession'
+import {
+  BLOCK_LABELS,
+  exerciseToConfigShape,
+  mapConfigPatchToExercise,
+} from '@/lib/training/workoutDayHelpers'
 
 // Color de entrenamiento
 const T = '#F44C40'
-
-// ─── Etiquetas de tipo de bloque ──────────────────────────────────────────────
-const BLOCK_LABELS = {
-  torso:      'Torso',
-  pierna:     'Piernas',
-  fullbody:   'Full Body',
-  push:       'Empuje',
-  pull:       'Tirón',
-  core:       'Core',
-  cardio:     'Cardio',
-  movilidad:  'Movilidad',
-  custom:     'Bloque',
-}
 
 // ─── Mock Data (cuando weeklyDayId = "demo") ──────────────────────────────────
 const MOCK_DAY = {
@@ -161,272 +147,27 @@ const MOCK_DAY = {
   ],
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-/** Convierte la respuesta de la DB al formato interno de la página */
-function normalizeDayData(day, blocks) {
-  return {
-    id: day.id,
-    name: day.name || `Día ${day.day_index}`,
-    dayIndex: day.day_index,
-    microcycleObjective: null,
-    deloadWeek: false,
-    blocks: (blocks || []).map(b => ({
-      id: b.id,
-      blockType: b.block_type,
-      blockOrder: b.block_order,
-      name: b.name,
-      exercises: (b.training_block_exercises || [])
-        .sort((a, z) => a.exercise_order - z.exercise_order)
-        .map(be => ({
-          blockExerciseId: be.id,
-          blockId: b.id,
-          exerciseId: be.exercises?.id,
-          name: be.exercises?.name || 'Ejercicio',
-          isKeyExercise: be.is_key_exercise,
-          targetSets: be.target_sets,
-          targetRepsMin: be.target_reps_min,
-          targetRepsMax: be.target_reps_max,
-          equipment: be.equipment?.name || null,
-          preferredEquipmentId: be.equipment?.id ? String(be.equipment.id) : '',
-          targetRir: be.target_rir ?? null,
-          restSeconds: be.rest_seconds ?? 120,
-          tempo: be.tempo ?? null,
-          notes: be.notes ?? null,
-          prevSets: null, // se carga después con getPreviousExerciseSets
-        })),
-    })),
-  }
-}
-
-/** Convierte un ejercicio normalizado al formato que espera ExerciseConfigPanel */
-function exerciseToConfigShape(ex) {
-  return {
-    target_sets: String(ex.targetSets ?? 3),
-    target_reps_min: String(ex.targetRepsMin ?? 8),
-    target_reps_max: String(ex.targetRepsMax ?? 10),
-    target_rir: ex.targetRir ?? null,
-    rest_seconds: ex.restSeconds ?? 120,
-    tempo: ex.tempo ?? null,
-    notes: ex.notes ?? '',
-    is_key_exercise: ex.isKeyExercise ?? false,
-    preferred_equipment_id: ex.preferredEquipmentId ?? '',
-  }
-}
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function WorkoutDayPage() {
-  const navigate       = useNavigate()
+  const navigate        = useNavigate()
   const { weeklyDayId } = useParams()
-  const isDemo         = weeklyDayId === 'demo'
+  const isDemo          = weeklyDayId === 'demo'
 
-  const [dayData, setDayData]     = useState(isDemo ? MOCK_DAY : null)
-  const [loading, setLoading]     = useState(!isDemo)
-  const [starting, setStarting]   = useState(false)
-  const [error, setError]         = useState(null)
+  const {
+    dayData,
+    catalogs,
+    loading,
+    error,
+    isSavingConfig,
+    updateBlockExercisesLocal,
+    removeExerciseAtIndex,
+    buildDraftExerciseForBlock,
+    persistExerciseConfig,
+    handleDeleteExercise,
+  } = useWorkoutDayDetail(weeklyDayId, MOCK_DAY)
 
-  // workoutId = null hasta que se crea la sesión
-  const [sessionIds, setSessionIds] = useState(null) // { workoutId, exerciseMap }
-
-  // ── Catálogos para buscador y configurador ────────────────────────────────
-  const [catalogs, setCatalogs] = useState(null)
-
-  const [isSavingConfig, setIsSavingConfig] = useState(false)
-
-  // ── Carga de datos ───────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (isDemo) return
-
-    const load = async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        const [{ day, blocks }, catalogsData] = await Promise.all([
-          getWorkoutDayDetail(weeklyDayId),
-          getTrainingZoneCatalogs(),
-        ])
-        const normalized = normalizeDayData(day, blocks)
-
-        // Cargar historial previo para cada ejercicio en paralelo
-        const allExercises = normalized.blocks.flatMap(b => b.exercises)
-        const prevResults = await Promise.all(
-          allExercises.map(ex =>
-            ex.exerciseId
-              ? getPreviousExerciseSets(ex.exerciseId).catch(() => ({}))
-              : Promise.resolve({})
-          )
-        )
-
-        // Adjuntar prevSets a cada ejercicio
-        let i = 0
-        for (const block of normalized.blocks) {
-          for (const ex of block.exercises) {
-            ex.prevSets = prevResults[i++]
-          }
-        }
-
-        setDayData(normalized)
-        setCatalogs(catalogsData)
-      } catch (err) {
-        console.error(err)
-        setError('No se pudo cargar el día de entrenamiento.')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    load()
-  }, [weeklyDayId, isDemo])
-
-  // ── Crear sesión en DB ────────────────────────────────────────────────────────
-  const ensureSession = useCallback(async () => {
-    if (isDemo) return { workoutId: null, exerciseMap: [] }
-    if (sessionIds) return sessionIds
-
-    setStarting(true)
-    try {
-      const ids = await createOrGetWorkoutSession(Number(weeklyDayId))
-      setSessionIds(ids)
-      return ids
-    } catch (err) {
-      console.error(err)
-      return { workoutId: null, exerciseMap: [] }
-    } finally {
-      setStarting(false)
-    }
-  }, [weeklyDayId, isDemo, sessionIds])
-
-  // ── Iniciar sesión desde el primer ejercicio ──────────────────────────────
-  const startSession = useCallback(async () => {
-    if (!dayData) return
-    const { workoutId, exerciseMap } = await ensureSession()
-
-    const firstExercise = dayData.blocks[0]?.exercises[0]
-    if (!firstExercise) return
-
-    const mapping = exerciseMap.find(
-      m => String(m.block_exercise_id) === String(firstExercise.blockExerciseId)
-    )
-
-    navigate(
-      `/plan/entreno/dia/${weeklyDayId}/ejercicio/${firstExercise.blockExerciseId}`,
-      {
-        state: {
-          exercise: firstExercise,
-          workoutId: workoutId ?? null,
-          workoutExerciseId: mapping?.workout_exercise_id ?? null,
-        },
-      }
-    )
-  }, [dayData, ensureSession, navigate, weeklyDayId])
-
-  const updateBlockExercisesLocal = useCallback((blockId, updater) => {
-    setDayData(prev => {
-      if (!prev) return prev
-      return {
-        ...prev,
-        blocks: prev.blocks.map(block =>
-          block.id === blockId
-            ? { ...block, exercises: updater(block.exercises || [], block) }
-            : block
-        ),
-      }
-    })
-  }, [])
-
-  const removeExerciseAtIndex = useCallback((blockId, exerciseIdx) => {
-    updateBlockExercisesLocal(blockId, (exercises) =>
-      exercises.filter((_, idx) => idx !== exerciseIdx)
-    )
-  }, [updateBlockExercisesLocal])
-
-  const mapConfigPatchToExercise = useCallback((patch) => {
-    const next = {}
-
-    if ('target_sets' in patch) next.targetSets = Number.parseInt(String(patch.target_sets), 10) || 0
-    if ('target_reps_min' in patch) next.targetRepsMin = Number.parseInt(String(patch.target_reps_min), 10) || 0
-    if ('target_reps_max' in patch) next.targetRepsMax = Number.parseInt(String(patch.target_reps_max), 10) || 0
-    if ('target_rir' in patch) next.targetRir = patch.target_rir ?? null
-    if ('rest_seconds' in patch) next.restSeconds = Number.parseInt(String(patch.rest_seconds), 10) || 120
-    if ('tempo' in patch) next.tempo = patch.tempo ?? null
-    if ('notes' in patch) next.notes = patch.notes ?? null
-    if ('is_key_exercise' in patch) next.isKeyExercise = patch.is_key_exercise === true
-    if ('preferred_equipment_id' in patch) next.preferredEquipmentId = patch.preferred_equipment_id || ''
-
-    return next
-  }, [])
-
-  const buildDraftExercise = useCallback((blockId, exercise) => {
-    const equipmentName = (catalogs?.equipment || []).find(
-      eq => String(eq.id) === String(exercise.equipment_id)
-    )?.name || null
-
-    return {
-      blockExerciseId: `draft-${blockId}-${Date.now()}-${Math.random().toString(16).slice(2, 7)}`,
-      blockId,
-      exerciseId: exercise.id,
-      name: exercise.name,
-      isKeyExercise: false,
-      targetSets: 3,
-      targetRepsMin: 8,
-      targetRepsMax: 10,
-      equipment: equipmentName,
-      preferredEquipmentId: exercise.equipment_id ? String(exercise.equipment_id) : '',
-      targetRir: 1,
-      restSeconds: 120,
-      tempo: 'estricta',
-      notes: null,
-      prevSets: null,
-      _isDraftNew: true,
-    }
-  }, [catalogs?.equipment])
-
-  const persistExerciseConfig = useCallback(async ({ blockId, exerciseIdx, exercise, isNew }) => {
-    if (!exercise || isDemo) return
-
-    setIsSavingConfig(true)
-    try {
-      if (isNew || exercise._isDraftNew) {
-        const newRecord = await addExerciseToBlock(blockId, {
-          exerciseId: exercise.exerciseId,
-          config: exerciseToConfigShape(exercise),
-          exerciseOrder: exerciseIdx + 1,
-        })
-
-        updateBlockExercisesLocal(blockId, (exercises) =>
-          exercises.map((item, idx) =>
-            idx === exerciseIdx
-              ? { ...item, blockExerciseId: newRecord.id, _isDraftNew: false }
-              : item
-          )
-        )
-      } else {
-        await updateBlockExerciseConfig(exercise.blockExerciseId, exerciseToConfigShape(exercise))
-      }
-    } catch (err) {
-      console.error('Error guardando configuración de ejercicio:', err)
-    } finally {
-      setIsSavingConfig(false)
-    }
-  }, [isDemo, updateBlockExercisesLocal])
-
-  const handleDeleteExercise = useCallback(async ({ blockId, exerciseIdx, exercise }) => {
-    if (!exercise) return
-
-    if (exercise._isDraftNew || isDemo) {
-      removeExerciseAtIndex(blockId, exerciseIdx)
-      return
-    }
-
-    try {
-      const { supabase } = await import('@/lib/supabaseClient')
-      await supabase.from('training_block_exercises').delete().eq('id', exercise.blockExerciseId)
-      removeExerciseAtIndex(blockId, exerciseIdx)
-    } catch (err) {
-      console.error('Error eliminando ejercicio:', err)
-    }
-  }, [isDemo, removeExerciseAtIndex])
+  const { sessionIds, starting, startSession } = useWorkoutSession(weeklyDayId, dayData)
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
@@ -535,7 +276,7 @@ export default function WorkoutDayPage() {
                             let newExerciseIdx = 0
                             updateBlockExercisesLocal(block.id, (exercises) => {
                               newExerciseIdx = exercises.length
-                              return [...exercises, buildDraftExercise(block.id, exercise)]
+                              return [...exercises, buildDraftExerciseForBlock(block.id, exercise)]
                             })
                             return { exerciseIdx: newExerciseIdx, isNew: true }
                           }
