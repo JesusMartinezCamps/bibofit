@@ -8,7 +8,6 @@
 - [Bibofit | Software para Nutricionistas y Entrenadores](/home): La plataforma todo en uno para gestionar planes de nutrición, rutinas de entrenamiento y seguimiento de clientes. Escala tu negocio fitness con Bibofit.
 - [Centro de Comunicaciones - Bibofit](/communication): No description available
 - [Crear Receta Libre - Gsus Martz](/createfreerecipe): Crea y añade una receta libre a tu plan de dieta.
-- [Crear Rutina Semanal - Bibofit](/createmesocycle): Crea una rutina semanal practica: elige dias, define bloques y ejercicios, y empieza a entrenar ya.
 - [Cuenta Confirmada - Bibofit](/authconfirmed): Tu cuenta está confirmada. Continúa para empezar con Bibofit.
 - [Dashboard - Bibofit](/dashboard): Tu calendario de entrenamientos y dietas.
 - [Dashboard Entrenador - Gsus Martz](/coachdashboard): No description available
@@ -31,10 +30,13 @@
 - [Mis Alimentos Creados - Gsus Martz](/myfoods): Consulta el historial de tus alimentos creados y su estado.
 - [Mis Datos - Gsus Martz](/profiledata): Edita tus datos personales, preferencias de dieta y de entrenamiento.
 - [Mis Recetas Libres - Gsus Martz](/myfreerecipes): Consulta el historial de tus recetas libres y su estado.
+- [Nueva rutina - Bibofit](/createmesocycle): Crea una nueva rutina semanal paso a paso: nombre, días, distribución y ejercicios.
 - [Plan de Dieta - Gsus Martz](/dietplan): Visualiza y gestiona tu plan de dieta diario y semanal.
+- [Plan de Entrenamiento - Bibofit](/trainingplan): Resumen del plan, vista semanal con hitos y días de entrenamiento con ejercicios.
 - [Precios y Planes | Bibofit](/pricing): Elige el plan de nutrición que mejor se adapta a tus objetivos.
 - [Recordatorios - Entrenador](/coachreminders): No description available
 - [Registrarse - Bibofit](/signup): Crea tu cuenta en Bibofit y empieza tu transformación fitness
+- [Registro de Pasos - Bibofit](/stepslog): No description available
 - [Registro de Peso - Bibofit](/weightlog): No description available
 - [Repetir Receta - Bibofit](/repeatrecipe): No description available
 - [Restablecer Contraseña - Bibofit](/resetpassword): Recupera el acceso a tu cuenta de Bibofit.
@@ -45,4 +47,3 @@
 - [Tu Plan - Gsus Martz](/plan): Accede a tu plan de dieta y entrenamiento personalizado.
 - [Untitled Page](/weeklyplanner): Planifica tus comidas para los próximos 7 días.
 - [Untitled Page](/invitationlinks): No description available
-- [Zona de Entrenamiento - Bibofit](/trainingplan): Mesociclo activo, microciclos y rutina semanal de la nueva Zona de Entrenamiento.
