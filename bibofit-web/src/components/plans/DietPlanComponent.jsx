@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import MacroVisualizer from '@/components/shared/MacroVisualizer/MacroVisualizer';
 import WeekVisualizer from '@/components/shared/WeekVisualizer';
 import ContentStateToggle from '@/components/shared/ContentStateToggle';
+import ColorLegendCollapsible from '@/components/shared/ColorLegendCollapsible';
 import ReminderFormDialog from '@/components/admin/reminders/ReminderFormDialog';
 import AssignRecipeDialog from './AssignRecipeDialog';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
@@ -514,6 +515,16 @@ const combinedPlanRestrictions = useMemo(() => {
                 </div>
                 )}
                 
+                <ColorLegendCollapsible
+                  items={[
+                    ...(isAdminView ? [{ label: 'Recordatorio', dotClassName: 'bg-amber-500' }] : []),
+                    { label: 'Peso', dotClassName: 'bg-purple-500' },
+                    { label: 'Picoteo', dotClassName: 'bg-orange-500' },
+                    { label: 'Comida', dotClassName: 'bg-green-600' },
+                    { label: 'Receta libre', dotClassName: 'bg-cyan-500' },
+                  ]}
+                />
+
                 <DateTimeline currentDate={currentDate} setCurrentDate={handleDateChange} navigate={navigate} isAdminView={isAdminView} userId={userId} refreshTrigger={timelineRefreshTrigger} activePlanId={activePlan?.id} />
           </div>
 

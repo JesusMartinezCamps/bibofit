@@ -20,6 +20,7 @@ import ClientProfilePage from '@/pages/ClientProfilePage';
 import TrainingManagementPage from '@/pages/admin/TrainingManagementPage';
 import TrainingPlanPage from '@/pages/TrainingPlanPage';
 import CreateMesocyclePage from '@/pages/CreateMesocyclePage';
+import WorkoutDayPage from '@/pages/WorkoutDayPage';
 import ExerciseSessionPage from '@/pages/ExerciseSessionPage';
 import UserCreatedFoodsPage from '@/pages/admin/UserCreatedFoodsPage';
 import FreeMealRequestsPage from '@/pages/admin/FreeMealRequestsPage';
@@ -192,6 +193,8 @@ const AppRoutes = () => (
       <Route path="/plan/entreno" element={<ProtectedRoute><TrainingPlanPage /></ProtectedRoute>} />
       <Route path="/plan/entreno/rutina/nueva" element={<ProtectedRoute><CreateMesocyclePage /></ProtectedRoute>} />
       <Route path="/plan/entreno/mesociclo/nuevo" element={<Navigate to="/plan/entreno/rutina/nueva" replace />} />
+      <Route path="/plan/entreno/dia/:weeklyDayId" element={<ProtectedRoute><WorkoutDayPage /></ProtectedRoute>} />
+      <Route path="/plan/entreno/dia/:weeklyDayId/ejercicio/:blockExerciseId" element={<ProtectedRoute><ExerciseSessionPage /></ProtectedRoute>} />
       <Route path="/plan/entreno/ejercicio-demo" element={<ProtectedRoute><ExerciseSessionPage /></ProtectedRoute>} />
       <Route path="/create-free-recipe/:date/:mealId" element={<ProtectedRoute><CreateFreeRecipePage /></ProtectedRoute>} />
       <Route path="/create-snack/:date/:mealId" element={<ProtectedRoute><CreateSnackPage /></ProtectedRoute>} />

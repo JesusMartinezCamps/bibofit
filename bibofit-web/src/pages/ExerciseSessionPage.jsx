@@ -5,7 +5,7 @@ import {
   ArrowLeft, Info, Flame, Shuffle, FileText,
   Search, X, Check, AlertTriangle, CheckCircle2,
   ChevronDown, ChevronUp, TrendingUp,
-  Dumbbell, Clock, SkipForward, Timer,
+  Dumbbell, Clock, SkipForward, Timer, Pause, Play,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -763,6 +763,8 @@ export default function ExerciseSessionPage() {
   const [sessionSecs, setSessionSecs]       = useState(0)
   const [currentSetSecs, setCurrentSetSecs] = useState(0)
   const [restSecs, setRestSecs]             = useState(null)
+  const [isSessionRunning, setIsSessionRunning] = useState(true)
+  const pauseStartedAtRef = useRef(null)
 
   // ── Set & UI state ───────────────────────────────────────────────────────────
   const [setData, setSetData]         = useState({})
@@ -772,9 +774,45 @@ export default function ExerciseSessionPage() {
   const [showSummary, setShowSummary] = useState(false)
   const [summary, setSummary]         = useState(null)
 
+  const applyPauseOffset = useCallback((offsetMs) => {
+    if (!offsetMs || offsetMs <= 0) return
+
+    const shift = (refObj) => {
+      if (refObj?.current instanceof Date) {
+        refObj.current = new Date(refObj.current.getTime() + offsetMs)
+      }
+    }
+
+    shift(sessionStartedAt)
+    if (!warmupEndedAt.current) shift(warmupStartedAt)
+    shift(exerciseStartedAt)
+    shift(activeSetStartedAt)
+
+    if (activeSetId && setTimings.current[activeSetId]?.startedAt && !setTimings.current[activeSetId]?.completedAt) {
+      setTimings.current[activeSetId].startedAt = new Date(setTimings.current[activeSetId].startedAt.getTime() + offsetMs)
+    }
+  }, [activeSetId])
+
+  const toggleSessionChrono = useCallback(() => {
+    if (isSessionRunning) {
+      pauseStartedAtRef.current = new Date()
+      setIsSessionRunning(false)
+      return
+    }
+
+    const resumedAt = new Date()
+    const pausedAt = pauseStartedAtRef.current
+    if (pausedAt instanceof Date) {
+      applyPauseOffset(resumedAt.getTime() - pausedAt.getTime())
+    }
+    pauseStartedAtRef.current = null
+    setIsSessionRunning(true)
+  }, [applyPauseOffset, isSessionRunning])
+
   // ── Tick cada segundo ────────────────────────────────────────────────────────
   useEffect(() => {
     const id = setInterval(() => {
+      if (!isSessionRunning) return
       const now = new Date()
       setSessionSecs(Math.floor((now - sessionStartedAt.current) / 1000))
       if (activeSetStartedAt.current) {
@@ -782,7 +820,7 @@ export default function ExerciseSessionPage() {
       }
     }, 1000)
     return () => clearInterval(id)
-  }, [])
+  }, [isSessionRunning])
 
   // Inicia timing en DB al montar
   useEffect(() => {
@@ -791,13 +829,14 @@ export default function ExerciseSessionPage() {
 
   // ── Rest countdown ───────────────────────────────────────────────────────────
   useEffect(() => {
+    if (!isSessionRunning) return
     if (restSecs === null || restSecs <= 0) {
       if (restSecs === 0) setRestSecs(null)
       return
     }
     const id = setTimeout(() => setRestSecs(s => s - 1), 1000)
     return () => clearTimeout(id)
-  }, [restSecs])
+  }, [isSessionRunning, restSecs])
 
   // ── Warmup toggle → registra inicio de calentamiento ─────────────────────────
   const handleToggleWarmup = useCallback(() => {
@@ -909,16 +948,29 @@ export default function ExerciseSessionPage() {
           <ArrowLeft className="w-5 h-5" />
         </button>
 
-        {/* Cronómetro principal — siempre corriendo desde el inicio */}
-        <div className="flex flex-col items-center">
+        {/* Cronómetro principal click para pausar/reanudar */}
+        <button
+          type="button"
+          onClick={toggleSessionChrono}
+          className={cn(
+            "flex flex-col items-center rounded-lg px-2 py-1 transition-colors",
+            isSessionRunning ? "hover:bg-muted/60" : "bg-amber-500/10 hover:bg-amber-500/15"
+          )}
+        >
           <div className="flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+            {isSessionRunning ? (
+              <Pause className="w-3.5 h-3.5 text-muted-foreground" />
+            ) : (
+              <Play className="w-3.5 h-3.5 text-amber-500" />
+            )}
             <span className="text-base font-bold font-mono tabular-nums text-foreground tracking-tight">
               {fmt(sessionSecs)}
             </span>
           </div>
-          <span className="text-[10px] text-muted-foreground uppercase tracking-widest">Sesión</span>
-        </div>
+          <span className="text-[10px] text-muted-foreground uppercase tracking-widest">
+            {isSessionRunning ? 'Sesión' : 'Pausado'}
+          </span>
+        </button>
 
         {/* Indicador de serie activa */}
         <div className="flex flex-col items-end min-w-[52px]">

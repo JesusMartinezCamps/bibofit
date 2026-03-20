@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { createWeeklyRoutineQuickstartV2, getTrainingZoneCatalogs } from '@/lib/trainingZoneService';
+import { createWeeklyRoutineQuickstartV2, getTrainingZoneCatalogs } from '@/lib/training/trainingPlanService';
 
 const MIN_CYCLE_DAYS = 4;
 const MAX_CYCLE_DAYS = 14;
@@ -81,6 +81,7 @@ const CreateMesocyclePage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [objectiveOptions, setObjectiveOptions] = useState([]);
+  const [muscleOptions, setMuscleOptions] = useState([]);
   const [exerciseOptions, setExerciseOptions] = useState([]);
   const [equipmentOptions, setEquipmentOptions] = useState([]);
 
@@ -89,6 +90,7 @@ const CreateMesocyclePage = () => {
   const [cycleDays, setCycleDays] = useState(7);
   const [dayBlueprint, setDayBlueprint] = useState(() => normalizeDayBlueprintLength([], 7));
   const [isDistributionConfirmed, setIsDistributionConfirmed] = useState(false);
+  const [muscleTargetInputs, setMuscleTargetInputs] = useState({});
 
   useEffect(() => {
     let isMounted = true;
@@ -100,6 +102,7 @@ const CreateMesocyclePage = () => {
         if (!isMounted) return;
 
         setObjectiveOptions(catalogs.objectives || []);
+        setMuscleOptions(catalogs.muscles || []);
         setExerciseOptions(catalogs.exercises || []);
         setEquipmentOptions(catalogs.equipment || []);
 
@@ -135,6 +138,13 @@ const CreateMesocyclePage = () => {
     () => objectiveOptions.find((objective) => String(objective.id) === String(selectedObjectiveId)) || null,
     [objectiveOptions, selectedObjectiveId]
   );
+
+  const setMuscleTarget = (muscleId, nextValue) => {
+    setMuscleTargetInputs((current) => ({
+      ...current,
+      [muscleId]: nextValue.replace(/[^\d.]/g, ''),
+    }));
+  };
 
   const updateDay = (index, updater) => {
     setDayBlueprint((current) => current.map((day, dayIdx) => (dayIdx === index ? updater(day) : day)));
@@ -265,6 +275,10 @@ const CreateMesocyclePage = () => {
     if (!user?.id) return 'Usuario no autenticado.';
     if (!selectedObjectiveId) return 'No hay objetivo disponible para la rutina.';
     if (!isDistributionConfirmed) return 'Confirma antes la distribucion de dias.';
+    const hasAtLeastOneMuscleTarget = Object.values(muscleTargetInputs).some(
+      (value) => Number.parseFloat(String(value || 0)) > 0
+    );
+    if (!hasAtLeastOneMuscleTarget) return 'Configura al menos un objetivo semanal de series por grupo muscular.';
 
     if (dayBlueprint.length < MIN_CYCLE_DAYS || dayBlueprint.length > MAX_CYCLE_DAYS) {
       return `La rutina debe tener entre ${MIN_CYCLE_DAYS} y ${MAX_CYCLE_DAYS} dias.`;
@@ -310,6 +324,12 @@ const CreateMesocyclePage = () => {
         objectiveId: selectedObjectiveId,
         startDate,
         days: dayBlueprint,
+        muscleTargets: Object.entries(muscleTargetInputs)
+          .map(([muscleId, targetSets]) => ({
+            muscle_id: Number.parseInt(muscleId, 10),
+            target_sets: Number.parseFloat(String(targetSets || 0)),
+          }))
+          .filter((item) => Number.isFinite(item.muscle_id) && Number.isFinite(item.target_sets) && item.target_sets > 0),
       });
 
       toast({
@@ -431,6 +451,28 @@ const CreateMesocyclePage = () => {
                     Ciclo activo: {cycleStartDate} a {cycleEndDate}
                   </p>
                 </div>
+
+                <details className="rounded-xl border border-border bg-background p-3">
+                  <summary className="cursor-pointer list-none text-sm font-semibold text-white">
+                    Objetivo semanal de volumen por grupo muscular
+                  </summary>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Dato persistente de la rutina. Define series objetivo por músculo para el visualizador semanal.
+                  </p>
+                  <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    {muscleOptions.map((muscle) => (
+                      <div key={muscle.id} className="rounded-md border border-border/70 p-2">
+                        <Label className="mb-1.5 block text-xs">{muscle.name}</Label>
+                        <Input
+                          inputMode="decimal"
+                          placeholder="0"
+                          value={muscleTargetInputs[muscle.id] || ''}
+                          onChange={(event) => setMuscleTarget(muscle.id, event.target.value)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </details>
 
                 <div className="rounded-xl border border-border bg-background p-3">
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Calendario del ciclo</p>
