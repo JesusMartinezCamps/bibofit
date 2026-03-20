@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useNavigate, useParams, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import {
   ArrowLeft, Info, Flame, Shuffle, FileText,
   Search, X, Check, AlertTriangle, CheckCircle2,
@@ -8,6 +8,7 @@ import {
   Dumbbell, Clock, SkipForward, Timer, Pause, Play,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import RirScaleSelector from '@/components/training/shared/RirScaleSelector'
 import { cn } from '@/lib/utils'
 import * as timingService from '@/lib/exerciseTimingService'
 
@@ -50,13 +51,6 @@ const MOCK_EXERCISE = {
     action: 'Considera bajar el peso o hacer una rep menos por serie',
   },
 }
-
-const MOCK_WARMUP = [
-  { id: 'w1', label: 'W1', weight: 20,  reps: 8, pct: '11%', note: 'Barra sola · activación neural' },
-  { id: 'w2', label: 'W2', weight: 60,  reps: 5, pct: '34%', note: '' },
-  { id: 'w3', label: 'W3', weight: 100, reps: 3, pct: '57%', note: '' },
-  { id: 'w4', label: 'W4', weight: 140, reps: 2, pct: '80%', note: '' },
-]
 
 const MOCK_VARIANTS = [
   { id: 1, name: 'Romanian Deadlift',  muscles: 'Isquios · Glúteos',    equipment: 'Barra',      similarity: 92 },
@@ -123,6 +117,25 @@ function fmt(secs) {
   return `${m}:${s}`
 }
 
+function parseMetricValue(value) {
+  if (value === '' || value === null || value === undefined) return null
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function getDeltaStyles(diff) {
+  if (diff === null) return 'text-muted-foreground'
+  if (diff < 0) return 'text-amber-600 dark:text-amber-400'
+  if (diff === 0) return 'text-emerald-600 dark:text-emerald-400'
+  return 'text-primary'
+}
+
+function getDeltaText(diff) {
+  if (diff === null) return '—'
+  if (diff === 0) return 'Igual'
+  return diff > 0 ? `+${diff}` : `${diff}`
+}
+
 /**
  * RIR Logic:
  * - 0      → Fallo. Reduce intensidad.
@@ -152,6 +165,28 @@ function getRirZone(rir) {
     tip: 'Intensidad baja — aumenta peso o reps',
     tipColor: 'text-blue-600 dark:text-blue-400',
   }
+}
+
+function SectionDivider({ label, count, tone = 'default' }) {
+  return (
+    <div className="flex items-center gap-3 py-1.5">
+      <div className="flex-1 h-px bg-border" />
+      <span
+        className={cn(
+          'text-[10px] font-semibold uppercase tracking-widest',
+          tone === 'warmup' ? 'text-orange-600 dark:text-orange-400' : 'text-muted-foreground'
+        )}
+      >
+        {label}
+      </span>
+      {count !== undefined && (
+        <span className="text-[10px] px-2 py-0.5 rounded-full border border-border text-muted-foreground font-mono">
+          {count}
+        </span>
+      )}
+      <div className="flex-1 h-px bg-border" />
+    </div>
+  )
 }
 
 // ─── Bottom Sheet ─────────────────────────────────────────────────────────────
@@ -185,48 +220,6 @@ function BottomSheet({ open, onClose, title, children }) {
         </>
       )}
     </AnimatePresence>
-  )
-}
-
-// ─── RIR Selector ─────────────────────────────────────────────────────────────
-
-const RIR_OPTIONS = [
-  { label: 'Fallo', val: 0   },
-  { label: '1',     val: 1   },
-  { label: '2',     val: 2   },
-  { label: '3',     val: 3   },
-  { label: '4',     val: 4   },
-  { label: '5+',    val: 5   },
-  { label: '?',     val: null },
-]
-
-function RirSelector({ value, onChange }) {
-  return (
-    <div className="flex items-center gap-2.5">
-      <span className="text-[11px] text-muted-foreground font-semibold tracking-widest uppercase shrink-0">RIR</span>
-      <div className="flex gap-1.5 flex-wrap">
-        {RIR_OPTIONS.map(({ label, val }) => {
-          const isSelected = value === val
-          const zone = val !== null ? getRirZone(val) : null
-          return (
-            <button
-              key={label}
-              onClick={() => onChange(isSelected && val !== null ? null : val)}
-              className={cn(
-                "px-2.5 py-1 rounded-full text-[11px] font-bold border transition-all duration-150 select-none",
-                isSelected && zone
-                  ? `${zone.chip} border-current scale-105`
-                  : isSelected
-                  ? 'bg-muted text-foreground border-border scale-105'
-                  : 'bg-muted/50 text-muted-foreground border-border hover:text-foreground hover:border-border/80'
-              )}
-            >
-              {label}
-            </button>
-          )
-        })}
-      </div>
-    </div>
   )
 }
 
@@ -361,10 +354,18 @@ function SummaryModal({ open, summary, onClose, exerciseName, totalSets }) {
 // ─── Working Set Row ──────────────────────────────────────────────────────────
 
 function WorkingSetRow({ set, setData, isActive, currentSetSecs, onSelect, onUpdate, onComplete }) {
-  const d = setData[set.id] || { weight: String(set.targetWeight), reps: '', rir: null, completed: false }
+  const d = setData[set.id] || { weight: '', reps: '', rir: null, completed: false }
   const zone = d.rir !== null && d.rir !== undefined ? getRirZone(d.rir) : null
-  const repsDiff = (d.reps && set.prevReps) ? parseInt(d.reps) - set.prevReps : null
   const prevZone = set.prevRir !== null ? getRirZone(set.prevRir) : null
+  const typedWeight = parseMetricValue(d.weight)
+  const typedReps = parseMetricValue(d.reps)
+  const weightDiff = typedWeight !== null && set.prevWeight !== null ? typedWeight - set.prevWeight : null
+  const repsDiff = typedReps !== null && set.prevReps !== null ? typedReps - set.prevReps : null
+  const effectiveWeight = typedWeight ?? set.prevWeight ?? set.targetWeight
+  const effectiveReps = typedReps ?? set.prevReps
+  const resolvedWeight = d.weight || (set.prevWeight != null ? String(set.prevWeight) : String(set.targetWeight))
+  const resolvedReps = d.reps || (set.prevReps != null ? String(set.prevReps) : '')
+  const canComplete = Boolean(resolvedWeight && resolvedReps)
 
   return (
     <motion.div
@@ -379,8 +380,7 @@ function WorkingSetRow({ set, setData, isActive, currentSetSecs, onSelect, onUpd
       )}
     >
       <button onClick={onSelect} disabled={d.completed} className="w-full p-3.5 text-left">
-        <div className="flex items-center gap-3">
-          {/* Set badge */}
+        <div className="flex items-center justify-between gap-3">
           <div className={cn(
             "w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0 transition-colors",
             d.completed ? 'bg-primary/15 text-primary'
@@ -390,58 +390,51 @@ function WorkingSetRow({ set, setData, isActive, currentSetSecs, onSelect, onUpd
             {d.completed ? <Check className="w-3.5 h-3.5" /> : set.no}
           </div>
 
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-muted-foreground">
-              Obj: <span className="text-foreground font-medium">{set.targetMin}–{set.targetMax} reps</span>
-            </p>
-          </div>
-
-          {/* Mini set timer when active */}
           {isActive && !d.completed && (
             <div className="flex items-center gap-1 text-xs text-muted-foreground tabular-nums">
               <Timer className="w-3 h-3" />
               <span className="font-mono">{fmt(currentSetSecs)}</span>
             </div>
           )}
-
-          {/* Summary when collapsed */}
-          {(!isActive || d.completed) && (
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {d.weight && <span className="text-sm text-foreground font-medium">{d.weight} kg</span>}
-              {d.reps && (
-                <span className={cn(
-                  "text-sm font-bold",
-                  repsDiff > 0 ? 'text-primary' : repsDiff < 0 ? 'text-amber-600 dark:text-amber-400' : 'text-foreground'
-                )}>
-                  ×{d.reps}
-                  {repsDiff !== null && repsDiff !== 0 && (
-                    <span className="text-[10px] ml-0.5 opacity-70">
-                      {repsDiff > 0 ? `+${repsDiff}▲` : `${repsDiff}▼`}
-                    </span>
-                  )}
-                </span>
-              )}
-              {zone && (
-                <span className={cn("text-[10px] px-2 py-0.5 rounded-full border font-semibold", zone.chip)}>
-                  {zone.label}
-                </span>
-              )}
-            </div>
-          )}
         </div>
 
-        {/* Previous session data — por número de serie exacto */}
-        <div className="mt-1.5 ml-11 flex items-center gap-2 flex-wrap">
-          <p className="text-[11px] text-muted-foreground">
-            S{set.no} anterior: <span className="text-foreground/70">{set.prevWeight} kg × {set.prevReps} reps</span>
-          </p>
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          <div className="rounded-lg border border-border bg-muted/35 px-2.5 py-2">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Objetivo</p>
+            <p className="text-sm font-semibold text-foreground mt-0.5">{set.targetMin}–{set.targetMax} reps</p>
+          </div>
+          <div className="rounded-lg border border-border bg-muted/35 px-2.5 py-2">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Anterior</p>
+            <p className="text-sm font-semibold text-foreground mt-0.5">
+              {set.prevWeight ?? '—'} kg × {set.prevReps ?? '—'}
+            </p>
+          </div>
+          <div className="rounded-lg border border-border bg-card px-2.5 py-2">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Actual</p>
+            <p className="text-sm font-semibold text-foreground mt-0.5">
+              {effectiveWeight ?? '—'} kg × {effectiveReps ?? '—'}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-2 flex items-center gap-2 flex-wrap">
+          <span className={cn('text-[10px] font-semibold', getDeltaStyles(weightDiff))}>
+            Peso: {getDeltaText(weightDiff)}
+          </span>
+          <span className={cn('text-[10px] font-semibold', getDeltaStyles(repsDiff))}>
+            Reps: {getDeltaText(repsDiff)}
+          </span>
           {prevZone && (
-            <span className={cn("text-[10px] font-semibold", prevZone.tipColor)}>· {prevZone.label}</span>
+            <span className={cn('text-[10px] font-semibold', prevZone.tipColor)}>· Prev {prevZone.label}</span>
+          )}
+          {zone && (
+            <span className={cn('text-[10px] px-2 py-0.5 rounded-full border font-semibold', zone.chip)}>
+              {zone.label}
+            </span>
           )}
         </div>
       </button>
 
-      {/* Expanded inputs */}
       <AnimatePresence>
         {isActive && !d.completed && (
           <motion.div
@@ -456,10 +449,12 @@ function WorkingSetRow({ set, setData, isActive, currentSetSecs, onSelect, onUpd
                     type="number" inputMode="decimal"
                     value={d.weight}
                     onChange={e => onUpdate(set.id, { ...d, weight: e.target.value })}
-                    placeholder={String(set.targetWeight)}
+                    placeholder={String(set.prevWeight ?? set.targetWeight)}
                     className="w-full h-12 rounded-xl bg-background border border-input text-foreground font-bold text-center text-base focus:outline-none focus:border-[#F44C40]/60 focus:ring-1 focus:ring-[#F44C40]/20 transition-all placeholder-muted-foreground/40 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   />
-                  <p className="text-[10px] text-muted-foreground text-center mt-1">ant: {set.prevWeight} kg</p>
+                  <p className={cn('text-[10px] text-center mt-1', getDeltaStyles(weightDiff))}>
+                    ant: {set.prevWeight ?? '—'} kg · {getDeltaText(weightDiff)}
+                  </p>
                 </div>
                 <div>
                   <label className="block text-[11px] text-muted-foreground font-semibold mb-1.5 uppercase tracking-wide">Reps</label>
@@ -467,14 +462,25 @@ function WorkingSetRow({ set, setData, isActive, currentSetSecs, onSelect, onUpd
                     type="number" inputMode="numeric"
                     value={d.reps}
                     onChange={e => onUpdate(set.id, { ...d, reps: e.target.value })}
-                    placeholder={`${set.targetMin}–${set.targetMax}`}
+                    placeholder={set.prevReps != null ? String(set.prevReps) : `${set.targetMin}–${set.targetMax}`}
                     className="w-full h-12 rounded-xl bg-background border border-input text-foreground font-bold text-center text-base focus:outline-none focus:border-[#F44C40]/60 focus:ring-1 focus:ring-[#F44C40]/20 transition-all placeholder-muted-foreground/40 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   />
-                  <p className="text-[10px] text-muted-foreground text-center mt-1">ant: {set.prevReps} reps</p>
+                  <p className={cn('text-[10px] text-center mt-1', getDeltaStyles(repsDiff))}>
+                    ant: {set.prevReps ?? '—'} reps · {getDeltaText(repsDiff)}
+                  </p>
                 </div>
               </div>
 
-              <RirSelector value={d.rir} onChange={v => onUpdate(set.id, { ...d, rir: v })} />
+              <div>
+                <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wide mb-2">RIR real</p>
+                <RirScaleSelector
+                  compact
+                  toggleToNull
+                  className="justify-start"
+                  value={d.rir}
+                  onChange={v => onUpdate(set.id, { ...d, rir: v })}
+                />
+              </div>
 
               {zone && (
                 <div className={cn("flex items-center gap-1.5 text-[11px]", zone.tipColor)}>
@@ -485,8 +491,11 @@ function WorkingSetRow({ set, setData, isActive, currentSetSecs, onSelect, onUpd
 
               <Button
                 variant="training"
-                onClick={() => onComplete(set.id)}
-                disabled={!d.weight || !d.reps}
+                onClick={() => {
+                  onUpdate(set.id, { ...d, weight: resolvedWeight, reps: resolvedReps })
+                  onComplete(set.id)
+                }}
+                disabled={!canComplete}
                 className="w-full h-11 gap-2"
               >
                 <Check className="w-4 h-4" />
@@ -734,7 +743,6 @@ const ACTION_CHIPS = [
 export default function ExerciseSessionPage() {
   const navigate  = useNavigate()
   const location  = useLocation()
-  const { weeklyDayId, blockExerciseId } = useParams()
 
   // ── Datos del ejercicio: vienen de location.state (pasado por WorkoutDayPage)
   //    o se usa el mock si se accede directamente a la ruta demo
@@ -752,18 +760,19 @@ export default function ExerciseSessionPage() {
   const variants    = MOCK_VARIANTS  // en producción vendría de DB por grupo muscular
 
   // ── Timing refs (no causan re-renders) ──────────────────────────────────────
-  const sessionStartedAt   = useRef(new Date())
+  const sessionStartedAt   = useRef(null)
   const warmupStartedAt    = useRef(null)
   const warmupEndedAt      = useRef(null)
   const exerciseStartedAt  = useRef(null)
   const activeSetStartedAt = useRef(null)
   const setTimings         = useRef({})
+  const workoutTimingStartedRef = useRef(false)
 
   // ── Display state ────────────────────────────────────────────────────────────
   const [sessionSecs, setSessionSecs]       = useState(0)
   const [currentSetSecs, setCurrentSetSecs] = useState(0)
   const [restSecs, setRestSecs]             = useState(null)
-  const [isSessionRunning, setIsSessionRunning] = useState(true)
+  const [isSessionRunning, setIsSessionRunning] = useState(false)
   const pauseStartedAtRef = useRef(null)
 
   // ── Set & UI state ───────────────────────────────────────────────────────────
@@ -773,6 +782,20 @@ export default function ExerciseSessionPage() {
   const [showWarmup, setShowWarmup]   = useState(false)
   const [showSummary, setShowSummary] = useState(false)
   const [summary, setSummary]         = useState(null)
+
+  const ensureSessionStarted = useCallback((startedAt = new Date()) => {
+    if (sessionStartedAt.current instanceof Date) return sessionStartedAt.current
+    sessionStartedAt.current = startedAt
+    setSessionSecs(0)
+    setIsSessionRunning(true)
+    pauseStartedAtRef.current = null
+
+    if (!workoutTimingStartedRef.current) {
+      workoutTimingStartedRef.current = true
+      timingService.startWorkout(workoutId, startedAt)
+    }
+    return startedAt
+  }, [workoutId])
 
   const applyPauseOffset = useCallback((offsetMs) => {
     if (!offsetMs || offsetMs <= 0) return
@@ -794,6 +817,11 @@ export default function ExerciseSessionPage() {
   }, [activeSetId])
 
   const toggleSessionChrono = useCallback(() => {
+    if (!(sessionStartedAt.current instanceof Date)) {
+      ensureSessionStarted(new Date())
+      return
+    }
+
     if (isSessionRunning) {
       pauseStartedAtRef.current = new Date()
       setIsSessionRunning(false)
@@ -807,12 +835,12 @@ export default function ExerciseSessionPage() {
     }
     pauseStartedAtRef.current = null
     setIsSessionRunning(true)
-  }, [applyPauseOffset, isSessionRunning])
+  }, [applyPauseOffset, ensureSessionStarted, isSessionRunning])
 
   // ── Tick cada segundo ────────────────────────────────────────────────────────
   useEffect(() => {
     const id = setInterval(() => {
-      if (!isSessionRunning) return
+      if (!isSessionRunning || !(sessionStartedAt.current instanceof Date)) return
       const now = new Date()
       setSessionSecs(Math.floor((now - sessionStartedAt.current) / 1000))
       if (activeSetStartedAt.current) {
@@ -821,11 +849,6 @@ export default function ExerciseSessionPage() {
     }, 1000)
     return () => clearInterval(id)
   }, [isSessionRunning])
-
-  // Inicia timing en DB al montar
-  useEffect(() => {
-    timingService.startWorkout(workoutId, sessionStartedAt.current)
-  }, []) // eslint-disable-line
 
   // ── Rest countdown ───────────────────────────────────────────────────────────
   useEffect(() => {
@@ -840,15 +863,18 @@ export default function ExerciseSessionPage() {
 
   // ── Warmup toggle → registra inicio de calentamiento ─────────────────────────
   const handleToggleWarmup = useCallback(() => {
+    const now = new Date()
+    ensureSessionStarted(now)
     if (!warmupStartedAt.current) {
-      warmupStartedAt.current = new Date()
+      warmupStartedAt.current = now
     }
     setShowWarmup(v => !v)
-  }, [])
+  }, [ensureSessionStarted])
 
   // ── Activar una serie ─────────────────────────────────────────────────────────
   const selectSet = useCallback((setId) => {
     const now = new Date()
+    ensureSessionStarted(now)
 
     // Primera serie de trabajo: cierra el calentamiento
     if (!warmupEndedAt.current) {
@@ -867,11 +893,12 @@ export default function ExerciseSessionPage() {
     setTimings.current[setId] = { startedAt: now, completedAt: null }
     setCurrentSetSecs(0)
     setActiveSetId(setId)
-  }, [workoutId])
+  }, [ensureSessionStarted, workoutId])
 
   // ── Completar una serie ───────────────────────────────────────────────────────
   const completeSet = useCallback((setId) => {
     const completedAt = new Date()
+    ensureSessionStarted(completedAt)
 
     // Actualizar timing local
     setTimings.current[setId] = {
@@ -901,7 +928,7 @@ export default function ExerciseSessionPage() {
       setActiveSetId(initialSets[idx + 1].id)
       // Pre-registrar start de la siguiente serie (se actualizará cuando el usuario la active)
     }
-  }, [workoutId, initialSets])
+  }, [ensureSessionStarted, workoutId, initialSets])
 
   // ── Ejercicio completado ───────────────────────────────────────────────────────
   const handleAllCompleted = useCallback(() => {
@@ -915,7 +942,7 @@ export default function ExerciseSessionPage() {
 
     // Calcular resumen local (inmediato, sin esperar DB)
     const localSummary = timingService.computeLocalSummary({
-      sessionStartedAt: sessionStartedAt.current,
+      sessionStartedAt: sessionStartedAt.current || now,
       warmupStartedAt: warmupStartedAt.current,
       warmupEndedAt: warmupEndedAt.current,
       setTimings: setTimings.current,
@@ -928,8 +955,8 @@ export default function ExerciseSessionPage() {
     setSetData(prev => ({ ...prev, [id]: data }))
   }, [])
 
-  const completedCount = initialSets.filter(s => setData[s.id]?.completed).length
-  const allCompleted   = completedCount === initialSets.length
+  const allCompleted = initialSets.every(s => setData[s.id]?.completed)
+  const hasSessionStarted = sessionStartedAt.current instanceof Date
 
   // Mostrar resumen automáticamente al completar todos los sets
   useEffect(() => {
@@ -942,93 +969,99 @@ export default function ExerciseSessionPage() {
     <div className="min-h-screen bg-background text-foreground flex flex-col">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <header className="flex items-center justify-between px-4 pt-12 pb-3 bg-background/95 backdrop-blur-sm sticky top-0 z-20 border-b border-border">
-        <button onClick={() => navigate(-1)}
-          className="p-1.5 -ml-1 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
+      <header className="px-4 pt-3 pb-2 bg-background/95 backdrop-blur-sm sticky top-0 z-20 border-b border-border">
+        <div className="flex items-center justify-between">
+          <button onClick={() => navigate(-1)}
+            className="p-1.5 -ml-1 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
 
-        {/* Cronómetro principal click para pausar/reanudar */}
-        <button
-          type="button"
-          onClick={toggleSessionChrono}
-          className={cn(
-            "flex flex-col items-center rounded-lg px-2 py-1 transition-colors",
-            isSessionRunning ? "hover:bg-muted/60" : "bg-amber-500/10 hover:bg-amber-500/15"
-          )}
-        >
-          <div className="flex items-center gap-1.5">
-            {isSessionRunning ? (
-              <Pause className="w-3.5 h-3.5 text-muted-foreground" />
-            ) : (
-              <Play className="w-3.5 h-3.5 text-amber-500" />
+          <button
+            type="button"
+            onClick={toggleSessionChrono}
+            className={cn(
+              'flex flex-col items-center rounded-lg px-2 py-1 transition-colors',
+              !hasSessionStarted || !isSessionRunning
+                ? 'bg-amber-500/10 hover:bg-amber-500/15'
+                : 'hover:bg-muted/60'
             )}
-            <span className="text-base font-bold font-mono tabular-nums text-foreground tracking-tight">
-              {fmt(sessionSecs)}
-            </span>
-          </div>
-          <span className="text-[10px] text-muted-foreground uppercase tracking-widest">
-            {isSessionRunning ? 'Sesión' : 'Pausado'}
-          </span>
-        </button>
-
-        {/* Indicador de serie activa */}
-        <div className="flex flex-col items-end min-w-[52px]">
-          {activeSetId && !setData[activeSetId]?.completed ? (
-            <>
-              <span className="text-sm font-bold font-mono tabular-nums" style={{ color: T }}>
-                {fmt(currentSetSecs)}
+          >
+            <div className="flex items-center gap-1.5">
+              {hasSessionStarted && isSessionRunning ? (
+                <Pause className="w-3.5 h-3.5 text-muted-foreground" />
+              ) : (
+                <Play className="w-3.5 h-3.5 text-amber-500" />
+              )}
+              <span className="text-base font-bold font-mono tabular-nums text-foreground tracking-tight">
+                {fmt(sessionSecs)}
               </span>
-              <span className="text-[10px] text-muted-foreground uppercase tracking-widest">Serie</span>
-            </>
-          ) : (
-            <div className="w-[52px]" />
-          )}
+            </div>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-widest">
+              {!hasSessionStarted ? 'Iniciar' : isSessionRunning ? 'Sesión' : 'Pausado'}
+            </span>
+          </button>
+
+          <div className="flex flex-col items-end min-w-[52px]">
+            {activeSetId && !setData[activeSetId]?.completed ? (
+              <>
+                <span className="text-sm font-bold font-mono tabular-nums" style={{ color: T }}>
+                  {fmt(currentSetSecs)}
+                </span>
+                <span className="text-[10px] text-muted-foreground uppercase tracking-widest">Serie</span>
+              </>
+            ) : (
+              <div className="w-[52px]" />
+            )}
+          </div>
+        </div>
+
+        <div className="mt-2.5 flex gap-1.5">
+          {initialSets.map(s => (
+            <div key={s.id} className={cn(
+              'h-1.5 flex-1 rounded-full transition-all duration-300',
+              setData[s.id]?.completed ? 'bg-primary'
+                : s.id === activeSetId ? 'bg-[#F44C40]'
+                : 'bg-border'
+            )} />
+          ))}
         </div>
       </header>
 
       {/* ── Cuerpo ─────────────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto overscroll-y-contain">
 
+        {/* Action chips */}
+        <div className="flex gap-2 px-4 pt-3 pb-2 overflow-x-auto no-scrollbar">
+          {ACTION_CHIPS.map(({ id, Icon, label }) => (
+            <button key={id} onClick={() => setOpenSheet(id)}
+              className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-card border border-border text-muted-foreground text-sm font-medium hover:text-foreground hover:bg-muted/40 active:scale-95 transition-all">
+              <Icon className="w-3.5 h-3.5" />
+              {label}
+            </button>
+          ))}
+        </div>
+
         {/* Rest timer */}
         <AnimatePresence>
           {restSecs !== null && (
             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-              <div className="px-4 pt-3">
+              <div className="px-4 pt-1">
                 <RestTimer seconds={restSecs} total={REST_SECONDS} onSkip={() => setRestSecs(0)} />
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Media strip */}
-        <div className="pt-4 pb-1">
-          <MediaStrip phases={exercise.mediaPhases || []} />
-        </div>
-
-        {/* Exercise title + progress */}
+        {/* Hero media + name */}
         <div className="px-4 pt-3 pb-2">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
+          <div className="rounded-2xl border border-border bg-card/50 overflow-hidden">
+            <div className="pt-2">
+              <MediaStrip phases={exercise.mediaPhases || []} />
+            </div>
+            <div className="px-4 pb-4 pt-2">
               <h1 className="text-xl font-bold text-foreground leading-tight">{exercise.name}</h1>
               <p className="text-sm text-muted-foreground mt-0.5">{exercise.equipment}</p>
             </div>
-            <div className="text-right flex-shrink-0 pt-0.5">
-              <p className="text-sm font-bold text-foreground">{completedCount}/{initialSets.length}</p>
-              <p className="text-xs text-muted-foreground">series</p>
-            </div>
-          </div>
-
-          {/* Progress bar */}
-          <div className="flex gap-1.5 mt-3">
-            {initialSets.map(s => (
-              <div key={s.id} className={cn(
-                "h-1.5 flex-1 rounded-full transition-all duration-300",
-                setData[s.id]?.completed ? 'bg-primary'
-                  : s.id === activeSetId ? 'bg-[#F44C40]'
-                  : 'bg-border'
-              )} />
-            ))}
           </div>
 
           {/* RIR alert */}
@@ -1044,19 +1077,10 @@ export default function ExerciseSessionPage() {
           )}
         </div>
 
-        {/* Action chips */}
-        <div className="flex gap-2 px-4 overflow-x-auto no-scrollbar pb-3">
-          {ACTION_CHIPS.map(({ id, Icon, label }) => (
-            <button key={id} onClick={() => setOpenSheet(id)}
-              className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-card border border-border text-muted-foreground text-sm font-medium hover:text-foreground hover:bg-muted/40 active:scale-95 transition-all">
-              <Icon className="w-3.5 h-3.5" />
-              {label}
-            </button>
-          ))}
-        </div>
-
         {/* Sets */}
         <div className="px-4 pb-6 space-y-2">
+
+          <SectionDivider label="Calentamiento" count={`${warmupSets.length} series`} tone="warmup" />
 
           {/* Warmup toggle */}
           <button onClick={handleToggleWarmup}
@@ -1094,12 +1118,7 @@ export default function ExerciseSessionPage() {
             )}
           </AnimatePresence>
 
-          {/* Divider */}
-          <div className="flex items-center gap-3 py-1">
-            <div className="flex-1 h-px bg-border" />
-            <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">Series de trabajo</span>
-            <div className="flex-1 h-px bg-border" />
-          </div>
+          <SectionDivider label="Series de trabajo" count={`${initialSets.length} series`} />
 
           {/* Working sets */}
           {initialSets.map(set => (
