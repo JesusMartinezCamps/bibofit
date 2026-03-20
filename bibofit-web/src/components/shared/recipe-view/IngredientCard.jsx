@@ -80,12 +80,12 @@ const getStatusColorClasses = (type) => {
     case 'individual_restriction':
     case 'non-preferred':
     case 'diet_type_excluded':
-      return 'bg-red-400/20 dark:bg-muted/65 border-red-500/30 text-red-400';
+      return 'bg-red-400/20 dark:bg-red-400/10 border-red-500/30 text-red-400';
     case 'diet_type_limited':
-      return 'bg-orange-500/5 dark:bg-muted/65 border-orange-500/30 text-orange-400';
+      return 'bg-orange-500/5 dark:bg-orange-400/10 border-orange-500/30 text-orange-400';
     case 'condition_recommend':
     case 'preferred':
-      return 'bg-green-600/5 dark:bg-muted/65 border-green-500/30 text-green-600 dark:text-green-400';
+      return 'bg-green-600/5 dark:bg-green-400/100 border-green-500/30 text-green-600 dark:text-green-400';
     default:
       return 'bg-muted/65 border-border/50 text-foreground';
   }
@@ -395,7 +395,8 @@ const IngredientCard = ({
                           value={quantity}
                           onChange={onQuantityChange}
                           className={cn(
-                            'input-field bg-transparent border-dashed text-center',
+                            'input-field border-dashed text-center',
+                            statusColorClasses.split(' ').filter((c) => c.startsWith('bg-') || c.startsWith('dark:bg-')),
                             isEditingCompactMobile ? 'h-8 w-14 sm:h-9 sm:w-20 text-sm' : 'w-20'
                           )}
                         />

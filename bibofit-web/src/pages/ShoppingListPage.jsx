@@ -473,31 +473,29 @@ const ShoppingListPage = () => {
         return getRecipeIngredients(item);
     };
 
-    const getMacroCategory = (food) => {
-        let roles = [];
-        
+    const getMacroCategories = (food) => {
+        const categories = new Set();
+
         if (food.food_to_food_groups && Array.isArray(food.food_to_food_groups)) {
-            roles = food.food_to_food_groups
-                .map(r => r.food_groups?.macro_role)
-                .filter(Boolean);
-        } 
-        
+            food.food_to_food_groups.forEach(r => {
+                const role = r.food_groups?.macro_role?.toLowerCase();
+                if (role === 'proteins' || role === 'proteínas') categories.add('proteins');
+                else if (role === 'carbs' || role === 'hidratos de carbono') categories.add('carbs');
+                else if (role === 'fats' || role === 'grasas') categories.add('fats');
+            });
+        }
 
-        const hasRole = (target) => roles.some(role => role && role.toLowerCase() === target.toLowerCase());
-        
-        if (hasRole('proteins') || hasRole('Proteínas')) return 'proteins';
-        if (hasRole('carbs') || hasRole('Hidratos de Carbono')) return 'carbs';
-        if (hasRole('fats') || hasRole('Grasas')) return 'fats';
-        
-        const p = parseFloat(food.proteins || 0);
-        const c = parseFloat(food.total_carbs || 0);
-        const f = parseFloat(food.total_fats || 0);
+        if (categories.size === 0) {
+            const p = parseFloat(food.proteins || 0);
+            const c = parseFloat(food.total_carbs || 0);
+            const f = parseFloat(food.total_fats || 0);
 
-        if (p > 10 && p >= c && p >= f) return 'proteins';
-        if (c > 15 && c >= p && c >= f) return 'carbs';
-        if (f > 10 && f >= p && f >= c) return 'fats';
+            if (p > 10) categories.add('proteins');
+            if (c > 15) categories.add('carbs');
+            if (f > 10) categories.add('fats');
+        }
 
-        return 'others';
+        return categories.size > 0 ? Array.from(categories) : ['others'];
     };
 
     const fetchShoppingData = useCallback(async ({ force = false, silent = false } = {}) => {
@@ -623,23 +621,23 @@ const ShoppingListPage = () => {
                     if (!food) return;
                     
                     const quantity = parseFloat(ing.grams || ing.quantity || 0);
-                    const category = getMacroCategory(food);
+                    const categories = getMacroCategories(food);
 
                     if (listMode === 'planned') {
                         if (ingredientsMap.has(food.id)) {
                             const existing = ingredientsMap.get(food.id);
                             existing.totalQuantity += quantity;
-                            
+
                             if (!recipeNamesMap.has(food.id)) recipeNamesMap.set(food.id, {});
                             const counts = recipeNamesMap.get(food.id);
                             counts[recipeName] = (counts[recipeName] || 0) + 1;
                         } else {
                             recipeNamesMap.set(food.id, { [recipeName]: 1 });
-                            ingredientsMap.set(food.id, { 
-                                ...food, 
-                                totalQuantity: quantity, 
-                                unit: food.food_unit === 'unidades' ? 'ud(s)' : 'g', 
-                                category
+                            ingredientsMap.set(food.id, {
+                                ...food,
+                                totalQuantity: quantity,
+                                unit: food.food_unit === 'unidades' ? 'ud(s)' : 'g',
+                                categories
                             });
                         }
                     } else {
@@ -655,7 +653,7 @@ const ShoppingListPage = () => {
                                 unit: food.food_unit === 'unidades' ? 'ud(s)' : 'g',
                                 recipeNames: [recipeName],
                                 uniqueKey: `${food.id}_complete_unique`,
-                                category
+                                categories
                              });
                         }
                     }
@@ -663,26 +661,30 @@ const ShoppingListPage = () => {
             });
 
             const categorized = { proteins: [], carbs: [], fats: [], others: [] };
-            
+
             if (listMode === 'planned') {
                 Array.from(ingredientsMap.values()).forEach(food => {
                     const itemWithRecipes = { ...food, recipeCounts: recipeNamesMap.get(food.id) };
-                    const cat = food.category || 'others';
-                    if (categorized[cat]) {
-                        categorized[cat].push(itemWithRecipes);
-                    } else {
-                        categorized.others.push(itemWithRecipes);
-                    }
+                    const cats = food.categories || ['others'];
+                    cats.forEach(cat => {
+                        if (categorized[cat]) {
+                            categorized[cat].push(itemWithRecipes);
+                        } else {
+                            categorized.others.push(itemWithRecipes);
+                        }
+                    });
                 });
-            } 
+            }
             else {
                 Array.from(completeModeAggregationMap.values()).forEach(item => {
-                     const cat = item.category || 'others';
-                    if (categorized[cat]) {
-                        categorized[cat].push(item);
-                    } else {
-                        categorized.others.push(item);
-                    }
+                    const cats = item.categories || ['others'];
+                    cats.forEach(cat => {
+                        if (categorized[cat]) {
+                            categorized[cat].push(item);
+                        } else {
+                            categorized.others.push(item);
+                        }
+                    });
                 });
             }
 

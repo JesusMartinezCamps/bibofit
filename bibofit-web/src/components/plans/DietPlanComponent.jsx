@@ -317,11 +317,10 @@ const DietPlanComponent = () => {
 
   const handleOpenVariantTree = useCallback(() => {
     const targetDate = format(currentDate, 'yyyy-MM-dd');
-    const basePath = isAdminView
-      ? `/plan/dieta/${userId}/${targetDate}/variantes-recetas`
-      : `/plan/dieta/${targetDate}/variantes-recetas`;
-    const query = activePlan?.id ? `?planId=${activePlan.id}` : '';
-    navigate(`${basePath}${query}`);
+    const params = new URLSearchParams({ date: targetDate });
+    if (isAdminView && userId) params.set('userId', userId);
+    if (activePlan?.id) params.set('planId', activePlan.id);
+    navigate(`/profile/variantes-recetas?${params.toString()}`);
   }, [activePlan?.id, currentDate, isAdminView, navigate, userId]);
 
     const handlePlanUpdate = useCallback((updatePayload) => {

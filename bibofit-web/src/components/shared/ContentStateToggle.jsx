@@ -23,7 +23,7 @@ const ContentStateToggle = ({
           className={cn(
             "flex items-center justify-center gap-2 p-2 rounded-md transition-colors text-sm font-semibold",
             mode === optionOne.value
-              ? 'bg-primary/20 text-primary border border-primary/35'
+              ? 'bg-cyan-300/30 dark:bg-cyan-300/10 text-cyan-600 border border-cyan-300/35'
               : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
           )}
         >
@@ -36,7 +36,7 @@ const ContentStateToggle = ({
           className={cn(
             "flex items-center justify-center gap-2 p-2 rounded-md transition-colors text-sm font-semibold",
             mode === optionTwo.value
-              ? 'bg-primary/20 text-primary border border-primary/35'
+              ? 'bg-cyan-300/30 dark:bg-cyan-300/10 text-cyan-600 border border-cyan-300/35'
               : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
           )}
         >

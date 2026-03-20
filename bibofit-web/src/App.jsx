@@ -187,14 +187,12 @@ const AppRoutes = () => (
       <Route path="/plan/dieta/:date" element={<ProtectedRoute><DietPlanLayout /></ProtectedRoute>}>
         <Route path="ver-receta" element={<RecipeViewPage />} />
         <Route path="repetir-receta" element={<RepeatRecipePage />} />
-        <Route path="variantes-recetas" element={<VariantTreePage />} />
-        <Route path="arbol-variantes" element={<Navigate to="../variantes-recetas" replace />} />
+        <Route path="arbol-variantes" element={<Navigate to="/profile/variantes-recetas" replace />} />
       </Route>
       <Route path="/plan/dieta/:userId/:date" element={<ProtectedRoute><DietPlanLayout /></ProtectedRoute>}>
         <Route path="ver-receta" element={<RecipeViewPage />} />
         <Route path="repetir-receta" element={<RepeatRecipePage />} />
-        <Route path="variantes-recetas" element={<VariantTreePage />} />
-        <Route path="arbol-variantes" element={<Navigate to="../variantes-recetas" replace />} />
+        <Route path="arbol-variantes" element={<Navigate to="/profile/variantes-recetas" replace />} />
       </Route>
       <Route path="/registro-peso" element={<ProtectedRoute><WeightLogPage /></ProtectedRoute>} />
       <Route path="/registro-pasos" element={<ProtectedRoute><StepsLogPage /></ProtectedRoute>} />

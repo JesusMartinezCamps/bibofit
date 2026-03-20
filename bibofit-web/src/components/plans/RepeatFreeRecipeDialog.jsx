@@ -2,18 +2,18 @@ import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Utensils, Clock, BarChart3, Sparkles, Calendar, Loader2, X, Hourglass, Search, FileText, AlertTriangle, ThumbsUp, ArrowLeft } from 'lucide-react';
+import { Sparkles, Loader2, X, Search, ArrowLeft } from 'lucide-react';
 import { formatDistanceToNow, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { cn } from '@/lib/utils';
 import FreeRecipeViewDialog from '@/components/plans/FreeRecipeViewDialog';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
 import { getConflictInfo } from '@/lib/restrictionChecker.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FREE_RECIPE_STATUS, normalizeFreeRecipeStatus } from '@/lib/recipeEntity';
+import { FREE_RECIPE_STATUS } from '@/lib/recipeEntity';
 import HighlightedText from '@/components/shared/HighlightedText';
+import RepeatRecipeCard from '@/components/plans/RepeatRecipeCard';
 import {
   filterRecipesByQuery,
   getIngredientHighlightForQuery,
@@ -402,16 +402,6 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
     }
   };
 
-  const getStatusBadge = (status) => {
-    if (normalizeFreeRecipeStatus(status) !== FREE_RECIPE_STATUS.PENDING) {
-      return null; 
-    }
-    return (
-      <span className="text-[10px] px-2 py-0.5 rounded-full border uppercase tracking-wider font-medium whitespace-nowrap bg-blue-500/20 text-blue-300 border-blue-500/50">
-        Pendiente
-      </span>
-    );
-  };
 
   const innerContent = (
     <>
@@ -485,92 +475,20 @@ const RepeatFreeRecipeDialog = ({ open, onOpenChange, onSelectRecipe, planId, us
               <div className="space-y-3">
                 {filteredItems.length > 0 ? (
                   filteredItems.map(recipe => {
-                    const lastEaten = getLastEatenDate(recipe.last_used);
                     const isTemplate = recipe.type === 'template';
-                    const normalizedStatus = normalizeFreeRecipeStatus(recipe.status);
-
                     return (
-                      <div key={`${recipe.type}-${recipe.id}`} className="relative group">
-                        <button
-                          onClick={() => handleSelectClick(recipe)}
-                          className={cn(
-                            "w-full text-left p-4 rounded-lg transition-colors flex flex-col gap-3 border",
-                            isTemplate 
-                                ? "bg-card/80 hover:bg-muted/80 border-border/50" 
-                                : "bg-muted/70 hover:bg-muted/80 border-border/50"
-                          )}
-                        >
-                          <div className="flex justify-between items-start w-full pr-6">
-                            <div className="flex flex-col gap-1">
-                                {lastEaten && (
-                                    <div className="flex items-center text-xs text-muted-foreground">
-                                        <Calendar className="w-3 h-3 mr-1.5" />
-                                        {lastEaten}
-                                    </div>
-                                )}
-                                {isTemplate && (
-                                    <div className="flex items-center text-xs text-purple-400">
-                                        <FileText className="w-3 h-3 mr-1.5" />
-                                        Plantilla
-                                    </div>
-                                )}
-                            </div>
-                            <div className="flex items-center gap-2 pl-2">
-                                {getStatusBadge(recipe.status)}
-                                {recipe.greenCount > 0 && (
-                                    <span className="flex items-center text-xs text-green-400 gap-0.5" title={`${recipe.greenCount} alimentos recomendados`}>
-                                        <ThumbsUp className="w-3 h-3" /> {recipe.greenCount}
-                                    </span>
-                                )}
-                                {recipe.redCount > 0 && (
-                                    <span className="flex items-center text-xs text-red-400 gap-0.5" title={`${recipe.redCount} alimentos a evitar`}>
-                                        <AlertTriangle className="w-3 h-3" /> {recipe.redCount}
-                                    </span>
-                                )}
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-3">
-                            {normalizedStatus === FREE_RECIPE_STATUS.PENDING ? (
-                              <Hourglass className="h-5 w-5 text-sky-400 flex-shrink-0" />
-                            ) : (
-                              <Utensils className={cn("h-5 w-5 flex-shrink-0", isTemplate ? "text-purple-400" : "text-sky-400")} />
-                            )}
-                            <p className="font-semibold text-lg text-foreground">
-                                <HighlightedText
-                                  text={recipe.name}
-                                  highlight={searchQuery}
-                                  className="text-yellow-400 font-bold bg-yellow-400/10 rounded-[2px] px-0.5"
-                                />
-                            </p>
-                          </div>
-                          
-                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                            {recipe.difficulty && (
-                              <span className="flex items-center gap-1.5"><BarChart3 className="h-3.5 w-3.5" /> {recipe.difficulty}</span>
-                            )}
-                            {recipe.prep_time_min && (
-                              <span className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> {recipe.prep_time_min} min</span>
-                            )}
-                          </div>
-                          <div className="text-xs border-t border-border/50 pt-2 mt-2 w-full">
-                            <p className="line-clamp-3 leading-relaxed">
-                                {recipe.display}
-                            </p>
-                          </div>
-                        </button>
-                        
-                        {!isTemplate && (
-                             <button 
-                                onClick={(e) => handleDeleteClick(e, recipe)}
-                                className="absolute top-2 right-2 bg-red-500/70 text-white rounded-full p-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all hover:bg-red-500 z-10"
-                                title="Eliminar receta permanentemente"
-                                style={{ marginTop: '0.5rem', padding: '0.25rem' }}
-                            >
-                                <X className="w-4 h-4" />
-                            </button>
-                        )}
-                      </div>
+                      <RepeatRecipeCard
+                        key={`${recipe.type}-${recipe.id}`}
+                        recipe={recipe}
+                        isTemplate={isTemplate}
+                        lastUsed={getLastEatenDate(recipe.last_used)}
+                        greenCount={recipe.greenCount}
+                        redCount={recipe.redCount}
+                        ingredientDisplay={recipe.display}
+                        searchQuery={searchQuery}
+                        onSelect={handleSelectClick}
+                        onDelete={!isTemplate ? handleDeleteClick : undefined}
+                      />
                     );
                   })
                 ) : (

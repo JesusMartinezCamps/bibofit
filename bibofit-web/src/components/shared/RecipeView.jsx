@@ -582,7 +582,7 @@ const RecipeView = ({
     }
 
     setReplacingIngredient(null);
-    toast({ title: 'Ingrediente reemplazado', description: `Se ha sustituido por ${newFoodData.food_name}.` });
+    toast({ title: 'Ingrediente reemplazado', description: `Se ha sustituido por ${newFoodData.food_name}.`, variant: 'success' });
   };
 
   const redCount = conflicts.length;

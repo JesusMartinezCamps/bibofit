@@ -322,7 +322,7 @@ const ConflictResolutionDialog = ({ open, onOpenChange, conflicts, onRecipeUpdat
                     onInteractOutside={(event) => event.preventDefault()}
                 >
                     <DialogHeader className="border-b border-border/80 px-6 py-5 shrink-0">
-                        <DialogTitle className={`flex items-center gap-2 ${allConflictsResolved ? 'text-emerald-400' : 'text-orange-400'}`}>
+                        <DialogTitle className={`flex items-center gap-2 ${allConflictsResolved ? 'text-emerald-800 dark:text-emerald-400' : 'text-orange-400'}`}>
                             {editingRecipe && (
                                 <button
                                     type="button"
@@ -431,7 +431,7 @@ const ConflictResolutionDialog = ({ open, onOpenChange, conflicts, onRecipeUpdat
                                             animate={{ opacity: 1, y: 0, scale: 1 }}
                                             exit={{ opacity: 0, y: -8, scale: 0.98 }}
                                             transition={{ duration: 0.35, ease: 'easeOut' }}
-                                            className="relative overflow-hidden rounded-2xl border border-emerald-400/30 bg-gradient-to-br from-emerald-600/80 to-emerald-600/90 dark:from-emerald-950/60 dark:via-slate-900/80 dark:to-slate-900/90 p-7"
+                                            className="relative overflow-hidden rounded-2xl border border-emerald-400/30 bg-gradient-to-br from-emerald-600/50 dark:from-emerald-600/80 to-emerald-600/20 dark:to-emerald-600/90 dark:from-emerald-950/60 dark:via-slate-900/80 dark:to-slate-900/90 p-7"
                                         >
                                             <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.18),_transparent_55%)]" />
                                             <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-5">
@@ -439,13 +439,13 @@ const ConflictResolutionDialog = ({ open, onOpenChange, conflicts, onRecipeUpdat
                                                     <motion.div
                                                         animate={{ scale: [1, 1.08, 1], rotate: [0, 6, -4, 0] }}
                                                         transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-                                                        className="mt-0.5 rounded-xl border border-emerald-400/35 bg-emerald-500/10 p-2.5 text-emerald-300"
+                                                        className="mt-0.5 rounded-xl border border-emerald-400/35 bg-emerald-500/10 p-2.5 dark:text-emerald-300 text-emerald-700"
                                                     >
                                                         <Sparkles className="w-5 h-5" />
                                                     </motion.div>
                                                     <div>
                                                         <motion.h4
-                                                            className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-green-200 to-teal-200"
+                                                            className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-800 dark:from-emerald-300 dark:via-green-200 via-green-700 to-teal-500 dark:to-teal-200"
                                                             animate={{ opacity: [0.8, 1, 0.8] }}
                                                             transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                                                         >
@@ -460,7 +460,7 @@ const ConflictResolutionDialog = ({ open, onOpenChange, conflicts, onRecipeUpdat
                                                 <button
                                                     type="button"
                                                     onClick={handleConfirm}
-                                                    className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-2.5 text-emerald-200 text-sm font-medium hover:bg-emerald-500/20 transition-colors"
+                                                    className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-2.5 dark:text-emerald-200 text-emerald-700 text-sm font-medium hover:bg-emerald-500/20 transition-colors"
                                                 >
                                                     Listo para asignar
                                                 </button>
@@ -481,14 +481,14 @@ const ConflictResolutionDialog = ({ open, onOpenChange, conflicts, onRecipeUpdat
                                         : "Todos los conflictos han sido revisados."}
                                  </p>
                                  <div className="flex gap-2">
-                                    <Button variant="ghost" className="hover:bg-blue-900/20 hover:text-blue-100" onClick={() => onOpenChange(false)}>
+                                    <Button variant="ghost" className="hover:bg-blue-900/20 hover:text-gray-900 hover:bg-blue-900/10 dark:hover:text-blue-100" onClick={() => onOpenChange(false)}>
                                         Volver al onboarding
                                     </Button>
                                     <Button
                                         onClick={handleConfirm}
                                         disabled={remainingRecipesCount > 0}
                                         variant="outline"
-                                        className="border-gray-500/60 bg-emerald-500/10 hover:text-green-400 text-emerald-300 hover:bg-emerald-500/20 disabled:bg-muted disabled:text-muted-foreground"
+                                        className="border-gray-500/60 bg-emerald-500/10 hover:text-emerald-800 text-emerald-900 dark:text-emerald-300 dark:hover:text-green-400 hover:bg-emerald-500/20 disabled:bg-muted disabled:text-muted-foreground"
                                     >
                                         Listo para Asignar
                                     </Button>

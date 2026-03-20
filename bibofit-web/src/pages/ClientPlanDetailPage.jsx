@@ -86,13 +86,14 @@ const ClientPlanDetailPage = () => {
                         </p>
                     </div>
 
-                    <AdminDietPlanDetailPage 
+                    <AdminDietPlanDetailPage
                         planIdOverride={activePlanId}
                         mode="user"
                         readOnlyProperties={true}
                         hideUserAssignmentPanel={true}
                         canEditMacros={!hasCoach}
                         canEditRecipes={!hasCoach}
+                        protectTemplateRecipes={true}
                     />
                 </div>
             </>

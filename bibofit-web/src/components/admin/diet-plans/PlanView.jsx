@@ -5,7 +5,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import AddRecipeToPlanDialog from '@/components/plans/AddRecipeToPlanDialog';
 import RecipeEditorModal from '@/components/shared/RecipeEditorModal/RecipeEditorModal';
-import PlanRecipeCard from './PlanRecipeCard';
+import RecipeCard from '@/components/shared/WeeklyDietPlanner/RecipeCard';
 import { supabase } from '@/lib/supabaseClient';
 import { useToast } from '@/components/ui/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -24,6 +24,11 @@ import {
 // ---------------------------------------------------------------------------
 // MealSection — sección individual de un momento del día
 // ---------------------------------------------------------------------------
+const isRecipeFromTemplate = (recipe) => {
+    if (recipe.is_private) return !!recipe.source_diet_plan_recipe_id;
+    return !!recipe.parent_diet_plan_recipe_id;
+};
+
 const MealSection = ({
     meal,
     recipes,
@@ -42,6 +47,7 @@ const MealSection = ({
     pendingChange = null,
     quotaBlocked = false,
     quotaTooltipMessage = '',
+    protectTemplateRecipes = false,
 }) => (
     <div key={meal.id} className="bg-card/75 p-4 rounded-lg border border-border">
         <div className="flex items-center gap-3 mb-4 flex-wrap justify-between">
@@ -96,14 +102,15 @@ const MealSection = ({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {recipes.length > 0 ? (
                 recipes.map(pr => (
-                    <PlanRecipeCard
+                    <RecipeCard
                         key={`${pr.id}-${pr.is_private}`}
                         recipe={pr}
                         allFoods={allFoods}
-                        onEdit={() => onEdit(pr, userDayMeal)}
-                        onDelete={() => onDelete(pr.id, pr.is_private)}
+                        handleRecipeClick={() => onEdit(pr, userDayMeal)}
+                        handleRemoveRecipe={readOnly || (protectTemplateRecipes && isRecipeFromTemplate(pr)) ? undefined : () => onDelete(pr.id, pr.is_private)}
+                        isListView={true}
                         userRestrictions={userRestrictions}
-                        readOnly={readOnly}
+                        isAdminView={true}
                     />
                 ))
             ) : (
@@ -125,6 +132,7 @@ const PlanView = ({
     isAssignedPlan = false,
     readOnly = false,
     isTemplate = false,
+    protectTemplateRecipes = false,
     // Nuevo sistema granular (reemplaza pendingRecalc booleano)
     pendingChange = null,       // { type: 'linear_scale'|'macro_redistribution', oldTdee, newTdee } | null
     dirtyMealIds = [],          // string[] de user_day_meal.id con targets recién guardados
@@ -662,6 +670,7 @@ const PlanView = ({
                                     pendingChange={pendingChange}
                                     quotaBlocked={myPlanQuotaBlocked}
                                     quotaTooltipMessage={myPlanQuotaMessage}
+                                    protectTemplateRecipes={protectTemplateRecipes}
                                 />
                             );
                         })}

@@ -19,7 +19,8 @@ const AdminDietPlanDetailPage = ({
     readOnlyProperties = false,
     hideUserAssignmentPanel = false,
     canEditMacros = true,
-    canEditRecipes = true
+    canEditRecipes = true,
+    protectTemplateRecipes = false,
 }) => {
     const { planId: routePlanId } = useParams();
     const navigate = useNavigate();
@@ -404,6 +405,7 @@ const AdminDietPlanDetailPage = ({
                             userDayMeals={meals}
                             isAssignedPlan={true}
                             readOnly={!canEditRecipes}
+                            protectTemplateRecipes={protectTemplateRecipes}
                             pendingChange={pendingChange}
                             dirtyMealIds={dirtyMealIds}
                             onDirtyMealsCleared={() => setDirtyMealIds([])}

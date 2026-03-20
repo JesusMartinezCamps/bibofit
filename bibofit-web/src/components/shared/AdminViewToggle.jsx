@@ -26,7 +26,7 @@ const ViewModeToggle = ({ mode, onModeChange, loading, onClose, className, hasCh
       transition={{ duration: 0.3 }}
       className={cn(
         `relative flex justify-between items-center px-4 py-3 transition-colors duration-300 w-full`,
-        isViewMode ? 'bg-sky-900/30' : 'bg-muted/65', // Adjusted background color for view mode
+        isViewMode ? 'bg-gray-300/10' : 'bg-muted/65', // Adjusted background color for view mode
         className
       )}
     >
