@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { User, Shield, Calendar, StickyNote, ShoppingCart, MessageSquare } from 'lucide-react';
+import { User, Shield, Calendar, StickyNote, ShoppingCart, MessagesSquare, Apple } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Tooltip,
@@ -50,6 +50,11 @@ const Header = () => {
   const getCalendarLink = () => {
     if (isStaff) return '/dashboard';
     return '/plan';
+  };
+
+  const getTodayDietLink = () => {
+    const today = new Date().toISOString().split('T')[0];
+    return `/plan/dieta/${today}`;
   };
 
   const displayName = `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || user?.full_name || user?.email || 'Usuario';
@@ -125,6 +130,27 @@ const Header = () => {
 
                 <Tooltip>
                   <TooltipTrigger asChild>
+                    <Button
+                      asChild
+                      variant="ghost"
+                      size="icon"
+                      className={cn(
+                        'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                        location.pathname.startsWith('/plan/dieta') && 'bg-secondary text-secondary-foreground'
+                      )}
+                    >
+                      <Link to={getTodayDietLink()}>
+                        <Apple className="w-5 h-5" />
+                      </Link>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Plan Dietético</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
                     <Button asChild variant="ghost" size="icon" className="text-muted-foreground hover:bg-accent hover:text-accent-foreground">
                       <Link to="/shopping-list">
                         <ShoppingCart className="w-5 h-5" />
@@ -148,7 +174,7 @@ const Header = () => {
                       )}
                     >
                       <Link to="/communication">
-                        <MessageSquare className="w-5 h-5" />
+                        <MessagesSquare className="w-5 h-5" />
                         {totalUnread > 0 && (
                           <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
                             {totalUnread > 9 ? '9+' : totalUnread}

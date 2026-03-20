@@ -474,7 +474,7 @@ const TrainingPlanPage = () => {
 
   const handleOpenTrainingDay = useCallback((weeklyDayId, blockExerciseId = null) => {
     if (!weeklyDayId) return;
-    navigate(`/plan/entreno/rutina/editar/${String(weeklyDayId)}`, {
+    navigate(`/plan/entreno/dia/${String(weeklyDayId)}`, {
       state: blockExerciseId ? { openExerciseId: String(blockExerciseId) } : null,
     });
   }, [navigate]);
