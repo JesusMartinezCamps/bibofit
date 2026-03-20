@@ -81,9 +81,14 @@ export const buildTrainingVisualizerMetrics = async ({
   });
 
   const targetVolumeByMuscle = new Map();
-  (snapshotData?.muscleTargets || []).forEach((row) => {
-    if (!row?.muscle_id) return;
-    targetVolumeByMuscle.set(row.muscle_id, Number(row.target_sets || 0));
+  (snapshotData?.blockExercises || []).forEach((exercise) => {
+    if (!exercise?.exercise_id) return;
+    const muscleIds = musclesByExerciseId.get(exercise.exercise_id) || [];
+    if (!muscleIds.length) return;
+    const setsPerMuscle = Number(exercise.target_sets || 0) / muscleIds.length;
+    muscleIds.forEach((muscleId) => {
+      targetVolumeByMuscle.set(muscleId, (targetVolumeByMuscle.get(muscleId) || 0) + setsPerMuscle);
+    });
   });
 
   const volumeKeys = new Set([
@@ -109,12 +114,25 @@ export const buildTrainingVisualizerMetrics = async ({
   timelineRows.forEach((item) => {
     const eventDate = item?.event_date;
     if (!eventDate || eventDate < startDate || eventDate > endDate) return;
-    const hasPr = Boolean(
+
+    const explicitPrCount = Number(item?.pr_count || 0);
+    if (explicitPrCount > 0) {
+      weeklyPrCount += explicitPrCount;
+      return;
+    }
+
+    if (item?.has_pr) {
+      weeklyPrCount += 1;
+      return;
+    }
+
+    // Backward compatibility: if backend has not exposed PR flags yet.
+    const fallbackHasPr = Boolean(
       item.completed_key_exercises
       && item.total_key_exercises
       && item.completed_key_exercises >= item.total_key_exercises
     );
-    if (hasPr) weeklyPrCount += 1;
+    if (fallbackHasPr) weeklyPrCount += 1;
   });
 
   const stepsByDate = new Map();

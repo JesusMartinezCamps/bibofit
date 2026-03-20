@@ -19,6 +19,34 @@ export const getWorkoutTimelineEvents = async ({
   return Array.isArray(data) ? data : [];
 };
 
+export const getTrainingPREventsInRange = async ({
+  userId = null,
+  startDate = getDateKey(new Date()),
+  endDate = getDateKey(new Date()),
+}) => {
+  if (!userId) return [];
+
+  const { data, error } = await supabase.rpc('training_get_pr_events', {
+    p_user_id: userId,
+    p_start_date: startDate,
+    p_end_date: endDate,
+  });
+
+  if (error) throw error;
+  return Array.isArray(data) ? data : [];
+};
+
+export const refreshWorkoutPREvents = async ({ workoutId = null } = {}) => {
+  if (!workoutId) return 0;
+
+  const { data, error } = await supabase.rpc('training_refresh_workout_prs', {
+    p_workout_id: workoutId,
+  });
+
+  if (error) throw error;
+  return Number(data || 0);
+};
+
 export const getExerciseMuscleMap = async (exerciseIds = []) => {
   if (!exerciseIds.length) return [];
   const { data, error } = await supabase

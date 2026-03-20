@@ -30,6 +30,8 @@ const mapDayBlueprintToPayload = (days = []) =>
           backoff_percentage: toFloatOrNull(exercise.backoff_percentage) ?? 0.8,
           is_key_exercise: Boolean(exercise.is_key_exercise),
           notes: exercise.notes?.trim() || null,
+          target_rir: toIntOrNull(exercise.target_rir),
+          tempo: exercise.tempo?.trim() || null,
         }))
         .filter((exercise) => exercise.exercise_id !== null),
     })),
@@ -130,7 +132,6 @@ export const getTrainingZoneSnapshot = async (userId, dateKey = getDateKey()) =>
       blockExercises: [],
       microcycles: [],
       microcycleFocuses: [],
-      muscleTargets: [],
       nextSessionDay: null,
     };
   }
@@ -166,15 +167,6 @@ export const getTrainingZoneSnapshot = async (userId, dateKey = getDateKey()) =>
     .order('id', { ascending: true });
 
   if (daysError) throw daysError;
-
-  const { data: muscleTargetsData, error: muscleTargetsError } = await supabase
-    .from('training_weekly_routine_muscle_targets')
-    .select('id, weekly_routine_id, muscle_id, target_sets, muscles(id, name)')
-    .eq('weekly_routine_id', weeklyRoutine.id)
-    .order('target_sets', { ascending: false })
-    .order('id', { ascending: true });
-
-  if (muscleTargetsError) throw muscleTargetsError;
 
   const dayIds = (days || []).map((d) => d.id);
 
@@ -249,7 +241,6 @@ export const getTrainingZoneSnapshot = async (userId, dateKey = getDateKey()) =>
     blockExercises,
     microcycles: microcycles || [],
     microcycleFocuses,
-    muscleTargets: muscleTargetsData || [],
     nextSessionDay: (nextSessionRows || [])[0] || null,
   };
 };
