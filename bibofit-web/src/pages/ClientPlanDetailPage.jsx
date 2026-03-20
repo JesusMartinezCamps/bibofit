@@ -74,7 +74,7 @@ const ClientPlanDetailPage = () => {
                 <Helmet>
                     <title>Mi Plan Actual - Gsus Martz</title>
                 </Helmet>
-                <div className="p-4 pr-0 pl-1 lg:p-6 max-w-[1600px] mx-auto min-h-screen">
+                <div data-guide-target="my-plan-main" className="p-4 pr-0 pl-1 lg:p-6 max-w-[1600px] mx-auto min-h-screen">
                     <div className="mb-6">
                         <h1 className="text-3xl font-bold text-white bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-500">
                             Mi Plan Actual
@@ -101,7 +101,7 @@ const ClientPlanDetailPage = () => {
 
     // CASE 2: No Active Diet
     return (
-        <div className="p-8 max-w-4xl mx-auto min-h-[80vh] flex flex-col items-center justify-center text-center">
+        <div data-guide-target="my-plan-main" className="p-8 max-w-4xl mx-auto min-h-[80vh] flex flex-col items-center justify-center text-center">
             <Helmet>
                 <title>Sin Plan Activo - Gsus Martz</title>
             </Helmet>

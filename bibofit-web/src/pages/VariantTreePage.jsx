@@ -561,7 +561,7 @@ const VariantTreePage = () => {
         </div>
 
         {linkedVariants.length > 0 && (
-          <div className="rounded-xl border border-cyan-300/40 dark:border-cyan-500/30 bg-gradient-to-r from-cyan-100/85 via-cyan-50/85 to-white/85 dark:from-cyan-500/10 dark:via-cyan-500/8 dark:to-transparent p-3">
+          <div data-guide-target="variant-tree-list" className="rounded-xl border border-cyan-300/40 dark:border-cyan-500/30 bg-gradient-to-r from-cyan-100/85 via-cyan-50/85 to-white/85 dark:from-cyan-500/10 dark:via-cyan-500/8 dark:to-transparent p-3">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-cyan-800 dark:text-cyan-200">
               Variantes vinculadas ({linkedVariants.length})
             </p>
@@ -644,7 +644,7 @@ const VariantTreePage = () => {
         {!loading && !error && planInfo && (
           <div className="space-y-5">
             {visibleRootPlanNodes.length > 0 ? (
-              <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+              <div data-guide-target="variant-tree-original" className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                 {visibleRootPlanNodes.map((rootNode) => (
                   <Card key={`root-${rootNode.id}`} className="border-border/70 bg-gradient-to-br from-white/85 via-cyan-50/85 to-emerald-50/85 dark:bg-none dark:bg-card/80">
                     <CardContent className="space-y-3 p-4">
@@ -670,7 +670,7 @@ const VariantTreePage = () => {
             )}
 
             {unlinkedVariantRoots.length > 0 && (
-              <Card className="border-cyan-300/40 dark:border-cyan-500/30 bg-gradient-to-r from-cyan-100/85 via-cyan-50/85 to-white/85 dark:from-cyan-500/10 dark:via-cyan-500/8 dark:to-transparent">
+              <Card data-guide-target="variant-tree-list" className="border-cyan-300/40 dark:border-cyan-500/30 bg-gradient-to-r from-cyan-100/85 via-cyan-50/85 to-white/85 dark:from-cyan-500/10 dark:via-cyan-500/8 dark:to-transparent">
                 <CardHeader>
                   <CardTitle className="text-base">Variantes sin nodo fuente</CardTitle>
                   <CardDescription>

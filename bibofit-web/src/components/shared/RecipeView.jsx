@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
   Bot,
@@ -19,6 +19,8 @@ import IngredientSearch from '@/components/plans/IngredientSearch';
 import { supabase } from '@/lib/customSupabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
+import { useContextualGuide } from '@/contexts/ContextualGuideContext';
+import { GUIDE_BLOCK_IDS } from '@/config/guideBlocks';
 import { invokeAutoBalanceRecipe } from '@/lib/autoBalanceClient';
 import {
   AUTO_BALANCE_FEATURES,
@@ -140,6 +142,7 @@ const RecipeView = ({
 }) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { isOpen: isGuideOpen, activeBlock, triggerBlock } = useContextualGuide();
 
   const [internalRestrictions, setInternalRestrictions] = useState(null);
   const [loadingRestrictions, setLoadingRestrictions] = useState(false);
@@ -151,6 +154,8 @@ const RecipeView = ({
   const [showMultiplierEasterEgg, setShowMultiplierEasterEgg] = useState(false);
   const [internalRecipeStyles, setInternalRecipeStyles] = useState([]);
   const [autobalanceQuotaSnapshot, setAutobalanceQuotaSnapshot] = useState(null);
+  const pendingAutobalanceGuideAfterQuickEditRef = useRef(false);
+  const wasQuickEditOpenRef = useRef(false);
 
   const safeFoods = allFoods || [];
   const safeVitamins = allVitamins || [];
@@ -207,6 +212,20 @@ const RecipeView = ({
   useEffect(() => {
     loadAutobalanceQuotaSnapshot();
   }, [loadAutobalanceQuotaSnapshot]);
+
+  useEffect(() => {
+    const isQuickEditOpen = !!quantityEditorIngredient;
+    const wasOpen = wasQuickEditOpenRef.current;
+
+    if (wasOpen && !isQuickEditOpen && pendingAutobalanceGuideAfterQuickEditRef.current) {
+      pendingAutobalanceGuideAfterQuickEditRef.current = false;
+      requestAnimationFrame(() => {
+        triggerBlock(GUIDE_BLOCK_IDS.RECIPE_AUTOBALANCE);
+      });
+    }
+
+    wasQuickEditOpenRef.current = isQuickEditOpen;
+  }, [quantityEditorIngredient, triggerBlock]);
 
   useEffect(() => {
     if (!showMultiplierEasterEgg) return;
@@ -465,6 +484,16 @@ const RecipeView = ({
     const hasFoodChanged =
       food &&
       String(food.id) !== String(quantityEditorIngredient.food_id || quantityEditorIngredient.food?.id);
+    const nextQuantity = Number(quantity);
+    const currentQuantity = Number(
+      quantityEditorIngredient.quantity ?? quantityEditorIngredient.grams ?? 0
+    );
+    const hasQuantityChanged =
+      Number.isFinite(nextQuantity) &&
+      Number.isFinite(currentQuantity) &&
+      Math.abs(nextQuantity - currentQuantity) > 0.0001;
+    const hasLockChanged = Boolean(locked) !== Boolean(quantityEditorIngredient.locked);
+    const shouldQueueAutobalanceGuide = hasFoodChanged || hasQuantityChanged || hasLockChanged;
 
     if (!hasFoodChanged) {
       // Actualiza cantidad y estado de candado en el ingrediente existente
@@ -490,6 +519,9 @@ const RecipeView = ({
         onIngredientsChange(newIngredients);
       }
       setQuantityEditorIngredient(null);
+      if (shouldQueueAutobalanceGuide) {
+        pendingAutobalanceGuideAfterQuickEditRef.current = true;
+      }
       return;
     }
 
@@ -517,6 +549,9 @@ const RecipeView = ({
     }
 
     toast({ title: 'Ingrediente actualizado', description: `Se cambio por ${food.name}.` });
+    if (shouldQueueAutobalanceGuide) {
+      pendingAutobalanceGuideAfterQuickEditRef.current = true;
+    }
     setQuantityEditorIngredient(null);
   };
 
@@ -562,6 +597,10 @@ const RecipeView = ({
   const isMultiplierActive = servingMultiplier !== 1;
   const shouldShowMetaFields = showMetaFields && !isConflictCorrectionMode;
   const shouldShowPreparationSection = showPreparationSection && !isConflictCorrectionMode;
+  const isAutobalanceGuideSpotlight =
+    isGuideOpen &&
+    (activeBlock?.id === GUIDE_BLOCK_IDS.RECIPE_AUTOBALANCE ||
+      activeBlock?.id === GUIDE_BLOCK_IDS.FREE_RECIPE_AUTOBALANCE);
   const handleIncreaseMultiplier = () => {
     setServingMultiplier((prev) => {
       if (prev >= 20) {
@@ -705,7 +744,7 @@ const RecipeView = ({
       </div>
 
       {!isEditing && (
-        <div className="relative z-10 flex flex-col items-center">
+        <div data-guide-target="recipe-view-multiplier" className="relative z-10 flex flex-col items-center">
           <div className="text-sm font-semibold text-foreground mb-1 text-center">Multiplicador</div>
           <div className="flex items-center justify-center gap-1">
             <Button
@@ -750,13 +789,14 @@ const RecipeView = ({
         </div>
       )}
 
-      <div className="relative z-10">
+      <div data-guide-target="recipe-view-ingredients" className="relative z-10">
         <div className="flex justify-between items-center mb-3 border-b border-border pb-2">
           <h3 className="text-xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-emerald-700 to-teal-700 dark:from-green-300 dark:to-teal-400">
             Ingredientes
           </h3>
           {onAddIngredientClick && (
             <Button
+              data-guide-target="recipe-view-add-ingredient"
               variant="ghost"
               size="icon"
               onClick={onAddIngredientClick}
@@ -830,6 +870,7 @@ const RecipeView = ({
                   <TooltipTrigger asChild>
                     <span className="block">
                       <Button
+                        data-guide-target="recipe-view-autobalance"
                         type="button"
                         onClick={() => {
                           if (quotaBlocked) {
@@ -852,7 +893,10 @@ const RecipeView = ({
                           (disableAutoBalance && !onAutoBalanceBlocked)
                         }
                         variant="outline"
-                        className="w-full bg-muted border-cyan-500 bg-cyan-400/10 text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300 mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className={cn(
+                          "w-full bg-muted border-cyan-500 bg-cyan-400/10 text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300 mt-4 disabled:opacity-50 disabled:cursor-not-allowed",
+                          isAutobalanceGuideSpotlight && "bg-cyan-500/30 border-cyan-300 text-cyan-100 shadow-[0_0_0_1px_rgba(34,211,238,0.5),0_0_25px_rgba(34,211,238,0.35)]"
+                        )}
                       >
                         {isBalancing ? (
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -900,6 +944,7 @@ const RecipeView = ({
 
       {shouldShowMetaFields && (
         <div
+          data-guide-target="recipe-settings-form"
           className={cn(
             'grid grid-cols-3 gap-2 sm:gap-3 rounded-lg relative z-10',
             isEditing ? 'sm:p-0.5' : 'p-3 bg-muted/65'

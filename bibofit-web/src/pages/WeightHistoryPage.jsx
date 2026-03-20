@@ -237,7 +237,7 @@ const WeightHistoryPage = () => {
           </Card>
 
           {/* Chart */}
-          <Card className="bg-background border-border overflow-hidden">
+          <Card data-guide-target="weight-history-chart" className="bg-background border-border overflow-hidden">
             <CardHeader>
               <CardTitle className="text-white text-lg">Evolución</CardTitle>
             </CardHeader>

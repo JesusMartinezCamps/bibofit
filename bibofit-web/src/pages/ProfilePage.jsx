@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate, Link } from 'react-router-dom';
-import { User, GitBranch, LogOut, ChevronRight, LineChart, CalendarCheck, RotateCcw, BookOpen, Moon, Sun } from 'lucide-react';
+import { User, GitBranch, LogOut, ChevronRight, LineChart, CalendarCheck, RotateCcw, BookOpen, Moon, Sun, Settings2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -59,31 +59,43 @@ const ProfilePage = () => {
       }
   };
 
-  const menuItems = [
-    {
-      label: 'Mis Datos de Perfil',
-      href: '/profile/data',
-      icon: User,
-      color: 'bg-gradient-to-r from-violet-700 to-violet-500 hover:from-violet-600 hover:to-fuchsia-500',
-    },
-    {
-      label: 'Historial de Peso',
-      href: '/profile/weight-history',
-      icon: LineChart,
-      color: 'bg-gradient-to-r from-emerald-700 to-green-600 hover:from-emerald-600 hover:to-green-500',
-    },
-    {
-      label: 'Mis Variantes de Recetas',
-      href: '/profile/variantes-recetas',
-      icon: GitBranch,
-      color: 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-cyan-400',
-    },
-    {
-      label: 'Mi Dieta',
-      href: '/my-plan',
-      icon: CalendarCheck,
-      color: 'bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400',
-    },
+  const menuGroups = [
+    [
+      {
+        label: 'Mis Datos de Perfil',
+        href: '/profile/data',
+        icon: User,
+        color: 'bg-gradient-to-r from-violet-700 to-violet-500 hover:from-violet-600 hover:to-fuchsia-500',
+      },
+    ],
+    [
+      {
+        label: 'Configurar dieta',
+        href: '/my-plan',
+        icon: CalendarCheck,
+        color: 'bg-gradient-to-r from-emerald-700 to-emerald-500 hover:from-emerald-600 hover:to-emerald-400',
+      },
+      {
+        label: 'Configurar entreno',
+        href: '/plan/entreno/rutina/nueva',
+        icon: Settings2,
+        color: 'bg-gradient-to-r from-red-700 to-rose-500 hover:from-red-600 hover:to-red-400',
+      },
+    ],
+    [
+      {
+        label: 'Historial de Peso',
+        href: '/profile/weight-history',
+        icon: LineChart,
+        color: 'bg-gradient-to-r from-purple-700 to-violet-500 hover:from-purple-600 hover:to-violet-400',
+      },
+      {
+        label: 'Mis Variantes de Recetas',
+        href: '/profile/variantes-recetas',
+        icon: GitBranch,
+        color: 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-cyan-400',
+      },
+    ],
   ];
 
   return (
@@ -162,27 +174,39 @@ const ProfilePage = () => {
             )}
           </div>
 
-          <div className="space-y-4 mb-12">
-            {menuItems.map((item, index) => (
-              <motion.div
-                key={item.href}
-                initial={{ opacity: 0, x: -50 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, delay: 0.1 * index }}
-              >
-                <Link to={item.href}>
-                  <Button
-                    variant="secondary"
-                    className={`h-20 w-full justify-between px-6 text-lg text-white transition-all duration-300 ${item.color}`}
-                  >
-                    <div className="flex items-center">
-                      <item.icon className="mr-4 h-6 w-6" />
-                      {item.label}
-                    </div>
-                    <ChevronRight className="h-6 w-6" />
-                  </Button>
-                </Link>
-              </motion.div>
+          <div className="mb-12">
+            {menuGroups.map((group, groupIndex) => (
+              <div key={groupIndex}>
+                {groupIndex > 0 && (
+                  <div className="my-4 border-t border-border/40" />
+                )}
+                <div className="space-y-4">
+                  {group.map((item, itemIndex) => {
+                    const globalIndex = menuGroups.slice(0, groupIndex).reduce((acc, g) => acc + g.length, 0) + itemIndex;
+                    return (
+                      <motion.div
+                        key={item.href}
+                        initial={{ opacity: 0, x: -50 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.5, delay: 0.1 * globalIndex }}
+                      >
+                        <Link to={item.href}>
+                          <Button
+                            variant="secondary"
+                            className={`h-20 w-full justify-between px-6 text-lg text-white transition-all duration-300 ${item.color}`}
+                          >
+                            <div className="flex items-center">
+                              <item.icon className="mr-4 h-6 w-6" />
+                              {item.label}
+                            </div>
+                            <ChevronRight className="h-6 w-6" />
+                          </Button>
+                        </Link>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </div>
             ))}
           </div>
 

@@ -94,7 +94,7 @@ const PrivateShoppingList = ({ items, onAdd, onToggle, onRemove, loading, search
     }, [items]);
 
     return (
-        <Card className="bg-card/75 border-purple-500/20 overflow-hidden transition-all duration-300">
+        <Card data-guide-target="shopping-list-private" className="bg-card/75 border-purple-500/20 overflow-hidden transition-all duration-300">
             <Collapsible open={isOpen} onOpenChange={onOpenChange}>
                 <CollapsibleTrigger className="w-full flex items-center justify-between p-4 hover:bg-muted/65 transition-colors">
                     <h3 className="text-lg font-semibold flex items-center gap-2 text-[rgb(206_165_255)]">
@@ -832,7 +832,7 @@ const ShoppingListPage = () => {
                 </div>
 
                 {/* Controls */}
-                <div className="bg-card/75 p-2 rounded-xl border border-border/50 shadow-xl space-y-4">
+                <div data-guide-target="shopping-list-tabs" className="bg-card/75 p-2 rounded-xl border border-border/50 shadow-xl space-y-4">
                     <ContentStateToggle
                         mode={listMode}
                         onModeChange={handleModeChangeWithSync}
@@ -843,7 +843,7 @@ const ShoppingListPage = () => {
                         className="w-full"
                     />
                     
-                    <div className="relative">
+                    <div data-guide-target="shopping-list-search" className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input 
                             placeholder="Buscar ingrediente o receta..." 

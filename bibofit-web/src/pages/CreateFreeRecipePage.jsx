@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Helmet } from 'react-helmet';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -12,6 +12,8 @@ import { useFreeRecipeDialog } from '@/components/plans/hooks/useFreeRecipeDialo
 import EquivalenceDialog from '@/components/plans/EquivalenceDialog';
 import { calculateMacros } from '@/lib/macroCalculator';
 import RecipeView from '@/components/shared/RecipeView';
+import { useContextualGuide } from '@/contexts/ContextualGuideContext';
+import { GUIDE_BLOCK_IDS } from '@/config/guideBlocks';
 
 const EMPTY_RESTRICTIONS = {
   sensitivities: [],
@@ -68,6 +70,7 @@ const pickBestMealTargetRow = (rows, expectedDietPlanId) => {
 const CreateFreeRecipePage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { triggerBlock } = useContextualGuide();
   const navigate = useNavigate();
   const location = useLocation();
   const { date, mealId } = useParams();
@@ -91,6 +94,7 @@ const CreateFreeRecipePage = () => {
   const [userRestrictions, setUserRestrictions] = useState(EMPTY_RESTRICTIONS);
   const [dietPlanId, setDietPlanId] = useState(null);
   const [mealTargetMacros, setMealTargetMacros] = useState(initialTargetsFromState);
+  const hasTriggeredAutobalanceGuideRef = useRef(false);
 
   const targetUserId = user?.id;
 
@@ -294,6 +298,16 @@ const CreateFreeRecipePage = () => {
       navigate('/plan/dieta');
     }
   }, [date, mealId, navigate, toast]);
+
+  useEffect(() => {
+    if (view !== 'main') return;
+    if (loadingInitialData) return;
+    if (ingredients.length === 0) return;
+    if (hasTriggeredAutobalanceGuideRef.current) return;
+
+    hasTriggeredAutobalanceGuideRef.current = true;
+    triggerBlock(GUIDE_BLOCK_IDS.FREE_RECIPE_AUTOBALANCE);
+  }, [ingredients.length, loadingInitialData, triggerBlock, view]);
 
   const handleLocalIngredientAdded = (newIngredient) => {
     handleIngredientAdded(newIngredient);

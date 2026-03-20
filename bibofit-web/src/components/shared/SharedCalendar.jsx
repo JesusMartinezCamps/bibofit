@@ -226,7 +226,7 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
 {/* TOOLTIP PROVIDER */}
 <TooltipProvider>
 
-<div className={cn("w-full h-full flex flex-col", isClientView && "sm:p-6 sm:bg-card/75 sm:border sm:border-border sm:rounded-2xl")}>
+<div data-guide-target="dashboard-calendar" className={cn("w-full h-full flex flex-col", isClientView && "sm:p-6 sm:bg-card/75 sm:border sm:border-border sm:rounded-2xl")}>
 
   {/* HEADER */}
   <div className="flex items-center justify-between mb-4">
@@ -236,6 +236,7 @@ const SharedCalendar = ({ userId: propUserId, onRemindersChanged, refreshTrigger
       </h2>
       {enableViewToggle && (
         <Button
+          data-guide-target="dashboard-eye-toggle"
           variant="ghost"
           size="icon"
           className="h-8 w-8 text-emerald-500 dark:text-green-300 hover:text-emerald-600 dark:hover:text-green-200 transition-colors"

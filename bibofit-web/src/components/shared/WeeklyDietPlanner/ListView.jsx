@@ -429,6 +429,7 @@ const ListView = ({
 
                           return (
                             <button
+                              data-guide-target="meal-log-toggle"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleToggleMealSelection(item, currentDate);

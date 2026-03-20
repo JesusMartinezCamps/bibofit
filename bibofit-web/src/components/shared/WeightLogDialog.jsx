@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
     import { useAuth } from '@/contexts/AuthContext';
     import { supabase } from '@/lib/supabaseClient';
     import { useToast } from '@/components/ui/use-toast';
@@ -23,7 +23,9 @@ import React, { useState, useEffect, useCallback } from 'react';
     import ViewModeToggle from '@/components/shared/AdminViewToggle';
     import { format } from 'date-fns';
     import { es } from 'date-fns/locale';
-    import UnifiedDatePicker from '@/components/shared/UnifiedDatePicker';
+import UnifiedDatePicker from '@/components/shared/UnifiedDatePicker';
+import { useContextualGuide } from '@/contexts/ContextualGuideContext';
+import { GUIDE_BLOCK_IDS } from '@/config/guideBlocks';
 
     const WeightLogDialog = ({ open, onOpenChange, onLogAdded, initialDate, userId: propUserId, asPage = false }) => {
       const { user: authUser } = useAuth();
@@ -39,6 +41,8 @@ import React, { useState, useEffect, useCallback } from 'react';
       
       const [logDate, setLogDate] = useState(initialDate || new Date());
       const [displayDate, setDisplayDate] = useState(initialDate || new Date());
+      const hasTriggeredEditGuideRef = useRef(false);
+      const { triggerBlock } = useContextualGuide();
 
       const userId = propUserId || authUser?.id;
       const isAdminView = propUserId && authUser?.role === 'admin';
@@ -48,8 +52,20 @@ import React, { useState, useEffect, useCallback } from 'react';
           const newInitialDate = initialDate || new Date();
           setLogDate(newInitialDate);
           setDisplayDate(newInitialDate);
+          hasTriggeredEditGuideRef.current = false;
         }
       }, [open, initialDate]);
+
+      useEffect(() => {
+        if (!open || loading || mode !== 'settings') return undefined;
+        if (hasTriggeredEditGuideRef.current) return undefined;
+
+        hasTriggeredEditGuideRef.current = true;
+        const frame = requestAnimationFrame(() => {
+          triggerBlock(GUIDE_BLOCK_IDS.WEIGHT_LOG);
+        });
+        return () => cancelAnimationFrame(frame);
+      }, [loading, mode, open, triggerBlock]);
 
       useEffect(() => {
         const fetchSatietyLevels = async () => {
@@ -295,7 +311,7 @@ import React, { useState, useEffect, useCallback } from 'react';
                         </DialogDescription>
                       )}
                     </div>
-                    <div>
+                    <div data-guide-target="weight-log-input">
                       <Label htmlFor="weight" className="text-muted-foreground">Peso (kg)</Label>
                       <Input
                         id="weight"
@@ -308,7 +324,7 @@ import React, { useState, useEffect, useCallback } from 'react';
                         required
                       />
                     </div>
-                    <div>
+                    <div data-guide-target="weight-log-comment">
                       <Label htmlFor="comment" className="text-muted-foreground">Comentario (Opcional)</Label>
                       <Textarea
                         id="comment"
@@ -318,7 +334,7 @@ import React, { useState, useEffect, useCallback } from 'react';
                         placeholder="¿Cómo te sientes hoy? ¿Alguna nota sobre tu energía o sensaciones?"
                       />
                     </div>
-                    <div>
+                    <div data-guide-target="weight-log-satiety">
                       <Label className="text-muted-foreground">Nivel de Saciedad</Label>
                       <div className="flex justify-center gap-2 sm:gap-4 mt-2">
                         {satietyLevels.map((level) => (

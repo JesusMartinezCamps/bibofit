@@ -164,6 +164,7 @@ const Header = () => {
               </div>
 
               <Link
+                data-guide-target="header-profile-button"
                 to="/profile"
                 className={cn(
                   'flex max-w-[12rem] items-center gap-2 px-1 py-1 transition-opacity hover:opacity-85',

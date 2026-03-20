@@ -191,7 +191,7 @@ const RecipeEditorModal = ({
   });
 
   const isEditable = propIsEditable !== undefined ? propIsEditable : hookIsEditable;
-  const { triggerBlock } = useContextualGuide();
+  const { triggerBlock, seenBlocks } = useContextualGuide();
 
   const [canEditInPlace, setCanEditInPlace] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
@@ -218,6 +218,7 @@ const RecipeEditorModal = ({
   });
   const shouldRestoreSearchScrollRef = useRef(false);
   const shouldForceBottomScrollRef = useRef(false);
+  const hasTriggeredAutobalanceGuideRef = useRef(false);
   const editingSnapshotRef = useRef(null);
   const closeBaselineSnapshotRef = useRef(null);
   const closeBaselineKeyRef = useRef(null);
@@ -427,6 +428,35 @@ const RecipeEditorModal = ({
     setMode(newMode);
   };
 
+  useEffect(() => {
+    if (!open) {
+      hasTriggeredAutobalanceGuideRef.current = false;
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || loading || localLoading) return;
+    if (isSearching || readOnly || !isEditable) return;
+    if (mode !== 'settings') return;
+    if (!hasIngredientChanges) return;
+    if (seenBlocks.has(GUIDE_BLOCK_IDS.RECIPE_AUTOBALANCE)) return;
+    if (hasTriggeredAutobalanceGuideRef.current) return;
+
+    hasTriggeredAutobalanceGuideRef.current = true;
+    triggerBlock(GUIDE_BLOCK_IDS.RECIPE_AUTOBALANCE);
+  }, [
+    hasIngredientChanges,
+    isEditable,
+    isSearching,
+    loading,
+    localLoading,
+    mode,
+    open,
+    readOnly,
+    seenBlocks,
+    triggerBlock,
+  ]);
+
   const handleConfirmModeSwitch = () => {
     if (pendingMode) setMode(pendingMode);
     editingSnapshotRef.current = null;
@@ -519,6 +549,27 @@ const RecipeEditorModal = ({
       return;
     }
     await finalizeSave('auto');
+  };
+
+  const triggerSaveActionsGuide = useCallback(
+    (firstAction) => {
+      if (seenBlocks.has(GUIDE_BLOCK_IDS.RECIPE_SAVE_ACTIONS)) return false;
+
+      const stepOrder = firstAction === 'variant' ? [1, 0] : [0, 1];
+      triggerBlock(GUIDE_BLOCK_IDS.RECIPE_SAVE_ACTIONS, { stepOrder });
+      return true;
+    },
+    [seenBlocks, triggerBlock]
+  );
+
+  const handleMetadataSaveWithGuide = () => {
+    if (triggerSaveActionsGuide('save')) return;
+    handleMetadataSave();
+  };
+
+  const handleVariantSaveWithGuide = () => {
+    if (triggerSaveActionsGuide('variant')) return;
+    handleVariantSave();
   };
 
   const handleConflictConfirmed = async () => {
@@ -657,6 +708,7 @@ const RecipeEditorModal = ({
     <>
       {(!isSearching) && (
         <div
+          data-guide-target="recipe-view-mode-toggle"
           className={cn(
             'overflow-hidden transition-all duration-300 ease-out',
             isMobileViewport && isMobileHeaderHidden
@@ -743,8 +795,9 @@ const RecipeEditorModal = ({
                     <TooltipTrigger asChild>
                       <span tabIndex={0}>
                         <Button
+                          data-guide-target="recipe-view-save-button"
                           type="button"
-                          onClick={handleMetadataSave}
+                          onClick={handleMetadataSaveWithGuide}
                           disabled={isSubmitting || !canSaveInPlace}
                           className={cn(
                             "bg-gradient-to-r from-blue-700 to-blue-900 hover:from-blue-600 hover:to-blue-800 text-white font-bold transition-all duration-300",
@@ -775,8 +828,9 @@ const RecipeEditorModal = ({
                 <TooltipTrigger asChild>
                   <span tabIndex={0}>
                     <Button
+                      data-guide-target="recipe-view-variant-button"
                       type="button"
-                      onClick={handleVariantSave}
+                      onClick={handleVariantSaveWithGuide}
                       disabled={isSubmitting || !hasChanges}
                       className={cn(
                         "bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-500 hover:to-blue-600 text-white font-bold transition-all duration-300",

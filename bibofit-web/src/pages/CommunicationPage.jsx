@@ -733,11 +733,14 @@ const CommunicationPage = () => {
       <div className="flex h-full min-h-0 overflow-hidden">
 
         {/* ── LEFT PANEL ──────────────────────────────────────────────────── */}
-        <aside className={cn(
+        <aside
+          data-guide-target="chat-main"
+          className={cn(
           'flex flex-col border-r border-border bg-background transition-all',
           'w-full md:w-80 md:flex shrink-0',
           !showList && 'hidden md:flex',
-        )}>
+        )}
+        >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <h1 className="font-semibold text-foreground">Comunicaciones</h1>
@@ -777,6 +780,7 @@ const CommunicationPage = () => {
 
             {/* Sistema */}
             <button
+              data-guide-target="chat-news"
               onClick={() => handleSelectConv('system')}
               className={cn(
                 'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors',
@@ -923,7 +927,7 @@ const CommunicationPage = () => {
                   </Button>
                 )}
               </div>
-              <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+              <div data-guide-target="chat-news" className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
                 {notifications.length === 0 ? (
                   <div className="py-12 text-center text-sm text-muted-foreground">
                     No tienes notificaciones todavía.

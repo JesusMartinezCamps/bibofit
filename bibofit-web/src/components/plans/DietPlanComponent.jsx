@@ -52,7 +52,7 @@ const DateTimeline = React.memo(({ currentDate, setCurrentDate, navigate, isAdmi
     const isTodayInPast = !isTodayVisible && isBefore(today, weekDates[0]);
 
     return (
-        <div className="flex items-center justify-center gap-2 bg-card/85 p-2 rounded-xl border border-border shadow-sm">
+        <div data-guide-target="diet-plan-week-viewer" className="flex items-center justify-center gap-2 bg-card/85 p-2 rounded-xl border border-border shadow-sm">
             <Button variant="ghost" size="icon" onClick={() => changeWeek('prev')} className="text-muted-foreground hover:bg-muted hover:text-muted-foreground">
                 <ArrowLeft className={cn(isTodayInPast ? "text-cyan-400" : "text-muted-foreground")} />
             </Button>
@@ -539,7 +539,8 @@ const combinedPlanRestrictions = useMemo(() => {
             </CardHeader>
             <CardContent className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-4 pt-0">
               <div className="flex flex-col space-y-4">
-                  <div 
+                  <div
+                      data-guide-target="diet-plan-weight-log"
                       onClick={() => navigate(`/registro-peso?date=${format(currentDate, 'yyyy-MM-dd')}${userId ? `&userId=${userId}` : ''}`)}
                       className={cn(
                           "p-3 rounded-lg border shadow-lg text-center cursor-pointer h-auto flex flex-col justify-center w-full transition-colors duration-200",
@@ -639,7 +640,7 @@ const combinedPlanRestrictions = useMemo(() => {
                       </div>
                   )}
               </div>
-              <div className="hidden lg:block">
+              <div className="hidden lg:block" data-guide-target="diet-plan-macro-viewer">
                   <DietVisualizer isSticky={false} activePlan={activePlan} viewMode={viewMode} targetMacros={targetMacros} consumedMacros={consumedMacros} loadingMacros={loadingMacros} visualizerWeekDates={visualizerWeekDates} weekSummaryByDate={weekSummaryByDate} onDayClick={handleDayClickInVisualizer} focusedWeekDate={focusedWeekDate} />
               </div>
             </CardContent>
@@ -649,14 +650,15 @@ const combinedPlanRestrictions = useMemo(() => {
               <div ref={stickysentinel} className="h-0 w-full" aria-hidden="true" />
               <div
                 data-diet-sticky-visualizer="true"
+                data-guide-target="diet-plan-macro-viewer"
                 className="lg:hidden sticky !top-0 z-30 bg-card/95 backdrop-blur-sm -mx-1 sm:mx-0 px-1 sm:px-0 py-2 rounded-b-xl shadow-[0_8px_15px_-5px_rgba(0,0,0,0.3)]"
               >
                 <DietVisualizer isSticky={isVisualizerStuck} activePlan={activePlan} viewMode={viewMode} targetMacros={targetMacros} consumedMacros={consumedMacros} loadingMacros={loadingMacros} visualizerWeekDates={visualizerWeekDates} weekSummaryByDate={weekSummaryByDate} onDayClick={handleDayClickInVisualizer} focusedWeekDate={focusedWeekDate} />
               </div>
           </div>
 
-          <Card className="bg-card/85 border-border text-foreground shadow-xl">
-              <div className="p-4 border-b border-border">
+          <Card data-guide-target="diet-plan-meals" className="bg-card/85 border-border text-foreground shadow-xl">
+              <div className="p-4 border-b border-border" data-guide-target="diet-plan-weekly-planner">
                   <ContentStateToggle
                       mode={viewMode}
                       onModeChange={(newMode) => setViewMode(newMode)}
@@ -673,6 +675,7 @@ const combinedPlanRestrictions = useMemo(() => {
                             <div className="flex items-center gap-2">
                               <CardTitle>Comidas del día</CardTitle>
                               <Button
+                                data-guide-target="diet-plan-eye-toggle"
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-muted-foreground hover:text-foreground transition-colors"

@@ -10,6 +10,8 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { invokeAutoBalanceEquivalence } from '@/lib/autoBalanceClient';
+import { useContextualGuide } from '@/contexts/ContextualGuideContext';
+import { GUIDE_BLOCK_IDS } from '@/config/guideBlocks';
 import {
   AUTO_BALANCE_FEATURES,
   consumeAutobalanceQuota,
@@ -22,6 +24,7 @@ import {
 const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sourceLogId, onSuccess, sourceItemMacros }) => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { triggerBlock } = useContextualGuide();
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [availableMeals, setAvailableMeals] = useState([]);
@@ -64,6 +67,16 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
     if (!open) return;
     loadAutobalanceQuotaSnapshot();
   }, [open, loadAutobalanceQuotaSnapshot]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const frame = requestAnimationFrame(() => {
+      triggerBlock(GUIDE_BLOCK_IDS.SNACK_EQUIVALENCE);
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [open, triggerBlock]);
 
   useEffect(() => {
     const fetchAvailableMeals = async () => {
@@ -296,6 +309,7 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
   return (
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent
+        data-guide-target="snack-equivalence-modal"
         className="bg-card border-border text-foreground max-w-2xl p-0 overflow-hidden shadow-2xl rounded-2xl"
         onEscapeKeyDown={(event) => {
           if (isSubmitting) event.preventDefault();

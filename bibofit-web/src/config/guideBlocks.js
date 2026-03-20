@@ -23,12 +23,19 @@ export const GUIDE_BLOCK_IDS = {
   SHOPPING_LIST: 'shopping-list',
   RECIPE_VIEW: 'recipe-view',
   RECIPE_EDIT: 'recipe-edit',
+  RECIPE_MEAL_LOG: 'recipe-meal-log',
+  RECIPE_INGREDIENT_LOCK: 'recipe-ingredient-lock',
+  RECIPE_AUTOBALANCE: 'recipe-autobalance',
+  RECIPE_SAVE_ACTIONS: 'recipe-save-actions',
   VARIANT_TREE: 'variant-tree',
   CHAT: 'chat',
+  WEIGHT_LOG: 'weight-log',
   WEIGHT_HISTORY: 'weight-history',
   MY_PLAN: 'my-plan',
   SNACK_SELECTOR: 'snack-selector',
+  SNACK_EQUIVALENCE: 'snack-equivalence',
   FREE_RECIPE_SELECTOR: 'free-recipe-selector',
+  FREE_RECIPE_AUTOBALANCE: 'free-recipe-autobalance',
 };
 
 export const GUIDE_BLOCKS = [
@@ -111,6 +118,7 @@ export const GUIDE_BLOCKS = [
         content:
           'Tu dieta está dividida en los momentos del día que configuraste. Usa el buscador inteligente para navegar entre recetas: filtra por alimento, familia nutricional, estilo de receta, dificultad y mucho más.',
         targetId: 'diet-plan-meals',
+        cardPlacement: 'top',
       },
       {
         title: 'Más o menos detalle',
@@ -197,20 +205,6 @@ export const GUIDE_BLOCKS = [
           'Pulsa el botón "+" para añadir nuevos ingredientes a la receta. El buscador inteligente te ayuda a encontrar exactamente lo que buscas.',
         targetId: 'recipe-view-add-ingredient',
       },
-      {
-        title: 'Autocuadre de macros',
-        icon: { name: 'Bot', className: 'h-4 w-4 text-cyan-500' },
-        content:
-          'El botón de Autocuadre es tu aliado más potente: ajusta automáticamente las cantidades de cada ingrediente con la fórmula Bibofit para que la receta siempre cubra tus macronutrientes, sin perder flexibilidad en la dieta.',
-        targetId: 'recipe-view-autobalance',
-      },
-      {
-        title: 'Guardar cambios',
-        icon: { name: 'GitBranch', className: 'h-4 w-4 text-cyan-500' },
-        content:
-          'Cuando modifiques una receta tienes dos opciones: crear una Nueva Variante (conservas la original y guardas la nueva) o Guardar los Cambios en esa misma versión. Ojo: las recetas originales del plan y las que ya están marcadas como comida no se pueden modificar para mantener la trazabilidad de tu registro calórico.',
-        targetId: 'recipe-view-save',
-      },
     ],
   },
 
@@ -223,11 +217,101 @@ export const GUIDE_BLOCKS = [
     icon: { name: 'Settings', className: 'h-6 w-6 text-muted-foreground' },
     steps: [
       {
+        title: 'Toggle de cambio de modo',
+        icon: { name: 'Eye', className: 'h-4 w-4 text-muted-foreground' },
+        content:
+          'Desde este selector puedes alternar entre Vista rápida y Configuración avanzada en cualquier momento.',
+        targetId: 'recipe-view-mode-toggle',
+      },
+      {
         title: 'Modo Configuración avanzada',
         icon: { name: 'Settings', className: 'h-4 w-4 text-muted-foreground' },
         content:
           'En este modo tienes acceso a información nutricional más precisa de cada alimento. También puedes modificar los metadatos de la receta: preparación, dificultad, estilo culinario y tiempo de elaboración.',
         targetId: 'recipe-settings-form',
+      },
+    ],
+  },
+
+  // ─── RECIPE MEAL LOG (FIRST MARK AS EATEN) ──────────────────────────────────
+  {
+    id: 'recipe-meal-log',
+    section: 'Recetas',
+    title: 'Marcar como Comida',
+    route: '/plan/dieta',
+    icon: { name: 'UtensilsCrossed', className: 'h-6 w-6 text-emerald-500' },
+    steps: [
+      {
+        title: 'Seguimiento de ingesta energética',
+        icon: { name: 'BarChart3', className: 'h-4 w-4 text-emerald-500' },
+        content:
+          'Al marcar una receta como comida, Bibofit la suma a tu registro diario para llevar un seguimiento real de calorías y macronutrientes consumidos.',
+        targetId: 'meal-log-toggle',
+      },
+    ],
+  },
+
+  // ─── RECIPE AUTOBALANCE (FIRST USE) ──────────────────────────────────────────
+  {
+    id: 'recipe-autobalance',
+    section: 'Recetas',
+    title: 'Autocuadre de Macros',
+    route: '/plan/dieta',
+    icon: { name: 'Bot', className: 'h-6 w-6 text-cyan-500' },
+    steps: [
+      {
+        title: 'Ajuste automático tras cambios',
+        icon: { name: 'Bot', className: 'h-4 w-4 text-cyan-500' },
+        content:
+          'Has cambiado ingredientes o cantidades. Pulsa "Autocuadrar Macros" para ajustar automáticamente la receta y acercarla a tus objetivos de calorías y macronutrientes.',
+        targetId: 'recipe-view-autobalance',
+        actionPreview: {
+          type: 'autobalance',
+          label: 'Autocuadrar Macros',
+        },
+      },
+    ],
+  },
+
+  // ─── RECIPE QUICK EDIT LOCK (FIRST USE) ─────────────────────────────────────
+  {
+    id: 'recipe-ingredient-lock',
+    section: 'Recetas',
+    title: 'Ajustar Ingrediente',
+    route: '/plan/dieta',
+    icon: { name: 'Lock', className: 'h-6 w-6 text-amber-500' },
+    steps: [
+      {
+        title: 'Candado del ingrediente',
+        icon: { name: 'Lock', className: 'h-4 w-4 text-amber-500' },
+        content:
+          'Activa este candado para proteger ese ingrediente: al usar "Autocuadrar Macros", su cantidad quedará fija y no se modificará automáticamente.',
+        targetId: 'recipe-ingredient-lock',
+      },
+    ],
+  },
+
+  // ─── RECIPE SAVE ACTIONS (FIRST CLICK) ───────────────────────────────────────
+  {
+    id: 'recipe-save-actions',
+    section: 'Recetas',
+    title: 'Guardar o Crear Variante',
+    route: '/plan/dieta',
+    icon: { name: 'GitBranch', className: 'h-6 w-6 text-cyan-500' },
+    steps: [
+      {
+        title: 'Guardar cambios',
+        icon: { name: 'Lock', className: 'h-4 w-4 text-blue-500' },
+        content:
+          'Este botón actualiza la receta actual solo cuando está permitido (sin romper trazabilidad: por ejemplo, recetas base del plan o ya consolidadas no se editan in-place). Si no está permitido, usa "Crear variante".',
+        targetId: 'recipe-view-save-button',
+      },
+      {
+        title: 'Crear variante',
+        icon: { name: 'GitBranch', className: 'h-4 w-4 text-cyan-500' },
+        content:
+          'Este botón crea una copia nueva de la receta para que puedas ajustarla a tu gusto con seguridad. Es la forma recomendada para evolucionar tus recetas con el tiempo.',
+        targetId: 'recipe-view-variant-button',
       },
     ],
   },
@@ -271,6 +355,7 @@ export const GUIDE_BLOCKS = [
         content:
           'Bibofit es una app inteligente desarrollada con IA, pero está diseñada para personas. Aquí puedes contactar directamente con el admin —el mismo programador y dietista que ha desarrollado la app— para resolver dudas, reportar errores o hacer sugerencias.',
         targetId: 'chat-main',
+        cardPlacement: 'bottom',
       },
       {
         title: 'Novedades y comunidad',
@@ -278,6 +363,39 @@ export const GUIDE_BLOCKS = [
         content:
           'Mantente al tanto de las últimas actualizaciones de Bibofit en este espacio. Próximamente también podrás conectar y compartir con otros usuarios de la comunidad.',
         targetId: 'chat-news',
+        cardPlacement: 'bottom',
+      },
+    ],
+  },
+
+  // ─── WEIGHT LOG ───────────────────────────────────────────────────────────────
+  {
+    id: 'weight-log',
+    section: 'Progreso',
+    title: 'Registro de Peso',
+    route: '/registro-peso',
+    icon: { name: 'Scale', className: 'h-6 w-6 text-violet-500' },
+    steps: [
+      {
+        title: 'Añade tu peso',
+        icon: { name: 'Scale', className: 'h-4 w-4 text-violet-500' },
+        content:
+          'Introduce tu peso en kg para registrar la medida del día. Este dato es la base para ajustar tu evolución del plan.',
+        targetId: 'weight-log-input',
+      },
+      {
+        title: 'Comentario (opcional)',
+        icon: { name: 'MessageSquare', className: 'h-4 w-4 text-primary' },
+        content:
+          'Puedes añadir una nota breve sobre sensaciones, energía o contexto del día. Es opcional, pero ayuda a interpretar mejor tus registros.',
+        targetId: 'weight-log-comment',
+      },
+      {
+        title: 'Nivel de saciedad',
+        icon: { name: 'BarChart3', className: 'h-4 w-4 text-amber-500' },
+        content:
+          'Marca cómo te has sentido de saciado. Esta señal es muy útil para ajustar la dieta con más precisión y sostenibilidad.',
+        targetId: 'weight-log-satiety',
       },
     ],
   },
@@ -332,13 +450,26 @@ export const GUIDE_BLOCKS = [
         content:
           'Los picoteos están aquí para darte libertad real. Bibofit entiende cómo actuamos las personas y no te fuerza a seguir dietas estrictas. Añade aquí todo lo que comas entre horas y lleva un registro honesto.',
         targetId: 'snack-selector-list',
+        cardPlacement: 'bottom',
       },
+    ],
+  },
+
+  // ─── SNACK EQUIVALENCE ───────────────────────────────────────────────────────
+  {
+    id: 'snack-equivalence',
+    section: 'Dieta',
+    title: 'Aplicar Equivalencia',
+    route: '/plan/dieta',
+    icon: { name: 'Bot', className: 'h-6 w-6 text-cyan-500' },
+    steps: [
       {
         title: 'Equivalencia Automática',
         icon: { name: 'Bot', className: 'h-4 w-4 text-cyan-500' },
         content:
-          'Después de añadir un picoteo, puedes hacer una Equivalencia Automática: Bibofit equilibra las calorías de ese picoteo reduciendo una comida futura, para que siempre te mantengas en tus calorías y logres tus objetivos sin sentirte culpable.',
-        targetId: 'snack-selector-equivalence',
+          'Aquí puedes compensar automáticamente un picoteo o una receta ajustando una comida futura. Bibofit redistribuye calorías y macros para mantener el equilibrio energético de tu plan.',
+        targetId: 'snack-equivalence-modal',
+        cardPlacement: 'bottom',
       },
     ],
   },
@@ -357,6 +488,25 @@ export const GUIDE_BLOCKS = [
         content:
           'Aquí tienes total libertad para añadir cualquiera de tus recetas favoritas. Bibofit ajusta automáticamente las cantidades para que cubran los macronutrientes de tu plan, combinando flexibilidad total con la precisión que necesitas para lograr tus objetivos.',
         targetId: 'free-recipe-selector-list',
+        cardPlacement: 'bottom',
+      },
+    ],
+  },
+
+  // ─── FREE RECIPE AUTOBALANCE ─────────────────────────────────────────────────
+  {
+    id: 'free-recipe-autobalance',
+    section: 'Recetas',
+    title: 'Receta Libre: Autocuadre',
+    route: '/plan/dieta',
+    icon: { name: 'Bot', className: 'h-6 w-6 text-cyan-500' },
+    steps: [
+      {
+        title: 'Autocuadra tu receta libre',
+        icon: { name: 'Bot', className: 'h-4 w-4 text-cyan-500' },
+        content:
+          'Añade los alimentos y cantidades que sueles comer. Luego pulsa "Autocuadrar Macros" para ajustar la receta lo más cerca posible de tus objetivos y mantener el balance energético de tu plan.',
+        targetId: 'recipe-view-autobalance',
       },
     ],
   },
