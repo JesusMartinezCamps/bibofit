@@ -189,14 +189,14 @@ const TrainingPlanPage = () => {
               <p className="text-xs font-semibold uppercase tracking-wide text-[#F44C40]">Training Zone</p>
               <CardTitle className="text-white">Zona de entrenamiento</CardTitle>
               <CardDescription>
-                MPV listo para crear mesociclos, definir microciclos y configurar la rutina semanal por bloques.
+                MPV listo para crear rutinas semanales practicas y entrenar desde hoy.
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-wrap items-center gap-2">
               <Button asChild className="bg-[#F44C40] text-white hover:bg-[#E23C32]">
-                <Link to="/plan/entreno/mesociclo/nuevo">
+                <Link to="/plan/entreno/rutina/nueva">
                   <Plus className="mr-2 h-4 w-4" />
-                  Crear nuevo mesociclo
+                  Crear rutina semanal
                 </Link>
               </Button>
               <Button
@@ -226,7 +226,7 @@ const TrainingPlanPage = () => {
                 <Dumbbell className="mx-auto h-8 w-8 text-[#F44C40]" />
                 <p className="mt-3 text-base font-semibold text-white">No tienes mesociclo activo</p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Crea uno nuevo para definir tus días, bloques, ejercicios y microciclos.
+                  Crea una rutina semanal para empezar a entrenar ya.
                 </p>
               </CardContent>
             </Card>

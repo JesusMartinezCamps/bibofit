@@ -20,6 +20,7 @@ import ClientProfilePage from '@/pages/ClientProfilePage';
 import TrainingManagementPage from '@/pages/admin/TrainingManagementPage';
 import TrainingPlanPage from '@/pages/TrainingPlanPage';
 import CreateMesocyclePage from '@/pages/CreateMesocyclePage';
+import ExerciseSessionPage from '@/pages/ExerciseSessionPage';
 import UserCreatedFoodsPage from '@/pages/admin/UserCreatedFoodsPage';
 import FreeMealRequestsPage from '@/pages/admin/FreeMealRequestsPage';
 import DietChangeRequestsPage from '@/pages/admin/DietChangeRequestsPage';
@@ -189,7 +190,9 @@ const AppRoutes = () => (
       </Route>
       <Route path="/registro-peso" element={<ProtectedRoute><WeightLogPage /></ProtectedRoute>} />
       <Route path="/plan/entreno" element={<ProtectedRoute><TrainingPlanPage /></ProtectedRoute>} />
-      <Route path="/plan/entreno/mesociclo/nuevo" element={<ProtectedRoute><CreateMesocyclePage /></ProtectedRoute>} />
+      <Route path="/plan/entreno/rutina/nueva" element={<ProtectedRoute><CreateMesocyclePage /></ProtectedRoute>} />
+      <Route path="/plan/entreno/mesociclo/nuevo" element={<Navigate to="/plan/entreno/rutina/nueva" replace />} />
+      <Route path="/plan/entreno/ejercicio-demo" element={<ProtectedRoute><ExerciseSessionPage /></ProtectedRoute>} />
       <Route path="/create-free-recipe/:date/:mealId" element={<ProtectedRoute><CreateFreeRecipePage /></ProtectedRoute>} />
       <Route path="/create-snack/:date/:mealId" element={<ProtectedRoute><CreateSnackPage /></ProtectedRoute>} />
 

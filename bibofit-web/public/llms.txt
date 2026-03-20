@@ -8,7 +8,7 @@
 - [Bibofit | Software para Nutricionistas y Entrenadores](/home): La plataforma todo en uno para gestionar planes de nutrición, rutinas de entrenamiento y seguimiento de clientes. Escala tu negocio fitness con Bibofit.
 - [Centro de Comunicaciones - Bibofit](/communication): No description available
 - [Crear Receta Libre - Gsus Martz](/createfreerecipe): Crea y añade una receta libre a tu plan de dieta.
-- [Crear Zona de Entrenamiento - Bibofit](/createmesocycle): Configura tu mesociclo con rutina semanal y microciclos en la nueva Zona de Entrenamiento.
+- [Crear Rutina Semanal - Bibofit](/createmesocycle): Crea una rutina semanal practica: elige dias, define bloques y ejercicios, y empieza a entrenar ya.
 - [Cuenta Confirmada - Bibofit](/authconfirmed): Tu cuenta está confirmada. Continúa para empezar con Bibofit.
 - [Dashboard - Bibofit](/dashboard): Tu calendario de entrenamientos y dietas.
 - [Dashboard Entrenador - Gsus Martz](/coachdashboard): No description available

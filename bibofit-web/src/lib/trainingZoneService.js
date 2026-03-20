@@ -13,6 +13,28 @@ const toFloatOrNull = (value) => {
   return Number.isNaN(parsed) ? null : parsed;
 };
 
+const mapDayBlueprintToPayload = (days = []) =>
+  (days || []).map((day) => ({
+    name: day.name?.trim() || null,
+    blocks: (day.blocks || []).map((block) => ({
+      type: block.type || 'custom',
+      name: block.name?.trim() || null,
+      exercises: (block.exercises || [])
+        .map((exercise) => ({
+          exercise_id: toIntOrNull(exercise.exercise_id),
+          preferred_equipment_id: toIntOrNull(exercise.preferred_equipment_id),
+          target_sets: toIntOrNull(exercise.target_sets) ?? 3,
+          target_reps_min: toIntOrNull(exercise.target_reps_min) ?? 8,
+          target_reps_max: toIntOrNull(exercise.target_reps_max) ?? 12,
+          progression_increment_kg: toIntOrNull(exercise.progression_increment_kg) ?? 5,
+          backoff_percentage: toFloatOrNull(exercise.backoff_percentage) ?? 0.8,
+          is_key_exercise: Boolean(exercise.is_key_exercise),
+          notes: exercise.notes?.trim() || null,
+        }))
+        .filter((exercise) => exercise.exercise_id !== null),
+    })),
+  }));
+
 export const getDateKey = (date = new Date()) => format(date, 'yyyy-MM-dd');
 
 export const getTrainingZoneCatalogs = async () => {
@@ -232,26 +254,7 @@ export const createMesocycleBlueprintV2 = async ({
   days,
   microcycles,
 }) => {
-  const payloadDays = (days || []).map((day) => ({
-    name: day.name?.trim() || null,
-    blocks: (day.blocks || []).map((block) => ({
-      type: block.type || 'custom',
-      name: block.name?.trim() || null,
-      exercises: (block.exercises || [])
-        .map((exercise) => ({
-          exercise_id: toIntOrNull(exercise.exercise_id),
-          preferred_equipment_id: toIntOrNull(exercise.preferred_equipment_id),
-          target_sets: toIntOrNull(exercise.target_sets) ?? 3,
-          target_reps_min: toIntOrNull(exercise.target_reps_min) ?? 8,
-          target_reps_max: toIntOrNull(exercise.target_reps_max) ?? 12,
-          progression_increment_kg: toIntOrNull(exercise.progression_increment_kg) ?? 5,
-          backoff_percentage: toFloatOrNull(exercise.backoff_percentage) ?? 0.8,
-          is_key_exercise: Boolean(exercise.is_key_exercise),
-          notes: exercise.notes?.trim() || null,
-        }))
-        .filter((exercise) => exercise.exercise_id !== null),
-    })),
-  }));
+  const payloadDays = mapDayBlueprintToPayload(days);
 
   const payloadMicrocycles = (microcycles || []).map((microcycle, index) => ({
     name: microcycle.name?.trim() || `Microciclo ${index + 1}`,
@@ -284,6 +287,29 @@ export const createMesocycleBlueprintV2 = async ({
     p_user_id: userId,
     p_weekly_routine_name: weeklyRoutineName?.trim() || null,
     p_microcycles: payloadMicrocycles,
+  });
+
+  if (error) throw error;
+  return data;
+};
+
+export const createWeeklyRoutineQuickstartV2 = async ({
+  userId,
+  weeklyRoutineName,
+  cycleDays,
+  objectiveId,
+  startDate,
+  days,
+}) => {
+  const payloadDays = mapDayBlueprintToPayload(days);
+
+  const { data, error } = await supabase.rpc('training_create_weekly_routine_quickstart_v2', {
+    p_weekly_routine_name: weeklyRoutineName?.trim() || null,
+    p_cycle_days: toIntOrNull(cycleDays),
+    p_days: payloadDays,
+    p_objective_id: toIntOrNull(objectiveId),
+    p_start_date: startDate || null,
+    p_user_id: userId,
   });
 
   if (error) throw error;
