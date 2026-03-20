@@ -22,7 +22,6 @@ import TrainingPlanPage from '@/pages/TrainingPlanPage';
 import CreateMesocyclePage from '@/pages/CreateMesocyclePage';
 import WorkoutDayPage from '@/pages/WorkoutDayPage';
 import ExerciseSessionPage from '@/pages/ExerciseSessionPage';
-import RoutineDayWorkspacePage from '@/pages/RoutineDayWorkspacePage';
 import UserCreatedFoodsPage from '@/pages/admin/UserCreatedFoodsPage';
 import FreeMealRequestsPage from '@/pages/admin/FreeMealRequestsPage';
 import DietChangeRequestsPage from '@/pages/admin/DietChangeRequestsPage';
@@ -68,6 +67,7 @@ import HomePage from '@/pages/HomePage';
 import ShoppingListPage from '@/pages/ShoppingListPage';
 import CommunicationPage from '@/pages/CommunicationPage';
 import BroadcastsPage from '@/pages/BroadcastsPage';
+import TrainingAdminGuard from '@/components/training/TrainingAdminGuard';
 
 // Coach Pages
 import CoachDashboard from '@/pages/CoachDashboard';
@@ -198,16 +198,16 @@ const AppRoutes = () => (
       </Route>
       <Route path="/registro-peso" element={<ProtectedRoute><WeightLogPage /></ProtectedRoute>} />
       <Route path="/registro-pasos" element={<ProtectedRoute><StepsLogPage /></ProtectedRoute>} />
-      <Route path="/plan/entreno" element={<ProtectedRoute><Navigate to={`/plan/entreno/${format(new Date(), 'yyyy-MM-dd')}`} replace /></ProtectedRoute>} />
-      <Route path="/plan/entreno/:date" element={<ProtectedRoute><TrainingPlanPage /></ProtectedRoute>} />
-      <Route path="/plan/entreno/rutina/nueva" element={<ProtectedRoute><CreateMesocyclePage /></ProtectedRoute>} />
-      <Route path="/plan/entreno/rutina/edita" element={<Navigate to="/plan/entreno/rutina/editar" replace />} />
-      <Route path="/plan/entreno/rutina/edita/:weeklyDayId" element={<RedirectWithParams to="/plan/entreno/rutina/editar" param="weeklyDayId" />} />
-      <Route path="/plan/entreno/rutina/editar" element={<ProtectedRoute><RoutineDayWorkspacePage /></ProtectedRoute>} />
-      <Route path="/plan/entreno/rutina/editar/:weeklyDayId" element={<ProtectedRoute><RoutineDayWorkspacePage /></ProtectedRoute>} />
-      <Route path="/plan/entreno/dia/:weeklyDayId" element={<ProtectedRoute><WorkoutDayPage /></ProtectedRoute>} />
-      <Route path="/plan/entreno/dia/:weeklyDayId/ejercicio/:blockExerciseId" element={<ProtectedRoute><ExerciseSessionPage /></ProtectedRoute>} />
-      <Route path="/plan/entreno/ejercicio-demo" element={<ProtectedRoute><ExerciseSessionPage /></ProtectedRoute>} />
+      <Route path="/plan/entreno" element={<ProtectedRoute><TrainingAdminGuard><Navigate to={`/plan/entreno/${format(new Date(), 'yyyy-MM-dd')}`} replace /></TrainingAdminGuard></ProtectedRoute>} />
+      <Route path="/plan/entreno/:date" element={<ProtectedRoute><TrainingAdminGuard><TrainingPlanPage /></TrainingAdminGuard></ProtectedRoute>} />
+      <Route path="/plan/entreno/rutina/nueva" element={<ProtectedRoute><TrainingAdminGuard><CreateMesocyclePage /></TrainingAdminGuard></ProtectedRoute>} />
+      <Route path="/plan/entreno/rutina/edita" element={<Navigate to="/plan/entreno" replace />} />
+      <Route path="/plan/entreno/rutina/edita/:weeklyDayId" element={<RedirectWithParams to="/plan/entreno/dia" param="weeklyDayId" />} />
+      <Route path="/plan/entreno/rutina/editar" element={<Navigate to="/plan/entreno" replace />} />
+      <Route path="/plan/entreno/rutina/editar/:weeklyDayId" element={<RedirectWithParams to="/plan/entreno/dia" param="weeklyDayId" />} />
+      <Route path="/plan/entreno/dia/:weeklyDayId" element={<ProtectedRoute><TrainingAdminGuard><WorkoutDayPage /></TrainingAdminGuard></ProtectedRoute>} />
+      <Route path="/plan/entreno/dia/:weeklyDayId/ejercicio/:blockExerciseId" element={<ProtectedRoute><TrainingAdminGuard><ExerciseSessionPage /></TrainingAdminGuard></ProtectedRoute>} />
+      <Route path="/plan/entreno/ejercicio-demo" element={<ProtectedRoute><TrainingAdminGuard><ExerciseSessionPage /></TrainingAdminGuard></ProtectedRoute>} />
       <Route path="/create-free-recipe/:date/:mealId" element={<ProtectedRoute><CreateFreeRecipePage /></ProtectedRoute>} />
       <Route path="/create-snack/:date/:mealId" element={<ProtectedRoute><CreateSnackPage /></ProtectedRoute>} />
 
