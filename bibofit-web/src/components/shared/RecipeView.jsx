@@ -682,7 +682,7 @@ const RecipeView = ({
             </div>
             <div className="flex justify-center gap-3 mt-2">
               {redCount > 0 && (
-                <span className="flex items-center text-sm text-red-400 gap-1.5 bg-red-900/20 px-2 py-1 rounded-full border border-red-500/30">
+                <span className="flex items-center text-sm text-red-400 gap-1.5 bg-red-900/30 px-2 py-1 rounded-full border border-red-500/50">
                   <AlertTriangle className="w-4 h-4" /> {redCount} Conflictos
                 </span>
               )}
@@ -700,7 +700,7 @@ const RecipeView = ({
       )}
       {isConflictCorrectionMode && (
         <div className="flex justify-center -mt-2 mb-4 relative z-10">
-          <Badge variant="outline" className="border-amber-500 text-amber-300 bg-amber-900/20">
+          <Badge variant="outline" className="border-amber-500 dark:text-amber-300 text-amber-900 dark:bg-amber-900/20 bg-amber-100">
             Modo correccion de conflictos
           </Badge>
         </div>

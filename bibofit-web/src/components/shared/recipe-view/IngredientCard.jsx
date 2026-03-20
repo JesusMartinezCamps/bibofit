@@ -80,7 +80,7 @@ const getStatusColorClasses = (type) => {
     case 'individual_restriction':
     case 'non-preferred':
     case 'diet_type_excluded':
-      return 'bg-red-500/5 dark:bg-muted/65 border-red-500/30 text-red-400';
+      return 'bg-red-400/20 dark:bg-muted/65 border-red-500/30 text-red-400';
     case 'diet_type_limited':
       return 'bg-orange-500/5 dark:bg-muted/65 border-orange-500/30 text-orange-400';
     case 'condition_recommend':
