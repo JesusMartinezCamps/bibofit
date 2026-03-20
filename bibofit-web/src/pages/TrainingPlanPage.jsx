@@ -10,17 +10,15 @@ import {
   isValid,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
   ArrowRight,
   CalendarDays,
   Dumbbell,
-  List,
   Loader2,
+  PenLine,
   Play,
-  Repeat,
-  Star,
   Target,
   Footprints,
 } from 'lucide-react';
@@ -28,9 +26,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import ContentStateToggle from '@/components/shared/ContentStateToggle';
 import ColorLegendCollapsible from '@/components/shared/ColorLegendCollapsible';
+import { WIZARD_DRAFT_KEY } from '@/hooks/useCreateRoutineWizard';
 import TrainingMacroVisualizer from '@/components/shared/TrainingMacroVisualizer/TrainingMacroVisualizer';
+import TrainingWeeklyRoutineSection from '@/components/training/TrainingWeeklyRoutineSection';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import {
@@ -156,18 +155,57 @@ const DateTimeline = ({
   );
 };
 
+const WizardDraftBanner = ({ onResume, onDiscard }) => (
+  <div className="flex items-center gap-3 rounded-xl border border-[#F44C40]/30 bg-[#F44C40]/8 px-4 py-3">
+    <PenLine className="h-4 w-4 text-[#F44C40] shrink-0" />
+    <div className="flex-1 min-w-0">
+      <p className="text-sm font-semibold text-white">Tienes una rutina sin terminar</p>
+      <p className="text-xs text-muted-foreground">Retoma el asistente donde lo dejaste</p>
+    </div>
+    <button
+      type="button"
+      onClick={onDiscard}
+      className="text-xs text-muted-foreground hover:text-foreground transition-colors shrink-0 px-2 py-1"
+    >
+      Descartar
+    </button>
+    <Button
+      size="sm"
+      onClick={onResume}
+      className="bg-[#F44C40] hover:bg-[#E23C32] text-white text-xs shrink-0"
+    >
+      Retomar
+    </Button>
+  </div>
+);
+
 const TrainingPlanPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { date: dateParam } = useParams();
 
+  const [hasDraft, setHasDraft] = useState(() => {
+    try { return !!localStorage.getItem(WIZARD_DRAFT_KEY); } catch { return false; }
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isStartingWorkout, setIsStartingWorkout] = useState(false);
   const [snapshot, setSnapshot] = useState(null);
   const [catalogs, setCatalogs] = useState(null);
   const [viewMode, setViewMode] = useState('list');
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(() => {
+    if (dateParam) {
+      const parsed = parseISO(dateParam);
+      if (isValid(parsed)) return parsed;
+    }
+    return new Date();
+  });
+
+  const handleDateChange = useCallback((newDate) => {
+    setCurrentDate(newDate);
+    navigate(`/plan/entreno/${format(newDate, 'yyyy-MM-dd')}`, { replace: true });
+  }, [navigate]);
   const [timelineEvents, setTimelineEvents] = useState(new Map());
   const [volumeProgressRows, setVolumeProgressRows] = useState([]);
   const [volumeProgressTotal, setVolumeProgressTotal] = useState({ actual: 0, target: 0 });
@@ -175,6 +213,7 @@ const TrainingPlanPage = () => {
   const [stepProgress, setStepProgress] = useState({ actual: 0, target: 70000 });
   const [todayStepsInput, setTodayStepsInput] = useState('');
   const [isSavingSteps, setIsSavingSteps] = useState(false);
+  const [showStepsModal, setShowStepsModal] = useState(false);
   const stickysentinel = useRef(null);
   const [isVisualizerStuck, setIsVisualizerStuck] = useState(false);
 
@@ -242,6 +281,7 @@ const TrainingPlanPage = () => {
                 completed_sets: 0,
                 total_sets: 0,
                 has_pr: false,
+                pr_count: 0,
               });
             }
           });
@@ -249,12 +289,18 @@ const TrainingPlanPage = () => {
 
         events.forEach((item) => {
           const key = item.event_date;
-          const hasPR = Boolean(item.completed_key_exercises && item.total_key_exercises && item.completed_key_exercises >= item.total_key_exercises);
           const prev = plannedEventMap.get(key) || {};
+          const fallbackHasPr = Boolean(
+            item.completed_key_exercises
+            && item.total_key_exercises
+            && item.completed_key_exercises >= item.total_key_exercises
+          );
+          const hasPR = typeof item.has_pr === 'boolean' ? item.has_pr : fallbackHasPr;
           plannedEventMap.set(key, {
             ...prev,
             ...item,
             has_pr: hasPR,
+            pr_count: Number(item.pr_count || 0),
           });
         });
 
@@ -409,6 +455,11 @@ const TrainingPlanPage = () => {
     return { completedSessions, loggedSessions, prCount };
   }, [timelineEvents, weekDates]);
 
+  const handleOpenTrainingDay = useCallback((weeklyDayId) => {
+    if (!weeklyDayId) return;
+    navigate(`/plan/entreno/dia/${weeklyDayId}`);
+  }, [navigate]);
+
   const activeMicrocycleToday = useMemo(() => {
     const today = getDateKey(new Date());
     return microcycles.find((microcycle) => {
@@ -493,6 +544,7 @@ const TrainingPlanPage = () => {
         source: 'manual',
       });
       await loadPageData({ silent: true });
+      setShowStepsModal(false);
       toast({
         title: 'Pasos guardados',
         description: 'El contador se actualizó en el plan de entrenamiento.',
@@ -552,10 +604,20 @@ const TrainingPlanPage = () => {
 
           <DateTimeline
             currentDate={currentDate}
-            onDateChange={setCurrentDate}
+            onDateChange={handleDateChange}
             timelineEvents={timelineEvents}
             plannedDayByDate={plannedDayByDate}
           />
+
+          {hasDraft && (
+            <WizardDraftBanner
+              onResume={() => navigate('/plan/entreno/rutina/nueva')}
+              onDiscard={() => {
+                try { localStorage.removeItem(WIZARD_DRAFT_KEY); } catch {}
+                setHasDraft(false);
+              }}
+            />
+          )}
 
           {!activeMesocycle || !weeklyRoutine ? (
             <Card className="bg-card/85 border-border text-foreground shadow-xl">
@@ -617,32 +679,22 @@ const TrainingPlanPage = () => {
 
 
 
-                    <div className="rounded-lg border border-border/80 bg-card/70 p-2.5">
-                      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                        Contador de pasos (hoy)
+                    <button
+                      type="button"
+                      onClick={() => setShowStepsModal(true)}
+                      className="rounded-lg border border-border/80 bg-card/70 p-2.5 w-full text-left hover:bg-muted/40 transition-colors"
+                    >
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Pasos hoy
                       </p>
-                      <div className="flex items-center gap-2">
-                        <div className="relative flex-1">
-                          <Footprints className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-500" />
-                          <Input
-                            inputMode="numeric"
-                            className="pl-8"
-                            value={todayStepsInput}
-                            onChange={(event) => setTodayStepsInput(event.target.value.replace(/[^\d]/g, ''))}
-                            placeholder="0"
-                          />
-                        </div>
-                        <Button
-                          size="sm"
-                          type="button"
-                          onClick={handleSaveTodaySteps}
-                          disabled={isSavingSteps}
-                          className="bg-cyan-600 text-white hover:bg-cyan-700"
-                        >
-                          {isSavingSteps ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Guardar'}
-                        </Button>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Footprints className="h-4 w-4 text-cyan-500 flex-shrink-0" />
+                        <span className="text-lg font-bold text-foreground tabular-nums">
+                          {stepProgress.actual > 0 ? stepProgress.actual.toLocaleString() : '—'}
+                        </span>
+                        <span className="text-xs text-muted-foreground ml-auto">Registrar</span>
                       </div>
-                    </div>
+                    </button>
                   </div>
 
                   <div className="hidden lg:block">
@@ -679,158 +731,20 @@ const TrainingPlanPage = () => {
                 </div>
               </div>
 
-              <Card className="bg-card/85 border-border text-foreground shadow-xl">
-                <div className="p-4 border-b border-border">
-                  <ContentStateToggle
-                    mode={viewMode}
-                    onModeChange={setViewMode}
-                    optionOne={{ value: 'list', label: 'Días de entreno', icon: List }}
-                    optionTwo={{ value: 'week', label: 'Semana y hitos', icon: CalendarDays }}
-                    isSegmented={true}
-                    className="w-full"
-                  />
-                </div>
-
-                <CardHeader>
-                  {viewMode === 'list' ? (
-                    <>
-                      <CardTitle>Días de entrenamiento</CardTitle>
-                      <CardDescription>Cada día contiene bloques y ejercicios configurados.</CardDescription>
-                    </>
-                  ) : (
-                    <>
-                      <CardTitle>Semana de entrenamiento</CardTitle>
-                      <CardDescription>Puntos de progreso y estado de cumplimiento por día.</CardDescription>
-                    </>
-                  )}
-                </CardHeader>
-
-                <CardContent className="px-3 pb-4">
-                  {viewMode === 'week' ? (
-                    <div className="grid grid-cols-7 gap-2 md:gap-3 rounded-xl bg-card/75 p-3 border border-border/70">
-                      {weekDates.map((date) => {
-                        const dateKey = toDateKey(date);
-                        const event = timelineEvents.get(dateKey);
-                        const isCurrent = isSameDay(date, currentDate);
-
-                        return (
-                          <button
-                            key={dateKey}
-                            onClick={() => setCurrentDate(date)}
-                            className={cn(
-                              'relative flex flex-col items-center justify-between p-2 rounded-lg transition-all duration-200 aspect-[3/4] min-h-[70px] border',
-                              isCurrent ? 'bg-[#F44C40]/15 border-[#F44C40]/40' : 'bg-muted/70 hover:bg-muted/85 border-transparent',
-                              isToday(date) && !isCurrent ? 'border-dashed border-border/70' : ''
-                            )}
-                          >
-                            <div className="text-center">
-                              <p className={cn('text-xs md:text-sm font-medium', isCurrent ? 'text-[#F44C40]' : 'text-muted-foreground')}>
-                                {shortDayLabel(date)}
-                              </p>
-                              <p className={cn('text-lg md:text-xl font-bold', isCurrent ? 'text-foreground' : 'text-foreground')}>
-                                {format(date, 'd')}
-                              </p>
-                            </div>
-
-                            <div className="flex flex-wrap justify-center gap-1 mt-1 min-h-[8px] items-center">
-                              {event?.weekly_day_id ? <div className="w-2 h-2 rounded-full bg-slate-400" title="Día planificado" /> : null}
-                              {event?.workout_id ? <div className="w-2 h-2 rounded-full bg-orange-400" title="Entreno iniciado" /> : null}
-                              {event?.is_completed ? <div className="w-2 h-2 rounded-full bg-emerald-500" title="Entreno completado" /> : null}
-                              {event?.has_pr ? <div className="w-2 h-2 rounded-full bg-amber-400" title="Marca" /> : null}
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {days.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">Aún no hay días creados en la rutina semanal.</p>
-                      ) : (
-                        days.map((day) => {
-                          const dayBlocks = blocksByDayId.get(day.id) || [];
-                          const isNext = nextSessionDayId === day.id;
-
-                          return (
-                            <button
-                              key={day.id}
-                              type="button"
-                              onClick={() => navigate(`/plan/entreno/dia/${day.id}`)}
-                              className={cn(
-                                'w-full rounded-xl border p-3 bg-background text-left transition-colors',
-                                isNext ? 'border-emerald-400/60 bg-emerald-500/5 hover:bg-emerald-500/10' : 'border-border hover:bg-muted/30'
-                              )}
-                            >
-                              <div className="flex items-center justify-between gap-2 flex-wrap">
-                                <div className="flex items-center gap-2">
-                                  <p className="text-sm font-semibold text-foreground">
-                                    Día {day.day_index}: {day.name || `Día ${day.day_index}`}
-                                  </p>
-                                  {isNext ? (
-                                    <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 hover:bg-emerald-500/20">
-                                      Siguiente sesión
-                                    </Badge>
-                                  ) : null}
-                                </div>
-
-                                <Badge className="bg-[#F44C40]/20 text-[#F44C40] hover:bg-[#F44C40]/20">
-                                  Tocar para abrir
-                                </Badge>
-                              </div>
-
-                              <div className="mt-2 space-y-2">
-                                {dayBlocks.length === 0 ? (
-                                  <p className="text-xs text-muted-foreground">Sin bloques configurados.</p>
-                                ) : (
-                                  dayBlocks.map((block) => {
-                                    const exercises = blockExercisesByBlockId.get(block.id) || [];
-                                    return (
-                                      <div key={block.id} className="rounded-lg border border-border/80 p-2 bg-card/60">
-                                        <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
-                                          <Badge variant="outline">{block.block_type || 'custom'}</Badge>
-                                          <span className="font-medium text-foreground">{block.name || `Bloque ${block.block_order}`}</span>
-                                        </div>
-
-                                        {exercises.length === 0 ? (
-                                          <p className="text-xs text-muted-foreground">Sin ejercicios en este bloque.</p>
-                                        ) : (
-                                          <div className="space-y-1.5">
-                                            {exercises.map((item) => (
-                                              <div key={item.id} className="rounded-md border border-border/60 px-2 py-1.5 text-xs bg-card/80">
-                                                <div className="flex flex-wrap items-center gap-2">
-                                                  <span className="font-medium text-foreground">
-                                                    {exerciseMap.get(String(item.exercise_id)) || `Ejercicio ${item.exercise_id}`}
-                                                  </span>
-                                                  {item.is_key_exercise ? (
-                                                    <Badge className="bg-[#F44C40]/20 text-[#F44C40] hover:bg-[#F44C40]/20">
-                                                      <Star className="mr-1 h-3 w-3" />
-                                                      Clave
-                                                    </Badge>
-                                                  ) : null}
-                                                </div>
-                                                <p className="mt-1 text-muted-foreground">
-                                                  {item.target_sets || 0} series · {item.target_reps_min || 0}-{item.target_reps_max || 0} reps
-                                                  {item.preferred_equipment_id
-                                                    ? ` · ${equipmentMap.get(String(item.preferred_equipment_id)) || 'Equipamiento'}`
-                                                    : ''}
-                                                </p>
-                                              </div>
-                                            ))}
-                                          </div>
-                                        )}
-                                      </div>
-                                    );
-                                  })
-                                )}
-                              </div>
-                            </button>
-                          );
-                        })
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              <TrainingWeeklyRoutineSection
+                mode={viewMode}
+                onModeChange={setViewMode}
+                days={days}
+                blocksByDayId={blocksByDayId}
+                blockExercisesByBlockId={blockExercisesByBlockId}
+                nextSessionDayId={nextSessionDayId}
+                exerciseMap={exerciseMap}
+                equipmentMap={equipmentMap}
+                timelineEvents={timelineEvents}
+                onOpenDay={handleOpenTrainingDay}
+                prProgress={prProgress}
+                volumeProgressTotal={volumeProgressTotal}
+              />
 
               <Card className="bg-card/85 border-border text-foreground shadow-xl">
                 <CardHeader>
@@ -894,6 +808,55 @@ const TrainingPlanPage = () => {
           )}
         </div>
       </main>
+
+      {/* ── Modal: registrar pasos ── */}
+      {showStepsModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setShowStepsModal(false)}
+        >
+          <div
+            className="w-full sm:max-w-sm bg-[#0f1115] border border-border rounded-t-2xl sm:rounded-2xl p-5 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Footprints className="h-4 w-4 text-cyan-500" />
+                <h3 className="text-base font-bold text-white">Registrar pasos</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowStepsModal(false)}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="relative">
+              <Footprints className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-500" />
+              <Input
+                autoFocus
+                inputMode="numeric"
+                className="pl-10"
+                value={todayStepsInput}
+                onChange={(e) => setTodayStepsInput(e.target.value.replace(/[^\d]/g, ''))}
+                placeholder="Ej: 8500"
+                onKeyDown={(e) => { if (e.key === 'Enter') handleSaveTodaySteps(); }}
+              />
+            </div>
+
+            <Button
+              type="button"
+              onClick={handleSaveTodaySteps}
+              disabled={isSavingSteps}
+              className="w-full h-12 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold"
+            >
+              {isSavingSteps ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Guardar pasos'}
+            </Button>
+          </div>
+        </div>
+      )}
     </>
   );
 };

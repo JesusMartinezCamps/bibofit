@@ -190,7 +190,8 @@ const AppRoutes = () => (
         <Route path="arbol-variantes" element={<Navigate to="../variantes-recetas" replace />} />
       </Route>
       <Route path="/registro-peso" element={<ProtectedRoute><WeightLogPage /></ProtectedRoute>} />
-      <Route path="/plan/entreno" element={<ProtectedRoute><TrainingPlanPage /></ProtectedRoute>} />
+      <Route path="/plan/entreno" element={<ProtectedRoute><Navigate to={`/plan/entreno/${format(new Date(), 'yyyy-MM-dd')}`} replace /></ProtectedRoute>} />
+      <Route path="/plan/entreno/:date" element={<ProtectedRoute><TrainingPlanPage /></ProtectedRoute>} />
       <Route path="/plan/entreno/rutina/nueva" element={<ProtectedRoute><CreateMesocyclePage /></ProtectedRoute>} />
       <Route path="/plan/entreno/mesociclo/nuevo" element={<Navigate to="/plan/entreno/rutina/nueva" replace />} />
       <Route path="/plan/entreno/dia/:weeklyDayId" element={<ProtectedRoute><WorkoutDayPage /></ProtectedRoute>} />

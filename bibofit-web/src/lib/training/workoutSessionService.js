@@ -19,7 +19,7 @@ export const getWorkoutDayDetail = async (weeklyDayId) => {
           id, block_order, block_type, name,
           training_block_exercises (
             id, exercise_order, target_sets, target_reps_min, target_reps_max,
-            is_key_exercise, notes, progression_increment_kg,
+            target_rir, tempo, is_key_exercise, notes, progression_increment_kg,
             exercises ( id, name, unilateral ),
             equipment:preferred_equipment_id ( id, name )
           )
@@ -119,4 +119,70 @@ export const getPreviousExerciseSets = async (exerciseId, excludeWorkoutId = nul
     return {};
   }
   return Object.fromEntries((data || []).map((s) => [s.set_no, s]));
+};
+
+/**
+ * Actualiza la configuración de un ejercicio existente en un bloque de la rutina.
+ */
+export const updateBlockExerciseConfig = async (blockExerciseId, config) => {
+  const toInt = (v) => {
+    if (v === null || v === undefined || v === '') return undefined;
+    const n = parseInt(String(v), 10);
+    return isNaN(n) ? undefined : n;
+  };
+
+  const patch = {};
+  if (config.target_sets !== undefined) patch.target_sets = toInt(config.target_sets) ?? 3;
+  if (config.target_reps_min !== undefined) patch.target_reps_min = toInt(config.target_reps_min) ?? 8;
+  if (config.target_reps_max !== undefined) patch.target_reps_max = toInt(config.target_reps_max) ?? 10;
+  if ('target_rir' in config) patch.target_rir = config.target_rir === undefined ? null : config.target_rir;
+  if ('tempo' in config) patch.tempo = config.tempo || null;
+  if ('notes' in config) patch.notes = config.notes || null;
+  if ('is_key_exercise' in config) patch.is_key_exercise = Boolean(config.is_key_exercise);
+  if ('preferred_equipment_id' in config) {
+    const eq = config.preferred_equipment_id;
+    patch.preferred_equipment_id = (eq && eq !== 'none') ? (parseInt(String(eq), 10) || null) : null;
+  }
+
+  const { error } = await supabase
+    .from('training_block_exercises')
+    .update(patch)
+    .eq('id', blockExerciseId);
+
+  if (error) throw error;
+};
+
+/**
+ * Añade un nuevo ejercicio a un bloque existente de la rutina.
+ * Devuelve el nuevo registro con su id.
+ */
+export const addExerciseToBlock = async (blockId, { exerciseId, config, exerciseOrder }) => {
+  const toInt = (v) => {
+    if (v === null || v === undefined || v === '') return null;
+    const n = parseInt(String(v), 10);
+    return isNaN(n) ? null : n;
+  };
+
+  const { data, error } = await supabase
+    .from('training_block_exercises')
+    .insert({
+      weekly_day_block_id: blockId,
+      exercise_id: toInt(exerciseId),
+      exercise_order: exerciseOrder ?? 99,
+      target_sets: toInt(config.target_sets) ?? 3,
+      target_reps_min: toInt(config.target_reps_min) ?? 8,
+      target_reps_max: toInt(config.target_reps_max) ?? 10,
+      target_rir: config.target_rir ?? null,
+      tempo: config.tempo || null,
+      notes: config.notes || null,
+      is_key_exercise: Boolean(config.is_key_exercise),
+      preferred_equipment_id: (config.preferred_equipment_id && config.preferred_equipment_id !== 'none')
+        ? (toInt(config.preferred_equipment_id))
+        : null,
+    })
+    .select('id')
+    .single();
+
+  if (error) throw error;
+  return data;
 };
