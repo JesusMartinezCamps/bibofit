@@ -806,7 +806,7 @@ const CommunicationPage = () => {
             {priorityDirects.length > 0 && (
               <>
                 <p className="px-3 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  Contactos clave
+                  Contactos Bibofit
                 </p>
                 {priorityDirects.map(conv => (
                   <ConversationItem

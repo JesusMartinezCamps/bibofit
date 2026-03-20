@@ -123,7 +123,7 @@ const CreateRoutineWizard = () => {
   const animKey = `${currentStepId}-${currentDayIdx}`;
 
   return (
-    <div className="flex flex-col min-h-[calc(100dvh-64px)] bg-[#0f1115] text-white">
+    <div className="flex flex-col min-h-[calc(100dvh-64px)] bg-[#0f1115] text-gray-800 dark:text-white">
       {/* ── Header ───────────────────────────────────────────────────── */}
       <div className="shrink-0 bg-[#0f1115] border-b border-border">
         {/* Top row: back / title / close */}
@@ -138,7 +138,7 @@ const CreateRoutineWizard = () => {
             <ChevronLeft className="h-5 w-5" />
           </Button>
 
-          <span className="text-sm font-semibold text-white truncate px-2 max-w-[60%] text-center">
+          <span className="text-sm font-semibold dark:text-white text-gray-950  truncate px-2 max-w-[60%] text-center">
             {isDayEditor
               ? (dayBlueprint[currentDayIdx]?.name || `Día ${currentDayIdx + 1}`)
               : `Paso ${currentStepIndex + 1} de ${totalSteps}`}
@@ -178,7 +178,7 @@ const CreateRoutineWizard = () => {
                     }`}
                   >
                     <span className={`text-[11px] font-bold ${isActive ? 'text-white' : 'text-foreground/60'}`}>
-                      D{idx + 1}
+                      Día {idx + 1}
                     </span>
                     <span className={`text-[9px] mt-0.5 leading-none ${isActive ? 'text-white/80' : 'text-muted-foreground/60'}`}>
                       {getDayTypeLabel(type).split(' ')[0]}
@@ -205,7 +205,7 @@ const CreateRoutineWizard = () => {
         {!isDayEditor && (meta.title || meta.description) && (
           <div className="mb-6 shrink-0">
             {meta.title && (
-              <h2 className="text-2xl font-bold text-white mb-1">{meta.title}</h2>
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-1">{meta.title}</h2>
             )}
             {meta.description && (
               <p className="text-sm text-muted-foreground">{meta.description}</p>

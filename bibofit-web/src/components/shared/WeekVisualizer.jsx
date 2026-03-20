@@ -53,7 +53,7 @@ const WeekVisualizer = ({ weekDates, plannedMeals, daySummaries, onDayClick, cur
               <p className={cn('text-xs md:text-sm font-medium', isCurrent ? 'text-sky-300' : 'text-muted-foreground')}>
                 {format(date, 'EEE', { locale: es }).charAt(0).toUpperCase() + format(date, 'EEE', { locale: es }).slice(1, 3)}
               </p>
-              <p className={cn('text-lg md:text-xl font-bold', isCurrent ? 'text-white' : 'text-gray-200')}>
+              <p className={cn('text-lg md:text-xl font-bold', isCurrent ? 'text-gray-300' : 'text-gray-300')}>
                 {format(date, 'd')}
               </p>
             </div>

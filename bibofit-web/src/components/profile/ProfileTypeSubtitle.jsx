@@ -12,7 +12,7 @@ const ProfileTypeSubtitle = ({ role = 'free' }) => {
     free: {
       label: 'Plan Gratuito',
       // Subtle gray/slate gradient
-      className: 'bg-gradient-to-r from-slate-600/95 to-slate-500/30 text-white border-slate-400 hover:from-slate-500 hover:to-slate-400',
+      className: 'bg-gradient-to-r from-slate-600/95 to-slate-500/30 text-gray-300 dark:text-gray-200 border-slate-400 hover:from-slate-500 hover:to-slate-400',
       icon: User,
     },
     'pro-nutrition': {
@@ -55,12 +55,13 @@ const ProfileTypeSubtitle = ({ role = 'free' }) => {
         <Badge variant="outline" className={cn("px-4 py-1.5 flex items-center gap-2 text-sm shadow-lg border", config.className)}>
           <Icon className="w-4 h-4" />
           {config.label}
-        </Badge>
-        {normalizedRole === 'free' && (
-           <span className="text-xs text-green-400 hover:text-green-300 opacity-80 group-hover:opacity-100 transition-opacity">
+          {normalizedRole === 'free' && (
+           <span className="text-xs dark:text-yellow-300 text-yellow-600 hover:text-yellow-300 opacity-80 group-hover:opacity-100 transition-opacity">
               Actualizar Plan →
            </span>
         )}
+        </Badge>
+        
       </div>
     </Link>
   );

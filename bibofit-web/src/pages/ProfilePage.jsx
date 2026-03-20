@@ -73,13 +73,13 @@ const ProfilePage = () => {
         label: 'Configurar dieta',
         href: '/my-plan',
         icon: CalendarCheck,
-        color: 'bg-gradient-to-r from-emerald-700 to-emerald-500 hover:from-emerald-600 hover:to-emerald-400',
+        color: 'bg-gradient-to-r from-emerald-700/80 to-emerald-500/80 hover:from-emerald-600 hover:to-emerald-400',
       },
       {
         label: 'Configurar entreno',
         href: '/plan/entreno/rutina/nueva',
         icon: Settings2,
-        color: 'bg-gradient-to-r from-red-700 to-rose-500 hover:from-red-600 hover:to-red-400',
+        color: 'bg-gradient-to-r from-rose-700/80 to-rose-500/80 hover:from-rose-600 hover:to-rose-400',
       },
     ],
     [
@@ -87,7 +87,7 @@ const ProfilePage = () => {
         label: 'Historial de Peso',
         href: '/profile/weight-history',
         icon: LineChart,
-        color: 'bg-gradient-to-r from-purple-700 to-violet-500 hover:from-purple-600 hover:to-violet-400',
+        color: 'bg-gradient-to-r from-purple-700/80 to-purple-500/80 hover:from-purple-600 hover:to-purple-400',
       },
       {
         label: 'Mis Variantes de Recetas',

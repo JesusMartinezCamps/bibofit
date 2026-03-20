@@ -80,7 +80,7 @@ const StepCalendar = ({ wizard, onNext }) => {
                   className="flex flex-col items-center gap-1 rounded-lg bg-card/60 border border-border/60 py-2"
                 >
                   <span className="text-base">{DAY_TYPE_EMOJI[type] || '⚙️'}</span>
-                  <span className="text-[10px] text-muted-foreground font-medium">D{dayIdx + 1}</span>
+                  <span className="text-[10px] text-muted-foreground font-medium">Día {dayIdx + 1}</span>
                   <span className="text-[9px] text-muted-foreground/70 text-center leading-tight px-0.5">
                     {getDayTypeLabel(type)}
                   </span>
