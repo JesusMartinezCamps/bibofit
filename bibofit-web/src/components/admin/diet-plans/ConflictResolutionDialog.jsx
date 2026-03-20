@@ -337,7 +337,7 @@ const ConflictResolutionDialog = ({ open, onOpenChange, conflicts, onRecipeUpdat
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="w-fit text-white hover:bg-white/10"
+                                    className="w-fit text-white  hover:bg-white/10"
                                     onClick={() => setEditingRecipe(null)}
                                 >
                                     <ArrowLeft className="w-4 h-2 mr-2" />
@@ -384,7 +384,7 @@ const ConflictResolutionDialog = ({ open, onOpenChange, conflicts, onRecipeUpdat
                                                         {imageUrl ? (
                                                             <div className="absolute inset-0">
                                                                 <img src={imageUrl} alt={recipeName || 'Receta'} className="h-full w-full object-cover" />
-                                                                <div className="absolute inset-0 bg-black/65" />
+                                                                <div className="absolute inset-0 bg-black/10 dark:bg-black/65" />
                                                             </div>
                                                         ) : (
                                                             <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-900" />
@@ -424,7 +424,7 @@ const ConflictResolutionDialog = ({ open, onOpenChange, conflicts, onRecipeUpdat
                                                                         size="sm"
                                                                         variant="outline"
                                                                         onClick={() => handleEditRecipe(recipe)}
-                                                                        className="border-orange-400/60 bg-orange-400/20 dark:text-orange-400 text-orange-600 hover:bg-orange-700/45 hover:text-orange-100"
+                                                                        className="border-orange-600 dark:border-orange-400/60 bg-orange-400/20 dark:text-orange-400 text-orange-600 hover:bg-orange-700/45 hover:text-orange-100"
                                                                     >
                                                                         <Edit className="w-4 h-4 mr-2" />
                                                                         Editar receta

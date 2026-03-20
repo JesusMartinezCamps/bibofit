@@ -29,11 +29,12 @@ const ProfilePage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { openHelpCenter, triggerBlock } = useContextualGuide();
+  const { startRepeatOnboarding, isOnboardingCompleted } = useOnboarding();
 
   useEffect(() => {
+    if (!isOnboardingCompleted) return;
     triggerBlock(GUIDE_BLOCK_IDS.WELCOME);
-  }, [triggerBlock]);
-  const { startRepeatOnboarding } = useOnboarding();
+  }, [triggerBlock, isOnboardingCompleted]);
   const { isDark, toggleTheme } = useTheme();
   const profileName = (`${user?.first_name || ''} ${user?.last_name || ''}`).trim() || user?.full_name?.trim();
   const profileTitle = profileName ? profileName : 'Mi Perfil';

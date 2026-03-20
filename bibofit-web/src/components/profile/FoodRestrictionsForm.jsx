@@ -451,8 +451,8 @@ const FoodRestrictionsForm = ({ userId, onSaveStatusChange, onRestrictionsChange
         </div>
 
         <div className="flex flex-wrap gap-2 mt-3">
-          {selectedSensitivities.length === 0 && (
-            <p className="text-muted-foreground text-sm italic">¿Algo que te siente mal?</p>
+          {selectedSensitivities.length === 0 && selectedIndividualFoodRestrictions.length === 0 && (
+            <p className="text-muted-foreground text-sm italic">¿Algo que te siente mal o quieres evitar?</p>
           )}
           {selectedSensitivities.map((s) => {
             const details = allSensitivities.find((item) => String(item.id) === String(s.sensitivity_id));
@@ -462,6 +462,22 @@ const FoodRestrictionsForm = ({ userId, onSaveStatusChange, onRestrictionsChange
                 <button
                   type="button"
                   onClick={() => handleRemoveSensitivity(s.sensitivity_id)}
+                  className={`ml-2 ${sensitivityTone.selectedAction}`}
+                >
+                  <X size={14} />
+                </button>
+              </Badge>
+            ) : null;
+          })}
+          {selectedIndividualFoodRestrictions.map((entry) => {
+            const details = entry.food || foodById.get(String(entry.food_id));
+            return details ? (
+              <Badge key={entry.food_id} variant="outline" className={sensitivityTone.selectedBadge}>
+                <Apple size={11} className="mr-1 shrink-0" />
+                {details.name}
+                <button
+                  type="button"
+                  onClick={() => handleRemoveIndividualFoodRestriction(entry.food_id)}
                   className={`ml-2 ${sensitivityTone.selectedAction}`}
                 >
                   <X size={14} />
@@ -501,44 +517,6 @@ const FoodRestrictionsForm = ({ userId, onSaveStatusChange, onRestrictionsChange
                   type="button"
                   onClick={() => handleRemoveCondition(conditionId)}
                   className={`ml-2 ${conditionTone.selectedAction}`}
-                >
-                  <X size={14} />
-                </button>
-              </Badge>
-            ) : null;
-          })}
-        </div>
-      </div>
-
-      <div className={`p-4 rounded-lg border ${sensitivityTone.container}`}>
-        <div className="flex items-center justify-between mb-4">
-          <h4 className={`font-semibold flex items-center gap-2 ${sensitivityTone.title}`}>
-            <Apple size={16} /> Restricción por Alimento Específico
-          </h4>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className={sensitivityTone.addButton}
-            onClick={() => setIsRestrictionSearchModalOpen(true)}
-          >
-            <PlusCircle className="w-4 h-4 mr-2" /> Añadir
-          </Button>
-        </div>
-
-        <div className="flex flex-wrap gap-2 mt-3">
-          {selectedIndividualFoodRestrictions.length === 0 && (
-            <p className="text-muted-foreground text-sm italic">No hay alimentos individuales restringidos.</p>
-          )}
-          {selectedIndividualFoodRestrictions.map((entry) => {
-            const details = entry.food || foodById.get(String(entry.food_id));
-            return details ? (
-              <Badge key={entry.food_id} variant="outline" className={sensitivityTone.selectedBadge}>
-                {details.name}
-                <button
-                  type="button"
-                  onClick={() => handleRemoveIndividualFoodRestriction(entry.food_id)}
-                  className={`ml-2 ${sensitivityTone.selectedAction}`}
                 >
                   <X size={14} />
                 </button>

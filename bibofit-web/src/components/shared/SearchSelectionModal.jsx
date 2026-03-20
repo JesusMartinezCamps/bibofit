@@ -52,7 +52,7 @@ const SearchSelectionModal = ({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="left-0 top-0 h-[100dvh] w-screen max-w-none translate-x-0 translate-y-0 rounded-none border-0 bg-background p-0 sm:left-1/2 sm:top-1/2 sm:h-[80vh] sm:w-[95%] sm:max-w-md sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-lg sm:border sm:border-border">
+            <DialogContent className="flex flex-col left-0 top-0 h-[100dvh] w-screen max-w-none translate-x-0 translate-y-0 rounded-none border-0 bg-background p-0 sm:left-1/2 sm:top-1/2 sm:h-[80vh] sm:w-[95%] sm:max-w-md sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-lg sm:border sm:border-border">
                 <div className="p-4 border-b border-border space-y-4 flex-shrink-0">
                     <DialogHeader>
                         <DialogTitle className="text-left">{title}</DialogTitle>
