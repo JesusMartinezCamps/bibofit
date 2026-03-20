@@ -1,265 +1,290 @@
 import { format } from 'date-fns';
 import { supabase } from '@/lib/supabaseClient';
 
-const sortRoutines = (routines = []) => {
-  return [...routines].sort((a, b) => {
-    const aIdx = a.day_index ?? Number.MAX_SAFE_INTEGER;
-    const bIdx = b.day_index ?? Number.MAX_SAFE_INTEGER;
-    if (aIdx !== bIdx) return aIdx - bIdx;
-    return (a.id ?? 0) - (b.id ?? 0);
-  });
+const toIntOrNull = (value) => {
+  if (value === null || value === undefined || value === '') return null;
+  const parsed = Number.parseInt(String(value), 10);
+  return Number.isNaN(parsed) ? null : parsed;
 };
 
-const sortSets = (sets = []) => {
-  return [...sets].sort((a, b) => (a.set_no ?? 0) - (b.set_no ?? 0));
+const toFloatOrNull = (value) => {
+  if (value === null || value === undefined || value === '') return null;
+  const parsed = Number.parseFloat(String(value));
+  return Number.isNaN(parsed) ? null : parsed;
 };
 
 export const getDateKey = (date = new Date()) => format(date, 'yyyy-MM-dd');
 
-export const getActiveMesocycleWithRoutines = async (userId, dateKey = getDateKey()) => {
-  if (!userId) return { mesocycle: null, routines: [] };
+export const getTrainingZoneCatalogs = async () => {
+  const [
+    objectivesRes,
+    patternsRes,
+    musclesRes,
+    jointsRes,
+    exercisesRes,
+    equipmentRes,
+  ] = await Promise.all([
+    supabase
+      .from('training_objectives')
+      .select('id, code, name, description, display_order')
+      .eq('is_active', true)
+      .order('display_order', { ascending: true })
+      .order('id', { ascending: true }),
+    supabase
+      .from('training_movement_patterns')
+      .select('id, code, name')
+      .order('name', { ascending: true }),
+    supabase
+      .from('muscles')
+      .select('id, name')
+      .order('name', { ascending: true }),
+    supabase
+      .from('joints')
+      .select('id, name')
+      .order('name', { ascending: true }),
+    supabase
+      .from('exercises')
+      .select('id, name, equipment_id, default_weight')
+      .order('name', { ascending: true }),
+    supabase
+      .from('equipment')
+      .select('id, name')
+      .order('name', { ascending: true }),
+  ]);
 
-  const { data: mesocycles, error: mesocycleError } = await supabase
+  if (objectivesRes.error) throw objectivesRes.error;
+  if (patternsRes.error) throw patternsRes.error;
+  if (musclesRes.error) throw musclesRes.error;
+  if (jointsRes.error) throw jointsRes.error;
+  if (exercisesRes.error) throw exercisesRes.error;
+  if (equipmentRes.error) throw equipmentRes.error;
+
+  return {
+    objectives: objectivesRes.data || [],
+    movementPatterns: patternsRes.data || [],
+    muscles: musclesRes.data || [],
+    joints: jointsRes.data || [],
+    exercises: exercisesRes.data || [],
+    equipment: equipmentRes.data || [],
+  };
+};
+
+export const getTrainingZoneSnapshot = async (userId, dateKey = getDateKey()) => {
+  if (!userId) {
+    return {
+      activeMesocycle: null,
+      weeklyRoutine: null,
+      days: [],
+      blocks: [],
+      blockExercises: [],
+      microcycles: [],
+      microcycleFocuses: [],
+      nextSessionDay: null,
+    };
+  }
+
+  const { data: mesocycles, error: mesocyclesError } = await supabase
     .from('mesocycles')
-    .select('id, name, objective, start_date, end_date, sessions_per_week')
+    .select('id, user_id, name, objective, objective_id, start_date, end_date, sessions_per_week')
     .eq('user_id', userId)
     .order('start_date', { ascending: false, nullsFirst: false })
     .order('id', { ascending: false });
 
-  if (mesocycleError) throw mesocycleError;
+  if (mesocyclesError) throw mesocyclesError;
 
-  const activeMesocycle = (mesocycles || []).find((m) => {
-    const startsOk = !m.start_date || m.start_date <= dateKey;
-    const endsOk = !m.end_date || m.end_date >= dateKey;
-    return startsOk && endsOk;
-  });
+  const orderedMesocycles = mesocycles || [];
+  const activeMesocycle =
+    orderedMesocycles.find((m) => {
+      const startsOk = !m.start_date || m.start_date <= dateKey;
+      const endsOk = !m.end_date || m.end_date >= dateKey;
+      return startsOk && endsOk;
+    }) || orderedMesocycles[0] || null;
 
-  if (!activeMesocycle) return { mesocycle: null, routines: [] };
+  if (!activeMesocycle) {
+    return {
+      activeMesocycle: null,
+      weeklyRoutine: null,
+      days: [],
+      blocks: [],
+      blockExercises: [],
+      microcycles: [],
+      microcycleFocuses: [],
+      nextSessionDay: null,
+    };
+  }
 
   const { data: routines, error: routinesError } = await supabase
-    .from('routines')
-    .select('id, mesocycle_id, name, day_index, day_type, focus')
-    .eq('mesocycle_id', activeMesocycle.id);
+    .from('training_weekly_routines')
+    .select('id, mesocycle_id, name, sessions_per_week, is_default, created_at')
+    .eq('mesocycle_id', activeMesocycle.id)
+    .order('is_default', { ascending: false })
+    .order('id', { ascending: true });
 
   if (routinesError) throw routinesError;
 
-  return { mesocycle: activeMesocycle, routines: sortRoutines(routines || []) };
-};
+  const weeklyRoutine = (routines || [])[0] || null;
+  if (!weeklyRoutine) {
+    return {
+      activeMesocycle,
+      weeklyRoutine: null,
+      days: [],
+      blocks: [],
+      blockExercises: [],
+      microcycles: [],
+      microcycleFocuses: [],
+      nextSessionDay: null,
+    };
+  }
 
-export const getNextRoutineInCycle = async (userId, routines = []) => {
-  if (!userId || !routines.length) return null;
-
-  const orderedRoutines = sortRoutines(routines);
-  const routineIds = orderedRoutines.map((r) => r.id);
-
-  const { data: latestWorkouts, error } = await supabase
-    .from('workouts')
-    .select('id, routine_id, performed_on')
-    .eq('user_id', userId)
-    .in('routine_id', routineIds)
-    .order('performed_on', { ascending: false })
-    .order('id', { ascending: false })
-    .limit(1);
-
-  if (error) throw error;
-
-  const latest = latestWorkouts?.[0];
-  if (!latest) return orderedRoutines[0];
-
-  const lastIdx = orderedRoutines.findIndex((r) => r.id === latest.routine_id);
-  if (lastIdx < 0) return orderedRoutines[0];
-
-  return orderedRoutines[(lastIdx + 1) % orderedRoutines.length];
-};
-
-export const ensureWorkoutForRoutine = async (userId, routineId, dateKey = getDateKey()) => {
-  if (!userId || !routineId) return null;
-
-  const { data: existing, error: existingError } = await supabase
-    .from('workouts')
-    .select('id, routine_id, performed_on')
-    .eq('user_id', userId)
-    .eq('routine_id', routineId)
-    .eq('performed_on', dateKey)
-    .order('id', { ascending: false })
-    .limit(1);
-
-  if (existingError) throw existingError;
-  if (existing?.[0]?.id) return existing[0].id;
-
-  const { data: createdWorkoutId, error: createError } = await supabase.rpc('create_workout_from_routine', {
-    p_routine_id: routineId,
-    p_performed_on: dateKey,
-  });
-
-  if (createError) throw createError;
-  if (createdWorkoutId) return createdWorkoutId;
-
-  const { data: fallback, error: fallbackError } = await supabase
-    .from('workouts')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('routine_id', routineId)
-    .eq('performed_on', dateKey)
-    .order('id', { ascending: false })
-    .limit(1);
-
-  if (fallbackError) throw fallbackError;
-  return fallback?.[0]?.id ?? null;
-};
-
-const getWorkoutExercisesBase = async (workoutId) => {
-  const { data, error } = await supabase
-    .from('workout_exercises')
-    .select(`
-      id,
-      workout_id,
-      sequence,
-      exercise_id,
-      performed_equipment_id,
-      prescribed_sets,
-      prescribed_reps_min,
-      prescribed_reps_max,
-      exercises!workout_exercises_exercise_id_fkey(id, name, technique),
-      equipment!workout_exercises_performed_equipment_id_fkey(id, name)
-    `)
-    .eq('workout_id', workoutId)
-    .order('sequence', { ascending: true })
+  const { data: days, error: daysError } = await supabase
+    .from('training_weekly_days')
+    .select('id, weekly_routine_id, day_index, name, created_at')
+    .eq('weekly_routine_id', weeklyRoutine.id)
+    .order('day_index', { ascending: true })
     .order('id', { ascending: true });
 
-  if (error) throw error;
-  return data || [];
-};
+  if (daysError) throw daysError;
 
-const getWorkoutSets = async (workoutExerciseIds = []) => {
-  if (!workoutExerciseIds.length) return [];
+  const dayIds = (days || []).map((d) => d.id);
 
-  const { data, error } = await supabase
-    .from('exercise_sets')
-    .select('id, workout_exercise_id, set_no, reps, weight, rir, target_reps_min, target_reps_max, target_weight, is_warmup')
-    .in('workout_exercise_id', workoutExerciseIds);
+  let blocks = [];
+  if (dayIds.length) {
+    const { data: blocksData, error: blocksError } = await supabase
+      .from('training_weekly_day_blocks')
+      .select('id, weekly_day_id, block_order, block_type, name, created_at')
+      .in('weekly_day_id', dayIds)
+      .order('weekly_day_id', { ascending: true })
+      .order('block_order', { ascending: true })
+      .order('id', { ascending: true });
 
-  if (error) throw error;
-  return sortSets(data || []);
-};
+    if (blocksError) throw blocksError;
+    blocks = blocksData || [];
+  }
 
-const getPreviousPerformanceMap = async (userId, currentWorkoutId, currentWorkoutExercises = []) => {
-  if (!userId || !currentWorkoutExercises.length) return new Map();
+  const blockIds = blocks.map((b) => b.id);
 
-  const exerciseIds = [...new Set(currentWorkoutExercises.map((item) => item.exercise_id).filter(Boolean))];
-  if (!exerciseIds.length) return new Map();
+  let blockExercises = [];
+  if (blockIds.length) {
+    const { data: blockExercisesData, error: blockExercisesError } = await supabase
+      .from('training_block_exercises')
+      .select(
+        'id, weekly_day_block_id, exercise_id, exercise_order, preferred_equipment_id, target_sets, target_reps_min, target_reps_max, progression_increment_kg, backoff_percentage, is_key_exercise, notes, created_at'
+      )
+      .in('weekly_day_block_id', blockIds)
+      .order('weekly_day_block_id', { ascending: true })
+      .order('exercise_order', { ascending: true })
+      .order('id', { ascending: true });
 
-  const { data: recentWorkouts, error: workoutsError } = await supabase
-    .from('workouts')
-    .select('id, performed_on')
-    .eq('user_id', userId)
-    .neq('id', currentWorkoutId)
-    .order('performed_on', { ascending: false })
-    .order('id', { ascending: false })
-    .limit(160);
+    if (blockExercisesError) throw blockExercisesError;
+    blockExercises = blockExercisesData || [];
+  }
 
-  if (workoutsError) throw workoutsError;
-  if (!recentWorkouts?.length) return new Map();
+  const { data: microcycles, error: microcyclesError } = await supabase
+    .from('training_microcycles')
+    .select('id, mesocycle_id, sequence_index, name, objective_id, objective_notes, start_date, end_date, deload_week, created_at')
+    .eq('mesocycle_id', activeMesocycle.id)
+    .order('sequence_index', { ascending: true })
+    .order('id', { ascending: true });
 
-  const workoutOrder = new Map(recentWorkouts.map((w, idx) => [w.id, idx]));
-  const workoutDate = new Map(recentWorkouts.map((w) => [w.id, w.performed_on]));
-  const recentWorkoutIds = recentWorkouts.map((w) => w.id);
+  if (microcyclesError) throw microcyclesError;
 
-  const { data: recentWorkoutExercises, error: workoutExercisesError } = await supabase
-    .from('workout_exercises')
-    .select('id, workout_id, exercise_id, performed_equipment_id')
-    .in('workout_id', recentWorkoutIds)
-    .in('exercise_id', exerciseIds);
+  const microcycleIds = (microcycles || []).map((m) => m.id);
 
-  if (workoutExercisesError) throw workoutExercisesError;
-  if (!recentWorkoutExercises?.length) return new Map();
+  let microcycleFocuses = [];
+  if (microcycleIds.length) {
+    const { data: focusesData, error: focusesError } = await supabase
+      .from('training_microcycle_block_focuses')
+      .select('id, microcycle_id, weekly_day_block_id, focus_type, movement_pattern_id, muscle_id, joint_id, focus_exercise_id, key_exercise_id, notes, created_at')
+      .in('microcycle_id', microcycleIds)
+      .order('microcycle_id', { ascending: true })
+      .order('id', { ascending: true });
 
-  const sortedRecentExerciseRows = [...recentWorkoutExercises].sort((a, b) => {
-    const aOrder = workoutOrder.get(a.workout_id) ?? Number.MAX_SAFE_INTEGER;
-    const bOrder = workoutOrder.get(b.workout_id) ?? Number.MAX_SAFE_INTEGER;
-    if (aOrder !== bOrder) return aOrder - bOrder;
-    return b.id - a.id;
+    if (focusesError) throw focusesError;
+    microcycleFocuses = focusesData || [];
+  }
+
+  const { data: nextSessionRows, error: nextSessionError } = await supabase.rpc('training_get_next_session_day', {
+    p_user_id: userId,
+    p_on_date: dateKey,
   });
 
-  const selectedPreviousByCurrentWorkoutExercise = new Map();
-  for (const current of currentWorkoutExercises) {
-    const sameExercise = sortedRecentExerciseRows.filter((row) => row.exercise_id === current.exercise_id);
-    const preferred = current.performed_equipment_id
-      ? sameExercise.find((row) => row.performed_equipment_id === current.performed_equipment_id)
-      : null;
-    const fallback = sameExercise[0];
-    const selected = preferred || fallback;
-    if (!selected) continue;
-    selectedPreviousByCurrentWorkoutExercise.set(current.id, {
-      previousWorkoutExerciseId: selected.id,
-      performed_on: workoutDate.get(selected.workout_id) || null,
-      performed_equipment_id: selected.performed_equipment_id ?? null,
-      equipment_match: current.performed_equipment_id
-        ? selected.performed_equipment_id === current.performed_equipment_id
-        : false,
-    });
-  }
+  if (nextSessionError) throw nextSessionError;
 
-  const previousWorkoutExerciseIds = [
-    ...new Set(
-      [...selectedPreviousByCurrentWorkoutExercise.values()]
-        .map((item) => item.previousWorkoutExerciseId)
-        .filter(Boolean)
-    ),
-  ];
-
-  const previousSets = await getWorkoutSets(previousWorkoutExerciseIds);
-  const previousSetsByWorkoutExercise = previousSets.reduce((acc, setRow) => {
-    if (!acc.has(setRow.workout_exercise_id)) acc.set(setRow.workout_exercise_id, []);
-    acc.get(setRow.workout_exercise_id).push(setRow);
-    return acc;
-  }, new Map());
-
-  const result = new Map();
-  for (const [currentWorkoutExerciseId, previousMeta] of selectedPreviousByCurrentWorkoutExercise.entries()) {
-    result.set(currentWorkoutExerciseId, {
-      ...previousMeta,
-      sets: sortSets(previousSetsByWorkoutExercise.get(previousMeta.previousWorkoutExerciseId) || []),
-    });
-  }
-
-  return result;
+  return {
+    activeMesocycle,
+    weeklyRoutine,
+    days: days || [],
+    blocks,
+    blockExercises,
+    microcycles: microcycles || [],
+    microcycleFocuses,
+    nextSessionDay: (nextSessionRows || [])[0] || null,
+  };
 };
 
-export const getWorkoutSessionPayload = async ({ userId, routineId, dateKey = getDateKey() }) => {
-  const workoutId = await ensureWorkoutForRoutine(userId, routineId, dateKey);
-  if (!workoutId) return { workoutId: null, exercises: [] };
-
-  const workoutExercises = await getWorkoutExercisesBase(workoutId);
-  const workoutExerciseIds = workoutExercises.map((item) => item.id);
-  const setRows = await getWorkoutSets(workoutExerciseIds);
-  const setsByWorkoutExercise = setRows.reduce((acc, row) => {
-    if (!acc.has(row.workout_exercise_id)) acc.set(row.workout_exercise_id, []);
-    acc.get(row.workout_exercise_id).push(row);
-    return acc;
-  }, new Map());
-
-  const previousPerformanceMap = await getPreviousPerformanceMap(userId, workoutId, workoutExercises);
-
-  const mergedExercises = workoutExercises.map((item) => ({
-    ...item,
-    sets: sortSets(setsByWorkoutExercise.get(item.id) || []),
-    history: previousPerformanceMap.get(item.id) || null,
+export const createMesocycleBlueprintV2 = async ({
+  userId,
+  name,
+  objectiveId,
+  startDate,
+  endDate,
+  weeklyRoutineName,
+  days,
+  microcycles,
+}) => {
+  const payloadDays = (days || []).map((day) => ({
+    name: day.name?.trim() || null,
+    blocks: (day.blocks || []).map((block) => ({
+      type: block.type || 'custom',
+      name: block.name?.trim() || null,
+      exercises: (block.exercises || [])
+        .map((exercise) => ({
+          exercise_id: toIntOrNull(exercise.exercise_id),
+          preferred_equipment_id: toIntOrNull(exercise.preferred_equipment_id),
+          target_sets: toIntOrNull(exercise.target_sets) ?? 3,
+          target_reps_min: toIntOrNull(exercise.target_reps_min) ?? 8,
+          target_reps_max: toIntOrNull(exercise.target_reps_max) ?? 12,
+          progression_increment_kg: toIntOrNull(exercise.progression_increment_kg) ?? 5,
+          backoff_percentage: toFloatOrNull(exercise.backoff_percentage) ?? 0.8,
+          is_key_exercise: Boolean(exercise.is_key_exercise),
+          notes: exercise.notes?.trim() || null,
+        }))
+        .filter((exercise) => exercise.exercise_id !== null),
+    })),
   }));
 
-  return { workoutId, exercises: mergedExercises };
-};
+  const payloadMicrocycles = (microcycles || []).map((microcycle, index) => ({
+    name: microcycle.name?.trim() || `Microciclo ${index + 1}`,
+    start_date: microcycle.start_date || null,
+    end_date: microcycle.end_date || null,
+    objective_id: toIntOrNull(microcycle.objective_id),
+    objective_notes: microcycle.objective_notes?.trim() || null,
+    deload_week: Boolean(microcycle.deload_week),
+    focuses: (microcycle.focuses || [])
+      .map((focus) => ({
+        day_index: toIntOrNull(focus.day_index),
+        block_order: toIntOrNull(focus.block_order),
+        focus_type: focus.focus_type || null,
+        movement_pattern_id: toIntOrNull(focus.movement_pattern_id),
+        muscle_id: toIntOrNull(focus.muscle_id),
+        joint_id: toIntOrNull(focus.joint_id),
+        focus_exercise_id: toIntOrNull(focus.focus_exercise_id),
+        key_exercise_id: toIntOrNull(focus.key_exercise_id),
+        notes: focus.notes?.trim() || null,
+      }))
+      .filter((focus) => focus.day_index && focus.block_order && focus.focus_type),
+  }));
 
-export const saveExerciseSet = async (setId, { weight, reps, rir }) => {
-  const payload = { weight, reps };
-  if (rir !== undefined) payload.rir = rir;
-
-  const { data, error } = await supabase
-    .from('exercise_sets')
-    .update(payload)
-    .eq('id', setId)
-    .select('id, weight, reps, rir')
-    .single();
+  const { data, error } = await supabase.rpc('training_create_mesocycle_blueprint_v2', {
+    p_name: name?.trim() || null,
+    p_objective_id: toIntOrNull(objectiveId),
+    p_start_date: startDate || null,
+    p_end_date: endDate || null,
+    p_days: payloadDays,
+    p_user_id: userId,
+    p_weekly_routine_name: weeklyRoutineName?.trim() || null,
+    p_microcycles: payloadMicrocycles,
+  });
 
   if (error) throw error;
   return data;

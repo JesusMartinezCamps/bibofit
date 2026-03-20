@@ -19,7 +19,6 @@ import CreateRoutinePage from '@/pages/admin/CreateRoutinePage';
 import ClientProfilePage from '@/pages/ClientProfilePage';
 import TrainingManagementPage from '@/pages/admin/TrainingManagementPage';
 import TrainingPlanPage from '@/pages/TrainingPlanPage';
-import TrainingSessionPage from '@/pages/TrainingSessionPage';
 import CreateMesocyclePage from '@/pages/CreateMesocyclePage';
 import UserCreatedFoodsPage from '@/pages/admin/UserCreatedFoodsPage';
 import FreeMealRequestsPage from '@/pages/admin/FreeMealRequestsPage';
@@ -190,8 +189,6 @@ const AppRoutes = () => (
       </Route>
       <Route path="/registro-peso" element={<ProtectedRoute><WeightLogPage /></ProtectedRoute>} />
       <Route path="/plan/entreno" element={<ProtectedRoute><TrainingPlanPage /></ProtectedRoute>} />
-      <Route path="/plan/entreno/sesion" element={<ProtectedRoute><TrainingSessionPage /></ProtectedRoute>} />
-      <Route path="/plan/entreno/sesion/:routineId" element={<ProtectedRoute><TrainingSessionPage /></ProtectedRoute>} />
       <Route path="/plan/entreno/mesociclo/nuevo" element={<ProtectedRoute><CreateMesocyclePage /></ProtectedRoute>} />
       <Route path="/create-free-recipe/:date/:mealId" element={<ProtectedRoute><CreateFreeRecipePage /></ProtectedRoute>} />
       <Route path="/create-snack/:date/:mealId" element={<ProtectedRoute><CreateSnackPage /></ProtectedRoute>} />
