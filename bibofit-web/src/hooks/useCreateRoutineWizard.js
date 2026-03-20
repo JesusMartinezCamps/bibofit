@@ -48,6 +48,7 @@ const makeDefaultExercise = (isKey = false) => ({
   is_key_exercise: isKey,
   notes: '',
   target_rir: 1,          // default RIR 1 (1 rep in reserve)
+  rest_seconds: 120,      // default rest 2:00 between effective sets
   tempo: 'estricta',      // 'estricta' | 'explosiva' | 'pausa' | 'bombeada' | null
 });
 

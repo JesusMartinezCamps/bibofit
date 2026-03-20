@@ -31,6 +31,7 @@ const mapDayBlueprintToPayload = (days = []) =>
           is_key_exercise: Boolean(exercise.is_key_exercise),
           notes: exercise.notes?.trim() || null,
           target_rir: toIntOrNull(exercise.target_rir),
+          rest_seconds: toIntOrNull(exercise.rest_seconds) ?? 120,
           tempo: exercise.tempo?.trim() || null,
         }))
         .filter((exercise) => exercise.exercise_id !== null),
@@ -191,7 +192,7 @@ export const getTrainingZoneSnapshot = async (userId, dateKey = getDateKey()) =>
     const { data: blockExercisesData, error: blockExercisesError } = await supabase
       .from('training_block_exercises')
       .select(
-        'id, weekly_day_block_id, exercise_id, exercise_order, preferred_equipment_id, target_sets, target_reps_min, target_reps_max, progression_increment_kg, backoff_percentage, is_key_exercise, notes, created_at'
+        'id, weekly_day_block_id, exercise_id, exercise_order, preferred_equipment_id, target_sets, target_reps_min, target_reps_max, progression_increment_kg, backoff_percentage, is_key_exercise, notes, target_rir, tempo, rest_seconds, created_at'
       )
       .in('weekly_day_block_id', blockIds)
       .order('weekly_day_block_id', { ascending: true })

@@ -45,24 +45,6 @@ const TrainingMacroVisualizer = ({
         color="cyan"
       />
     </div>
-
-    {muscleProgressRows.length ? (
-      <div className="rounded-xl border border-border/70 bg-muted/35 p-3">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-          Progreso por grupo muscular
-        </p>
-        <div className="space-y-1.5">
-          {muscleProgressRows.slice(0, 4).map((row) => (
-            <div key={row.id} className="flex items-center justify-between text-xs">
-              <span className="truncate text-foreground">{row.label}</span>
-              <span className="text-muted-foreground">
-                {Math.round(row.actual * 10) / 10} / {Math.round(row.target * 10) / 10} s
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-    ) : null}
   </div>
 );
 

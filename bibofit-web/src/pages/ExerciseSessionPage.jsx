@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation, useParams } from 'react-router-dom'
 import {
   ArrowLeft, Info, Flame, Shuffle, FileText,
   Search, X, Check, AlertTriangle, CheckCircle2,
@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import RirScaleSelector from '@/components/training/shared/RirScaleSelector'
 import { cn } from '@/lib/utils'
 import * as timingService from '@/lib/exerciseTimingService'
+import { getWorkoutSessionPayload } from '@/lib/training/workoutSessionService'
 
 // Color de entrenamiento de la app
 const T = '#F44C40'
@@ -40,6 +41,7 @@ const MOCK_EXERCISE = {
   targetSets: 4,
   targetRepsMin: 4,
   targetRepsMax: 6,
+  restSeconds: 120,
   prevSets: {
     1: { weight: 175, reps: 5, rir: 0 },
     2: { weight: 175, reps: 4, rir: 0 },
@@ -87,26 +89,37 @@ function generateWarmupSets(workWeight) {
 
 /** Genera las filas de series a partir de los datos del ejercicio */
 function buildInitialSets(exercise) {
-  const n       = exercise.targetSets || 4
-  const prevS   = exercise.prevSets || {}
-  const prevW1  = prevS[1]?.weight || null
+  const n = exercise.targetSets || 4
+  const prevS = exercise.prevSets || {}
+  const currS = exercise.currentSets || {}
+  const prevW1 = prevS[1]?.weight || null
   return Array.from({ length: n }, (_, i) => {
-    const no   = i + 1
+    const no = i + 1
     const prev = prevS[no]
+    const curr = currS[no]
     return {
-      id:           `s${no}`,
+      id: `s${no}`,
       no,
-      targetMin:    exercise.targetRepsMin || 8,
-      targetMax:    exercise.targetRepsMax || 12,
+      dbSetId: curr?.id ?? null,
+      targetMin: exercise.targetRepsMin || curr?.target_reps_min || 8,
+      targetMax: exercise.targetRepsMax || curr?.target_reps_max || 12,
       targetWeight: prev?.weight ?? prevW1 ?? 0,
-      prevWeight:   prev?.weight ?? null,
-      prevReps:     prev?.reps   ?? null,
-      prevRir:      prev?.rir    ?? null,
+      prevWeight: prev?.weight ?? null,
+      prevReps: prev?.reps ?? null,
+      prevRir: prev?.rir ?? null,
+      currentWeight: curr?.weight ?? null,
+      currentReps: curr?.reps ?? null,
+      currentRir: curr?.rir ?? null,
+      startedAt: curr?.started_at ? new Date(curr.started_at) : null,
+      completedAt: curr?.completed_at ? new Date(curr.completed_at) : null,
     }
   })
 }
 
-const REST_SECONDS = 180
+const REST_MIN_SECONDS = 15
+const REST_MAX_SECONDS = 300
+const REST_STEP_SECONDS = 5
+const REST_DEFAULT_SECONDS = 120
 
 // ─── Utils ────────────────────────────────────────────────────────────────────
 
@@ -121,6 +134,19 @@ function parseMetricValue(value) {
   if (value === '' || value === null || value === undefined) return null
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : null
+}
+
+function toNullableInt(value) {
+  const parsed = parseMetricValue(value)
+  if (parsed === null) return null
+  return Math.round(parsed)
+}
+
+function normalizeRestSeconds(value, fallback = REST_DEFAULT_SECONDS) {
+  const parsed = Number.parseInt(String(value ?? ''), 10)
+  if (!Number.isFinite(parsed)) return fallback
+  const clamped = Math.min(REST_MAX_SECONDS, Math.max(REST_MIN_SECONDS, parsed))
+  return Math.round(clamped / REST_STEP_SECONDS) * REST_STEP_SECONDS
 }
 
 function getDeltaStyles(diff) {
@@ -244,39 +270,76 @@ function MediaStrip({ phases }) {
 // ─── Rest Timer ───────────────────────────────────────────────────────────────
 
 function RestTimer({ seconds, total, onSkip }) {
-  const pct = (seconds / total) * 100
-  const r = 26, circ = 2 * Math.PI * r
-  const offset = circ - (pct / 100) * circ
-  const isLow = seconds <= 30
+  const safeTotal = Math.max(total || REST_DEFAULT_SECONDS, 1)
+  const pct = Math.max(0, Math.min(100, (seconds / safeTotal) * 100))
+  const intensity = 1 - (seconds / safeTotal)
+  const tone = intensity > 0.67 ? 'hard' : intensity > 0.33 ? 'mid' : 'easy'
 
   return (
     <motion.div
       initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
-      className="flex items-center gap-3 bg-card border border-border rounded-2xl px-4 py-2.5 shadow-sm"
+      className={cn(
+        'mt-2.5 rounded-xl border px-3 py-2.5 shadow-sm',
+        tone === 'hard'
+          ? 'border-red-500/30 bg-red-500/10'
+          : tone === 'mid'
+          ? 'border-amber-500/30 bg-amber-500/10'
+          : 'border-emerald-500/30 bg-emerald-500/10'
+      )}
     >
-      <div className="relative w-12 h-12 flex-shrink-0">
-        <svg className="w-full h-full -rotate-90" viewBox="0 0 60 60">
-          <circle cx="30" cy="30" r={r} stroke="currentColor" strokeWidth="3" fill="none" className="text-border" />
-          <circle cx="30" cy="30" r={r} stroke="currentColor" strokeWidth="3" fill="none"
-            strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
-            className={isLow ? 'text-amber-500' : 'text-primary'}
-            style={{ transition: 'stroke-dashoffset 1s linear, color 0.3s' }}
-          />
-        </svg>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className={cn("text-[11px] font-bold tabular-nums", isLow ? 'text-amber-600 dark:text-amber-400' : 'text-foreground')}>
-            {fmt(seconds)}
-          </span>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className={cn(
+            'w-8 h-8 rounded-lg flex items-center justify-center',
+            tone === 'hard'
+              ? 'bg-red-500/15 text-red-500'
+              : tone === 'mid'
+              ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+              : 'bg-emerald-500/15 text-emerald-500'
+          )}>
+            <Clock className="w-4 h-4" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold leading-none">
+              Descanso
+            </p>
+            <p className={cn(
+              'font-mono tabular-nums text-base font-bold mt-1 leading-none',
+              tone === 'hard'
+                ? 'text-red-500'
+                : tone === 'mid'
+                ? 'text-amber-600 dark:text-amber-400'
+                : 'text-emerald-500'
+            )}>
+              {fmt(seconds)}
+            </p>
+          </div>
         </div>
+        <button
+          onClick={onSkip}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-card/70 border border-border text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <SkipForward className="w-3.5 h-3.5" />
+          Saltar
+        </button>
       </div>
-      <div className="flex-1">
-        <p className="text-sm font-semibold text-foreground">Descansando</p>
-        <p className="text-xs text-muted-foreground">Próxima serie en {fmt(seconds)}</p>
+
+      <div className="mt-2 h-1.5 rounded-full bg-border overflow-hidden">
+        <div
+          className={cn(
+            'h-full transition-[width] duration-1000 ease-linear',
+            tone === 'hard'
+              ? 'bg-red-500'
+              : tone === 'mid'
+              ? 'bg-amber-500'
+              : 'bg-emerald-500'
+          )}
+          style={{ width: `${pct}%` }}
+        />
       </div>
-      <button onClick={onSkip} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-muted text-muted-foreground text-sm font-medium hover:text-foreground transition-colors">
-        <SkipForward className="w-3.5 h-3.5" />
-        Saltar
-      </button>
+      <p className="mt-1.5 text-[10px] text-muted-foreground">
+        Al terminar, se inicia automáticamente la siguiente serie.
+      </p>
     </motion.div>
   )
 }
@@ -701,9 +764,16 @@ function SwapSheet({ open, onClose, variants }) {
 
 // ─── Notes Sheet ──────────────────────────────────────────────────────────────
 
-function NotesSheet({ open, onClose }) {
-  const [exerciseNote, setExerciseNote] = useState('Agarre mixto. Pie izq ligeramente rotado hacia fuera.')
-  const [sessionNote, setSessionNote]   = useState('')
+function NotesSheet({
+  open,
+  onClose,
+  exerciseNote,
+  sessionNote,
+  onExerciseNoteChange,
+  onSessionNoteChange,
+  onSave,
+  saving = false,
+}) {
   return (
     <BottomSheet open={open} onClose={onClose} title="Notas">
       <div className="px-4 pb-8 pt-3 space-y-4">
@@ -712,7 +782,7 @@ function NotesSheet({ open, onClose }) {
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Del ejercicio</span>
             <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full border border-border">Permanente</span>
           </div>
-          <textarea value={exerciseNote} onChange={e => setExerciseNote(e.target.value)} rows={3}
+          <textarea value={exerciseNote} onChange={e => onExerciseNoteChange(e.target.value)} rows={3}
             placeholder="Técnica personal, cuing, adaptaciones anatómicas..."
             className="w-full p-3.5 rounded-xl bg-background border border-input text-foreground placeholder-muted-foreground/50 text-sm resize-none focus:outline-none focus:border-[#F44C40]/50 transition-colors leading-relaxed" />
         </div>
@@ -721,11 +791,13 @@ function NotesSheet({ open, onClose }) {
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Esta sesión</span>
             <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full border border-border">Solo hoy</span>
           </div>
-          <textarea value={sessionNote} onChange={e => setSessionNote(e.target.value)} rows={3}
+          <textarea value={sessionNote} onChange={e => onSessionNoteChange(e.target.value)} rows={3}
             placeholder="Fatiga, dolor, variación usada, sensaciones..."
             className="w-full p-3.5 rounded-xl bg-background border border-input text-foreground placeholder-muted-foreground/50 text-sm resize-none focus:outline-none focus:border-[#F44C40]/50 transition-colors leading-relaxed" />
         </div>
-        <Button variant="training" onClick={onClose} className="w-full h-12">Guardar notas</Button>
+        <Button variant="training" onClick={onSave} disabled={saving} className="w-full h-12">
+          {saving ? 'Guardando...' : 'Guardar notas'}
+        </Button>
       </div>
     </BottomSheet>
   )
@@ -743,20 +815,51 @@ const ACTION_CHIPS = [
 export default function ExerciseSessionPage() {
   const navigate  = useNavigate()
   const location  = useLocation()
+  const { blockExerciseId } = useParams()
 
   // ── Datos del ejercicio: vienen de location.state (pasado por WorkoutDayPage)
   //    o se usa el mock si se accede directamente a la ruta demo
   const stateExercise      = location.state?.exercise    || null
   const workoutId          = location.state?.workoutId   ?? null
   const workoutExerciseId  = location.state?.workoutExerciseId ?? null
+  const [resolvedWorkoutExerciseId, setResolvedWorkoutExerciseId] = useState(null)
+  const effectiveWorkoutExerciseId = workoutExerciseId ?? resolvedWorkoutExerciseId
 
   // Ejercicio resuelto: preferimos el estado de navegación, luego el mock
-  const exercise  = stateExercise || MOCK_EXERCISE
+  const baseExercise = useMemo(() => stateExercise || MOCK_EXERCISE, [stateExercise])
+  const [hydratedSetsByNo, setHydratedSetsByNo] = useState(null)
+  const [exerciseNote, setExerciseNote] = useState(baseExercise.notes || '')
+  const [sessionNote, setSessionNote] = useState('')
+  const [isSavingNotes, setIsSavingNotes] = useState(false)
+
+  const exercise = useMemo(() => {
+    if (!hydratedSetsByNo) return baseExercise
+    return {
+      ...baseExercise,
+      targetSets: Object.keys(hydratedSetsByNo).length || baseExercise.targetSets,
+      currentSets: hydratedSetsByNo,
+    }
+  }, [baseExercise, hydratedSetsByNo])
+
+  const configuredRestSeconds = useMemo(
+    () =>
+      normalizeRestSeconds(
+        exercise.restSeconds
+        ?? exercise.rest_seconds
+        ?? exercise.default_rest_sec
+        ?? REST_DEFAULT_SECONDS
+      ),
+    [exercise]
+  )
   const warmupSets = useMemo(
     () => generateWarmupSets(exercise.prevSets?.[1]?.weight || 100),
     [exercise]
   )
   const initialSets = useMemo(() => buildInitialSets(exercise), [exercise])
+  const setMetaById = useMemo(
+    () => Object.fromEntries(initialSets.map((set) => [set.id, set])),
+    [initialSets]
+  )
   const variants    = MOCK_VARIANTS  // en producción vendría de DB por grupo muscular
 
   // ── Timing refs (no causan re-renders) ──────────────────────────────────────
@@ -772,6 +875,7 @@ export default function ExerciseSessionPage() {
   const [sessionSecs, setSessionSecs]       = useState(0)
   const [currentSetSecs, setCurrentSetSecs] = useState(0)
   const [restSecs, setRestSecs]             = useState(null)
+  const [nextSetIdAfterRest, setNextSetIdAfterRest] = useState(null)
   const [isSessionRunning, setIsSessionRunning] = useState(false)
   const pauseStartedAtRef = useRef(null)
 
@@ -780,8 +884,161 @@ export default function ExerciseSessionPage() {
   const [activeSetId, setActiveSetId] = useState(null)
   const [openSheet, setOpenSheet]     = useState(null)
   const [showWarmup, setShowWarmup]   = useState(false)
+  const [workPhase, setWorkPhase]     = useState('idle') // idle | warmup | work_ready | work
   const [showSummary, setShowSummary] = useState(false)
   const [summary, setSummary]         = useState(null)
+  const setRowRefs = useRef({})
+  const setDataRef = useRef({})
+  const setPersistTimersRef = useRef({})
+  const notesPersistTimerRef = useRef(null)
+  const notesDirtyRef = useRef(false)
+
+  useEffect(() => {
+    setDataRef.current = setData
+  }, [setData])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const resolveWorkoutExerciseId = async () => {
+      if (effectiveWorkoutExerciseId || !workoutId || !blockExerciseId) return
+      try {
+        const payload = await getWorkoutSessionPayload({ workoutId })
+        if (cancelled) return
+        const match = (payload.exercises || []).find(
+          (item) => String(item.training_block_exercise_id) === String(blockExerciseId)
+        )
+        if (match?.id) {
+          setResolvedWorkoutExerciseId(match.id)
+        }
+      } catch (error) {
+        console.warn('No se pudo resolver workoutExerciseId desde payload:', error?.message || error)
+      }
+    }
+
+    void resolveWorkoutExerciseId()
+    return () => {
+      cancelled = true
+    }
+  }, [effectiveWorkoutExerciseId, workoutId, blockExerciseId])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const hydrateTracking = async () => {
+      if (!effectiveWorkoutExerciseId) return
+
+      const tracking = await timingService.getWorkoutExerciseTracking(effectiveWorkoutExerciseId)
+      if (cancelled || !tracking) return
+
+      const setRows = Array.isArray(tracking.sets) ? tracking.sets : []
+      const byNo = Object.fromEntries(
+        setRows
+          .filter((row) => Number.isFinite(Number(row?.set_no)))
+          .map((row) => [Number(row.set_no), row])
+      )
+
+      setHydratedSetsByNo(byNo)
+      if (!notesDirtyRef.current) {
+        setSessionNote(tracking.feedback || '')
+        setExerciseNote(tracking.block_exercise_note ?? baseExercise.notes ?? '')
+      }
+    }
+
+    void hydrateTracking()
+    return () => {
+      cancelled = true
+    }
+  }, [effectiveWorkoutExerciseId, baseExercise.notes])
+
+  useEffect(() => {
+    setSetData((prev) => {
+      const next = {}
+      initialSets.forEach((set) => {
+        const current = prev[set.id] || {}
+        const defaultWeight = set.currentWeight != null ? String(set.currentWeight) : ''
+        const defaultReps = set.currentReps != null ? String(set.currentReps) : ''
+        next[set.id] = {
+          weight: current.weight !== undefined ? current.weight : defaultWeight,
+          reps: current.reps !== undefined ? current.reps : defaultReps,
+          rir: current.rir !== undefined ? current.rir : (set.currentRir ?? null),
+          completed: current.completed !== undefined ? current.completed : Boolean(set.completedAt),
+        }
+
+        if (set.startedAt || set.completedAt) {
+          setTimings.current[set.id] = {
+            startedAt: set.startedAt || null,
+            completedAt: set.completedAt || null,
+          }
+        }
+      })
+      return next
+    })
+  }, [initialSets])
+
+  const buildSetPersistencePayload = useCallback((setId, setValues = {}) => {
+    const meta = setMetaById[setId]
+    if (!meta?.dbSetId) return null
+
+    return {
+      setId: meta.dbSetId,
+      weight: toNullableInt(setValues.weight),
+      reps: toNullableInt(setValues.reps),
+      rir: setValues.rir === null || setValues.rir === undefined ? null : Number(setValues.rir),
+    }
+  }, [setMetaById])
+
+  const persistSetProgress = useCallback(async (setId, overrides = {}, timingOverrides = {}) => {
+    const mergedValues = {
+      ...(setDataRef.current[setId] || {}),
+      ...overrides,
+    }
+    const payload = buildSetPersistencePayload(setId, mergedValues)
+    if (!payload) return
+
+    await timingService.upsertWorkoutSetProgress({
+      ...payload,
+      startedAt: timingOverrides.startedAt || null,
+      completedAt: timingOverrides.completedAt || null,
+    })
+  }, [buildSetPersistencePayload])
+
+  const scheduleSetPersist = useCallback((setId, nextValues = {}, timingOverrides = {}) => {
+    const timers = setPersistTimersRef.current
+    if (timers[setId]) clearTimeout(timers[setId])
+    timers[setId] = setTimeout(() => {
+      void persistSetProgress(setId, nextValues, timingOverrides)
+      delete timers[setId]
+    }, 450)
+  }, [persistSetProgress])
+
+  const persistNotes = useCallback(async ({ closeAfterSave = false } = {}) => {
+    if (!effectiveWorkoutExerciseId) {
+      if (closeAfterSave) setOpenSheet(null)
+      return
+    }
+
+    setIsSavingNotes(true)
+    const result = await timingService.upsertWorkoutExerciseNotes({
+      workoutExerciseId: effectiveWorkoutExerciseId,
+      feedback: sessionNote,
+      blockExerciseNote: exerciseNote,
+    })
+    setIsSavingNotes(false)
+
+    if (result) {
+      notesDirtyRef.current = false
+      if (closeAfterSave) setOpenSheet(null)
+    }
+  }, [effectiveWorkoutExerciseId, sessionNote, exerciseNote])
+
+  const scheduleNotesPersist = useCallback(() => {
+    if (!effectiveWorkoutExerciseId) return
+    if (notesPersistTimerRef.current) clearTimeout(notesPersistTimerRef.current)
+    notesPersistTimerRef.current = setTimeout(() => {
+      if (notesDirtyRef.current) void persistNotes()
+    }, 650)
+  }, [persistNotes, effectiveWorkoutExerciseId])
 
   const ensureSessionStarted = useCallback((startedAt = new Date()) => {
     if (sessionStartedAt.current instanceof Date) return sessionStartedAt.current
@@ -817,10 +1074,7 @@ export default function ExerciseSessionPage() {
   }, [activeSetId])
 
   const toggleSessionChrono = useCallback(() => {
-    if (!(sessionStartedAt.current instanceof Date)) {
-      ensureSessionStarted(new Date())
-      return
-    }
+    if (!(sessionStartedAt.current instanceof Date)) return
 
     if (isSessionRunning) {
       pauseStartedAtRef.current = new Date()
@@ -835,7 +1089,7 @@ export default function ExerciseSessionPage() {
     }
     pauseStartedAtRef.current = null
     setIsSessionRunning(true)
-  }, [applyPauseOffset, ensureSessionStarted, isSessionRunning])
+  }, [applyPauseOffset, isSessionRunning])
 
   // ── Tick cada segundo ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -850,33 +1104,83 @@ export default function ExerciseSessionPage() {
     return () => clearInterval(id)
   }, [isSessionRunning])
 
-  // ── Rest countdown ───────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!isSessionRunning) return
-    if (restSecs === null || restSecs <= 0) {
-      if (restSecs === 0) setRestSecs(null)
+  const activateSet = useCallback((setId, startedAt = new Date()) => {
+    if (!exerciseStartedAt.current) {
+      exerciseStartedAt.current = startedAt
+    }
+    activeSetStartedAt.current = startedAt
+    setTimings.current[setId] = { startedAt, completedAt: null }
+    setCurrentSetSecs(0)
+    setActiveSetId(setId)
+    void persistSetProgress(setId, {}, { startedAt })
+  }, [persistSetProgress])
+
+  const finishRestAndStartNextSet = useCallback((skipToNext = true) => {
+    setRestSecs(null)
+    activeSetStartedAt.current = null
+    setCurrentSetSecs(0)
+
+    if (!skipToNext || !nextSetIdAfterRest) {
+      setNextSetIdAfterRest(null)
       return
     }
-    const id = setTimeout(() => setRestSecs(s => s - 1), 1000)
-    return () => clearTimeout(id)
-  }, [isSessionRunning, restSecs])
 
-  // ── Warmup toggle → registra inicio de calentamiento ─────────────────────────
-  const handleToggleWarmup = useCallback(() => {
+    const now = new Date()
+    activateSet(nextSetIdAfterRest, now)
+    setNextSetIdAfterRest(null)
+  }, [activateSet, nextSetIdAfterRest])
+
+  // ── Rest countdown ───────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (restSecs === null) return
+    if (!isSessionRunning) return
+
+    if (restSecs <= 0) {
+      finishRestAndStartNextSet(true)
+      return
+    }
+
+    const id = setTimeout(() => {
+      setRestSecs((prev) => (prev === null ? null : prev - 1))
+    }, 1000)
+
+    return () => clearTimeout(id)
+  }, [finishRestAndStartNextSet, isSessionRunning, restSecs])
+
+  useEffect(() => {
+    if (!activeSetId) return
+    const node = setRowRefs.current[activeSetId]
+    if (!node) return
+    node.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }, [activeSetId])
+
+  const startWarmupPhase = useCallback(() => {
     const now = new Date()
     ensureSessionStarted(now)
     if (!warmupStartedAt.current) {
       warmupStartedAt.current = now
     }
-    setShowWarmup(v => !v)
+    setShowWarmup(true)
+    setWorkPhase('warmup')
   }, [ensureSessionStarted])
 
-  // ── Activar una serie ─────────────────────────────────────────────────────────
-  const selectSet = useCallback((setId) => {
+  const finishWarmupPhase = useCallback(() => {
     const now = new Date()
     ensureSessionStarted(now)
 
-    // Primera serie de trabajo: cierra el calentamiento
+    if (!warmupStartedAt.current) {
+      warmupStartedAt.current = now
+    }
+    warmupEndedAt.current = now
+    timingService.markWarmupTiming(workoutId, warmupStartedAt.current, now)
+    setWorkPhase('work_ready')
+    setShowWarmup(false)
+  }, [ensureSessionStarted, workoutId])
+
+  const startEffectiveSetsPhase = useCallback(() => {
+    const now = new Date()
+    ensureSessionStarted(now)
+
     if (!warmupEndedAt.current) {
       warmupEndedAt.current = now
       if (warmupStartedAt.current) {
@@ -884,19 +1188,40 @@ export default function ExerciseSessionPage() {
       }
     }
 
-    // Primera vez que se activa cualquier serie: inicio del ejercicio
-    if (!exerciseStartedAt.current) {
-      exerciseStartedAt.current = now
+    const firstPendingSet = initialSets.find((set) => !setData[set.id]?.completed)
+    if (firstPendingSet) {
+      setWorkPhase('work')
+      setRestSecs(null)
+      setNextSetIdAfterRest(null)
+      activateSet(firstPendingSet.id, now)
     }
+  }, [activateSet, ensureSessionStarted, initialSets, setData, workoutId])
 
-    activeSetStartedAt.current = now
-    setTimings.current[setId] = { startedAt: now, completedAt: null }
-    setCurrentSetSecs(0)
-    setActiveSetId(setId)
-  }, [ensureSessionStarted, workoutId])
+  const toggleWarmupList = useCallback(() => {
+    setShowWarmup((prev) => !prev)
+  }, [])
+
+  // ── Activar una serie ─────────────────────────────────────────────────────────
+  const selectSet = useCallback((setId) => {
+    if (workPhase !== 'work') return
+    if (restSecs !== null) return
+    if (!(sessionStartedAt.current instanceof Date)) return
+
+    const now = new Date()
+    activateSet(setId, now)
+  }, [activateSet, restSecs, workPhase])
 
   // ── Completar una serie ───────────────────────────────────────────────────────
   const completeSet = useCallback((setId) => {
+    if (restSecs !== null) return
+
+    const meta = setMetaById[setId]
+    if (!meta) return
+
+    const current = setDataRef.current[setId] || {}
+    const resolvedWeight = current.weight || (meta.prevWeight != null ? String(meta.prevWeight) : String(meta.targetWeight ?? ''))
+    const resolvedReps = current.reps || (meta.prevReps != null ? String(meta.prevReps) : '')
+
     const completedAt = new Date()
     ensureSessionStarted(completedAt)
 
@@ -906,37 +1231,48 @@ export default function ExerciseSessionPage() {
       completedAt,
     }
 
-    // Guardar en DB (fire-and-forget)
-    // En producción, setId sería el ID real de exercise_sets
-    if (workoutId && setTimings.current[setId].startedAt) {
-      timingService.recordSetCompletion(
-        null, // setId real de DB, por ahora null en demo
-        setTimings.current[setId].startedAt,
-        completedAt
-      )
+    // Guardar progreso y timing en DB con el set_id real
+    const persistedSet = {
+      ...(current || {}),
+      weight: resolvedWeight,
+      reps: resolvedReps,
+      completed: true,
     }
+    setDataRef.current = { ...setDataRef.current, [setId]: persistedSet }
+    setSetData(prev => ({ ...prev, [setId]: persistedSet }))
 
-    // Marcar como completada en state
-    setSetData(prev => ({ ...prev, [setId]: { ...(prev[setId] || {}), completed: true } }))
+    if (setPersistTimersRef.current[setId]) {
+      clearTimeout(setPersistTimersRef.current[setId])
+      delete setPersistTimersRef.current[setId]
+    }
+    void persistSetProgress(setId, persistedSet, {
+      startedAt: setTimings.current[setId].startedAt || null,
+      completedAt,
+    })
 
-    // Iniciar descanso
-    setRestSecs(REST_SECONDS)
-
-    // Avanzar a la siguiente serie
+    // Preparar la siguiente serie
     const idx = initialSets.findIndex(s => s.id === setId)
     if (idx < initialSets.length - 1) {
-      setActiveSetId(initialSets[idx + 1].id)
-      // Pre-registrar start de la siguiente serie (se actualizará cuando el usuario la active)
+      const nextSetId = initialSets[idx + 1].id
+      setActiveSetId(nextSetId)
+      setNextSetIdAfterRest(nextSetId)
+      setRestSecs(configuredRestSeconds)
+    } else {
+      setActiveSetId(null)
+      setNextSetIdAfterRest(null)
+      setRestSecs(null)
     }
-  }, [ensureSessionStarted, workoutId, initialSets])
+    activeSetStartedAt.current = null
+    setCurrentSetSecs(0)
+  }, [configuredRestSeconds, ensureSessionStarted, initialSets, restSecs, setMetaById, persistSetProgress])
 
   // ── Ejercicio completado ───────────────────────────────────────────────────────
   const handleAllCompleted = useCallback(() => {
     const now = new Date()
 
     // Guardar timing del ejercicio
-    if (workoutId && exerciseStartedAt.current) {
-      timingService.recordExerciseTiming(workoutExerciseId, exerciseStartedAt.current, now)
+    if (workoutId && effectiveWorkoutExerciseId && exerciseStartedAt.current) {
+      timingService.recordExerciseTiming(effectiveWorkoutExerciseId, exerciseStartedAt.current, now)
       timingService.finishWorkout(workoutId, now)
     }
 
@@ -949,11 +1285,32 @@ export default function ExerciseSessionPage() {
     })
     setSummary(localSummary)
     setShowSummary(true)
-  }, [workoutId, workoutExerciseId])
+  }, [workoutId, effectiveWorkoutExerciseId])
 
   const updateSet = useCallback((id, data) => {
-    setSetData(prev => ({ ...prev, [id]: data }))
-  }, [])
+    setSetData(prev => {
+      const next = { ...prev, [id]: data }
+      setDataRef.current = next
+      return next
+    })
+    scheduleSetPersist(id, data)
+  }, [scheduleSetPersist])
+
+  const handleExerciseNoteChange = useCallback((value) => {
+    notesDirtyRef.current = true
+    setExerciseNote(value)
+    scheduleNotesPersist()
+  }, [scheduleNotesPersist])
+
+  const handleSessionNoteChange = useCallback((value) => {
+    notesDirtyRef.current = true
+    setSessionNote(value)
+    scheduleNotesPersist()
+  }, [scheduleNotesPersist])
+
+  const handleSaveNotes = useCallback(() => {
+    void persistNotes({ closeAfterSave: true })
+  }, [persistNotes])
 
   const allCompleted = initialSets.every(s => setData[s.id]?.completed)
   const hasSessionStarted = sessionStartedAt.current instanceof Date
@@ -965,8 +1322,36 @@ export default function ExerciseSessionPage() {
     }
   }, [allCompleted]) // eslint-disable-line
 
+  useEffect(() => {
+    return () => {
+      Object.values(setPersistTimersRef.current).forEach((timerId) => clearTimeout(timerId))
+      setPersistTimersRef.current = {}
+
+      initialSets.forEach((set) => {
+        if (!set.dbSetId) return
+        const timing = setTimings.current[set.id] || {}
+        void persistSetProgress(set.id, setDataRef.current[set.id] || {}, {
+          startedAt: timing.startedAt || null,
+          completedAt: timing.completedAt || null,
+        })
+      })
+
+      if (notesPersistTimerRef.current) {
+        clearTimeout(notesPersistTimerRef.current)
+        notesPersistTimerRef.current = null
+      }
+      if (notesDirtyRef.current) {
+        void persistNotes()
+      }
+
+      if (workoutId && sessionStartedAt.current instanceof Date) {
+        void timingService.finishWorkout(workoutId, new Date())
+      }
+    }
+  }, [initialSets, persistNotes, persistSetProgress, workoutId])
+
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
+    <div className="h-[100dvh] bg-background text-foreground flex flex-col overflow-hidden">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <header className="px-4 pt-3 pb-2 bg-background/95 backdrop-blur-sm sticky top-0 z-20 border-b border-border">
@@ -979,8 +1364,9 @@ export default function ExerciseSessionPage() {
           <button
             type="button"
             onClick={toggleSessionChrono}
+            disabled={!hasSessionStarted}
             className={cn(
-              'flex flex-col items-center rounded-lg px-2 py-1 transition-colors',
+              'flex flex-col items-center rounded-lg px-2 py-1 transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
               !hasSessionStarted || !isSessionRunning
                 ? 'bg-amber-500/10 hover:bg-amber-500/15'
                 : 'hover:bg-muted/60'
@@ -997,7 +1383,7 @@ export default function ExerciseSessionPage() {
               </span>
             </div>
             <span className="text-[10px] text-muted-foreground uppercase tracking-widest">
-              {!hasSessionStarted ? 'Iniciar' : isSessionRunning ? 'Sesión' : 'Pausado'}
+              {!hasSessionStarted ? 'Crono' : isSessionRunning ? 'Sesión' : 'Pausado'}
             </span>
           </button>
 
@@ -1025,10 +1411,20 @@ export default function ExerciseSessionPage() {
             )} />
           ))}
         </div>
+
+        <AnimatePresence initial={false}>
+          {restSecs !== null && (
+            <RestTimer
+              seconds={restSecs}
+              total={configuredRestSeconds}
+              onSkip={() => finishRestAndStartNextSet(true)}
+            />
+          )}
+        </AnimatePresence>
       </header>
 
       {/* ── Cuerpo ─────────────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto overscroll-y-contain">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain">
 
         {/* Action chips */}
         <div className="flex gap-2 px-4 pt-3 pb-2 overflow-x-auto no-scrollbar">
@@ -1040,17 +1436,6 @@ export default function ExerciseSessionPage() {
             </button>
           ))}
         </div>
-
-        {/* Rest timer */}
-        <AnimatePresence>
-          {restSecs !== null && (
-            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-              <div className="px-4 pt-1">
-                <RestTimer seconds={restSecs} total={REST_SECONDS} onSkip={() => setRestSecs(0)} />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* Hero media + name */}
         <div className="px-4 pt-3 pb-2">
@@ -1082,9 +1467,63 @@ export default function ExerciseSessionPage() {
 
           <SectionDivider label="Calentamiento" count={`${warmupSets.length} series`} tone="warmup" />
 
-          {/* Warmup toggle */}
-          <button onClick={handleToggleWarmup}
-            className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-card border border-border text-sm text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors">
+          {workPhase === 'idle' && (
+            <div className="flex justify-center">
+              <Button
+                variant="outline"
+                onClick={startWarmupPhase}
+                className="w-[75%] h-12 border-orange-400/40 text-orange-600 hover:text-orange-500 hover:bg-orange-500/10"
+              >
+                <Flame className="w-4 h-4 mr-2" />
+                Iniciar calentamiento
+              </Button>
+            </div>
+          )}
+
+          {workPhase === 'warmup' && (
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={toggleSessionChrono}
+                className="basis-[75%] h-12 border-orange-400/40 text-orange-600 hover:text-orange-500 hover:bg-orange-500/10"
+              >
+                {isSessionRunning ? (
+                  <>
+                    <Pause className="w-4 h-4 mr-2" />
+                    Pausar calentamiento
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-4 h-4 mr-2" />
+                    Reanudar calentamiento
+                  </>
+                )}
+              </Button>
+              <Button
+                onClick={finishWarmupPhase}
+                className="basis-[25%] h-12"
+                style={{ background: '#f59e0b', color: 'white' }}
+              >
+                Listo
+              </Button>
+            </div>
+          )}
+
+          {workPhase === 'work_ready' && (
+            <div className="flex justify-center">
+              <Button
+                onClick={startEffectiveSetsPhase}
+                className="w-[75%] h-12 bg-[#F44C40] hover:bg-[#E23C32] text-white"
+              >
+                Iniciar series efectivas
+              </Button>
+            </div>
+          )}
+
+          <button
+            onClick={toggleWarmupList}
+            className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-card border border-border text-sm text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
+          >
             <span className="flex items-center gap-2">
               <Flame className="w-4 h-4 text-orange-500/80" />
               <span className="font-medium">Calentamiento</span>
@@ -1122,16 +1561,22 @@ export default function ExerciseSessionPage() {
 
           {/* Working sets */}
           {initialSets.map(set => (
-            <WorkingSetRow
+            <div
               key={set.id}
-              set={set}
-              setData={setData}
-              isActive={activeSetId === set.id && !setData[set.id]?.completed}
-              currentSetSecs={currentSetSecs}
-              onSelect={() => selectSet(set.id)}
-              onUpdate={updateSet}
-              onComplete={completeSet}
-            />
+              ref={(node) => {
+                if (node) setRowRefs.current[set.id] = node
+              }}
+            >
+              <WorkingSetRow
+                set={set}
+                setData={setData}
+                isActive={activeSetId === set.id && !setData[set.id]?.completed}
+                currentSetSecs={currentSetSecs}
+                onSelect={() => selectSet(set.id)}
+                onUpdate={updateSet}
+                onComplete={completeSet}
+              />
+            </div>
           ))}
 
           <div className="h-6" />
@@ -1142,7 +1587,16 @@ export default function ExerciseSessionPage() {
       <InfoSheet   open={openSheet === 'info'}   onClose={() => setOpenSheet(null)} exercise={exercise} />
       <WarmupSheet open={openSheet === 'warmup'} onClose={() => setOpenSheet(null)} exercise={exercise} warmupSets={warmupSets} />
       <SwapSheet   open={openSheet === 'swap'}   onClose={() => setOpenSheet(null)} variants={variants} />
-      <NotesSheet  open={openSheet === 'notes'}  onClose={() => setOpenSheet(null)} />
+      <NotesSheet
+        open={openSheet === 'notes'}
+        onClose={() => setOpenSheet(null)}
+        exerciseNote={exerciseNote}
+        sessionNote={sessionNote}
+        onExerciseNoteChange={handleExerciseNoteChange}
+        onSessionNoteChange={handleSessionNoteChange}
+        onSave={handleSaveNotes}
+        saving={isSavingNotes}
+      />
 
       <SummaryModal
         open={showSummary}

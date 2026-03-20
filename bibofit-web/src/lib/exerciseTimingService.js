@@ -114,6 +114,75 @@ export async function getWorkoutDurationHistory(userId, limit = 30) {
   return data ?? []
 }
 
+/**
+ * Hidrata tracking persistido de un ejercicio concreto de la sesión.
+ */
+export async function getWorkoutExerciseTracking(workoutExerciseId) {
+  if (!workoutExerciseId) return null
+  const { data, error } = await supabase.rpc('training_get_workout_exercise_tracking', {
+    p_workout_exercise_id: workoutExerciseId,
+  })
+  if (error) {
+    console.warn('[exerciseTimingService] training_get_workout_exercise_tracking:', error.message)
+    return null
+  }
+  return data ?? null
+}
+
+/**
+ * Guarda progreso de una serie (métricas + timing).
+ */
+export async function upsertWorkoutSetProgress({
+  setId,
+  weight = null,
+  reps = null,
+  rir = null,
+  startedAt = null,
+  completedAt = null,
+}) {
+  if (!setId) return null
+
+  const { data, error } = await supabase.rpc('training_upsert_workout_set_progress', {
+    p_set_id: setId,
+    p_weight: weight,
+    p_reps: reps,
+    p_rir: rir,
+    p_started_at: startedAt instanceof Date ? startedAt.toISOString() : null,
+    p_completed_at: completedAt instanceof Date ? completedAt.toISOString() : null,
+  })
+
+  if (error) {
+    console.warn('[exerciseTimingService] training_upsert_workout_set_progress:', error.message)
+    return null
+  }
+
+  return data ?? null
+}
+
+/**
+ * Guarda notas de sesión y nota permanente del ejercicio.
+ */
+export async function upsertWorkoutExerciseNotes({
+  workoutExerciseId,
+  feedback = null,
+  blockExerciseNote = null,
+}) {
+  if (!workoutExerciseId) return null
+
+  const { data, error } = await supabase.rpc('training_upsert_workout_exercise_notes', {
+    p_workout_exercise_id: workoutExerciseId,
+    p_feedback: feedback,
+    p_block_exercise_note: blockExerciseNote,
+  })
+
+  if (error) {
+    console.warn('[exerciseTimingService] training_upsert_workout_exercise_notes:', error.message)
+    return null
+  }
+
+  return data ?? null
+}
+
 // ─── Helpers locales (sin DB) ─────────────────────────────────────────────────
 
 /** Formatea segundos como "Xm Ys" o "Xs" */

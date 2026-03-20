@@ -32,6 +32,7 @@ const TrainingWeeklyRoutineSection = ({
 }) => {
   const [openDayMap, setOpenDayMap] = useState({});
   const [historyRightDate, setHistoryRightDate] = useState(new Date());
+  const nextSessionDayKey = nextSessionDayId != null ? String(nextSessionDayId) : null;
 
   const historyDates = useMemo(
     () => Array.from({ length: 7 }, (_, i) => addDays(historyRightDate, i - 6)),
@@ -44,8 +45,8 @@ const TrainingWeeklyRoutineSection = ({
 
   // Ordena los días para que el siguiente al de hoy aparezca primero
   const orderedDays = useMemo(() => {
-    if (!nextSessionDayId || !days.length) return days;
-    const todayDay = days.find((d) => d.id === nextSessionDayId);
+    if (!nextSessionDayKey || !days.length) return days;
+    const todayDay = days.find((d) => String(d.id) === nextSessionDayKey);
     if (!todayDay) return days;
     const todayIdx = todayDay.day_index;
     return [...days].sort((a, b) => {
@@ -53,7 +54,7 @@ const TrainingWeeklyRoutineSection = ({
       const ob = (b.day_index - todayIdx - 1 + days.length) % days.length;
       return oa - ob;
     });
-  }, [days, nextSessionDayId]);
+  }, [days, nextSessionDayKey]);
 
   return (
     <Card className="bg-card/85 border-border text-foreground shadow-xl">
@@ -115,7 +116,7 @@ const TrainingWeeklyRoutineSection = ({
                     key={dateKey}
                     type="button"
                     disabled={!canOpen}
-                    onClick={() => canOpen && onOpenDay(event.weekly_day_id)}
+                    onClick={() => canOpen && onOpenDay(String(event.weekly_day_id))}
                     className={cn(
                       'relative flex flex-col items-center justify-between p-2 rounded-lg transition-all duration-200 aspect-[3/4] min-h-[74px] border',
                       canOpen ? 'bg-muted/70 hover:bg-muted/85 border-transparent' : 'bg-muted/40 border-transparent opacity-70',
@@ -151,7 +152,7 @@ const TrainingWeeklyRoutineSection = ({
             ) : (
               orderedDays.map((day) => {
                 const dayBlocks = blocksByDayId.get(day.id) || [];
-                const isNext = nextSessionDayId === day.id;
+                const isNext = nextSessionDayKey != null && String(day.id) === nextSessionDayKey;
                 const isOpen = openDayMap[day.id] ?? isNext;
 
                 let exOrder = 0;
@@ -186,7 +187,7 @@ const TrainingWeeklyRoutineSection = ({
                             className="h-8 w-8 text-[#F44C40]/40 dark:text-red-500 dark:bg-red-500/10 dark:hover:bg-red-500/20 hover:bg-[#F44C40]/10 border border-[#F44C40]/40"
                             style={{ borderWidth: 'thin' }}
                             title="Abrir día de entrenamiento"
-                            onClick={(e) => { e.stopPropagation(); onOpenDay(day.id); }}
+                            onClick={(e) => { e.stopPropagation(); onOpenDay(String(day.id)); }}
                           >
                             <Dumbbell className="h-4 w-4" />
                           </Button>
@@ -209,7 +210,7 @@ const TrainingWeeklyRoutineSection = ({
                                 <button
                                   key={item.id}
                                   type="button"
-                                  onClick={() => onOpenDay(day.id)}
+                                  onClick={() => onOpenDay(String(day.id), String(item.id))}
                                   className="w-full text-left flex items-center gap-3 p-3 rounded-xl border border-border/80 bg-card/80 hover:border-border hover:bg-muted/20 active:scale-[0.99] transition-all"
                                 >
                                   <div

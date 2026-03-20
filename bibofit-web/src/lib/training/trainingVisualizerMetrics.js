@@ -19,7 +19,9 @@ export const buildTrainingVisualizerMetrics = async ({
       volumeTotal: { actual: 0, target: 0 },
       prProgress: { actual: 0, target: 1 },
       stepProgress: { actual: 0, target: 70000 },
-      todayStepsInput: '',
+      currentDaySteps: null,
+      lastStepRecord: null,
+      stepsDateSet: new Set(),
     };
   }
 
@@ -141,7 +143,12 @@ export const buildTrainingVisualizerMetrics = async ({
     stepsByDate.set(row.step_date, Number(row.steps || 0));
     weeklySteps += Number(row.steps || 0);
   });
-  const todayDateKey = getDateKey(new Date());
+  const currentDateKey = getDateKey(currentDate);
+  const currentDaySteps = stepsByDate.has(currentDateKey) ? stepsByDate.get(currentDateKey) : null;
+
+  const lastStepRecord = [...dailyStepsRows]
+    .filter((r) => r.step_date <= currentDateKey)
+    .sort((a, b) => b.step_date.localeCompare(a.step_date))[0] ?? null;
 
   return {
     volumeRows,
@@ -157,6 +164,8 @@ export const buildTrainingVisualizerMetrics = async ({
       actual: weeklySteps,
       target: 70000,
     },
-    todayStepsInput: String(stepsByDate.get(todayDateKey) ?? ''),
+    currentDaySteps,
+    lastStepRecord,
+    stepsDateSet: new Set(dailyStepsRows.map((r) => r.step_date)),
   };
 };

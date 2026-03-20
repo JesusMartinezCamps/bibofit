@@ -16,6 +16,7 @@ const T = '#F44C40';
  *   targetRepsMax  number|string     — max reps
  *   equipment      string|null       — optional equipment name
  *   rir            number|null       — optional RIR (Reps In Reserve), shown as "· RIR N"
+ *   restSeconds    number|null       — optional rest between sets in seconds, shown as "· 2:00"
  *   tempo          string            — optional tempo string, shown as "· 3-1-2-0"
  *   prevSets       object|null       — optional prev session data: { 1: { weight, reps, rir }, ... }
  *   onClick        fn                — called when card is clicked/tapped
@@ -33,6 +34,7 @@ const ExerciseCard = ({
   targetRepsMax,
   equipment = null,
   rir = null,
+  restSeconds = null,
   tempo = null,
   prevSets = null,
   onClick,
@@ -41,8 +43,17 @@ const ExerciseCard = ({
   animateDelay = 0,
   showChevron = false,
 }) => {
+  const formatRest = (seconds) => {
+    const parsed = Number.parseInt(String(seconds), 10);
+    if (!Number.isFinite(parsed) || parsed <= 0) return null;
+    const mins = Math.floor(parsed / 60);
+    const secs = parsed % 60;
+    return `${mins}:${String(secs).padStart(2, '0')}`;
+  };
+
   const prevS1 = prevSets?.[1];
   const hasHistory = !!prevS1;
+  const restLabel = formatRest(restSeconds);
 
   const cardContent = (
     <div
@@ -72,6 +83,9 @@ const ExerciseCard = ({
           )}
           {rir !== null && rir !== undefined && (
             <span className="text-[10px] text-muted-foreground/70">· RIR {rir}</span>
+          )}
+          {restLabel && (
+            <span className="text-[10px] text-muted-foreground/70">· Desc {restLabel}</span>
           )}
           {tempo && tempo.trim() && (
             <span className="text-[10px] text-muted-foreground/70">· {tempo}</span>

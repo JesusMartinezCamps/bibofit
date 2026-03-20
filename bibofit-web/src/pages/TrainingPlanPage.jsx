@@ -25,7 +25,6 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import ColorLegendCollapsible from '@/components/shared/ColorLegendCollapsible';
 import { WIZARD_DRAFT_KEY } from '@/hooks/useCreateRoutineWizard';
 import TrainingMacroVisualizer from '@/components/shared/TrainingMacroVisualizer/TrainingMacroVisualizer';
@@ -38,10 +37,7 @@ import {
   getTrainingZoneSnapshot,
 } from '@/lib/training/trainingPlanService';
 import { createNextWorkoutSession, getWorkoutSessionPayload } from '@/lib/training/workoutSessionService';
-import {
-  getWorkoutTimelineEvents,
-  upsertDailySteps,
-} from '@/lib/training/trainingAnalyticsService';
+import { getWorkoutTimelineEvents } from '@/lib/training/trainingAnalyticsService';
 import { buildTrainingVisualizerMetrics } from '@/lib/training/trainingVisualizerMetrics';
 import { cn } from '@/lib/utils';
 
@@ -94,6 +90,7 @@ const DateTimeline = ({
   onDateChange,
   timelineEvents,
   plannedDayByDate,
+  stepsDateSet,
 }) => {
   const weekDates = useMemo(() => {
     const start = subDays(currentDate, 3);
@@ -116,9 +113,11 @@ const DateTimeline = ({
           const event = timelineEvents.get(dateKey);
           const planned = plannedDayByDate.get(dateKey);
           const isCurrent = isSameDay(date, currentDate);
+          const isCurrentDay = isToday(date);
           const isDone = Boolean(event?.is_completed);
           const hasWorkout = Boolean(event?.workout_id);
           const hasPR = Boolean(event?.has_pr);
+          const hasSteps = stepsDateSet?.has(dateKey);
 
           return (
             <button
@@ -131,10 +130,10 @@ const DateTimeline = ({
                   : 'bg-transparent border-transparent hover:bg-muted/80'
               )}
             >
-              <span className={cn('text-xs uppercase font-bold', isCurrent ? 'text-primary' : 'text-muted-foreground')}>
+              <span className={cn('text-xs uppercase font-bold', isCurrent || isCurrentDay ? 'text-primary' : 'text-muted-foreground')}>
                 {shortDayLabel(date)}
               </span>
-              <span className={cn('text-lg font-bold', isCurrent ? 'text-primary' : 'text-foreground')}>
+              <span className={cn('text-lg font-bold', isCurrent || isCurrentDay ? 'text-primary' : 'text-foreground')}>
                 {format(date, 'd')}
               </span>
               <div className="flex flex-wrap justify-center gap-1 mt-1 min-h-[12px] items-center">
@@ -142,6 +141,7 @@ const DateTimeline = ({
                 {hasWorkout ? <div className="w-2 h-2 rounded-full bg-orange-400" title="Entreno iniciado" /> : null}
                 {isDone ? <div className="w-2 h-2 rounded-full bg-emerald-500" title="Entreno completado" /> : null}
                 {hasPR ? <div className="w-2 h-2 rounded-full bg-amber-400" title="Marca de fuerza" /> : null}
+                {hasSteps ? <div className="w-2 h-2 rounded-full bg-cyan-400" title="Pasos registrados" /> : null}
               </div>
             </button>
           );
@@ -211,9 +211,9 @@ const TrainingPlanPage = () => {
   const [volumeProgressTotal, setVolumeProgressTotal] = useState({ actual: 0, target: 0 });
   const [prProgress, setPrProgress] = useState({ actual: 0, target: 1 });
   const [stepProgress, setStepProgress] = useState({ actual: 0, target: 70000 });
-  const [todayStepsInput, setTodayStepsInput] = useState('');
-  const [isSavingSteps, setIsSavingSteps] = useState(false);
-  const [showStepsModal, setShowStepsModal] = useState(false);
+  const [currentDaySteps, setCurrentDaySteps] = useState(null);
+  const [lastStepRecord, setLastStepRecord] = useState(null);
+  const [stepsDateSet, setStepsDateSet] = useState(new Set());
   const stickysentinel = useRef(null);
   const [isVisualizerStuck, setIsVisualizerStuck] = useState(false);
 
@@ -317,7 +317,9 @@ const TrainingPlanPage = () => {
         setVolumeProgressTotal(metrics.volumeTotal);
         setPrProgress(metrics.prProgress);
         setStepProgress(metrics.stepProgress);
-        setTodayStepsInput(metrics.todayStepsInput);
+        setCurrentDaySteps(metrics.currentDaySteps);
+        setLastStepRecord(metrics.lastStepRecord);
+        setStepsDateSet(metrics.stepsDateSet);
       } catch (error) {
         console.error('Error loading training zone:', error);
         toast({
@@ -415,14 +417,23 @@ const TrainingPlanPage = () => {
   const activeMesocycle = snapshot?.activeMesocycle || null;
   const weeklyRoutine = snapshot?.weeklyRoutine || null;
   const nextSessionDayId = snapshot?.nextSessionDay?.weekly_day_id || null;
+  const nextSessionDayKey = nextSessionDayId != null ? String(nextSessionDayId) : null;
   const nextSessionLabel = snapshot?.nextSessionDay?.weekly_day_name || null;
   const nextSessionDay = useMemo(
-    () => (nextSessionDayId ? days.find((day) => day.id === nextSessionDayId) || null : null),
-    [days, nextSessionDayId]
+    () => (nextSessionDayKey ? days.find((day) => String(day.id) === nextSessionDayKey) || null : null),
+    [days, nextSessionDayKey]
   );
   const nextSessionBlocks = useMemo(
-    () => (nextSessionDayId ? blocksByDayId.get(nextSessionDayId) || EMPTY_LIST : EMPTY_LIST),
-    [blocksByDayId, nextSessionDayId]
+    () => {
+      if (!nextSessionDayKey) return EMPTY_LIST;
+      return (
+        blocksByDayId.get(nextSessionDayId)
+        || blocksByDayId.get(nextSessionDayKey)
+        || blocksByDayId.get(Number.parseInt(nextSessionDayKey, 10))
+        || EMPTY_LIST
+      );
+    },
+    [blocksByDayId, nextSessionDayId, nextSessionDayKey]
   );
 
   const plannedDayByDate = useMemo(() => {
@@ -455,9 +466,11 @@ const TrainingPlanPage = () => {
     return { completedSessions, loggedSessions, prCount };
   }, [timelineEvents, weekDates]);
 
-  const handleOpenTrainingDay = useCallback((weeklyDayId) => {
+  const handleOpenTrainingDay = useCallback((weeklyDayId, blockExerciseId = null) => {
     if (!weeklyDayId) return;
-    navigate(`/plan/entreno/dia/${weeklyDayId}`);
+    navigate(`/plan/entreno/rutina/editar/${String(weeklyDayId)}`, {
+      state: blockExerciseId ? { openExerciseId: String(blockExerciseId) } : null,
+    });
   }, [navigate]);
 
   const activeMicrocycleToday = useMemo(() => {
@@ -532,35 +545,6 @@ const TrainingPlanPage = () => {
     }
   }, [navigate, nextSessionDayId, toast, user?.id]);
 
-  const handleSaveTodaySteps = useCallback(async () => {
-    if (!user?.id) return;
-    setIsSavingSteps(true);
-    try {
-      const safeSteps = Math.max(0, Number.parseInt(String(todayStepsInput || 0), 10) || 0);
-      await upsertDailySteps({
-        userId: user.id,
-        stepDate: getDateKey(new Date()),
-        steps: safeSteps,
-        source: 'manual',
-      });
-      await loadPageData({ silent: true });
-      setShowStepsModal(false);
-      toast({
-        title: 'Pasos guardados',
-        description: 'El contador se actualizó en el plan de entrenamiento.',
-        variant: 'success',
-      });
-    } catch (error) {
-      console.error('Error saving steps:', error);
-      toast({
-        title: 'No se pudo guardar pasos',
-        description: error?.message || 'Inténtalo de nuevo en unos segundos.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSavingSteps(false);
-    }
-  }, [loadPageData, toast, todayStepsInput, user?.id]);
 
   const renderFocusTarget = useCallback((focus) => {
     if (focus.focus_type === 'movement_pattern') return movementPatternMap.get(String(focus.movement_pattern_id)) || '-';
@@ -599,6 +583,7 @@ const TrainingPlanPage = () => {
               { label: 'Iniciado', dotClassName: 'bg-orange-400' },
               { label: 'Completado', dotClassName: 'bg-emerald-500' },
               { label: 'Marca', dotClassName: 'bg-amber-400' },
+              { label: 'Pasos', dotClassName: 'bg-cyan-400' },
             ]}
           />
 
@@ -607,6 +592,7 @@ const TrainingPlanPage = () => {
             onDateChange={handleDateChange}
             timelineEvents={timelineEvents}
             plannedDayByDate={plannedDayByDate}
+            stepsDateSet={stepsDateSet}
           />
 
           {hasDraft && (
@@ -636,81 +622,69 @@ const TrainingPlanPage = () => {
             </Card>
           ) : (
             <>
-              <Card className="bg-card/85 border-border text-foreground overflow-hidden shadow-xl">
-                <CardHeader className="pb-3 pt-5 px-5">
-                  <div className="flex items-start justify-between gap-3 flex-wrap">
-                    <div>
-                      <CardTitle className="hidden sm:flex text-xl items-center gap-2">
-                        <Dumbbell className="h-5 w-5" style={{ color: TRAINING_ACCENT }} />
-                        Resumen del Plan de Entrenamiento
-                      </CardTitle>
-                      <CardDescription className="hidden sm:block">
-                        {activeMesocycle.name || 'Mesociclo activo'} · {objectiveMap.get(String(activeMesocycle.objective_id)) || activeMesocycle.objective || 'Sin objetivo'}
-                      </CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
+              {/* Botón primario: iniciar entreno */}
+              <Card
+                onClick={handleStartWorkout}
+                className={cn(
+                  "text-foreground shadow-xl cursor-pointer transition-colors duration-200",
+                  isStartingWorkout
+                    ? "bg-orange-100/70 dark:bg-orange-900/30 border-orange-400/60 dark:border-orange-500/50"
+                    : "bg-orange-100/60 dark:bg-orange-900/25 border-orange-400/55 dark:border-orange-500/45 hover:bg-gradient-to-br hover:from-orange-100/70 hover:to-red-50/70 dark:hover:from-orange-900/30 dark:hover:to-red-900/30"
+                )}
+              >
+                <CardContent className="py-5 px-4 flex flex-col items-center text-center">
+                  <h4 className="font-semibold text-sm flex items-center justify-center gap-2 text-orange-700 dark:text-orange-300">
+                    <Dumbbell className="w-4 h-4 flex-shrink-0" />
+                    Iniciar entreno de hoy
+                  </h4>
+                  <p className="text-2xl font-bold mt-2 text-foreground leading-tight">
+                    {nextSessionLabel || 'Sesión del día'}
+                  </p>
+                  {todaySessionTypeLabel && (
+                    <span className="text-xs text-orange-700/80 dark:text-orange-200/80 mt-1.5">
+                      {todaySessionTypeLabel}
+                    </span>
+                  )}
+                  {todaySessionObjectiveLabel && (
+                    <span className="text-xs text-orange-700/75 dark:text-orange-200/75">
+                      {todaySessionObjectiveLabel}
+                    </span>
+                  )}
+                </CardContent>
+              </Card>
 
-                <CardContent className="grid grid-cols-1 lg:grid-cols-2 gap-5 p-4 pt-0">
-                  <div className="space-y-3">
-                    <div
-                      onClick={handleStartWorkout}
-                      className={cn(
-                        "p-3 rounded-lg border shadow-lg text-center cursor-pointer h-auto flex flex-col justify-center w-full transition-colors duration-200",
-                        isStartingWorkout
-                          ? "bg-orange-100/70 dark:bg-orange-900/30 border-orange-400/60 dark:border-orange-500/50"
-                          : "bg-orange-100/60 dark:bg-orange-900/25 border-orange-400/55 dark:border-orange-500/45 hover:bg-gradient-to-br hover:from-orange-100/70 hover:to-red-50/70 dark:hover:from-orange-900/30 dark:hover:to-red-900/30"
-                      )}
-                    >
-                      <h4 className="font-semibold text-sm flex items-center justify-center gap-2 text-orange-700 dark:text-orange-300">
-                        <Dumbbell className="w-4 h-4" />
-                        Iniciar entreno de hoy
-                      </h4>
-                      <p className="text-2xl font-bold mt-1 text-foreground">
-                        {nextSessionLabel || 'Sesión del día'}
-                      </p>
-                      <span className="text-xs text-orange-700/80 dark:text-orange-200/80 mt-1">
-                        {todaySessionTypeLabel}
+              {/* Botón secundario: pasos del día */}
+              <Card
+                onClick={() => navigate(`/registro-pasos?date=${format(currentDate, 'yyyy-MM-dd')}`)}
+                className={cn(
+                  "shadow-xl cursor-pointer transition-colors duration-200",
+                  currentDaySteps !== null
+                    ? "bg-cyan-100/70 dark:bg-cyan-900/30 border-cyan-400/60 dark:border-cyan-500/50 hover:bg-gradient-to-br hover:from-cyan-100/70 hover:to-cyan-50/80 dark:hover:from-cyan-900/30 dark:hover:to-cyan-700/35"
+                    : "bg-muted/65 border-border/80 hover:bg-gradient-to-br hover:from-cyan-100/40 hover:to-cyan-50/60 dark:hover:from-cyan-900/25 dark:hover:to-cyan-700/30"
+                )}
+              >
+                <CardContent className="py-2.5 px-4 flex items-center justify-between gap-3">
+                  <h4 className={cn(
+                    "font-semibold text-sm flex items-center gap-2",
+                    currentDaySteps !== null ? "text-cyan-700 dark:text-cyan-300" : "text-cyan-700/85 dark:text-cyan-300"
+                  )}>
+                    <Footprints className="w-4 h-4 flex-shrink-0" />
+                    {currentDaySteps !== null ? 'Pasos del día' : 'Sin registro de pasos'}
+                  </h4>
+                  <div className="text-right shrink-0">
+                    {currentDaySteps !== null ? (
+                      <span className="text-base font-bold text-foreground tabular-nums">
+                        {currentDaySteps.toLocaleString()}
                       </span>
-                      <span className="text-xs text-orange-700/75 dark:text-orange-200/75 mt-1">
-                        {todaySessionObjectiveLabel}
+                    ) : lastStepRecord ? (
+                      <span className="text-xs text-muted-foreground">
+                        Último: {Number(lastStepRecord.steps).toLocaleString()} · {format(parseISO(lastStepRecord.step_date), "d MMM", { locale: es })}
                       </span>
-                    </div>
-
-
-
-                    <button
-                      type="button"
-                      onClick={() => setShowStepsModal(true)}
-                      className="rounded-lg border border-border/80 bg-card/70 p-2.5 w-full text-left hover:bg-muted/40 transition-colors"
-                    >
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                        Pasos hoy
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Footprints className="h-4 w-4 text-cyan-500 flex-shrink-0" />
-                        <span className="text-lg font-bold text-foreground tabular-nums">
-                          {stepProgress.actual > 0 ? stepProgress.actual.toLocaleString() : '—'}
-                        </span>
-                        <span className="text-xs text-muted-foreground ml-auto">Registrar</span>
-                      </div>
-                    </button>
-                  </div>
-
-                  <div className="hidden lg:block">
-                    <TrainingMacroVisualizer
-                      volumeValue={volumeProgressTotal.actual}
-                      volumeTarget={volumeProgressTotal.target}
-                      prValue={prProgress.actual}
-                      prTarget={prProgress.target}
-                      stepValue={stepProgress.actual}
-                      stepTarget={stepProgress.target}
-                      muscleProgressRows={volumeProgressRows}
-                      isSticky={false}
-                    />
+                    ) : null}
                   </div>
                 </CardContent>
               </Card>
+
 
               <div className="lg:hidden contents">
                 <div ref={stickysentinel} className="h-0 w-full" aria-hidden="true" />
@@ -809,54 +783,6 @@ const TrainingPlanPage = () => {
         </div>
       </main>
 
-      {/* ── Modal: registrar pasos ── */}
-      {showStepsModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm"
-          onClick={() => setShowStepsModal(false)}
-        >
-          <div
-            className="w-full sm:max-w-sm bg-[#0f1115] border border-border rounded-t-2xl sm:rounded-2xl p-5 space-y-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Footprints className="h-4 w-4 text-cyan-500" />
-                <h3 className="text-base font-bold text-white">Registrar pasos</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowStepsModal(false)}
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="relative">
-              <Footprints className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-500" />
-              <Input
-                autoFocus
-                inputMode="numeric"
-                className="pl-10"
-                value={todayStepsInput}
-                onChange={(e) => setTodayStepsInput(e.target.value.replace(/[^\d]/g, ''))}
-                placeholder="Ej: 8500"
-                onKeyDown={(e) => { if (e.key === 'Enter') handleSaveTodaySteps(); }}
-              />
-            </div>
-
-            <Button
-              type="button"
-              onClick={handleSaveTodaySteps}
-              disabled={isSavingSteps}
-              className="w-full h-12 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold"
-            >
-              {isSavingSteps ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Guardar pasos'}
-            </Button>
-          </div>
-        </div>
-      )}
     </>
   );
 };
