@@ -6,13 +6,13 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 
-const ViewModeToggle = ({ mode, onModeChange, loading, onClose, className, hasChanges, isClientRequestView = false, showClose = true, switchCheckedColor = 'data-[state=checked]:bg-violet-500', activeIconColor = 'text-violet-500', leftElement = null, switchDisabled = false, saveLabel = 'Guardar' }) => {
+const ViewModeToggle = ({ mode, onModeChange, loading, onClose, className, hasChanges, isClientRequestView = false, showClose = true, switchCheckedColor = 'data-[state=checked]:bg-violet-500', activeIconColor = 'text-violet-500', leftElement = null, switchDisabled = false, saveLabel = 'Guardar', showSaveIndicator = true }) => {
   const isViewMode = mode === 'view';
-  const showSaveHint = !isViewMode && hasChanges;
+  const showSaveHint = showSaveIndicator && !isViewMode && hasChanges;
   const isToggleDisabled = loading || switchDisabled;
 
   const SettingsIcon = isClientRequestView ? ScanSearch : Settings;
-  const ViewIcon = !isViewMode && hasChanges ? Save : Eye;
+  const ViewIcon = showSaveIndicator && !isViewMode && hasChanges ? Save : Eye;
   const handleToggleAreaClick = () => {
     if (isToggleDisabled) return;
     onModeChange(!isViewMode);
@@ -26,7 +26,7 @@ const ViewModeToggle = ({ mode, onModeChange, loading, onClose, className, hasCh
       transition={{ duration: 0.3 }}
       className={cn(
         `relative flex justify-between items-center px-4 py-3 transition-colors duration-300 w-full`,
-        isViewMode ? 'bg-sky-900/30' : 'bg-muted/65', // Adjusted background color for view mode
+        isViewMode ? 'bg-gray-300/10' : 'bg-muted/65', // Adjusted background color for view mode
         className
       )}
     >

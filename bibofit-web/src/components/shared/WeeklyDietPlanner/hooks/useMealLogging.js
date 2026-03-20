@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useToast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
+import { useContextualGuide } from '@/contexts/ContextualGuideContext';
+import { GUIDE_BLOCK_IDS } from '@/config/guideBlocks';
 import {
     buildMealLogPayload,
     getMealLogDndId,
@@ -11,6 +13,7 @@ import {
 
 export const useMealLogging = (userId, initialMealLogs, userDayMeals, onMealLogUpdate) => {
     const { toast } = useToast();
+    const { triggerBlock } = useContextualGuide();
     const [allMealLogs, setAllMealLogs] = useState(initialMealLogs || []);
     const [selectedMealLogs, setSelectedMealLogs] = useState(new Map());
     const [mealCounts, setMealCounts] = useState({});
@@ -105,6 +108,13 @@ export const useMealLogging = (userId, initialMealLogs, userDayMeals, onMealLogU
             setAllMealLogs(updatedLogs);
             processMealLogs(updatedLogs);
 
+            // First-use guide: explain why marking as eaten matters for energy tracking
+            if (!isCurrentlySelected) {
+                requestAnimationFrame(() => {
+                    triggerBlock(GUIDE_BLOCK_IDS.RECIPE_MEAL_LOG);
+                });
+            }
+
             // Notify parent
             if (onMealLogUpdate) {
                 const resolveExisting = (log) => {
@@ -152,7 +162,7 @@ export const useMealLogging = (userId, initialMealLogs, userDayMeals, onMealLogU
             toast({ title: 'Error', description: `No se pudo actualizar el registro: ${error.message}`, variant: 'destructive' });
         }
 
-    }, [allMealLogs, userDayMeals, userId, toast, onMealLogUpdate, processMealLogs]);
+    }, [allMealLogs, userDayMeals, userId, toast, onMealLogUpdate, processMealLogs, triggerBlock]);
 
     return { selectedMealLogs, mealCounts, handleToggleMealSelection, allMealLogs, setAllMealLogs, processMealLogs };
 };

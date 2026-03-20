@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useContextualGuide } from '@/contexts/ContextualGuideContext';
+import { GUIDE_BLOCK_IDS } from '@/config/guideBlocks';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { format, isValid, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ArrowLeft, Archive, GitBranch, GitCommit, Loader2, Sparkles, X } from 'lucide-react';
@@ -32,9 +34,13 @@ const getVariantNodeName = (node) => node?.name || `Variante #${node?.id ?? 'N/A
 
 const VariantTreePage = () => {
   const { user } = useAuth();
+  const { triggerBlock } = useContextualGuide();
+
+  useEffect(() => {
+    triggerBlock(GUIDE_BLOCK_IDS.VARIANT_TREE);
+  }, [triggerBlock]);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { userId: paramUserId, date: paramDate } = useParams();
   const [searchParams] = useSearchParams();
 
   const [loading, setLoading] = useState(true);
@@ -46,6 +52,8 @@ const VariantTreePage = () => {
   const [deletingVariantId, setDeletingVariantId] = useState(null);
   const [openingRecipeKey, setOpeningRecipeKey] = useState(null);
 
+  const paramUserId = searchParams.get('userId');
+  const paramDate = searchParams.get('date');
   const targetUserId = paramUserId || user?.id;
   const dateKey = useMemo(() => {
     const parsed = paramDate ? parseISO(paramDate) : new Date();
@@ -250,16 +258,6 @@ const VariantTreePage = () => {
       })
       .sort(byCreatedAtAsc);
   }, [userById, userRecipes]);
-
-  const hasVariantsInPlanBranch = useCallback((planNodeId) => {
-    if ((userRootsBySourceMap.get(planNodeId) || []).length > 0) return true;
-    const childNodes = planChildrenMap.get(planNodeId) || [];
-    return childNodes.some((child) => hasVariantsInPlanBranch(child.id));
-  }, [planChildrenMap, userRootsBySourceMap]);
-
-  const visibleRootPlanNodes = useMemo(() => {
-    return rootPlanNodes.filter((node) => hasVariantsInPlanBranch(node.id));
-  }, [hasVariantsInPlanBranch, rootPlanNodes]);
 
   const stats = useMemo(() => {
     const archivedPlan = planRecipes.filter((node) => node.is_archived).length;
@@ -496,7 +494,7 @@ const VariantTreePage = () => {
   }, [canDeleteVariantNode, deletingVariantId, handleDeleteVariant, handleOpenRecipeNode, openingRecipeKey, userChildrenMap]);
 
   const renderPlanNode = useCallback((node, depth = 0) => {
-    const childVersions = (planChildrenMap.get(node.id) || []).filter((child) => hasVariantsInPlanBranch(child.id));
+    const childVersions = planChildrenMap.get(node.id) || [];
     const linkedVariants = userRootsBySourceMap.get(node.id) || [];
     const createdLabel = formatDateTime(node.created_at);
     const archivedLabel = formatDateTime(node.archived_at);
@@ -554,7 +552,7 @@ const VariantTreePage = () => {
         </div>
 
         {linkedVariants.length > 0 && (
-          <div className="rounded-xl border border-cyan-300/40 dark:border-cyan-500/30 bg-gradient-to-r from-cyan-100/85 via-cyan-50/85 to-white/85 dark:from-cyan-500/10 dark:via-cyan-500/8 dark:to-transparent p-3">
+          <div data-guide-target="variant-tree-list" className="rounded-xl border border-cyan-300/40 dark:border-cyan-500/30 bg-gradient-to-r from-cyan-100/85 via-cyan-50/85 to-white/85 dark:from-cyan-500/10 dark:via-cyan-500/8 dark:to-transparent p-3">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-cyan-800 dark:text-cyan-200">
               Variantes vinculadas ({linkedVariants.length})
             </p>
@@ -571,7 +569,7 @@ const VariantTreePage = () => {
         )}
       </div>
     );
-  }, [handleOpenRecipeNode, hasVariantsInPlanBranch, openingRecipeKey, planChildrenMap, renderVariantNode, userRootsBySourceMap]);
+  }, [handleOpenRecipeNode, openingRecipeKey, planChildrenMap, renderVariantNode, userRootsBySourceMap]);
 
   return (
     <div className="relative min-h-full">
@@ -636,9 +634,9 @@ const VariantTreePage = () => {
 
         {!loading && !error && planInfo && (
           <div className="space-y-5">
-            {visibleRootPlanNodes.length > 0 ? (
-              <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                {visibleRootPlanNodes.map((rootNode) => (
+            {rootPlanNodes.length > 0 ? (
+              <div data-guide-target="variant-tree-original" className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                {rootPlanNodes.map((rootNode) => (
                   <Card key={`root-${rootNode.id}`} className="border-border/70 bg-gradient-to-br from-white/85 via-cyan-50/85 to-emerald-50/85 dark:bg-none dark:bg-card/80">
                     <CardContent className="space-y-3 p-4">
                       {renderPlanNode(rootNode)}
@@ -646,24 +644,18 @@ const VariantTreePage = () => {
                   </Card>
                 ))}
               </div>
-            ) : !isProfileMode ? (
+            ) : unlinkedVariantRoots.length === 0 && (
               <Card className="border-border/70 bg-gradient-to-br from-white/85 via-cyan-50/85 to-emerald-50/85 dark:bg-none dark:bg-card/80">
                 <CardContent className="py-6 text-sm text-muted-foreground">
-                  Este plan no tiene recetas base con variantes vinculadas.
-                </CardContent>
-              </Card>
-            ) : null}
-
-            {isProfileMode && visibleRootPlanNodes.length === 0 && unlinkedVariantRoots.length === 0 && (
-              <Card className="border-border/70 bg-gradient-to-br from-white/85 via-cyan-50/85 to-emerald-50/85 dark:bg-none dark:bg-card/80">
-                <CardContent className="py-6 text-sm text-muted-foreground">
-                  Aún no tienes variantes de recetas creadas.
+                  {isProfileMode
+                    ? 'Aún no tienes variantes de recetas creadas.'
+                    : 'Este plan no tiene recetas base.'}
                 </CardContent>
               </Card>
             )}
 
             {unlinkedVariantRoots.length > 0 && (
-              <Card className="border-cyan-300/40 dark:border-cyan-500/30 bg-gradient-to-r from-cyan-100/85 via-cyan-50/85 to-white/85 dark:from-cyan-500/10 dark:via-cyan-500/8 dark:to-transparent">
+              <Card data-guide-target="variant-tree-list" className="border-cyan-300/40 dark:border-cyan-500/30 bg-gradient-to-r from-cyan-100/85 via-cyan-50/85 to-white/85 dark:from-cyan-500/10 dark:via-cyan-500/8 dark:to-transparent">
                 <CardHeader>
                   <CardTitle className="text-base">Variantes sin nodo fuente</CardTitle>
                   <CardDescription>

@@ -35,13 +35,15 @@ const MacroVisualizer = ({ currentTarget, actual, loading, isSticky = false }) =
                     actual={actual.proteins}
                     target={currentTarget.proteins}
                     color="red"
+                    isSticky={isSticky}
                 />
                 <MacroProgress
                     icon={<CarbsIcon className="w-5 h-5 text-yellow-400" />}
                     name="Carbohidratos"
                     actual={actual.carbs}
                     target={currentTarget.carbs}
-                    color="yellow" 
+                    color="yellow"
+                    isSticky={isSticky}
                 />
                 <MacroProgress
                     icon={<FatsIcon className="w-5 h-5 text-green-400" />}
@@ -49,6 +51,7 @@ const MacroVisualizer = ({ currentTarget, actual, loading, isSticky = false }) =
                     actual={actual.fats}
                     target={currentTarget.fats}
                     color="green"
+                    isSticky={isSticky}
                 />
             </div>
             <div>

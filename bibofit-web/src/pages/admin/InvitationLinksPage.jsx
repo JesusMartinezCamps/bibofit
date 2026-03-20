@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet';
+import { useLocation, useNavigate } from 'react-router-dom';
 import QRCode from 'qrcode';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -34,7 +35,20 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Ban, Copy, Link2, Loader2, Minus, Plus, QrCode, RefreshCcw } from 'lucide-react';
+import {
+  ArrowDown,
+  ArrowLeft,
+  ArrowUp,
+  ArrowUpDown,
+  Ban,
+  Copy,
+  Link2,
+  Loader2,
+  Minus,
+  Plus,
+  QrCode,
+  RefreshCcw,
+} from 'lucide-react';
 import { ROLE } from '@/lib/roles';
 
 const defaultRoles = [
@@ -139,8 +153,25 @@ const getInvitationStatus = (invitation) => {
   return { label: 'Activa', variant: 'default', kind: 'active' };
 };
 
+const normalizeText = (value = '') =>
+  String(value)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+const statusRankByKind = {
+  active: 0,
+  exhausted: 1,
+  expired: 2,
+  revoked: 3,
+  unknown: 4,
+};
+const invitationAssetStoragePrefix = 'bibofit_inv_';
+
 const InvitationLinksPage = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const [loadingOptions, setLoadingOptions] = useState(true);
   const [roles, setRoles] = useState([]);
@@ -158,10 +189,16 @@ const InvitationLinksPage = () => {
   const [invitationLinks, setInvitationLinks] = useState([]);
   const [loadingLinks, setLoadingLinks] = useState(true);
   const [revokingLinkId, setRevokingLinkId] = useState(null);
+  const [listingScope, setListingScope] = useState('active');
+  const [searchText, setSearchText] = useState('');
+  const [sortKey, setSortKey] = useState('created_at');
+  const [sortDirection, setSortDirection] = useState('desc');
 
   const [isQrViewerOpen, setIsQrViewerOpen] = useState(false);
   const [qrViewerDataUrl, setQrViewerDataUrl] = useState('');
   const [qrViewerTitle, setQrViewerTitle] = useState('QR de invitación');
+  const [qrViewerNote, setQrViewerNote] = useState('');
+  const [qrViewerLink, setQrViewerLink] = useState('');
   const [qrViewerZoom, setQrViewerZoom] = useState(1);
   const [isLoadingViewerQr, setIsLoadingViewerQr] = useState(false);
 
@@ -199,6 +236,165 @@ const InvitationLinksPage = () => {
   const activeInvitationLinks = useMemo(
     () => invitationLinks.filter((invitation) => isInvitationActive(invitation)),
     [invitationLinks]
+  );
+
+  const displayedInvitationLinks = useMemo(() => {
+    const normalizedQuery = normalizeText(searchText.trim());
+
+    let searchScopeOverride = null;
+    if (
+      normalizedQuery.includes('inactivo') ||
+      normalizedQuery.includes('inactiva') ||
+      normalizedQuery.includes('no activo') ||
+      normalizedQuery.includes('no activa')
+    ) {
+      searchScopeOverride = 'inactive';
+    } else if (
+      normalizedQuery.includes('activo') ||
+      normalizedQuery.includes('activa') ||
+      normalizedQuery.includes('activos') ||
+      normalizedQuery.includes('activas')
+    ) {
+      searchScopeOverride = 'active';
+    }
+
+    const scopeToApply = searchScopeOverride || listingScope;
+
+    const filtered = invitationLinks.filter((invitation) => {
+      const isActive = isInvitationActive(invitation);
+
+      if (scopeToApply === 'active' && !isActive) return false;
+      if (scopeToApply === 'inactive' && isActive) return false;
+
+      if (!normalizedQuery) return true;
+
+      const status = getInvitationStatus(invitation);
+      const roleName = roleNameById.get(toQueryValue(invitation.role_id)) || 'N/A';
+      const centerName = invitation.center_id
+        ? centerNameById.get(toQueryValue(invitation.center_id)) || `Centro ${invitation.center_id}`
+        : 'Sin centro';
+
+      const searchable = normalizeText(
+        [
+          invitation.token_preview,
+          roleName,
+          centerName,
+          invitation.destination === 'login' ? 'login' : 'registro signup',
+          invitation.note,
+          status.label,
+          formatDateLabel(invitation.expires_at),
+          formatDateLabel(invitation.created_at),
+          invitation.max_uses === null ? 'ilimitado' : `${invitation.used_uses || 0}/${invitation.max_uses}`,
+        ]
+          .filter(Boolean)
+          .join(' ')
+      );
+
+      return searchable.includes(normalizedQuery);
+    });
+
+    const toTimestamp = (value, fallback) => {
+      if (!value) return fallback;
+      const parsed = new Date(value).getTime();
+      return Number.isNaN(parsed) ? fallback : parsed;
+    };
+
+    return [...filtered].sort((a, b) => {
+      const direction = sortDirection === 'asc' ? 1 : -1;
+      const statusA = getInvitationStatus(a);
+      const statusB = getInvitationStatus(b);
+      const roleA = roleNameById.get(toQueryValue(a.role_id)) || 'N/A';
+      const roleB = roleNameById.get(toQueryValue(b.role_id)) || 'N/A';
+      const centerA = a.center_id
+        ? centerNameById.get(toQueryValue(a.center_id)) || `Centro ${a.center_id}`
+        : 'Sin centro';
+      const centerB = b.center_id
+        ? centerNameById.get(toQueryValue(b.center_id)) || `Centro ${b.center_id}`
+        : 'Sin centro';
+
+      let result = 0;
+      switch (sortKey) {
+        case 'status':
+          result = (statusRankByKind[statusA.kind] ?? 9) - (statusRankByKind[statusB.kind] ?? 9);
+          break;
+        case 'token':
+          result = String(a.token_preview || '').localeCompare(String(b.token_preview || ''), 'es');
+          break;
+        case 'role':
+          result = roleA.localeCompare(roleB, 'es');
+          break;
+        case 'center':
+          result = centerA.localeCompare(centerB, 'es');
+          break;
+        case 'uses': {
+          const usedA = Number(a.used_uses || 0);
+          const usedB = Number(b.used_uses || 0);
+          result = usedA - usedB;
+          break;
+        }
+        case 'expires_at':
+          result = toTimestamp(a.expires_at, Number.MAX_SAFE_INTEGER) - toTimestamp(b.expires_at, Number.MAX_SAFE_INTEGER);
+          break;
+        case 'created_at':
+        default:
+          result = toTimestamp(a.created_at, 0) - toTimestamp(b.created_at, 0);
+          break;
+      }
+
+      if (result === 0) {
+        result = toTimestamp(a.created_at, 0) - toTimestamp(b.created_at, 0);
+      }
+
+      return result * direction;
+    });
+  }, [
+    invitationLinks,
+    listingScope,
+    searchText,
+    sortKey,
+    sortDirection,
+    roleNameById,
+    centerNameById,
+  ]);
+
+  const getInvitationAssetStorageKey = useCallback(
+    (id) => `${invitationAssetStoragePrefix}${id}`,
+    []
+  );
+
+  const readInvitationAsset = useCallback(
+    (id) => {
+      if (!id) return null;
+      try {
+        const raw = localStorage.getItem(getInvitationAssetStorageKey(id));
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (typeof parsed === 'string') return { link: parsed };
+        if (!parsed || typeof parsed !== 'object') return null;
+        return {
+          link: parsed.link || null,
+          qrDataUrl: parsed.qrDataUrl || '',
+          note: parsed.note || '',
+        };
+      } catch {
+        return null;
+      }
+    },
+    [getInvitationAssetStorageKey]
+  );
+
+  const upsertInvitationAsset = useCallback(
+    (id, payload) => {
+      if (!id) return;
+      try {
+        const current = readInvitationAsset(id) || {};
+        const next = { ...current, ...payload };
+        localStorage.setItem(getInvitationAssetStorageKey(id), JSON.stringify(next));
+      } catch {
+        // localStorage unavailable
+      }
+    },
+    [getInvitationAssetStorageKey, readInvitationAsset]
   );
 
   const buildInvitationUrl = useCallback(
@@ -315,6 +511,24 @@ const InvitationLinksPage = () => {
     };
   }, [fetchInvitationLinks]);
 
+  useEffect(() => {
+    try {
+      const activeIds = new Set(
+        invitationLinks.filter((invitation) => isInvitationActive(invitation)).map((invitation) => invitation.id)
+      );
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i += 1) {
+        const key = localStorage.key(i);
+        if (!key || !key.startsWith(invitationAssetStoragePrefix)) continue;
+        const invitationId = key.slice(invitationAssetStoragePrefix.length);
+        if (!activeIds.has(invitationId)) keysToRemove.push(key);
+      }
+      keysToRemove.forEach((key) => localStorage.removeItem(key));
+    } catch {
+      // localStorage unavailable
+    }
+  }, [invitationLinks]);
+
   const generateQrDataUrl = useCallback(async (url) => {
     const qrSize = 360;
     const qrData = await QRCode.toDataURL(url, {
@@ -399,8 +613,10 @@ const InvitationLinksPage = () => {
   );
 
   const openQrViewer = useCallback(
-    async ({ title, dataUrl = '' }) => {
+    ({ title, dataUrl = '', note = '', link = '' }) => {
       setQrViewerTitle(title || 'QR de invitación');
+      setQrViewerNote(note || '');
+      setQrViewerLink(link || '');
       setQrViewerZoom(1);
       setIsQrViewerOpen(true);
 
@@ -518,21 +734,19 @@ const InvitationLinksPage = () => {
       setGeneratedLink(link);
       setGeneratedAt(createdInvitation.created_at || new Date().toISOString());
 
-      if (createdInvitation.id) {
-        try {
-          localStorage.setItem(
-            `bibofit_inv_${createdInvitation.id}`,
-            JSON.stringify({ link })
-          );
-        } catch {
-          // localStorage not available — non-critical
-        }
-      }
-
+      let generatedQrDataUrl = '';
       if (form.generateQr) {
-        await renderQr(link);
+        generatedQrDataUrl = (await renderQr(link)) || '';
       } else {
         setQrDataUrl('');
+      }
+
+      if (createdInvitation.id) {
+        upsertInvitationAsset(createdInvitation.id, {
+          link,
+          qrDataUrl: generatedQrDataUrl,
+          note: createdInvitation.note || form.note.trim() || '',
+        });
       }
 
       toast({
@@ -616,15 +830,7 @@ const InvitationLinksPage = () => {
     }
   };
 
-  const getStoredInvitationLink = (id) => {
-    try {
-      const raw = localStorage.getItem(`bibofit_inv_${id}`);
-      if (!raw) return null;
-      return JSON.parse(raw)?.link || null;
-    } catch {
-      return null;
-    }
-  };
+  const getStoredInvitationLink = (id) => readInvitationAsset(id)?.link || null;
 
   const handleOpenDetail = useCallback(
     async (invitation) => {
@@ -632,12 +838,21 @@ const InvitationLinksPage = () => {
       setDetailQrDataUrl('');
       setIsDetailOpen(true);
 
-      const storedLink = getStoredInvitationLink(invitation.id);
+      const storedAsset = readInvitationAsset(invitation.id);
+      const storedLink = storedAsset?.link || null;
       if (storedLink) {
+        if (storedAsset?.qrDataUrl) {
+          setDetailQrDataUrl(storedAsset.qrDataUrl);
+          return;
+        }
         setIsLoadingDetailQr(true);
         try {
           const dataUrl = await generateQrDataUrl(storedLink);
           setDetailQrDataUrl(dataUrl);
+          upsertInvitationAsset(invitation.id, {
+            qrDataUrl: dataUrl,
+            note: invitation.note || storedAsset?.note || '',
+          });
         } catch {
           setDetailQrDataUrl('');
         } finally {
@@ -645,7 +860,7 @@ const InvitationLinksPage = () => {
         }
       }
     },
-    [generateQrDataUrl]
+    [generateQrDataUrl, readInvitationAsset, upsertInvitationAsset]
   );
 
   const generatedAtLabel = useMemo(() => {
@@ -653,452 +868,586 @@ const InvitationLinksPage = () => {
     return formatDateLabel(generatedAt);
   }, [generatedAt]);
 
+  const isCreateView = location.pathname.includes('/admin-panel/content/invitation-links/new');
+
+  const handleSortByColumn = (key) => {
+    if (sortKey === key) {
+      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+    setSortKey(key);
+    setSortDirection(key === 'created_at' ? 'desc' : 'asc');
+  };
+
+  const SortIndicator = ({ columnKey }) => {
+    if (sortKey !== columnKey) return <ArrowUpDown className="w-3.5 h-3.5 opacity-60" />;
+    return sortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />;
+  };
+
   return (
     <>
       <Helmet>
-        <title>Generar Link de Invitación - Bibofit Admin</title>
+        <title>
+          {isCreateView ? 'Crear Link de Invitación - Bibofit Admin' : 'Links de Invitación - Bibofit Admin'}
+        </title>
         <meta
           name="description"
-          content="Genera links de invitación con centro, rol, usos, nota, expiración, persistencia y QR revocable."
+          content={
+            isCreateView
+              ? 'Configura y genera nuevos links de invitación con QR revocable.'
+              : 'Consulta y gestiona los QRs activos de invitación.'
+          }
         />
       </Helmet>
 
       <div className="max-w-7xl mx-auto p-3 md:p-8 space-y-5 md:space-y-8">
         <div className="space-y-2">
-          <h1 className="text-2xl md:text-4xl font-bold text-white">Generar Link de Invitación</h1>
+          {isCreateView ? (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate('/admin-panel/content/invitation-links')}
+                aria-label="Volver a QRs activos"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+              <h1 className="text-2xl md:text-4xl font-bold text-white">Configuración del link</h1>
+            </div>
+          ) : (
+            <h1 className="text-2xl md:text-4xl font-bold text-white">Links de Invitación</h1>
+          )}
           <p className="text-sm md:text-base text-muted-foreground">
-            Flujo persistido en base de datos: cada QR generado queda registrado, listado y revocable.
+            {isCreateView
+              ? 'Define la configuración para generar una nueva invitación.'
+              : 'Listado de QRs activos persistidos. Puedes crear nuevas invitaciones desde aquí.'}
           </p>
         </div>
 
-        <Card className="border-border/60 bg-card/85 backdrop-blur-sm">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-xl text-white">Configuración del link</CardTitle>
-            <CardDescription>
-              Define destino, centro, rol, usos, nota y expiración.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="invite-destination">Destino</Label>
-                <Select
-                  value={form.destination}
-                  onValueChange={(value) => setForm((prev) => ({ ...prev, destination: value }))}
-                  disabled={loadingOptions || isSavingLink}
-                >
-                  <SelectTrigger id="invite-destination">
-                    <SelectValue placeholder="Selecciona destino" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="signup">Registro (/signup)</SelectItem>
-                    <SelectItem value="login">Login (/login)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="invite-center">Centro</Label>
-                <Select
-                  value={form.centerId}
-                  onValueChange={(value) => setForm((prev) => ({ ...prev, centerId: value }))}
-                  disabled={loadingOptions || isSavingLink}
-                >
-                  <SelectTrigger id="invite-center">
-                    <SelectValue placeholder="Selecciona un centro" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Sin centro</SelectItem>
-                    {centers.map((center) => (
-                      <SelectItem key={center.id} value={toQueryValue(center.id)}>
-                        {center.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="invite-role">Rol a asignar automáticamente</Label>
-                <Select
-                  value={form.roleId}
-                  onValueChange={(value) => setForm((prev) => ({ ...prev, roleId: value }))}
-                  disabled={loadingOptions || isSavingLink}
-                >
-                  <SelectTrigger id="invite-role">
-                    <SelectValue placeholder="Selecciona un rol" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {roles.map((role) => (
-                      <SelectItem key={role.id} value={toQueryValue(role.id)}>
-                        {formatRoleLabel(role.role)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-3 md:col-span-2 rounded-lg border border-input p-4">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-foreground">Usos</p>
-                  <p className="text-xs text-muted-foreground">
-                    Configura si el link es ilimitado o con número máximo de usos.
-                  </p>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="flex items-center justify-between rounded-lg border border-input px-3 py-2">
-                    <div>
-                      <p className="text-sm font-medium text-foreground">Usos ilimitados</p>
-                      <p className="text-xs text-muted-foreground">
-                        Si lo activas, el link no tendrá límite de usos.
-                      </p>
-                    </div>
-                    <Switch
-                      checked={form.isUnlimitedUses}
-                      onCheckedChange={(checked) =>
-                        setForm((prev) => ({ ...prev, isUnlimitedUses: checked }))
-                      }
-                      disabled={isSavingLink}
-                    />
-                  </div>
-                  {!form.isUnlimitedUses && (
-                    <div className="space-y-2">
-                      <Label htmlFor="invite-max-uses">Número de usos</Label>
-                      <Input
-                        id="invite-max-uses"
-                        type="number"
-                        min={1}
-                        step={1}
-                        value={form.maxUses}
-                        onChange={(event) =>
-                          setForm((prev) => ({ ...prev, maxUses: event.target.value }))
-                        }
-                        placeholder="1"
-                        disabled={isSavingLink}
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between rounded-lg border border-input px-3 py-2">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Fecha de expiración</p>
-                    <p className="text-xs text-muted-foreground">
-                      Activa para limitar validez por fecha/hora.
-                    </p>
-                  </div>
-                  <Switch
-                    checked={form.hasExpiration}
-                    onCheckedChange={(checked) =>
-                      setForm((prev) => ({ ...prev, hasExpiration: checked }))
-                    }
-                    disabled={isSavingLink}
-                  />
-                </div>
-
-                {form.hasExpiration && (
-                  <div className="space-y-2">
-                    <Label htmlFor="invite-expiration">Expira el</Label>
-                    <Input
-                      id="invite-expiration"
-                      type="datetime-local"
-                      value={form.expiresAt}
-                      onChange={(event) =>
-                        setForm((prev) => ({ ...prev, expiresAt: event.target.value }))
-                      }
-                      disabled={isSavingLink}
-                    />
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between rounded-lg border border-input px-3 py-2">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Generar QR</p>
-                    <p className="text-xs text-muted-foreground">
-                      Crea un QR del enlace para compartir.
-                    </p>
-                  </div>
-                  <Switch
-                    checked={form.generateQr}
-                    onCheckedChange={(checked) =>
-                      setForm((prev) => ({ ...prev, generateQr: checked }))
-                    }
-                    disabled={isSavingLink}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="invite-note">Nota interna</Label>
-              <Textarea
-                id="invite-note"
-                value={form.note}
-                onChange={(event) => setForm((prev) => ({ ...prev, note: event.target.value }))}
-                placeholder="Ejemplo: Invitación para nuevos clientes del Centro Norte."
-                className="min-h-[110px]"
-                disabled={isSavingLink}
-              />
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button
-                onClick={handleGenerate}
-                disabled={loadingOptions || isGeneratingQr || isSavingLink}
-                className="sm:w-auto w-full"
-              >
-                {isGeneratingQr || isSavingLink ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Link2 className="w-4 h-4 mr-2" />
-                )}
-                {isSavingLink ? 'Guardando enlace...' : isGeneratingQr ? 'Generando QR...' : 'Generar Link de Invitación'}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleReset}
-                className="sm:w-auto w-full"
-                disabled={isSavingLink || isGeneratingQr}
-              >
-                <RefreshCcw className="w-4 h-4 mr-2" />
-                Limpiar formulario
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {generatedLink && (
-          <Card className="border-cyan-500/30 bg-card/90">
-            <CardHeader className="space-y-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <CardTitle className="text-lg text-white">Link generado y persistido</CardTitle>
-                {generatedAtLabel && (
-                  <Badge variant="secondary" className="bg-muted text-muted-foreground">
-                    {generatedAtLabel}
-                  </Badge>
-                )}
-              </div>
-              <CardDescription>
-                Este token solo se muestra una vez por seguridad. Guarda o comparte la URL ahora.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <div className="flex flex-wrap gap-2">
-                <Badge className="bg-cyan-600/90 text-white border-none">
-                  Destino: {form.destination === 'signup' ? 'Registro' : 'Login'}
-                </Badge>
-                <Badge variant="outline">
-                  Rol: {formatRoleLabel(selectedRole?.role || form.roleId || 'N/A')}
-                </Badge>
-                <Badge variant="outline">
-                  Centro: {selectedCenter?.name || 'Sin centro'}
-                </Badge>
-                <Badge variant="outline">
-                  Usos: {form.isUnlimitedUses ? 'Ilimitado' : form.maxUses}
-                </Badge>
-                <Badge variant="outline">
-                  Expiración:{' '}
-                  {form.hasExpiration
-                    ? form.expiresAt || 'Pendiente de definir'
-                    : 'Sin expiración'}
-                </Badge>
-              </div>
-
-              {generatedToken && (
-                <div className="rounded-lg border border-input px-3 py-2">
-                  <p className="text-xs text-muted-foreground mb-1">Token emitido (visible una vez)</p>
-                  <p className="font-mono text-sm break-all">{generatedToken}</p>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="generated-invitation-link">URL generada</Label>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <Input
-                    id="generated-invitation-link"
-                    value={generatedLink}
-                    readOnly
-                    className="font-mono text-xs md:text-sm"
-                  />
-                  <Button variant="outline" onClick={() => handleCopy(generatedLink)}>
-                    <Copy className="w-4 h-4 mr-2" />
-                    Copiar
+        {!isCreateView && (
+          <Card className="border-border/60 bg-card/90">
+            <CardHeader className="space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <CardTitle className="text-lg text-white">QRs activos</CardTitle>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => navigate('/admin-panel/content/invitation-links/new')}
+                  >
+                    Crear nueva invitación
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={fetchInvitationLinks}
+                    disabled={loadingLinks}
+                  >
+                    {loadingLinks ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <RefreshCcw className="w-4 h-4 mr-2" />
+                    )}
+                    Actualizar
                   </Button>
                 </div>
               </div>
-
-              {form.note?.trim() && (
-                <div className="rounded-lg border border-input p-3">
-                  <p className="text-xs text-muted-foreground mb-1">Nota interna</p>
-                  <p className="text-sm text-foreground whitespace-pre-wrap">{form.note.trim()}</p>
+              <CardDescription>
+                Lista de invitaciones activas persistidas. El token completo no se almacena en claro.
+              </CardDescription>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge
+                  className={`cursor-pointer border-none ${
+                    listingScope === 'active' ? 'bg-emerald-600/90 text-white' : 'bg-muted text-muted-foreground'
+                  }`}
+                  onClick={() => setListingScope('active')}
+                >
+                  Activas: {activeInvitationLinks.length}
+                </Badge>
+                <Badge
+                  variant={listingScope === 'all' ? 'default' : 'outline'}
+                  className="cursor-pointer"
+                  onClick={() => setListingScope('all')}
+                >
+                  Total registradas: {invitationLinks.length}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="mb-4">
+                <Input
+                  value={searchText}
+                  onChange={(event) => setSearchText(event.target.value)}
+                  placeholder="Buscar por centro, rol, estado, token, nota... (ej: centro norte, pro_nutrition, activo)"
+                />
+              </div>
+              {loadingLinks ? (
+                <div className="h-32 flex items-center justify-center">
+                  <Loader2 className="w-6 h-6 animate-spin text-cyan-400" />
                 </div>
-              )}
-
-              {form.generateQr && (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <QrCode className="w-4 h-4 text-cyan-400" />
-                    <h3 className="text-sm font-semibold text-foreground">QR del enlace</h3>
-                  </div>
-                  <div className="rounded-xl border border-input p-4 w-fit mx-auto bg-white space-y-2">
-                    {isGeneratingQr ? (
-                      <div className="flex items-center justify-center w-[240px] h-[240px]">
-                        <Loader2 className="w-6 h-6 animate-spin text-slate-700" />
-                      </div>
-                    ) : qrDataUrl ? (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          openQrViewer({
-                            title: 'QR recién generado',
-                            dataUrl: qrDataUrl,
-                          })
-                        }
-                        className="block cursor-zoom-in"
-                        title="Haz clic para pantalla completa"
-                      >
-                        <img
-                          src={qrDataUrl}
-                          alt="QR del link de invitación"
-                          className="w-[240px] h-[240px]"
-                        />
-                      </button>
-                    ) : (
-                      <div className="flex items-center justify-center w-[240px] h-[240px] text-slate-600 text-sm">
-                        QR no disponible
-                      </div>
-                    )}
-                    {qrDataUrl && (
-                      <p className="text-[11px] text-slate-700 text-center">
-                        Haz click en el QR para abrirlo.
-                      </p>
-                    )}
-                  </div>
+              ) : displayedInvitationLinks.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-input p-6 text-center text-muted-foreground text-sm">
+                  No hay resultados con los filtros actuales.
                 </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 hover:text-white"
+                          onClick={() => handleSortByColumn('status')}
+                        >
+                          Estado
+                          <SortIndicator columnKey="status" />
+                        </button>
+                      </TableHead>
+                      <TableHead>
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 hover:text-white"
+                          onClick={() => handleSortByColumn('token')}
+                        >
+                          Token
+                          <SortIndicator columnKey="token" />
+                        </button>
+                      </TableHead>
+                      <TableHead>
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 hover:text-white"
+                          onClick={() => handleSortByColumn('role')}
+                        >
+                          Rol
+                          <SortIndicator columnKey="role" />
+                        </button>
+                      </TableHead>
+                      <TableHead>
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 hover:text-white"
+                          onClick={() => handleSortByColumn('center')}
+                        >
+                          Centro
+                          <SortIndicator columnKey="center" />
+                        </button>
+                      </TableHead>
+                      <TableHead>
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 hover:text-white"
+                          onClick={() => handleSortByColumn('uses')}
+                        >
+                          Usos
+                          <SortIndicator columnKey="uses" />
+                        </button>
+                      </TableHead>
+                      <TableHead>
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 hover:text-white"
+                          onClick={() => handleSortByColumn('expires_at')}
+                        >
+                          Expira
+                          <SortIndicator columnKey="expires_at" />
+                        </button>
+                      </TableHead>
+                      <TableHead>
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 hover:text-white"
+                          onClick={() => handleSortByColumn('created_at')}
+                        >
+                          Creado
+                          <SortIndicator columnKey="created_at" />
+                        </button>
+                      </TableHead>
+                      <TableHead>Nota interna</TableHead>
+                      <TableHead className="text-right">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {displayedInvitationLinks.map((invitation) => {
+                      const status = getInvitationStatus(invitation);
+                      const roleName = roleNameById.get(toQueryValue(invitation.role_id)) || 'N/A';
+                      const centerName = invitation.center_id
+                        ? centerNameById.get(toQueryValue(invitation.center_id)) || `Centro ${invitation.center_id}`
+                        : 'Sin centro';
+
+                      return (
+                        <TableRow
+                          key={invitation.id}
+                          className="cursor-pointer hover:bg-white/5 transition-colors"
+                          onClick={() => handleOpenDetail(invitation)}
+                        >
+                          <TableCell>
+                            <Badge variant={status.variant}>{status.label}</Badge>
+                          </TableCell>
+                          <TableCell className="font-mono text-xs">
+                            {invitation.token_preview || 'N/A'}
+                          </TableCell>
+                          <TableCell>{formatRoleLabel(roleName)}</TableCell>
+                          <TableCell>{centerName}</TableCell>
+                          <TableCell>
+                            {invitation.max_uses === null
+                              ? 'Ilimitado'
+                              : `${invitation.used_uses || 0}/${invitation.max_uses}`}
+                          </TableCell>
+                          <TableCell>
+                            {invitation.expires_at ? formatDateLabel(invitation.expires_at) : 'Sin expiración'}
+                          </TableCell>
+                          <TableCell>{formatDateLabel(invitation.created_at)}</TableCell>
+                          <TableCell className="max-w-[260px]">
+                            <p className="truncate text-xs text-muted-foreground" title={invitation.note || ''}>
+                              {invitation.note || 'Sin nota'}
+                            </p>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div
+                              className="flex justify-end flex-wrap gap-2"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleRevokeInvitation(invitation)}
+                                disabled={revokingLinkId === invitation.id}
+                                title="Revocar QR"
+                              >
+                                {revokingLinkId === invitation.id ? (
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                ) : (
+                                  <Ban className="w-4 h-4 mr-2" />
+                                )}
+                                Revocar
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
               )}
             </CardContent>
           </Card>
         )}
 
-        <Card className="border-border/60 bg-card/90">
-          <CardHeader className="space-y-2">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <CardTitle className="text-lg text-white">QRs activos</CardTitle>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={fetchInvitationLinks}
-                disabled={loadingLinks}
-              >
-                {loadingLinks ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <RefreshCcw className="w-4 h-4 mr-2" />
-                )}
-                Actualizar
-              </Button>
-            </div>
-            <CardDescription>
-              Lista de invitaciones activas persistidas. El token completo no se almacena en claro.
-            </CardDescription>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge className="bg-emerald-600/90 text-white border-none">
-                Activas: {activeInvitationLinks.length}
-              </Badge>
-              <Badge variant="outline">
-                Total registradas: {invitationLinks.length}
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {loadingLinks ? (
-              <div className="h-32 flex items-center justify-center">
-                <Loader2 className="w-6 h-6 animate-spin text-cyan-400" />
-              </div>
-            ) : activeInvitationLinks.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-input p-6 text-center text-muted-foreground text-sm">
-                No hay QRs activos por ahora.
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Estado</TableHead>
-                    <TableHead>Token</TableHead>
-                    <TableHead>Rol</TableHead>
-                    <TableHead>Centro</TableHead>
-                    <TableHead>Usos</TableHead>
-                    <TableHead>Expira</TableHead>
-                    <TableHead>Creado</TableHead>
-                    <TableHead className="text-right">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {activeInvitationLinks.map((invitation) => {
-                    const status = getInvitationStatus(invitation);
-                    const roleName = roleNameById.get(toQueryValue(invitation.role_id)) || 'N/A';
-                    const centerName = invitation.center_id
-                      ? centerNameById.get(toQueryValue(invitation.center_id)) || `Centro ${invitation.center_id}`
-                      : 'Sin centro';
+        {isCreateView && (
+          <>
+            <Card className="border-border/60 bg-card/85 backdrop-blur-sm">
+              <CardContent className="space-y-6">
+                <div className="grid mt-2 grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="invite-destination">Destino</Label>
+                    <Select
+                      value={form.destination}
+                      onValueChange={(value) => setForm((prev) => ({ ...prev, destination: value }))}
+                      disabled={loadingOptions || isSavingLink}
+                    >
+                      <SelectTrigger id="invite-destination">
+                        <SelectValue placeholder="Selecciona destino" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="signup">Registro (/signup)</SelectItem>
+                        <SelectItem value="login">Login (/login)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                    return (
-                      <TableRow
-                        key={invitation.id}
-                        className="cursor-pointer hover:bg-white/5 transition-colors"
-                        onClick={() => handleOpenDetail(invitation)}
-                      >
-                        <TableCell>
-                          <Badge variant={status.variant}>{status.label}</Badge>
-                        </TableCell>
-                        <TableCell className="font-mono text-xs">
-                          {invitation.token_preview || 'N/A'}
-                        </TableCell>
-                        <TableCell>{formatRoleLabel(roleName)}</TableCell>
-                        <TableCell>{centerName}</TableCell>
-                        <TableCell>
-                          {invitation.max_uses === null
-                            ? 'Ilimitado'
-                            : `${invitation.used_uses || 0}/${invitation.max_uses}`}
-                        </TableCell>
-                        <TableCell>
-                          {invitation.expires_at ? formatDateLabel(invitation.expires_at) : 'Sin expiración'}
-                        </TableCell>
-                        <TableCell>{formatDateLabel(invitation.created_at)}</TableCell>
-                        <TableCell className="text-right">
-                          <div
-                            className="flex justify-end flex-wrap gap-2"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleRevokeInvitation(invitation)}
-                              disabled={revokingLinkId === invitation.id}
-                              title="Revocar QR"
-                            >
-                              {revokingLinkId === invitation.id ? (
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              ) : (
-                                <Ban className="w-4 h-4 mr-2" />
-                              )}
-                              Revocar
-                            </Button>
+                  <div className="space-y-2">
+                    <Label htmlFor="invite-center">Centro</Label>
+                    <Select
+                      value={form.centerId}
+                      onValueChange={(value) => setForm((prev) => ({ ...prev, centerId: value }))}
+                      disabled={loadingOptions || isSavingLink}
+                    >
+                      <SelectTrigger id="invite-center">
+                        <SelectValue placeholder="Selecciona un centro" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sin centro</SelectItem>
+                        {centers.map((center) => (
+                          <SelectItem key={center.id} value={toQueryValue(center.id)}>
+                            {center.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="invite-role">Rol a asignar automáticamente</Label>
+                    <Select
+                      value={form.roleId}
+                      onValueChange={(value) => setForm((prev) => ({ ...prev, roleId: value }))}
+                      disabled={loadingOptions || isSavingLink}
+                    >
+                      <SelectTrigger id="invite-role">
+                        <SelectValue placeholder="Selecciona un rol" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {roles.map((role) => (
+                          <SelectItem key={role.id} value={toQueryValue(role.id)}>
+                            {formatRoleLabel(role.role)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-3 md:col-span-2 rounded-lg border border-input p-4">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-foreground">Usos</p>
+                      <p className="text-xs text-muted-foreground">
+                        Configura si el link es ilimitado o con número máximo de usos.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="flex items-center justify-between rounded-lg border border-input px-3 py-2">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">Usos ilimitados</p>
+                          <p className="text-xs text-muted-foreground">
+                            Si lo activas, el link no tendrá límite de usos.
+                          </p>
+                        </div>
+                        <Switch
+                          checked={form.isUnlimitedUses}
+                          onCheckedChange={(checked) =>
+                            setForm((prev) => ({ ...prev, isUnlimitedUses: checked }))
+                          }
+                          disabled={isSavingLink}
+                        />
+                      </div>
+                      {!form.isUnlimitedUses && (
+                        <div className="space-y-2">
+                          <Label htmlFor="invite-max-uses">Número de usos</Label>
+                          <Input
+                            id="invite-max-uses"
+                            type="number"
+                            min={1}
+                            step={1}
+                            value={form.maxUses}
+                            onChange={(event) =>
+                              setForm((prev) => ({ ...prev, maxUses: event.target.value }))
+                            }
+                            placeholder="1"
+                            disabled={isSavingLink}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between rounded-lg border border-input px-3 py-2">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Fecha de expiración</p>
+                        <p className="text-xs text-muted-foreground">
+                          Activa para limitar validez por fecha/hora.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={form.hasExpiration}
+                        onCheckedChange={(checked) =>
+                          setForm((prev) => ({ ...prev, hasExpiration: checked }))
+                        }
+                        disabled={isSavingLink}
+                      />
+                    </div>
+
+                    {form.hasExpiration && (
+                      <div className="space-y-2">
+                        <Label htmlFor="invite-expiration">Expira el</Label>
+                        <Input
+                          id="invite-expiration"
+                          type="datetime-local"
+                          value={form.expiresAt}
+                          onChange={(event) =>
+                            setForm((prev) => ({ ...prev, expiresAt: event.target.value }))
+                          }
+                          disabled={isSavingLink}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between rounded-lg border border-input px-3 py-2">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Generar QR</p>
+                        <p className="text-xs text-muted-foreground">
+                          Crea un QR del enlace para compartir.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={form.generateQr}
+                        onCheckedChange={(checked) =>
+                          setForm((prev) => ({ ...prev, generateQr: checked }))
+                        }
+                        disabled={isSavingLink}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="invite-note">Nota interna</Label>
+                  <Textarea
+                    id="invite-note"
+                    value={form.note}
+                    onChange={(event) => setForm((prev) => ({ ...prev, note: event.target.value }))}
+                    placeholder="Ejemplo: Invitación para nuevos clientes del Centro Norte."
+                    className="min-h-[110px]"
+                    disabled={isSavingLink}
+                  />
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button
+                    onClick={handleGenerate}
+                    disabled={loadingOptions || isGeneratingQr || isSavingLink}
+                    className="sm:w-auto w-full"
+                  >
+                    {isGeneratingQr || isSavingLink ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Link2 className="w-4 h-4 mr-2" />
+                    )}
+                    {isSavingLink ? 'Guardando enlace...' : isGeneratingQr ? 'Generando QR...' : 'Generar Link de Invitación'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleReset}
+                    className="sm:w-auto w-full"
+                    disabled={isSavingLink || isGeneratingQr}
+                  >
+                    <RefreshCcw className="w-4 h-4 mr-2" />
+                    Limpiar formulario
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {generatedLink && (
+              <Card className="border-cyan-500/30 bg-card/90">
+                <CardHeader className="space-y-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <CardTitle className="text-lg text-white">Link generado y persistido</CardTitle>
+                    {generatedAtLabel && (
+                      <Badge variant="secondary" className="bg-muted text-muted-foreground">
+                        {generatedAtLabel}
+                      </Badge>
+                    )}
+                  </div>
+                  <CardDescription>
+                    Este token solo se muestra una vez por seguridad. Guarda o comparte la URL ahora.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-5">
+                  <div className="flex flex-wrap gap-2">
+                    <Badge className="bg-cyan-600/90 text-white border-none">
+                      Destino: {form.destination === 'signup' ? 'Registro' : 'Login'}
+                    </Badge>
+                    <Badge variant="outline">
+                      Rol: {formatRoleLabel(selectedRole?.role || form.roleId || 'N/A')}
+                    </Badge>
+                    <Badge variant="outline">
+                      Centro: {selectedCenter?.name || 'Sin centro'}
+                    </Badge>
+                    <Badge variant="outline">
+                      Usos: {form.isUnlimitedUses ? 'Ilimitado' : form.maxUses}
+                    </Badge>
+                    <Badge variant="outline">
+                      Expiración:{' '}
+                      {form.hasExpiration
+                        ? form.expiresAt || 'Pendiente de definir'
+                        : 'Sin expiración'}
+                    </Badge>
+                  </div>
+
+                  {generatedToken && (
+                    <div className="rounded-lg border border-input px-3 py-2">
+                      <p className="text-xs text-muted-foreground mb-1">Token emitido (visible una vez)</p>
+                      <p className="font-mono text-sm break-all">{generatedToken}</p>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <Label htmlFor="generated-invitation-link">URL generada</Label>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <Input
+                        id="generated-invitation-link"
+                        value={generatedLink}
+                        readOnly
+                        className="font-mono text-xs md:text-sm"
+                      />
+                      <Button variant="outline" onClick={() => handleCopy(generatedLink)}>
+                        <Copy className="w-4 h-4 mr-2" />
+                        Copiar
+                      </Button>
+                    </div>
+                  </div>
+
+                  {form.note?.trim() && (
+                    <div className="rounded-lg border border-input p-3">
+                      <p className="text-xs text-muted-foreground mb-1">Nota interna</p>
+                      <p className="text-sm text-foreground whitespace-pre-wrap">{form.note.trim()}</p>
+                    </div>
+                  )}
+
+                  {form.generateQr && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <QrCode className="w-4 h-4 text-cyan-400" />
+                        <h3 className="text-sm font-semibold text-foreground">QR del enlace</h3>
+                      </div>
+                      <div className="rounded-xl border border-input p-4 w-fit mx-auto bg-white space-y-2">
+                        {isGeneratingQr ? (
+                          <div className="flex items-center justify-center w-[240px] h-[240px]">
+                            <Loader2 className="w-6 h-6 animate-spin text-slate-700" />
                           </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                        ) : qrDataUrl ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              openQrViewer({
+                                title: 'QR recién generado',
+                                dataUrl: qrDataUrl,
+                                note: form.note.trim(),
+                                link: generatedLink,
+                              })
+                            }
+                            className="block cursor-zoom-in"
+                            title="Haz clic para pantalla completa"
+                          >
+                            <img
+                              src={qrDataUrl}
+                              alt="QR del link de invitación"
+                              className="w-[240px] h-[240px]"
+                            />
+                          </button>
+                        ) : (
+                          <div className="flex items-center justify-center w-[240px] h-[240px] text-slate-600 text-sm">
+                            QR no disponible
+                          </div>
+                        )}
+                        {qrDataUrl && (
+                          <p className="text-[11px] text-slate-700 text-center">
+                            Haz click en el QR para abrirlo.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             )}
-          </CardContent>
-        </Card>
+          </>
+        )}
       </div>
 
       {/* ── Detail dialog ── */}
@@ -1217,6 +1566,8 @@ const InvitationLinksPage = () => {
                             openQrViewer({
                               title: `QR · ${inv.token_preview}`,
                               dataUrl: detailQrDataUrl,
+                              note: inv.note || '',
+                              link: storedLink,
                             });
                           }}
                         >
@@ -1228,7 +1579,7 @@ const InvitationLinksPage = () => {
                   </div>
                 ) : (
                   <p className="text-xs text-muted-foreground border border-dashed border-input rounded-md p-3">
-                    El link completo solo está disponible justo después de generarlo en esta sesión. Para un nuevo link con estas características, genera uno nuevo.
+                    Este navegador no tiene el link/QR guardado para esta invitación activa. Los nuevos links se conservan localmente mientras sigan activos.
                   </p>
                 )}
 
@@ -1267,6 +1618,8 @@ const InvitationLinksPage = () => {
           if (!open) {
             setQrViewerZoom(1);
             setIsLoadingViewerQr(false);
+            setQrViewerNote('');
+            setQrViewerLink('');
           }
         }}
       >
@@ -1300,7 +1653,23 @@ const InvitationLinksPage = () => {
               <Badge variant="secondary" className="bg-white/10 text-white border-transparent">
                 {Math.round(qrViewerZoom * 100)}%
               </Badge>
+              {qrViewerLink && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleCopy(qrViewerLink)}
+                  className="border-white/30 bg-transparent text-white hover:bg-white/10"
+                >
+                  <Copy className="w-4 h-4 mr-2" />
+                  Copiar link
+                </Button>
+              )}
             </div>
+            {qrViewerNote && (
+              <p className="text-xs text-white/80 pt-2 whitespace-pre-wrap">
+                Nota: {qrViewerNote}
+              </p>
+            )}
           </DialogHeader>
 
           <div className="flex-1 overflow-auto flex items-center justify-center p-6">

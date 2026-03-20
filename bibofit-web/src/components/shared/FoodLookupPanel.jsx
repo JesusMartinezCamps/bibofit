@@ -7,6 +7,7 @@ const FoodLookupPanel = ({
   title = 'Buscar Ingrediente',
   showHeader = true,
   onBack,
+  showBackInSearch = false,
   searchTerm,
   onSearchTermChange,
   onSearchKeyDown,
@@ -27,26 +28,40 @@ const FoodLookupPanel = ({
         </div>
       )}
       <div>
-        <div className="relative">
-          <Input
-            type="text"
-            placeholder={placeholder}
-            value={searchTerm}
-            onChange={(e) => onSearchTermChange(e.target.value)}
-            onKeyDown={onSearchKeyDown}
-            className="input-field pr-10"
-            autoFocus
-          />
-          {showClearButton && searchTerm?.trim() ? (
-            <button
+        <div className="flex items-center gap-2">
+          {showBackInSearch && typeof onBack === 'function' && (
+            <Button
               type="button"
-              onClick={() => (onClearSearch ? onClearSearch() : onSearchTermChange(''))}
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              aria-label="Limpiar búsqueda"
+              variant="outline"
+              size="icon"
+              onClick={onBack}
+              className="h-9 w-9 shrink-0 rounded-full border-border bg-muted/70 text-foreground hover:bg-muted"
+              aria-label="Volver"
             >
-              <X size={14} />
-            </button>
-          ) : null}
+              <ArrowLeft size={18} />
+            </Button>
+          )}
+          <div className="relative flex-1">
+            <Input
+              type="text"
+              placeholder={placeholder}
+              value={searchTerm}
+              onChange={(e) => onSearchTermChange(e.target.value)}
+              onKeyDown={onSearchKeyDown}
+              className="input-field pr-10"
+              autoFocus
+            />
+            {showClearButton && searchTerm?.trim() ? (
+              <button
+                type="button"
+                onClick={() => (onClearSearch ? onClearSearch() : onSearchTermChange(''))}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                aria-label="Limpiar búsqueda"
+              >
+                <X size={14} />
+              </button>
+            ) : null}
+          </div>
         </div>
         {helperText ? <p className="text-[11px] text-muted-foreground mt-2">{helperText}</p> : null}
       </div>

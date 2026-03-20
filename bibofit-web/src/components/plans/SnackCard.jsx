@@ -33,15 +33,14 @@ const SnackCard = ({ snack, allFoods, onRemove, onToggle, onClick, isSelected })
         className={cn(
           "w-full h-full text-left bg-gradient-to-br p-5 rounded-xl transition-all flex flex-col justify-between shadow-lg border",
           isSelected 
-            ? 'from-orange-900/40 via-slate-800/40 to-orange-800/60 border-orange-700 hover:border-orange-500/50 hover:shadow-orange-500/10' 
-            : 'from-orange-900/40 via-slate-800/40 to-slate-800/60 border-orange-700/50 hover:border-orange-500/50 hover:shadow-orange-500/10',
+            ? 'from-orange-600/30 via-orange-400/30 to-orange-800/10 dark:from-orange-600/50 dark:via-orange-600/20 dark:to-orange-300/10 border-orange-700 hover:border-orange-500/50 hover:shadow-orange-500/10' 
+            : 'from-orange-900/10 via-orange-400/10 to-slate-600/10  dark:from-orange-900/10 dark:via-slate-900/10 dark:to-slate-600/10 border-orange-700/50 hover:border-orange-500/50 hover:shadow-orange-500/10',
         )}
       >
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <p className={cn(
-              "text-xl font-bold line-clamp-2 flex-1",
-              isSelected ? "text-orange-300" : "text-white"
+              "text-xl font-bold line-clamp-2 flex-1 text-orange-600"
             )}>
               {snack.name}
             </p>
@@ -52,10 +51,10 @@ const SnackCard = ({ snack, allFoods, onRemove, onToggle, onClick, isSelected })
         </div>
         <div className="mt-4 flex justify-between items-center">
           <div className="flex items-center gap-x-3 gap-y-1 text-sm font-mono flex-wrap">
-            <span className="flex items-center text-orange-300" title="Calorías"><Apple className="w-4 h-4 mr-1 text-orange-300"/>{Math.round(macros.calories || 0)}</span>
-            <span className="flex items-center text-orange-300" title="Proteínas"><ProteinIcon className="w-4 h-4 mr-1 text-orange-300"/>{Math.round(macros.proteins || 0)}g</span>
-            <span className="flex items-center text-orange-300" title="Carbohidratos"><CarbsIcon className="w-4 h-4 mr-1 text-orange-300"/>{Math.round(macros.carbs || 0)}g</span>
-            <span className="flex items-center text-orange-300" title="Grasas"><FatsIcon className="w-4 h-4 mr-1 text-orange-300"/>{Math.round(macros.fats || 0)}g</span>
+            <span className="flex items-center text-orange-500" title="Calorías"><Apple className="w-4 h-4 mr-1 text-orange-500"/>{Math.round(macros.calories || 0)}</span>
+            <span className="flex items-center text-orange-500" title="Proteínas"><ProteinIcon className="w-4 h-4 mr-1 text-orange-500"/>{Math.round(macros.proteins || 0)}g</span>
+            <span className="flex items-center text-orange-500" title="Carbohidratos"><CarbsIcon className="w-4 h-4 mr-1 text-orange-500"/>{Math.round(macros.carbs || 0)}g</span>
+            <span className="flex items-center text-orange-500" title="Grasas"><FatsIcon className="w-4 h-4 mr-1 text-orange-500"/>{Math.round(macros.fats || 0)}g</span>
           </div>
           <button
             onClick={(e) => {
@@ -64,11 +63,11 @@ const SnackCard = ({ snack, allFoods, onRemove, onToggle, onClick, isSelected })
             }}
             className={cn(
               'flex items-center gap-1.5 px-2 py-1 rounded-full text-xs transition-all duration-200 border',
-              isSelected ? 'bg-orange-900/30 text-orange-300 border-orange-800/50' : 'bg-muted/50 text-muted-foreground border-input/50 hover:border-gray-500/50'
+              isSelected ? 'bg-orange-300/30 dark:bg-orange-700/30 text-orange-600 border-orange-800/50' : 'bg-muted/50 text-orange-400 dark:text-orange-600/50 border-input/50 hover:border-gray-500/50'
             )}
             title={isSelected ? "Desmarcar como comido" : "Marcar como comido"}
           >
-            <Utensils className={cn('w-4 h-4', isSelected ? 'text-orange-400' : 'text-muted-foreground')} />
+            <Utensils className={cn('w-4 h-4', isSelected ? 'text-orange-400 dark:text-orange-600' : 'text-orange-400 dark:text-orange-600/50')} />
             <span>Comido</span>
           </button>
         </div>

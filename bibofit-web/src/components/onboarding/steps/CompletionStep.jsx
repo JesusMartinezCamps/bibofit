@@ -42,7 +42,7 @@ const CompletionStep = () => {
         description: "Tus datos han sido guardados correctamente.",
         variant: "success"
       });
-      navigate('/dashboard');
+      navigate('/profile');
     } catch (error) {
       console.error('❌ [CompletionStep] Error:', error);
       toast({

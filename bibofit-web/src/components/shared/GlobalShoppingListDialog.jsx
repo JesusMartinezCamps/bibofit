@@ -18,6 +18,13 @@ import { getRecipeIngredients } from '@/lib/recipeEntity';
 
 const STORAGE_KEY = 'shoppingListModalMode';
 
+const resolveShoppingListMode = (rawMode) => {
+    if (rawMode === 'complete' || rawMode === 'planned') return rawMode;
+    if (rawMode === 'day' || rawMode === 'list') return 'complete';
+    if (rawMode === 'week') return 'planned';
+    return 'planned';
+};
+
 const normalizeText = (text) => {
     return text
         ? text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
@@ -240,8 +247,7 @@ const GlobalShoppingListDialog = ({ open, onOpenChange, initialMode = 'planned',
         } catch (error) {
             console.error('Error reading from localStorage:', error);
         }
-        // Fallback to initialMode logic
-        return initialMode === 'week' ? 'planned' : (initialMode === 'day' ? 'complete' : (initialMode || 'planned'));
+        return resolveShoppingListMode(initialMode);
     }, [initialMode]);
 
     const [listMode, setListMode] = useState(() => getSavedMode());

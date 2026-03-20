@@ -1,8 +1,20 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Plus, Repeat } from 'lucide-react';
+import { useContextualGuide } from '@/contexts/ContextualGuideContext';
+import { GUIDE_BLOCK_IDS } from '@/config/guideBlocks';
 
 const SnackSelectorDialog = ({ open, onOpenChange, onAddNew, onRepeat }) => {
+  const { triggerBlock } = useContextualGuide();
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const frame = requestAnimationFrame(() => {
+      triggerBlock(GUIDE_BLOCK_IDS.SNACK_SELECTOR);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [open, triggerBlock]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-background border-border text-white sm:max-w-[425px]">
@@ -12,7 +24,7 @@ const SnackSelectorDialog = ({ open, onOpenChange, onAddNew, onRepeat }) => {
             ¿Quieres crear un picoteo nuevo o repetir uno que ya has comido?
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
+        <div data-guide-target="snack-selector-list" className="grid gap-4 py-4">
           <button
             onClick={onAddNew}
             className="group relative flex flex-col items-center justify-center p-6 rounded-lg border-2 border-green-500/50 bg-gradient-to-br from-green-500/90 dark:from-green-500/40 to-green-900/50 dark:to-green-900/20 text-white transition-all duration-300 hover:border-green-400 hover:scale-105"
@@ -22,6 +34,7 @@ const SnackSelectorDialog = ({ open, onOpenChange, onAddNew, onRepeat }) => {
             <span className="text-sm text-white">Crea un picoteo nuevo</span>
           </button>
           <button
+            data-guide-target="snack-selector-equivalence"
             onClick={onRepeat}
             className="group relative flex flex-col items-center justify-center p-6 rounded-lg border-2 border-amber-500/50 bg-gradient-to-br from-amber-500/90 dark:from-amber-500/40 to-amber-900/50 dark:to-amber-900/20 text-white transition-all duration-300 hover:border-amber-400 hover:scale-105"
           >

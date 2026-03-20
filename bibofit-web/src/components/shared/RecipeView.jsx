@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
   Bot,
@@ -14,11 +14,22 @@ import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import IngredientSearch from '@/components/plans/IngredientSearch';
 import { supabase } from '@/lib/customSupabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
+import { useContextualGuide } from '@/contexts/ContextualGuideContext';
+import { GUIDE_BLOCK_IDS } from '@/config/guideBlocks';
 import { invokeAutoBalanceRecipe } from '@/lib/autoBalanceClient';
+import {
+  AUTO_BALANCE_FEATURES,
+  consumeAutobalanceQuota,
+  fetchAutobalanceQuotaSnapshot,
+  getFeatureQuotaEntry,
+  getQuotaUpgradeMessage,
+  releaseAutobalanceQuota,
+} from '@/lib/autobalanceQuotaService';
 import RecipeImageUpload from '@/components/admin/recipes/RecipeImageUpload';
 import EditableField from '@/components/shared/recipe-view/EditableField';
 import IngredientCard from '@/components/shared/recipe-view/IngredientCard';
@@ -127,9 +138,11 @@ const RecipeView = ({
   onFoodCreated,
   recipeStyles = null,
   isConflictCorrectionMode = false,
+  hideMacrosTitle = false,
 }) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { isOpen: isGuideOpen, activeBlock, triggerBlock } = useContextualGuide();
 
   const [internalRestrictions, setInternalRestrictions] = useState(null);
   const [loadingRestrictions, setLoadingRestrictions] = useState(false);
@@ -140,6 +153,9 @@ const RecipeView = ({
   const [servingMultiplier, setServingMultiplier] = useState(1);
   const [showMultiplierEasterEgg, setShowMultiplierEasterEgg] = useState(false);
   const [internalRecipeStyles, setInternalRecipeStyles] = useState([]);
+  const [autobalanceQuotaSnapshot, setAutobalanceQuotaSnapshot] = useState(null);
+  const pendingAutobalanceGuideAfterQuickEditRef = useRef(false);
+  const wasQuickEditOpenRef = useRef(false);
 
   const safeFoods = allFoods || [];
   const safeVitamins = allVitamins || [];
@@ -165,10 +181,51 @@ const RecipeView = ({
     () => scaleMacrosByMultiplier(totalMacros, servingMultiplier),
     [totalMacros, servingMultiplier]
   );
+  const recipeAutobalanceQuota = useMemo(
+    () =>
+      getFeatureQuotaEntry(
+        autobalanceQuotaSnapshot,
+        AUTO_BALANCE_FEATURES.RECIPE_EQUIVALENCE
+      ),
+    [autobalanceQuotaSnapshot]
+  );
+  const quotaBlocked = !!recipeAutobalanceQuota?.is_limited && Number(recipeAutobalanceQuota?.remaining || 0) <= 0;
+  const quotaTooltipMessage = getQuotaUpgradeMessage();
+
+  const loadAutobalanceQuotaSnapshot = useCallback(async () => {
+    if (!user?.id) {
+      setAutobalanceQuotaSnapshot(null);
+      return;
+    }
+    try {
+      const snapshot = await fetchAutobalanceQuotaSnapshot();
+      setAutobalanceQuotaSnapshot(snapshot);
+    } catch (error) {
+      console.error('Error loading autobalance quota snapshot:', error);
+    }
+  }, [user?.id]);
 
   useEffect(() => {
     setServingMultiplier(1);
   }, [recipe?.id, recipe?.name, recipe?.updated_at, recipe?.created_at]);
+
+  useEffect(() => {
+    loadAutobalanceQuotaSnapshot();
+  }, [loadAutobalanceQuotaSnapshot]);
+
+  useEffect(() => {
+    const isQuickEditOpen = !!quantityEditorIngredient;
+    const wasOpen = wasQuickEditOpenRef.current;
+
+    if (wasOpen && !isQuickEditOpen && pendingAutobalanceGuideAfterQuickEditRef.current) {
+      pendingAutobalanceGuideAfterQuickEditRef.current = false;
+      requestAnimationFrame(() => {
+        triggerBlock(GUIDE_BLOCK_IDS.RECIPE_AUTOBALANCE);
+      });
+    }
+
+    wasQuickEditOpenRef.current = isQuickEditOpen;
+  }, [quantityEditorIngredient, triggerBlock]);
 
   useEffect(() => {
     if (!showMultiplierEasterEgg) return;
@@ -345,7 +402,28 @@ const RecipeView = ({
     }
 
     setIsBalancing(true);
+    const operationId = crypto.randomUUID();
+    let quotaConsumption = null;
     try {
+      quotaConsumption = await consumeAutobalanceQuota({
+        featureKey: AUTO_BALANCE_FEATURES.RECIPE_EQUIVALENCE,
+        operationId,
+        origin: 'recipe_view',
+        metadata: {
+          recipe_id: recipe?.id || null,
+          recipe_type: recipe?.type || null,
+        },
+      });
+
+      if (quotaConsumption && quotaConsumption.allowed === false) {
+        toast({
+          title: 'Límite alcanzado',
+          description: quotaTooltipMessage,
+          variant: 'destructive',
+        });
+        return;
+      }
+
       const ingredientsForFunction = (recipe?.ingredients || [])
         .map((ing) => ({
           food_id: Number(ing.food_id || ing.food?.id),
@@ -372,16 +450,31 @@ const RecipeView = ({
       });
 
       onIngredientsChange(newIngredients);
+      const remainingText =
+        quotaConsumption?.consumed && Number.isFinite(Number(quotaConsumption?.remaining))
+          ? ` Te quedan ${quotaConsumption.remaining}/${quotaConsumption.limit} usos.`
+          : '';
       toast({
         title: 'Receta autocuadrada',
-        description: 'Se han ajustado las cantidades.',
+        description: `Se han ajustado las cantidades.${remainingText}`,
         className: 'bg-cyan-600/25 text-white border-none backdrop-blur-md',
       });
     } catch (error) {
+      if (quotaConsumption?.consumed) {
+        try {
+          await releaseAutobalanceQuota({
+            featureKey: AUTO_BALANCE_FEATURES.RECIPE_EQUIVALENCE,
+            operationId,
+          });
+        } catch (rollbackError) {
+          console.error('Error rolling back autobalance quota consumption:', rollbackError);
+        }
+      }
       console.error('Auto-balance error:', error);
       toast({ title: 'Error al autocuadrar', description: error.message, variant: 'destructive' });
     } finally {
       setIsBalancing(false);
+      loadAutobalanceQuotaSnapshot();
     }
   };
 
@@ -391,6 +484,16 @@ const RecipeView = ({
     const hasFoodChanged =
       food &&
       String(food.id) !== String(quantityEditorIngredient.food_id || quantityEditorIngredient.food?.id);
+    const nextQuantity = Number(quantity);
+    const currentQuantity = Number(
+      quantityEditorIngredient.quantity ?? quantityEditorIngredient.grams ?? 0
+    );
+    const hasQuantityChanged =
+      Number.isFinite(nextQuantity) &&
+      Number.isFinite(currentQuantity) &&
+      Math.abs(nextQuantity - currentQuantity) > 0.0001;
+    const hasLockChanged = Boolean(locked) !== Boolean(quantityEditorIngredient.locked);
+    const shouldQueueAutobalanceGuide = hasFoodChanged || hasQuantityChanged || hasLockChanged;
 
     if (!hasFoodChanged) {
       // Actualiza cantidad y estado de candado en el ingrediente existente
@@ -416,6 +519,9 @@ const RecipeView = ({
         onIngredientsChange(newIngredients);
       }
       setQuantityEditorIngredient(null);
+      if (shouldQueueAutobalanceGuide) {
+        pendingAutobalanceGuideAfterQuickEditRef.current = true;
+      }
       return;
     }
 
@@ -443,6 +549,9 @@ const RecipeView = ({
     }
 
     toast({ title: 'Ingrediente actualizado', description: `Se cambio por ${food.name}.` });
+    if (shouldQueueAutobalanceGuide) {
+      pendingAutobalanceGuideAfterQuickEditRef.current = true;
+    }
     setQuantityEditorIngredient(null);
   };
 
@@ -473,7 +582,7 @@ const RecipeView = ({
     }
 
     setReplacingIngredient(null);
-    toast({ title: 'Ingrediente reemplazado', description: `Se ha sustituido por ${newFoodData.food_name}.` });
+    toast({ title: 'Ingrediente reemplazado', description: `Se ha sustituido por ${newFoodData.food_name}.`, variant: 'success' });
   };
 
   const redCount = conflicts.length;
@@ -488,6 +597,10 @@ const RecipeView = ({
   const isMultiplierActive = servingMultiplier !== 1;
   const shouldShowMetaFields = showMetaFields && !isConflictCorrectionMode;
   const shouldShowPreparationSection = showPreparationSection && !isConflictCorrectionMode;
+  const isAutobalanceGuideSpotlight =
+    isGuideOpen &&
+    (activeBlock?.id === GUIDE_BLOCK_IDS.RECIPE_AUTOBALANCE ||
+      activeBlock?.id === GUIDE_BLOCK_IDS.FREE_RECIPE_AUTOBALANCE);
   const handleIncreaseMultiplier = () => {
     setServingMultiplier((prev) => {
       if (prev >= 20) {
@@ -533,8 +646,12 @@ const RecipeView = ({
     >
       <div className="text-center mt-6 relative z-10">
         {recipeImageUrl && (
-          <div className="mb-4 overflow-hidden rounded-xl border border-border/70 bg-card/85">
+          <div
+            data-recipe-hero-image-wrapper
+            className="mb-4 overflow-hidden rounded-xl border border-border/70 bg-card/85"
+          >
             <img
+              data-recipe-hero-image
               src={recipeImageUrl}
               alt={`Imagen de ${recipe.name || 'receta'}`}
               className="w-full h-44 sm:h-56 object-cover"
@@ -544,24 +661,28 @@ const RecipeView = ({
         )}
 
         {isEditing ? (
-          <EditableField
-            value={recipe.name}
-            onChange={(e) => onFormChange({ target: { name: 'name', value: e.target.value } })}
-            isEditing
-            placeholder="Nombre de la Receta"
-            type="textarea"
-            textareaRows={1}
-            textareaMinHeight="1.2em"
-            className="text-3xl font-bold leading-tight whitespace-pre-wrap break-normal resize-none text-center w-full"
-          />
+          <div data-recipe-title-anchor>
+            <EditableField
+              value={recipe.name}
+              onChange={(e) => onFormChange({ target: { name: 'name', value: e.target.value } })}
+              isEditing
+              placeholder="Nombre de la Receta"
+              type="textarea"
+              textareaRows={1}
+              textareaMinHeight="1.2em"
+              className="text-3xl font-bold leading-tight whitespace-pre-wrap break-normal resize-none text-center w-full"
+            />
+          </div>
         ) : (
           <>
-            <h2 className="text-3xl font-bold text-center break-words bg-clip-text text-transparent bg-gradient-to-r from-emerald-700 to-teal-700 dark:from-green-300 dark:to-teal-400">
-              {recipe.name}
-            </h2>
+            <div data-recipe-title-anchor>
+              <h2 className="text-3xl font-bold text-center break-words bg-clip-text text-transparent bg-gradient-to-r from-emerald-700 to-teal-700 dark:from-green-300 dark:to-teal-400">
+                {recipe.name}
+              </h2>
+            </div>
             <div className="flex justify-center gap-3 mt-2">
               {redCount > 0 && (
-                <span className="flex items-center text-sm text-red-400 gap-1.5 bg-red-900/20 px-2 py-1 rounded-full border border-red-500/30">
+                <span className="flex items-center text-sm text-red-400 gap-1.5 bg-red-900/30 px-2 py-1 rounded-full border border-red-500/50">
                   <AlertTriangle className="w-4 h-4" /> {redCount} Conflictos
                 </span>
               )}
@@ -579,7 +700,7 @@ const RecipeView = ({
       )}
       {isConflictCorrectionMode && (
         <div className="flex justify-center -mt-2 mb-4 relative z-10">
-          <Badge variant="outline" className="border-amber-500 text-amber-300 bg-amber-900/20">
+          <Badge variant="outline" className="border-amber-500 dark:text-amber-300 text-amber-900 dark:bg-amber-900/20 bg-amber-100">
             Modo correccion de conflictos
           </Badge>
         </div>
@@ -597,10 +718,235 @@ const RecipeView = ({
 
       {headerSlot && <div className="relative z-10">{headerSlot}</div>}
 
+      <div
+        className={cn(
+          enableStickyMacros &&
+            (isConflictCorrectionMode
+              ? 'sticky top-0 bg-card/95 dark:bg-[#0C101D] px-0 sm:px-0 md:px-0 py-2 shadow-xl border-b border-border/60 mb-4'
+              : 'sticky top-0 bg-card/95 dark:bg-[#0C101D] -mx-2 px-2 sm:-mx-4 sm:px-4 md:-mx-6 md:px-6 py-2 shadow-xl border-b border-border/60 mb-4'),
+          'z-30'
+        )}
+      >
+        {!hideMacrosTitle && (
+          <h3 className="text-l font-semibold mb-3 border-b border-border pb-2 bg-clip-text text-transparent bg-gradient-to-r from-emerald-700 to-teal-700 dark:from-green-300 dark:to-teal-400">
+            Macros Totales
+          </h3>
+        )}
+        <MacroSummaryGrid macros={scaledTotalMacros} />
+        {isEditing && resolvedTargets && !isTemplate && (
+          <div className="mt-4">
+            <h4 className="text-sm font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
+              Macros Objetivo
+            </h4>
+            <MacroTargetGrid targets={resolvedTargets} />
+          </div>
+        )}
+      </div>
+
+      {!isEditing && (
+        <div data-guide-target="recipe-view-multiplier" className="relative z-10 flex flex-col items-center">
+          <div className="text-sm font-semibold text-foreground mb-1 text-center">Multiplicador</div>
+          <div className="flex items-center justify-center gap-1">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-9 w-9 border-input bg-card/80 hover:bg-muted hover:text-muted-foreground text-foreground dark:text-gray-200 shrink-0"
+              onClick={() => setServingMultiplier((prev) => clampMultiplier(prev - 1))}
+              disabled={servingMultiplier <= 1}
+            >
+              <Minus className="w-4 h-4" />
+            </Button>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs pointer-events-none">x</span>
+              <Input
+                type="number"
+                min={1}
+                max={20}
+                value={servingMultiplier}
+                onChange={(e) => setServingMultiplier(clampMultiplier(e.target.value))}
+                className="h-9 w-12 text-center pl-4 pr-1 input-field bg-transparent border-dashed font-semibold"
+              />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-9 w-9 border-input bg-card/80 hover:bg-muted hover:text-muted-foreground text-foreground dark:text-gray-200 shrink-0"
+              onClick={handleIncreaseMultiplier}
+            >
+              <Plus className="w-4 h-4" />
+            </Button>
+          </div>
+          <div
+            className={cn(
+              'absolute -top-8 left-1/2 -translate-x-1/2 rounded-md bg-card/95 border border-cyan-500/30 px-2 py-1 text-[11px] text-cyan-100 whitespace-nowrap shadow-lg transition-all duration-200',
+              showMultiplierEasterEgg ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+            )}
+          >
+            ¡Pero bueno! Suficiente comida así...
+          </div>
+        </div>
+      )}
+
+      <div data-guide-target="recipe-view-ingredients" className="relative z-10">
+        <div className="flex justify-between items-center mb-3 border-b border-border pb-2">
+          <h3 className="text-xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-emerald-700 to-teal-700 dark:from-green-300 dark:to-teal-400">
+            Ingredientes
+          </h3>
+          {onAddIngredientClick && (
+            <Button
+              data-guide-target="recipe-view-add-ingredient"
+              variant="ghost"
+              size="icon"
+              onClick={onAddIngredientClick}
+              className="text-green-700 dark:text-green-300 hover:bg-green-500/10 hover:text-green-800 dark:hover:text-green-200"
+            >
+              <PlusCircle className="w-6 h-6" />
+            </Button>
+          )}
+        </div>
+
+        <div className="space-y-4">
+          {isEditing && isMultiplierActive && (
+            <p className="text-xs text-cyan-700 dark:text-cyan-200/80 rounded-md border border-cyan-500/35 dark:border-cyan-500/20 bg-cyan-500/10 dark:bg-cyan-500/5 px-3 py-2">
+              En edicion, las cantidades se guardan en base x1. El multiplicador solo ajusta la vista para cocinar.
+            </p>
+          )}
+          {isEditing ? (
+            ingredientsWithDetails.length > 0 ? (
+              <div className="space-y-3">
+                {ingredientsWithDetails.map((ing, index) => (
+                  <IngredientCard
+                    key={ing.local_id || `${ing.food_id}-${index}`}
+                    ingredient={ing}
+                    isFreeMealView={isFreeMealView}
+                    isEditing
+                    onRemove={onRemoveIngredient ? () => onRemoveIngredient(ing) : undefined}
+                    onReplace={() => setReplacingIngredient(ing)}
+                    onQuantityChange={(e) => handleQuantityChange(ing, e.target.value)}
+                    allFoodGroups={safeFoodGroups}
+                    multiplier={servingMultiplier}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-10 border-2 border-dashed border-border rounded-lg">
+                <p className="text-muted-foreground">No hay ingredientes en esta receta.</p>
+                <p className="text-muted-foreground mt-2">
+                  Haz clic en el <PlusCircle className="inline w-4 h-4 mx-1" /> para anadir el primero.
+                </p>
+              </div>
+            )
+          ) : (
+            <ul className="space-y-0">
+              {ingredientsWithDetails.length > 0 ? (
+                ingredientsWithDetails.map((ing, index) => (
+                  <IngredientCard
+                    key={ing.local_id || `${ing.food_id}-${index}`}
+                    ingredient={ing}
+                    isFreeMealView={isFreeMealView}
+                    isEditing={false}
+                    displayAsBullet
+                    allFoodGroups={safeFoodGroups}
+                    onRemove={canManageIngredientsInView ? () => onRemoveIngredient(ing) : undefined}
+                    onReplace={canManageIngredientsInView ? () => setReplacingIngredient(ing) : undefined}
+                    onQuickEdit={canManageIngredientsInView ? () => setQuantityEditorIngredient(ing) : undefined}
+                    multiplier={servingMultiplier}
+                  />
+                ))
+              ) : (
+                <div className="text-center py-10 border-2 border-dashed border-border rounded-lg">
+                  <p className="text-muted-foreground">No hay ingredientes en esta receta.</p>
+                </div>
+              )}
+            </ul>
+          )}
+
+          {showAutoBalance && resolvedTargets && (
+            <div className="mt-4 pt-2 border-t border-border">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="block">
+                      <Button
+                        data-guide-target="recipe-view-autobalance"
+                        type="button"
+                        onClick={() => {
+                          if (quotaBlocked) {
+                            toast({
+                              title: 'Límite alcanzado',
+                              description: quotaTooltipMessage,
+                              variant: 'destructive',
+                            });
+                            return;
+                          }
+                          if (disableAutoBalance && onAutoBalanceBlocked) {
+                            onAutoBalanceBlocked();
+                            return;
+                          }
+                          handleAutoBalance();
+                        }}
+                        disabled={
+                          isBalancing ||
+                          quotaBlocked ||
+                          (disableAutoBalance && !onAutoBalanceBlocked)
+                        }
+                        variant="outline"
+                        className={cn(
+                          "w-full bg-muted border-cyan-500 bg-cyan-400/10 text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300 mt-4 disabled:opacity-50 disabled:cursor-not-allowed",
+                          isAutobalanceGuideSpotlight && "bg-cyan-500/30 border-cyan-300 text-cyan-100 shadow-[0_0_0_1px_rgba(34,211,238,0.5),0_0_25px_rgba(34,211,238,0.35)]"
+                        )}
+                      >
+                        {isBalancing ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Bot className="w-4 h-4 mr-2" />
+                        )}
+                        Autocuadrar Macros
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  {quotaBlocked && (
+                    <TooltipContent className="max-w-xs">
+                      {quotaTooltipMessage}
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
+              {recipeAutobalanceQuota?.is_limited && (
+                <p className="mt-2 text-xs text-muted-foreground text-center">
+                  Usos de autocuadre recetas/equivalencias: {recipeAutobalanceQuota.remaining}/{recipeAutobalanceQuota.limit}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {actionButton && <div className="my-4 relative z-10">{actionButton}</div>}
+
+      {shouldShowPreparationSection && (
+        <div className="relative z-10">
+          <h3 className="text-xl font-semibold mb-3 border-b border-border pb-2 bg-clip-text text-transparent bg-gradient-to-r from-emerald-700 to-teal-700 dark:from-green-300 dark:to-teal-400">
+            Preparacion
+          </h3>
+          <EditableField
+            value={recipe.instructions}
+            onChange={(e) => onFormChange({ target: { name: 'instructions', value: e.target.value } })}
+            isEditing={isEditing}
+            placeholder="Anade aqui las instrucciones..."
+            type={isEditing ? 'textarea' : 'p'}
+            className="text-muted-foreground whitespace-pre-wrap"
+          />
+        </div>
+      )}
+
       {shouldShowMetaFields && (
         <div
+          data-guide-target="recipe-settings-form"
           className={cn(
-            'grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 rounded-lg relative z-10',
+            'grid grid-cols-3 gap-2 sm:gap-3 rounded-lg relative z-10',
             isEditing ? 'sm:p-0.5' : 'p-3 bg-muted/65'
           )}
         >
@@ -672,193 +1018,8 @@ const RecipeView = ({
               )}
             </div>
           </div>
-
-          <div className={cn('min-w-0 relative', !isEditing && 'flex flex-col items-center justify-center text-center')}>
-            <div className="text-foreground dark:text-gray-200 font-semibold">Multiplicador</div>
-            <div className={cn('mt-1 flex items-center gap-1', !isEditing && 'justify-center')}>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="h-9 w-9 border-input bg-card/80 hover:bg-muted hover:text-muted-foreground text-foreground dark:text-gray-200 shrink-0"
-                onClick={() => setServingMultiplier((prev) => clampMultiplier(prev - 1))}
-                disabled={servingMultiplier <= 1}
-              >
-                <Minus className="w-4 h-4" />
-              </Button>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-xs pointer-events-none">x</span>
-                <Input
-                  type="number"
-                  min={1}
-                  max={20}
-                  value={servingMultiplier}
-                  onChange={(e) => setServingMultiplier(clampMultiplier(e.target.value))}
-                  className="h-7 w-10 text-center pl-4 pr-1 input-field bg-transparent border-dashed font-semibold"
-                />
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="h-9 w-9 border-input bg-card/80 hover:bg-muted hover:text-muted-foreground text-foreground dark:text-gray-200 shrink-0"
-                onClick={handleIncreaseMultiplier}
-              >
-                <Plus className="w-4 h-4" />
-              </Button>
-            </div>
-            <div
-              className={cn(
-                'absolute -top-8 left-1/2 -translate-x-1/2 rounded-md bg-card/95 border border-cyan-500/30 px-2 py-1 text-[11px] text-cyan-100 whitespace-nowrap shadow-lg transition-all duration-200',
-                showMultiplierEasterEgg ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
-              )}
-            >
-              ¡Pero bueno! Suficiente comida así...
-            </div>
-          </div>
         </div>
       )}
-
-      {shouldShowPreparationSection && (
-        <div className="relative z-10">
-          <h3 className="text-xl font-semibold mb-3 border-b border-border pb-2 bg-clip-text text-transparent bg-gradient-to-r from-emerald-700 to-teal-700 dark:from-green-300 dark:to-teal-400">
-            Preparacion
-          </h3>
-          <EditableField
-            value={recipe.instructions}
-            onChange={(e) => onFormChange({ target: { name: 'instructions', value: e.target.value } })}
-            isEditing={isEditing}
-            placeholder="Anade aqui las instrucciones..."
-            type={isEditing ? 'textarea' : 'p'}
-            className="text-muted-foreground whitespace-pre-wrap"
-          />
-        </div>
-      )}
-
-      <div
-        className={cn(
-          enableStickyMacros &&
-            (isConflictCorrectionMode
-              ? 'sticky top-0 bg-card/95 dark:bg-[#0C101D] px-0 sm:px-0 md:px-0 py-2 shadow-xl border-b border-border/60 mb-4'
-              : 'sticky top-0 bg-card/95 dark:bg-[#0C101D] -mx-2 px-2 sm:-mx-4 sm:px-4 md:-mx-6 md:px-6 py-2 shadow-xl border-b border-border/60 mb-4'),
-          'z-30'
-        )}
-      >
-        <h3 className="text-xl font-semibold mb-3 border-b border-border pb-2 bg-clip-text text-transparent bg-gradient-to-r from-emerald-700 to-teal-700 dark:from-green-300 dark:to-teal-400">
-          Macros Totales
-        </h3>
-        <MacroSummaryGrid macros={scaledTotalMacros} />
-        {isEditing && resolvedTargets && !isTemplate && (
-          <div className="mt-4">
-            <h4 className="text-sm font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
-              Macros Objetivo
-            </h4>
-            <MacroTargetGrid targets={resolvedTargets} />
-          </div>
-        )}
-      </div>
-
-      {actionButton && <div className="my-4 relative z-10">{actionButton}</div>}
-
-      <div className="relative z-10">
-        <div className="flex justify-between items-center mb-3 border-b border-border pb-2">
-          <h3 className="text-xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-emerald-700 to-teal-700 dark:from-green-300 dark:to-teal-400">
-            Ingredientes
-          </h3>
-          {onAddIngredientClick && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onAddIngredientClick}
-              className="text-green-700 dark:text-green-300 hover:bg-green-500/10 hover:text-green-800 dark:hover:text-green-200"
-            >
-              <PlusCircle className="w-6 h-6" />
-            </Button>
-          )}
-        </div>
-
-        <div className="space-y-4">
-          {isEditing && isMultiplierActive && (
-            <p className="text-xs text-cyan-700 dark:text-cyan-200/80 rounded-md border border-cyan-500/35 dark:border-cyan-500/20 bg-cyan-500/10 dark:bg-cyan-500/5 px-3 py-2">
-              En edicion, las cantidades se guardan en base x1. El multiplicador solo ajusta la vista para cocinar.
-            </p>
-          )}
-          {isEditing ? (
-            ingredientsWithDetails.length > 0 ? (
-              <div className="space-y-3">
-                {ingredientsWithDetails.map((ing, index) => (
-                  <IngredientCard
-                    key={ing.local_id || `${ing.food_id}-${index}`}
-                    ingredient={ing}
-                    isFreeMealView={isFreeMealView}
-                    isEditing
-                    onRemove={onRemoveIngredient ? () => onRemoveIngredient(ing) : undefined}
-                    onReplace={() => setReplacingIngredient(ing)}
-                    onQuantityChange={(e) => handleQuantityChange(ing, e.target.value)}
-                    allFoodGroups={safeFoodGroups}
-                    multiplier={servingMultiplier}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-10 border-2 border-dashed border-border rounded-lg">
-                <p className="text-muted-foreground">No hay ingredientes en esta receta.</p>
-                <p className="text-muted-foreground mt-2">
-                  Haz clic en el <PlusCircle className="inline w-4 h-4 mx-1" /> para anadir el primero.
-                </p>
-              </div>
-            )
-          ) : (
-            <ul className="space-y-0">
-              {ingredientsWithDetails.length > 0 ? (
-                ingredientsWithDetails.map((ing, index) => (
-                  <IngredientCard
-                    key={ing.local_id || `${ing.food_id}-${index}`}
-                    ingredient={ing}
-                    isFreeMealView={isFreeMealView}
-                    isEditing={false}
-                    displayAsBullet
-                    allFoodGroups={safeFoodGroups}
-                    onRemove={canManageIngredientsInView ? () => onRemoveIngredient(ing) : undefined}
-                    onReplace={canManageIngredientsInView ? () => setReplacingIngredient(ing) : undefined}
-                    onQuickEdit={canManageIngredientsInView ? () => setQuantityEditorIngredient(ing) : undefined}
-                    multiplier={servingMultiplier}
-                  />
-                ))
-              ) : (
-                <div className="text-center py-10 border-2 border-dashed border-border rounded-lg">
-                  <p className="text-muted-foreground">No hay ingredientes en esta receta.</p>
-                </div>
-              )}
-            </ul>
-          )}
-
-          {showAutoBalance && resolvedTargets && (
-            <div className="mt-4 pt-2 border-t border-border">
-              <Button
-                type="button"
-                onClick={() => {
-                  if (disableAutoBalance && onAutoBalanceBlocked) {
-                    onAutoBalanceBlocked();
-                    return;
-                  }
-                  handleAutoBalance();
-                }}
-                disabled={isBalancing || (disableAutoBalance && !onAutoBalanceBlocked)}
-                variant="outline"
-                className="w-full bg-muted border-cyan-500 bg-cyan-400/10 text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300 mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isBalancing ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Bot className="w-4 h-4 mr-2" />
-                )}
-                Autocuadrar Macros
-              </Button>
-            </div>
-          )}
-        </div>
-      </div>
 
       <IngredientQuickEditDialog
         open={!!quantityEditorIngredient}

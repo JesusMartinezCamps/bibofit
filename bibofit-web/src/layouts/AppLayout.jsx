@@ -2,7 +2,8 @@ import React, { useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Header from '@/components/Header';
 import OnboardingWizard from '@/components/onboarding/OnboardingWizard';
-import QuickStartGuideModal from '@/components/QuickStartGuideModal';
+import ContextualGuideTooltip from '@/components/contextual-guide/ContextualGuideTooltip';
+import GuideHelpCenter from '@/components/contextual-guide/GuideHelpCenter';
 import { cn } from '@/lib/utils';
 
 const noMobilePaddingPaths = [
@@ -32,11 +33,13 @@ const AppLayout = () => {
     location.pathname.startsWith(path)
   );
   const isProfileDataPage = location.pathname === '/profile/data';
+  const isPlanOverviewPage = location.pathname === '/plan';
 
   return (
     <>
       <OnboardingWizard />
-      <QuickStartGuideModal />
+      <ContextualGuideTooltip />
+      <GuideHelpCenter />
       <Header />
       <div
         className={cn(
@@ -44,6 +47,7 @@ const AppLayout = () => {
           shouldRemoveMobilePadding && 'px-0 sm:px-0',
           isProfileDataPage && 'sm:px-6'
         )}
+        style={isPlanOverviewPage ? { paddingBottom: 0 } : undefined}
       >
         <Outlet />
       </div>

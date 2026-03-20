@@ -1,6 +1,6 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { ShieldAlert, HeartPulse } from 'lucide-react';
+import { ShieldAlert, HeartPulse, Apple } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const ClientRestrictionsDisplay = ({ restrictions, conflicts }) => {
@@ -17,6 +17,10 @@ const ClientRestrictionsDisplay = ({ restrictions, conflicts }) => {
             condition: {
                 icon: <HeartPulse size={14} className="text-red-400"/>,
                 classes: 'bg-red-900/50 border-red-500/30 text-red-300'
+            },
+            individual_food_restriction: {
+                icon: <Apple size={14} className="text-rose-400"/>,
+                classes: 'bg-rose-900/40 border-rose-500/30 text-rose-300'
             }
         };
 
@@ -51,6 +55,14 @@ const ClientRestrictionsDisplay = ({ restrictions, conflicts }) => {
                     <h4 className="text-sm font-semibold text-muted-foreground mb-1.5 flex items-center gap-2"><HeartPulse size={14} className="text-red-400"/> Condiciones Médicas</h4>
                     <div className="flex flex-wrap gap-1.5">
                         {restrictions.conditions.map(c => renderBadge(c, 'condition'))}
+                    </div>
+                </div>
+            )}
+            {(restrictions.individual_food_restrictions?.length > 0) && (
+                <div>
+                    <h4 className="text-sm font-semibold text-muted-foreground mb-1.5 flex items-center gap-2"><Apple size={14} className="text-rose-400"/> Restricciones por Alimento</h4>
+                    <div className="flex flex-wrap gap-1.5">
+                        {restrictions.individual_food_restrictions.map((food) => renderBadge(food, 'individual_food_restriction'))}
                     </div>
                 </div>
             )}

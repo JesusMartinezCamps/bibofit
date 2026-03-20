@@ -18,18 +18,26 @@ export type FoodsAndGroupsContext = {
   groupByFoodId: Map<string, any>;
 };
 
+const normalizeTextKey = (value: unknown) =>
+  String(value || "")
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+
 export const pickBestGroupByPriority = (groups: Array<{ id: string | number; name?: string }>) => {
   const scores: Record<string, number> = {
-    "Verduras y Hortalizas": 5,
-    "Frutas": 5,
-    "Legumbres": 4,
-    "Frutos secos": 3,
-    "Semillas": 3,
+    "verduras y hortalizas": 5,
+    "frutas": 5,
+    "legumbres": 4,
+    "frutos secos": 3,
+    "semillas": 3,
   };
 
   let best: { id: string | number; score: number; numericId: number } | null = null;
   for (const g of groups) {
-    const score = scores[g.name || ""] || 0;
+    const score = scores[normalizeTextKey(g.name)] || 0;
     const numericId = Number.isFinite(Number(g.id)) ? Number(g.id) : Number.MAX_SAFE_INTEGER;
     if (!best || score > best.score || (score === best.score && numericId < best.numericId)) {
       best = { id: g.id, score, numericId };

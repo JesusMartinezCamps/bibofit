@@ -58,6 +58,7 @@ const hasSelectedValue = (items = [], candidate) =>
 
 const conflictTextClassByType = {
   sensitivity: "text-orange-300",
+  individual_restriction: "text-red-300",
   condition_avoid: "text-red-300",
   hated: "text-red-300",
   condition_recommend: "text-green-400",
@@ -66,6 +67,7 @@ const conflictTextClassByType = {
 
 const conflictRowClassByType = {
   sensitivity: "hover:bg-orange-800/60",
+  individual_restriction: "hover:bg-red-800/60",
   condition_avoid: "hover:bg-red-800/60",
   hated: "hover:bg-red-800/60",
   condition_recommend: "hover:bg-green-800/60",
@@ -148,6 +150,7 @@ export function Combobox({
 
     const conflictClass = {
       sensitivity: "text-orange-200",
+      individual_restriction: "text-red-200",
       condition_avoid: "text-red-200",
       hated: "text-red-200",
       condition_recommend: "text-green-200",

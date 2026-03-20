@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useContextualGuide } from '@/contexts/ContextualGuideContext';
+import { GUIDE_BLOCK_IDS } from '@/config/guideBlocks';
 import { Helmet } from 'react-helmet';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,6 +24,11 @@ const downsampleLogs = (logs, maxPoints) => {
 
 const WeightHistoryPage = () => {
   const { user } = useAuth();
+  const { triggerBlock } = useContextualGuide();
+
+  useEffect(() => {
+    triggerBlock(GUIDE_BLOCK_IDS.WEIGHT_HISTORY);
+  }, [triggerBlock]);
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState('1M'); // 1M, 3M, 6M, CUSTOM
@@ -230,7 +237,7 @@ const WeightHistoryPage = () => {
           </Card>
 
           {/* Chart */}
-          <Card className="bg-background border-border overflow-hidden">
+          <Card data-guide-target="weight-history-chart" className="bg-background border-border overflow-hidden">
             <CardHeader>
               <CardTitle className="text-white text-lg">Evolución</CardTitle>
             </CardHeader>
@@ -331,7 +338,7 @@ const WeightHistoryPage = () => {
                     <div
                       key={log.id}
                       onClick={() => handleLogClick(log)}
-                      className="p-4 flex items-center justify-between hover:bg-muted/65 cursor-pointer transition-colors"
+                      className="p-4 flex items-center  justify-between hover:bg-muted/65 cursor-pointer transition-colors"
                     >
                       <div className="flex items-center gap-4">
                         <div className="bg-muted p-2 rounded-full">
@@ -344,7 +351,7 @@ const WeightHistoryPage = () => {
                           <p className="text-sm text-muted-foreground flex items-center gap-2">
                             {format(parseISO(log.logged_on), 'yyyy')}
                             {log.satiety_levels && (
-                              <span className="text-xs bg-muted px-2 py-0.5 rounded-full text-muted-foreground border border-border flex items-center gap-1">
+                              <span className="text-xs bg-muted px-2 py-0.5 rounded-full text-gray-900 dark:text-white border border-border flex items-center gap-1">
                                 {log.satiety_levels.emoji} {log.satiety_levels.name}
                               </span>
                             )}

@@ -49,7 +49,7 @@ export const calculateRecipeConflicts = ({
     if (['condition_avoid', 'sensitivity', 'individual_restriction', 'non-preferred', 'diet_type_excluded', 'diet_type_limited'].includes(info.type)) {
       conflicts.push({
         foodId: food.id,
-        type: info.type === 'individual_restriction' ? 'condition_avoid' : info.type,
+        type: info.type,
         restrictionName: info.reason,
       });
       return;
@@ -149,7 +149,7 @@ export const buildIngredientsWithDetails = ({
 
       let conflictType = null;
       const avoidConflict = foodConflicts.find((c) =>
-        ['condition_avoid', 'sensitivity', 'non-preferred', 'diet_type_excluded', 'diet_type_limited'].includes(c.type)
+        ['condition_avoid', 'sensitivity', 'individual_restriction', 'non-preferred', 'diet_type_excluded', 'diet_type_limited'].includes(c.type)
       );
 
       if (avoidConflict) {

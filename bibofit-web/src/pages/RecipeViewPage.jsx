@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDietPlanRefresh } from '@/contexts/DietPlanContext';
+import { useContextualGuide } from '@/contexts/ContextualGuideContext';
+import { GUIDE_BLOCK_IDS } from '@/config/guideBlocks';
 import { Helmet } from 'react-helmet';
 import { Loader2 } from 'lucide-react';
 import RecipeEditorModal from '@/components/shared/RecipeEditorModal/RecipeEditorModal';
@@ -8,8 +10,13 @@ import RecipeEditorModal from '@/components/shared/RecipeEditorModal/RecipeEdito
 const RecipeViewPage = () => {
   const navigate = useNavigate();
   const { requestRefresh } = useDietPlanRefresh();
+  const { triggerBlock } = useContextualGuide();
   const [recipeData, setRecipeData] = useState(null);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    triggerBlock(GUIDE_BLOCK_IDS.RECIPE_VIEW);
+  }, [triggerBlock]);
 
   useEffect(() => {
     try {

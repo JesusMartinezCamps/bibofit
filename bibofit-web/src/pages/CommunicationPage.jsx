@@ -1,6 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useContextualGuide } from '@/contexts/ContextualGuideContext';
+import { GUIDE_BLOCK_IDS } from '@/config/guideBlocks';
 import { Helmet } from 'react-helmet';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/customSupabaseClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,7 +21,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { isAdminRole, isCoachRole, isStaffRole } from '@/lib/roles';
+import { isAdminRole, isCoachRole, isStaffRole, isClientRole } from '@/lib/roles';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -103,7 +106,19 @@ const ConversationItem = ({ conv, isSelected, onClick }) => {
       {icon}
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-1">
-          <span className="truncate text-sm font-medium">{conv.displayName}</span>
+          <span className="truncate text-sm font-medium flex items-center gap-1.5">
+            <span className="truncate">{conv.displayName}</span>
+            {conv.isAdminContact && (
+              <span className="shrink-0 rounded-full border border-primary/40 bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                Admin
+              </span>
+            )}
+            {conv.isCoachContact && (
+              <span className="shrink-0 rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-500">
+                Coach
+              </span>
+            )}
+          </span>
           <span className="text-[11px] text-muted-foreground shrink-0">{formatTime(conv.updated_at)}</span>
         </div>
         {isDirect && (
@@ -176,6 +191,11 @@ const MessageBubble = ({ msg, isMine, senderProfile, showSenderName = false }) =
 
 const CommunicationPage = () => {
   const { user } = useAuth();
+  const { triggerBlock } = useContextualGuide();
+
+  useEffect(() => {
+    triggerBlock(GUIDE_BLOCK_IDS.CHAT);
+  }, [triggerBlock]);
   const {
     notifications,
     unreadCount,
@@ -185,6 +205,7 @@ const CommunicationPage = () => {
   } = useNotifications();
   const { toast } = useToast();
 
+  const navigate = useNavigate();
   const isAdmin = isAdminRole(user?.role);
   const isCoach = isCoachRole(user?.role);
   const isStaff = isStaffRole(user?.role);
@@ -192,6 +213,7 @@ const CommunicationPage = () => {
   // Conversations list
   const [conversations, setConversations] = useState([]);
   const [loadingConvs, setLoadingConvs] = useState(true);
+  const [searchText, setSearchText] = useState('');
 
   // Selected conversation
   const [selectedId, setSelectedId] = useState(null); // UUID | 'system' | null
@@ -214,13 +236,38 @@ const CommunicationPage = () => {
   const [creating, setCreating] = useState(false);
 
   const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
   const textareaRef = useRef(null);
+  const shouldStickToBottomRef = useRef(true);
+  const pendingInitialBottomSnapRef = useRef(false);
+  const prevSelectedIdRef = useRef(null);
+  const prevMessageCountRef = useRef(0);
+
+  // Refs para evitar cascada de re-suscripciones cuando cambian estados frecuentes
+  const profileCacheRef = useRef({});
+  const selectedIdRef = useRef(null);
+  const conversationsRef = useRef([]);
+  const loadConversationsRef = useRef(null);
+
+  // Sincronizar refs con el estado para poder usarlos en callbacks estables
+  useEffect(() => { selectedIdRef.current = selectedId; }, [selectedId]);
+  useEffect(() => { conversationsRef.current = conversations; }, [conversations]);
 
   // ─── Helpers ────────────────────────────────────────────────────────────────
 
+  const isNearBottom = useCallback((el, threshold = 120) => {
+    if (!el) return true;
+    const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
+    return distance <= threshold;
+  }, []);
+
+  const scrollMessagesToBottom = useCallback((behavior = 'auto') => {
+    messagesEndRef.current?.scrollIntoView({ behavior });
+  }, []);
+
   const cacheProfiles = useCallback(async (userIds) => {
-    const missing = userIds.filter(id => id && !profileCache[id]);
-    if (!missing.length) return profileCache;
+    const missing = userIds.filter(id => id && !profileCacheRef.current[id]);
+    if (!missing.length) return profileCacheRef.current;
     let fetchedMap = {};
     const { data } = await supabase
       .from('profiles')
@@ -232,13 +279,44 @@ const CommunicationPage = () => {
         return acc;
       }, {});
       setProfileCache(prev => {
-        const next = { ...prev };
-        data.forEach(p => { next[p.user_id] = p; });
+        const next = { ...prev, ...fetchedMap };
+        profileCacheRef.current = next;
         return next;
       });
     }
-    return { ...profileCache, ...fetchedMap };
-  }, [profileCache]);
+    return { ...profileCacheRef.current, ...fetchedMap };
+  }, []); // Sin deps: usa ref en lugar de estado
+
+  const ensurePriorityConversations = useCallback(async () => {
+    if (!user) return { ensuredAdminConvId: null, ensuredCoachConvId: null };
+
+    let ensuredAdminConvId = null;
+    let ensuredCoachConvId = null;
+
+    if (!isAdmin) {
+      const { data, error } = await supabase.rpc('comm_get_or_create_admin_convo');
+      if (!error && data) ensuredAdminConvId = data;
+    }
+
+    if (isClientRole(user.role)) {
+      const { data: coachRel, error: coachError } = await supabase
+        .from('coach_clients')
+        .select('coach_id')
+        .eq('client_id', user.id)
+        .order('id', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (!coachError && coachRel?.coach_id) {
+        const { data, error } = await supabase.rpc('comm_get_or_create_direct', {
+          p_other_user_id: coachRel.coach_id,
+        });
+        if (!error && data) ensuredCoachConvId = data;
+      }
+    }
+
+    return { ensuredAdminConvId, ensuredCoachConvId };
+  }, [user, isAdmin]);
 
   // ─── Load conversations ──────────────────────────────────────────────────────
 
@@ -246,6 +324,8 @@ const CommunicationPage = () => {
     if (!user) return;
     setLoadingConvs(true);
     try {
+      const { ensuredAdminConvId, ensuredCoachConvId } = await ensurePriorityConversations();
+
       // Server-side inbox with unread counts + direct profile fields
       const { data: convData, error } = await supabase.rpc('comm_list_conversations_v2');
 
@@ -266,7 +346,11 @@ const CommunicationPage = () => {
       });
 
       if (Object.keys(fallbackDirectProfiles).length > 0) {
-        setProfileCache(prev => ({ ...fallbackDirectProfiles, ...prev }));
+        setProfileCache(prev => {
+          const next = { ...fallbackDirectProfiles, ...prev };
+          profileCacheRef.current = next;
+          return next;
+        });
       }
 
       const convIds = convData.map(c => c.id);
@@ -308,7 +392,7 @@ const CommunicationPage = () => {
 
         if (conv.type === 'direct') {
           const otherId = conv.other_user_id;
-          otherProfile = profilesMap[otherId] || profileCache[otherId] || null;
+          otherProfile = profilesMap[otherId] || profileCacheRef.current[otherId] || null;
           displayName = getDisplayName(otherProfile);
         } else if (conv.type === 'channel' && !conv.name) {
           displayName = 'Canal sin nombre';
@@ -319,6 +403,8 @@ const CommunicationPage = () => {
         return {
           ...conv,
           myRole: conv.my_role || null,
+          isAdminContact: Boolean(ensuredAdminConvId && conv.id === ensuredAdminConvId),
+          isCoachContact: Boolean(ensuredCoachConvId && conv.id === ensuredCoachConvId),
           lastReadAt,
           unreadCount,
           lastMessageBody: lastMsg?.body || '',
@@ -337,9 +423,12 @@ const CommunicationPage = () => {
     } finally {
       setLoadingConvs(false);
     }
-  }, [user, cacheProfiles, profileCache, toast]);
+  }, [user, cacheProfiles, toast, ensurePriorityConversations]); // Sin profileCache: usa profileCacheRef
 
-  useEffect(() => { loadConversations(); }, [user]);
+  // Mantener ref actualizada para poder llamar desde suscripciones sin deps
+  useEffect(() => { loadConversationsRef.current = loadConversations; }, [loadConversations]);
+
+  useEffect(() => { loadConversations(); }, [loadConversations]);
 
   // ─── Load messages ───────────────────────────────────────────────────────────
 
@@ -374,7 +463,8 @@ const CommunicationPage = () => {
       const updated = prev.map((conv) => {
         if (conv.id !== msg.conversation_id) return conv;
         const isMine = msg.sender_id === user.id;
-        const shouldIncreaseUnread = !isMine && selectedId !== conv.id;
+        // Usa ref para evitar que selectedId sea dep de este callback
+        const shouldIncreaseUnread = !isMine && selectedIdRef.current !== conv.id;
         return {
           ...conv,
           updated_at: msg.created_at || new Date().toISOString(),
@@ -387,7 +477,7 @@ const CommunicationPage = () => {
       });
       return updated.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
     });
-  }, [selectedId, user]);
+  }, [user]); // Sin selectedId: usa selectedIdRef
 
   // ─── Mark conversation as read ───────────────────────────────────────────────
 
@@ -414,6 +504,9 @@ const CommunicationPage = () => {
     setSelectedId(id);
     setShowList(false);
     if (id && id !== 'system') {
+      setMessages([]);
+      shouldStickToBottomRef.current = true;
+      pendingInitialBottomSnapRef.current = true;
       loadMessages(id);
       markConvRead(id);
     }
@@ -449,22 +542,53 @@ const CommunicationPage = () => {
     return () => { supabase.removeChannel(channel); };
   }, [selectedId, cacheProfiles, markConvRead, updateConversationFromMessage, user]);
 
-  // Realtime: refresh conv list on any new message (update order/unread)
+  // Realtime: actualizar sidebar al recibir cualquier mensaje nuevo
+  // Usa update optimista para evitar full reload en cada mensaje
   useEffect(() => {
     if (!user) return;
     const channel = supabase
       .channel('comm-conv-list-refresh')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'comm_messages' }, () => {
-        loadConversations();
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'comm_messages' }, (payload) => {
+        const msg = payload.new;
+        const convExists = conversationsRef.current.some(c => c.id === msg.conversation_id);
+        if (!convExists) {
+          // Conversación nueva que no está en la lista (ej: alguien inicia un DM por primera vez)
+          loadConversationsRef.current?.();
+          return;
+        }
+        // Update optimista: sin llamada a BD
+        updateConversationFromMessage(msg);
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, loadConversations]);
+  }, [user, updateConversationFromMessage]); // updateConversationFromMessage solo cambia con user
 
-  // Scroll to bottom when messages change
+  // Scroll management: keep a good chat UX without forcing jumps while reading history.
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const messageCount = messages.length;
+    const selectedChanged = prevSelectedIdRef.current !== selectedId;
+    const messageCountIncreased = messageCount > prevMessageCountRef.current;
+
+    if (selectedChanged) {
+      requestAnimationFrame(() => scrollMessagesToBottom('auto'));
+      shouldStickToBottomRef.current = true;
+    } else if (messageCountIncreased && shouldStickToBottomRef.current) {
+      const behavior = pendingInitialBottomSnapRef.current ? 'auto' : 'smooth';
+      requestAnimationFrame(() => scrollMessagesToBottom(behavior));
+      pendingInitialBottomSnapRef.current = false;
+    }
+
+    prevSelectedIdRef.current = selectedId;
+    prevMessageCountRef.current = messageCount;
+  }, [messages, selectedId, scrollMessagesToBottom]);
+
+  const handleMessagesScroll = useCallback(() => {
+    const container = messagesContainerRef.current;
+    shouldStickToBottomRef.current = isNearBottom(container);
+  }, [isNearBottom]);
 
   // ─── Send message ────────────────────────────────────────────────────────────
 
@@ -473,6 +597,7 @@ const CommunicationPage = () => {
     if (!body || !selectedId || selectedId === 'system' || sending) return;
 
     setSending(true);
+    shouldStickToBottomRef.current = true;
     try {
       const { data: newMsg, error } = await supabase
         .from('comm_messages')
@@ -496,7 +621,6 @@ const CommunicationPage = () => {
       }
 
       setMsgText('');
-      loadConversations();
       textareaRef.current?.focus();
     } catch (err) {
       console.error(err);
@@ -567,7 +691,36 @@ const CommunicationPage = () => {
 
   const channels = conversations.filter(c => c.type === 'channel');
   const directs = conversations.filter(c => c.type === 'direct');
-  const totalConvUnread = conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
+  const lowerSearch = searchText.trim().toLowerCase();
+  const matchesSearch = useCallback((conv) => {
+    if (!lowerSearch) return true;
+    const haystack = [
+      conv.displayName,
+      conv.name,
+      conv.description,
+      conv.type === 'channel' ? 'canal' : 'mensaje directo',
+      conv.broadcast_scope ? SCOPE_LABELS[conv.broadcast_scope] : '',
+      conv.isAdminContact ? 'admin' : '',
+      conv.isCoachContact ? 'coach' : '',
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    return haystack.includes(lowerSearch);
+  }, [lowerSearch]);
+
+  const filteredChannels = channels.filter(matchesSearch);
+  const filteredDirects = directs.filter(matchesSearch);
+  const priorityDirects = useMemo(
+    () => filteredDirects.filter(conv => conv.isAdminContact || conv.isCoachContact),
+    [filteredDirects],
+  );
+  const regularDirects = useMemo(
+    () => filteredDirects.filter(conv => !conv.isAdminContact && !conv.isCoachContact),
+    [filteredDirects],
+  );
+
+  const hasSearchResults = filteredChannels.length > 0 || filteredDirects.length > 0;
 
   // ─── Render ──────────────────────────────────────────────────────────────────
 
@@ -580,14 +733,28 @@ const CommunicationPage = () => {
       <div className="flex h-full min-h-0 overflow-hidden">
 
         {/* ── LEFT PANEL ──────────────────────────────────────────────────── */}
-        <aside className={cn(
+        <aside
+          data-guide-target="chat-main"
+          className={cn(
           'flex flex-col border-r border-border bg-background transition-all',
           'w-full md:w-80 md:flex shrink-0',
           !showList && 'hidden md:flex',
-        )}>
+        )}
+        >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <h1 className="font-semibold text-foreground">Comunicaciones</h1>
+            {isAdmin && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 gap-1.5 text-muted-foreground hover:text-foreground"
+                onClick={() => navigate('/broadcasts')}
+              >
+                <Megaphone className="h-4 w-4" />
+                <span className="text-xs">Difusión</span>
+              </Button>
+            )}
             {isStaff && (
               <Button
                 size="sm"
@@ -602,8 +769,18 @@ const CommunicationPage = () => {
           </div>
 
           <div className="flex-1 overflow-y-auto px-2 py-2 space-y-1">
+            <div className="px-2 pb-2">
+              <Input
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                placeholder="Buscar por nombre o canal"
+                className="h-9"
+              />
+            </div>
+
             {/* Sistema */}
             <button
+              data-guide-target="chat-news"
               onClick={() => handleSelectConv('system')}
               className={cn(
                 'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors',
@@ -625,13 +802,30 @@ const CommunicationPage = () => {
               )}
             </button>
 
+            {/* Contactos clave */}
+            {priorityDirects.length > 0 && (
+              <>
+                <p className="px-3 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Contactos Bibofit
+                </p>
+                {priorityDirects.map(conv => (
+                  <ConversationItem
+                    key={conv.id}
+                    conv={conv}
+                    isSelected={selectedId === conv.id}
+                    onClick={() => handleSelectConv(conv.id)}
+                  />
+                ))}
+              </>
+            )}
+
             {/* Canales */}
-            {channels.length > 0 && (
+            {filteredChannels.length > 0 && (
               <>
                 <p className="px-3 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Canales
                 </p>
-                {channels.map(conv => (
+                {filteredChannels.map(conv => (
                   <ConversationItem
                     key={conv.id}
                     conv={conv}
@@ -643,12 +837,12 @@ const CommunicationPage = () => {
             )}
 
             {/* Mensajes directos */}
-            {directs.length > 0 && (
+            {regularDirects.length > 0 && (
               <>
                 <p className="px-3 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Mensajes directos
                 </p>
-                {directs.map(conv => (
+                {regularDirects.map(conv => (
                   <ConversationItem
                     key={conv.id}
                     conv={conv}
@@ -660,11 +854,15 @@ const CommunicationPage = () => {
             )}
 
             {/* Empty state */}
-            {!loadingConvs && channels.length === 0 && directs.length === 0 && (
+            {!loadingConvs && !hasSearchResults && (
               <div className="py-8 text-center text-sm text-muted-foreground px-4">
                 <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-40" />
-                <p>Aún no hay conversaciones.</p>
-                {!isStaff && (
+                {lowerSearch ? (
+                  <p>No se encontraron conversaciones para "{searchText.trim()}".</p>
+                ) : (
+                  <p>Aún no hay conversaciones.</p>
+                )}
+                {!isStaff && !lowerSearch && (
                   <p className="mt-1">Usa el botón de abajo para contactar con el admin.</p>
                 )}
               </div>
@@ -683,11 +881,11 @@ const CommunicationPage = () => {
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full gap-2 text-muted-foreground"
+                className="w-full gap-2 text-primary border-primary/40"
                 onClick={handleContactAdmin}
               >
                 <Users className="h-4 w-4" />
-                Contactar con el admin
+                Chat con Admin
               </Button>
             )}
           </div>
@@ -729,7 +927,7 @@ const CommunicationPage = () => {
                   </Button>
                 )}
               </div>
-              <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+              <div data-guide-target="chat-news" className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
                 {notifications.length === 0 ? (
                   <div className="py-12 text-center text-sm text-muted-foreground">
                     No tienes notificaciones todavía.
@@ -796,7 +994,11 @@ const CommunicationPage = () => {
               </div>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+              <div
+                ref={messagesContainerRef}
+                onScroll={handleMessagesScroll}
+                className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-3"
+              >
                 {loadingMsgs && (
                   <div className="flex justify-center py-8">
                     <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />

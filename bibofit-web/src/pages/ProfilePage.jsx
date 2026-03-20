@@ -1,12 +1,12 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Helmet } from 'react-helmet';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate, Link } from 'react-router-dom';
-import { User, GitBranch, LogOut, ChevronRight, LineChart, CalendarCheck, RotateCcw, PlayCircle, Moon, Sun } from 'lucide-react';
+import { User, GitBranch, LogOut, ChevronRight, LineChart, CalendarCheck, RotateCcw, BookOpen, Moon, Sun, Settings2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,7 +19,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import ProfileTypeSubtitle from '@/components/profile/ProfileTypeSubtitle';
-import { useQuickStartGuide } from '@/contexts/QuickStartGuideContext';
+import { useContextualGuide } from '@/contexts/ContextualGuideContext';
+import { GUIDE_BLOCK_IDS } from '@/config/guideBlocks';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -27,8 +28,13 @@ const ProfilePage = () => {
   const { signOut, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { openGuide } = useQuickStartGuide();
-  const { startRepeatOnboarding } = useOnboarding();
+  const { openHelpCenter, triggerBlock } = useContextualGuide();
+  const { startRepeatOnboarding, isOnboardingCompleted } = useOnboarding();
+
+  useEffect(() => {
+    if (!isOnboardingCompleted) return;
+    triggerBlock(GUIDE_BLOCK_IDS.WELCOME);
+  }, [triggerBlock, isOnboardingCompleted]);
   const { isDark, toggleTheme } = useTheme();
   const profileName = (`${user?.first_name || ''} ${user?.last_name || ''}`).trim() || user?.full_name?.trim();
   const profileTitle = profileName ? profileName : 'Mi Perfil';
@@ -54,31 +60,43 @@ const ProfilePage = () => {
       }
   };
 
-  const menuItems = [
-    {
-      label: 'Mis Datos de Perfil',
-      href: '/profile/data',
-      icon: User,
-      color: 'bg-gradient-to-r from-violet-700 to-violet-500 hover:from-violet-600 hover:to-fuchsia-500',
-    },
-    {
-      label: 'Historial de Peso',
-      href: '/profile/weight-history',
-      icon: LineChart,
-      color: 'bg-gradient-to-r from-emerald-700 to-green-600 hover:from-emerald-600 hover:to-green-500',
-    },
-    {
-      label: 'Mis Variantes de Recetas',
-      href: '/profile/variantes-recetas',
-      icon: GitBranch,
-      color: 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-cyan-400',
-    },
-    {
-      label: 'Mi Dieta',
-      href: '/my-plan',
-      icon: CalendarCheck,
-      color: 'bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400',
-    },
+  const menuGroups = [
+    [
+      {
+        label: 'Mis Datos de Perfil',
+        href: '/profile/data',
+        icon: User,
+        color: 'bg-gradient-to-r from-violet-700 to-violet-500 hover:from-violet-600 hover:to-fuchsia-500',
+      },
+    ],
+    [
+      {
+        label: 'Configurar dieta',
+        href: '/my-plan',
+        icon: CalendarCheck,
+        color: 'bg-gradient-to-r from-emerald-700/80 to-emerald-500/80 hover:from-emerald-600 hover:to-emerald-400',
+      },
+      {
+        label: 'Configurar entreno',
+        href: '/plan/entreno/rutina/nueva',
+        icon: Settings2,
+        color: 'bg-gradient-to-r from-rose-700/80 to-rose-500/80 hover:from-rose-600 hover:to-rose-400',
+      },
+    ],
+    [
+      {
+        label: 'Historial de Peso',
+        href: '/profile/weight-history',
+        icon: LineChart,
+        color: 'bg-gradient-to-r from-purple-700/80 to-purple-500/80 hover:from-purple-600 hover:to-purple-400',
+      },
+      {
+        label: 'Mis Variantes de Recetas',
+        href: '/profile/variantes-recetas',
+        icon: GitBranch,
+        color: 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-cyan-400',
+      },
+    ],
   ];
 
   return (
@@ -101,9 +119,9 @@ const ProfilePage = () => {
                 type="button"
                 variant="outline"
                 className="border-border bg-card text-foreground hover:bg-accent"
-                onClick={openGuide}
+                onClick={openHelpCenter}
               >
-                <PlayCircle className="mr-2 h-4 w-4" /> Repetir Guía Rápida
+                <BookOpen className="mr-2 h-4 w-4" /> Centro de Ayuda
               </Button>
               <Button
                 type="button"
@@ -127,9 +145,9 @@ const ProfilePage = () => {
                 type="button"
                 variant="outline"
                 className="border-border bg-card text-foreground hover:bg-accent"
-                onClick={openGuide}
+                onClick={openHelpCenter}
               >
-                <PlayCircle className="mr-2 h-4 w-4" /> Repetir Guía Rápida
+                <BookOpen className="mr-2 h-4 w-4" /> Centro de Ayuda
               </Button>
               <Button
                 type="button"
@@ -157,27 +175,39 @@ const ProfilePage = () => {
             )}
           </div>
 
-          <div className="space-y-4 mb-12">
-            {menuItems.map((item, index) => (
-              <motion.div
-                key={item.href}
-                initial={{ opacity: 0, x: -50 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, delay: 0.1 * index }}
-              >
-                <Link to={item.href}>
-                  <Button
-                    variant="secondary"
-                    className={`h-20 w-full justify-between px-6 text-lg text-white transition-all duration-300 ${item.color}`}
-                  >
-                    <div className="flex items-center">
-                      <item.icon className="mr-4 h-6 w-6" />
-                      {item.label}
-                    </div>
-                    <ChevronRight className="h-6 w-6" />
-                  </Button>
-                </Link>
-              </motion.div>
+          <div className="mb-12">
+            {menuGroups.map((group, groupIndex) => (
+              <div key={groupIndex}>
+                {groupIndex > 0 && (
+                  <div className="my-4 border-t border-border/40" />
+                )}
+                <div className="space-y-4">
+                  {group.map((item, itemIndex) => {
+                    const globalIndex = menuGroups.slice(0, groupIndex).reduce((acc, g) => acc + g.length, 0) + itemIndex;
+                    return (
+                      <motion.div
+                        key={item.href}
+                        initial={{ opacity: 0, x: -50 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.5, delay: 0.1 * globalIndex }}
+                      >
+                        <Link to={item.href}>
+                          <Button
+                            variant="secondary"
+                            className={`h-20 w-full justify-between px-6 text-lg text-white transition-all duration-300 ${item.color}`}
+                          >
+                            <div className="flex items-center">
+                              <item.icon className="mr-4 h-6 w-6" />
+                              {item.label}
+                            </div>
+                            <ChevronRight className="h-6 w-6" />
+                          </Button>
+                        </Link>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </div>
             ))}
           </div>
 

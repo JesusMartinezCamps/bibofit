@@ -229,7 +229,6 @@ const FreeRecipeViewDialog = ({ open, onOpenChange, freeMeal, onUpdate, onEquiva
           if (info) {
                if (['condition_avoid', 'sensitivity', 'individual_restriction', 'non-preferred'].includes(info.type) || info.type === 'condition_avoid') {
                    let type = info.type;
-                   if (info.type === 'individual_restriction') type = 'condition_avoid';
                    if (info.type === 'non-preferred') type = 'sensitivity'; 
                    
                    cList.push({

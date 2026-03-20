@@ -77,14 +77,15 @@ const getStatusColorClasses = (type) => {
   switch (type) {
     case 'condition_avoid':
     case 'sensitivity':
+    case 'individual_restriction':
     case 'non-preferred':
     case 'diet_type_excluded':
-      return 'bg-red-500/5 dark:bg-muted/65 border-red-500/30 text-red-400';
+      return 'bg-red-400/20 dark:bg-red-400/10 border-red-500/30 text-red-400';
     case 'diet_type_limited':
-      return 'bg-orange-500/5 dark:bg-muted/65 border-orange-500/30 text-orange-400';
+      return 'bg-orange-500/5 dark:bg-orange-400/10 border-orange-500/30 text-orange-400';
     case 'condition_recommend':
     case 'preferred':
-      return 'bg-green-600/5 dark:bg-muted/65 border-green-500/30 text-green-600 dark:text-green-400';
+      return 'bg-green-600/5 dark:bg-green-400/100 border-green-500/30 text-green-600 dark:text-green-400';
     default:
       return 'bg-muted/65 border-border/50 text-foreground';
   }
@@ -121,7 +122,14 @@ const StatusDisplay = ({ type, conflicts, recommendations, isEditing }) => {
     );
   }
 
-  if (isEditing && (type === 'condition_avoid' || type === 'sensitivity' || type === 'non-preferred' || type === 'diet_type_excluded')) {
+  if (
+    isEditing &&
+    (type === 'condition_avoid' ||
+      type === 'sensitivity' ||
+      type === 'individual_restriction' ||
+      type === 'non-preferred' ||
+      type === 'diet_type_excluded')
+  ) {
     const reasonText = conflicts.map((c) => c.restrictionName).join(', ');
     return (
       <div className="mt-1.5 flex items-center gap-1.5 text-red-400 text-xs font-medium animate-in fade-in">
@@ -191,13 +199,14 @@ const IngredientCard = ({
   multiplier = 1,
 }) => {
   const { food, quantity, macros, vitamins, minerals, conflictType, conflictDetails, recommendationDetails, diffAction, is_ghost, locked } = ingredient;
+  const isRemovedIngredient = is_ghost || diffAction === 'remove';
 
   const foodGroupName =
     allFoodGroups?.find((g) => String(g.id) === String(ingredient.food_group_id))?.name ||
     ingredient.food?.food_to_food_groups?.[0]?.food_group?.name ||
     'Otros';
 
-  const statusColorClasses = is_ghost
+  const statusColorClasses = isRemovedIngredient
     ? 'bg-muted/30 border-border/30 text-muted-foreground/50'
     : getStatusColorClasses(conflictType);
   const safeMultiplier = Number.isFinite(Number(multiplier)) ? Math.max(1, Number(multiplier)) : 1;
@@ -205,12 +214,13 @@ const IngredientCard = ({
   const displayQuantity = Math.round(baseQuantity * safeMultiplier);
   const scaledMacros = scaleMacrosByMultiplier(macros, safeMultiplier);
   const unitLabel = food.food_unit === 'unidades' ? 'ud' : 'g';
-  // Ghosts are never interactive
-  const canManageIngredient = !is_ghost && typeof onRemove === 'function' && typeof onReplace === 'function';
-  const canQuickEdit = !is_ghost && typeof onQuickEdit === 'function';
-  const hasConflict = !is_ghost && ['condition_avoid', 'sensitivity', 'non-preferred', 'diet_type_excluded', 'diet_type_limited'].includes(conflictType);
-  const isRecommended = !is_ghost && ['condition_recommend', 'preferred'].includes(conflictType);
+  // Removed/ghost ingredients are never interactive
+  const canManageIngredient = !isRemovedIngredient && typeof onRemove === 'function' && typeof onReplace === 'function';
+  const canQuickEdit = !isRemovedIngredient && typeof onQuickEdit === 'function';
+  const hasConflict = !isRemovedIngredient && ['condition_avoid', 'sensitivity', 'individual_restriction', 'non-preferred', 'diet_type_excluded', 'diet_type_limited'].includes(conflictType);
+  const isRecommended = !isRemovedIngredient && ['condition_recommend', 'preferred'].includes(conflictType);
   const isUserCreated = !!ingredient.is_user_created || !!food.is_user_created || !!food.user_id;
+  const isEditingCompactMobile = isEditing;
 
   if (displayAsBullet) {
     return (
@@ -251,25 +261,25 @@ const IngredientCard = ({
             onClick={() => canQuickEdit && onQuickEdit()}
           >
             <div className="flex items-center min-w-0 mr-4 w-full flex-wrap gap-x-1">
-              {locked && !is_ghost && (
+              {locked && !isRemovedIngredient && (
                 <Lock className="w-3 h-3 shrink-0 text-amber-600/80 dark:text-amber-400/80" title="Cantidad bloqueada — el autocuadre no modificará este ingrediente" />
               )}
               <span
                 className={cn(
                   'text-base truncate transition-colors',
-                  is_ghost
+                  isRemovedIngredient
                     ? 'text-muted-foreground/50 line-through'
                     : hasConflict
                       ? 'text-red-400 group-hover:text-red-300'
                       : isRecommended
                         ? 'text-green-600 dark:text-green-400 group-hover:text-green-600 dark:group-hover:text-green-400'
                         : 'group-hover:text-green-600',
-                  !is_ghost && statusColorClasses.split(' ').find((c) => c.startsWith('text-'))
+                  !isRemovedIngredient && statusColorClasses.split(' ').find((c) => c.startsWith('text-'))
                 )}
               >
                 {food.name}
               </span>
-              {!is_ghost && (
+              {!isRemovedIngredient && (
                 <span className={cn(
                   'text-xs whitespace-nowrap',
                   hasConflict ? 'text-red-400' : isRecommended ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'
@@ -314,7 +324,8 @@ const IngredientCard = ({
     <div
       data-ingredient-food-id={food.id}
       className={cn(
-        'p-3 rounded-lg border transition-all duration-300',
+        'rounded-lg border transition-all duration-300',
+        isEditingCompactMobile ? 'p-2 sm:p-3' : 'p-3',
         statusColorClasses
           .split(' ')
           .filter((c) => (
@@ -327,73 +338,103 @@ const IngredientCard = ({
     >
       <div
         className={cn(
-          'grid items-start gap-2',
+          'grid items-start',
+          isEditingCompactMobile ? 'gap-1.5 sm:gap-2' : 'gap-2',
           canManageIngredient
             ? 'grid-cols-[minmax(2rem,5%)_minmax(0,1fr)_minmax(2rem,5%)]'
             : 'grid-cols-1'
         )}
       >
         {canManageIngredient && (
-          <div className="flex justify-center pt-1">
+          <div
+            className={cn(
+              'flex justify-center',
+              isEditing ? 'items-center h-8 sm:h-9' : 'pt-1'
+            )}
+          >
             <button
               onClick={onReplace}
-              className="bg-blue-600/90 text-white rounded-full p-1 transition-opacity hover:bg-blue-500 shadow-lg"
+              className={cn(
+                'bg-blue-600/90 text-white rounded-full transition-opacity hover:bg-blue-500 shadow-lg',
+                isEditingCompactMobile ? 'p-0.5 sm:p-1' : 'p-1'
+              )}
               title="Reemplazar ingrediente"
             >
-              <ArrowRightLeft className="w-4 h-4" />
+              <ArrowRightLeft className={cn(isEditingCompactMobile ? 'w-3.5 h-3.5 sm:w-4 sm:h-4' : 'w-4 h-4')} />
             </button>
           </div>
         )}
 
         <div className="min-w-0">
           {isEditing ? (
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center">
+            <div className={cn('flex flex-col', isEditingCompactMobile ? 'gap-1.5 sm:gap-2' : 'gap-2')}>
+              {diffAction && (
+                <div className="flex justify-end">
+                  <DiffBadge action={diffAction} />
+                </div>
+              )}
+              <div className="flex items-center gap-1 min-h-8 sm:min-h-9">
                 <div className="w-3/5 flex flex-col justify-center transition-all min-w-0">
-                  <div
-                    className="font-semibold"
-                    style={{ color: statusColorClasses.split(' ').find((c) => c.startsWith('text-'))?.replace('text-', '') }}
-                  >
+                  <div className={cn(
+                    'font-semibold',
+                    isEditingCompactMobile ? 'text-sm sm:text-base' : '',
+                    isRemovedIngredient
+                      ? 'text-muted-foreground/50 line-through'
+                      : statusColorClasses.split(' ').find((c) => c.startsWith('text-'))
+                  )}>
                     {food.name}
                   </div>
                   <div className="text-[10px] text-muted-foreground truncate mt-0.5">{foodGroupName}</div>
                 </div>
-                <div className="w-2/5 inline-flex items-center justify-end">
-                  <div className="flex flex-col items-end">
-                    <div className="inline-flex items-center">
-                      <Input
-                        type="number"
-                        value={quantity}
-                        onChange={onQuantityChange}
-                        className="input-field bg-transparent border-dashed w-20 text-center"
-                      />
-                      <span className="text-sm font-normal text-muted-foreground ml-1">{unitLabel}</span>
+                {!isRemovedIngredient && (
+                  <div className="w-2/5 inline-flex items-center justify-end">
+                    <div className="flex flex-col items-end">
+                      <div className="inline-flex items-center">
+                        <Input
+                          type="number"
+                          value={quantity}
+                          onChange={onQuantityChange}
+                          className={cn(
+                            'input-field border-dashed text-center',
+                            statusColorClasses.split(' ').filter((c) => c.startsWith('bg-') || c.startsWith('dark:bg-')),
+                            isEditingCompactMobile ? 'h-8 w-14 sm:h-9 sm:w-20 text-sm' : 'w-20'
+                          )}
+                        />
+                        <span className={cn('font-normal text-muted-foreground ml-1', isEditingCompactMobile ? 'text-xs sm:text-sm' : 'text-sm')}>{unitLabel}</span>
+                      </div>
+                      {safeMultiplier !== 1 && (
+                        <span className="text-[10px] text-cyan-300 mt-0.5">
+                          x{safeMultiplier}: {displayQuantity}
+                          {unitLabel}
+                        </span>
+                      )}
                     </div>
-                    {safeMultiplier !== 1 && (
-                      <span className="text-[10px] text-cyan-300 mt-0.5">
-                        x{safeMultiplier}: {displayQuantity}
-                        {unitLabel}
-                      </span>
-                    )}
                   </div>
+                )}
+              </div>
+              {!isRemovedIngredient && (
+                <div className={cn('w-full', isEditingCompactMobile && 'px-1 sm:px-0')}>
+                  {renderMacros({
+                    macros: scaledMacros,
+                    isFreeMealView,
+                    smallText: isEditingCompactMobile,
+                    fullWidth: isEditingCompactMobile,
+                  })}
                 </div>
-              </div>
-              <div className="w-full">
-                {renderMacros({ macros: scaledMacros, isFreeMealView })}
-              </div>
+              )}
             </div>
           ) : (
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start">
               <div className="flex flex-col min-w-0">
                 <div className={cn(
                   'font-semibold flex flex-wrap items-center gap-2',
-                  is_ghost ? 'text-muted-foreground/50' : statusColorClasses.split(' ').find((c) => c.startsWith('text-'))
+                  isRemovedIngredient ? 'text-muted-foreground/50' : statusColorClasses.split(' ').find((c) => c.startsWith('text-'))
                 )}>
-                  {locked && !is_ghost && (
+                  {locked && !isRemovedIngredient && (
                     <Lock className="w-3 h-3 shrink-0 text-amber-500/70" title="Cantidad bloqueada — el autocuadre no modificará este ingrediente" />
                   )}
-                  <span className={cn(is_ghost && 'line-through')}>{food.name}</span>
-                  {!is_ghost && (
+                  <span className={cn(isRemovedIngredient && 'line-through')}>{food.name}</span>
+                  {!isRemovedIngredient && (
                     <span className={cn(
                       'text-sm font-normal font-numeric',
                       hasConflict ? 'text-red-400' : isRecommended ? 'text-green-400' : 'text-muted-foreground'
@@ -421,7 +462,7 @@ const IngredientCard = ({
                 )}
               </div>
 
-              {!isEditing && <div className="mt-2 sm:mt-0 sm:w-auto">{renderMacros({ macros: scaledMacros, isFreeMealView })}</div>}
+              {!isEditing && !isRemovedIngredient && <div className="mt-2 sm:mt-0 sm:w-auto">{renderMacros({ macros: scaledMacros, isFreeMealView })}</div>}
             </div>
           )}
 
@@ -436,21 +477,30 @@ const IngredientCard = ({
         </div>
 
         {canManageIngredient && (
-          <div className="flex justify-center pt-1">
+          <div
+            className={cn(
+              'flex justify-center',
+              isEditing ? 'items-center h-8 sm:h-9' : 'pt-1'
+            )}
+          >
             <button
               onClick={onRemove}
-              className="bg-red-600/90 text-white rounded-full p-1 transition-opacity hover:bg-red-500 shadow-lg"
+              className={cn(
+                'bg-red-600/90 text-white rounded-full transition-opacity hover:bg-red-500 shadow-lg',
+                isEditingCompactMobile ? 'p-0.5 sm:p-1' : 'p-1'
+              )}
               title="Eliminar ingrediente"
             >
-              <X className="w-4 h-4" />
+              <X className={cn(isEditingCompactMobile ? 'w-3.5 h-3.5 sm:w-4 sm:h-4' : 'w-4 h-4')} />
             </button>
           </div>
         )}
 
-        {isEditing && (vitamins.length > 0 || minerals.length > 0) && (
+        {isEditing && !isRemovedIngredient && (vitamins.length > 0 || minerals.length > 0) && (
           <div
             className={cn(
-              'mt-2 pt-2 border-t border-border/50 flex flex-wrap gap-1.5 col-span-full'
+              'border-t border-border/50 flex flex-wrap gap-1.5 col-span-full',
+              isEditingCompactMobile ? 'mt-1.5 pt-1.5 sm:mt-2 sm:pt-2' : 'mt-2 pt-2'
             )}
           >
             {vitamins.map((v) => (

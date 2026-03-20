@@ -30,6 +30,7 @@ const DietPreferencesForm = ({ userId: propUserId, onUpdate: _onUpdate }) => {
   });
   
   const [selectedSensitivityIds, setSelectedSensitivityIds] = useState(null);
+  const [selectedRestrictedFoodIds, setSelectedRestrictedFoodIds] = useState(null);
   const [selectedMedicalConditionIds, setSelectedMedicalConditionIds] = useState(null);
   
   const [allergicFoodIds, setAllergicFoodIds] = useState([]);
@@ -120,10 +121,16 @@ const DietPreferencesForm = ({ userId: propUserId, onUpdate: _onUpdate }) => {
 
   const handleChange = (id, value) => updateFormData({ [id]: value });
 
-  const handleRestrictionsChange = useCallback(({ sensitivityIds, medicalConditionIds }) => {
+  const handleRestrictionsChange = useCallback(({ sensitivityIds, restrictedFoodIds, medicalConditionIds }) => {
     setSelectedSensitivityIds(Array.isArray(sensitivityIds) ? sensitivityIds : []);
+    setSelectedRestrictedFoodIds(Array.isArray(restrictedFoodIds) ? restrictedFoodIds : []);
     setSelectedMedicalConditionIds(Array.isArray(medicalConditionIds) ? medicalConditionIds : []);
   }, []);
+
+  const effectiveExcludedFoodIds = useMemo(
+    () => [...new Set([...(allergicFoodIds || []), ...((selectedRestrictedFoodIds || []))])],
+    [allergicFoodIds, selectedRestrictedFoodIds]
+  );
 
   // userRestrictions para FoodPreferenceSelector: sensibilidades, condiciones y tipo de dieta.
   // Sin preferred/non_preferred_foods (eso lo gestiona el propio selector).
@@ -135,12 +142,13 @@ const DietPreferencesForm = ({ userId: propUserId, onUpdate: _onUpdate }) => {
     const medicalConditionIds = selectedMedicalConditionIds || [];
     return {
       sensitivities: sensitivityIds.map((id) => ({ id })),
+      individual_food_restrictions: (selectedRestrictedFoodIds || []).map((id) => ({ id })),
       medical_conditions: medicalConditionIds.map((id) => ({ id })),
       diet_type_id: formData.diet_type_id || null,
       diet_type_name: selectedDietType?.name || null,
       diet_type_rules: selectedDietType?.diet_type_food_group_rules || [],
     };
-  }, [selectedSensitivityIds, selectedMedicalConditionIds, formData.diet_type_id, dietTypes]);
+  }, [selectedSensitivityIds, selectedRestrictedFoodIds, selectedMedicalConditionIds, formData.diet_type_id, dietTypes]);
 
   const selectedGoalDescription = useMemo(() => {
       const goal = dietGoals.find(g => g.id === formData.diet_goal_id);
@@ -218,7 +226,7 @@ const DietPreferencesForm = ({ userId: propUserId, onUpdate: _onUpdate }) => {
             userId={userId}
             selectedConditionIds={selectedMedicalConditionIds}
             userRestrictions={userRestrictionsForFoodSelector}
-            excludedFoodIds={allergicFoodIds}
+            excludedFoodIds={effectiveExcludedFoodIds}
           />
         </FormBlock>
       </div>

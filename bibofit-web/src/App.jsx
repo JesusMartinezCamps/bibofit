@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from '@/contexts/AuthContext';
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
 import LoginPage from '@/pages/LoginPage';
 import SignUpPage from '@/pages/SignUpPage';
@@ -19,12 +19,14 @@ import CreateRoutinePage from '@/pages/admin/CreateRoutinePage';
 import ClientProfilePage from '@/pages/ClientProfilePage';
 import TrainingManagementPage from '@/pages/admin/TrainingManagementPage';
 import TrainingPlanPage from '@/pages/TrainingPlanPage';
+import CreateMesocyclePage from '@/pages/CreateMesocyclePage';
+import WorkoutDayPage from '@/pages/WorkoutDayPage';
+import ExerciseSessionPage from '@/pages/ExerciseSessionPage';
 import UserCreatedFoodsPage from '@/pages/admin/UserCreatedFoodsPage';
 import FreeMealRequestsPage from '@/pages/admin/FreeMealRequestsPage';
 import DietChangeRequestsPage from '@/pages/admin/DietChangeRequestsPage';
 import AdminDietPlanDetailPage from '@/pages/admin/AdminDietPlanDetailPage';
 import WeeklyPlannerPage from '@/pages/WeeklyPlannerPage';
-import { useAuth } from '@/contexts/AuthContext';
 import DietManagementPage from '@/pages/admin/DietManagementPage';
 import ManageStores from '@/pages/admin/ManageStores';
 import ManageAminograms from '@/pages/admin/ManageAminograms';
@@ -50,6 +52,7 @@ import CreateFreeRecipePage from '@/pages/CreateFreeRecipePage';
 import CreateSnackPage from '@/pages/CreateSnackPage';
 import WeightHistoryPage from '@/pages/WeightHistoryPage';
 import WeightLogPage from '@/pages/WeightLogPage';
+import StepsLogPage from '@/pages/StepsLogPage';
 import RepeatRecipePage from '@/pages/RepeatRecipePage';
 import RecipeViewPage from '@/pages/RecipeViewPage';
 import DietPlanLayout from '@/pages/DietPlanLayout';
@@ -63,6 +66,8 @@ import ClientPlanDetailPage from '@/pages/ClientPlanDetailPage';
 import HomePage from '@/pages/HomePage';
 import ShoppingListPage from '@/pages/ShoppingListPage';
 import CommunicationPage from '@/pages/CommunicationPage';
+import BroadcastsPage from '@/pages/BroadcastsPage';
+import TrainingAdminGuard from '@/components/training/TrainingAdminGuard';
 
 // Coach Pages
 import CoachDashboard from '@/pages/CoachDashboard';
@@ -77,7 +82,7 @@ import AppLayout from '@/layouts/AppLayout';
 // Providers
 import { OnboardingProvider } from '@/contexts/OnboardingContext';
 import { SwipeGestureProvider } from '@/contexts/SwipeGestureContext';
-import { QuickStartGuideProvider } from '@/contexts/QuickStartGuideContext';
+import { ContextualGuideProvider } from '@/contexts/ContextualGuideContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import {
   getDefaultAuthenticatedPath,
@@ -108,6 +113,11 @@ const RoleProtected = ({ allowedRoles, children }) => {
   if (!hasAnyRole(user.role, allowedRoles)) return <Navigate to="/" replace />;
 
   return children;
+};
+
+const RedirectWithParams = ({ to, param }) => {
+  const params = useParams();
+  return <Navigate to={`${to}/${params[param]}`} replace />;
 };
 
 const SmartLayout = () => {
@@ -150,6 +160,7 @@ const AppRoutes = () => (
       <Route path="/assign-diet-plan" element={<ProtectedRoute><AssignDietPlanPage /></ProtectedRoute>} />
       <Route path="/shopping-list" element={<ProtectedRoute><ShoppingListPage /></ProtectedRoute>} />
       <Route path="/communication" element={<ProtectedRoute><CommunicationPage /></ProtectedRoute>} />
+      <Route path="/broadcasts" element={<ProtectedRoute><RoleProtected allowedRoles={['admin']}><BroadcastsPage /></RoleProtected></ProtectedRoute>} />
 
       {/* Coach */}
       <Route path="/coach-dashboard" element={<ProtectedRoute><CoachDashboard /></ProtectedRoute>} />
@@ -176,17 +187,25 @@ const AppRoutes = () => (
       <Route path="/plan/dieta/:date" element={<ProtectedRoute><DietPlanLayout /></ProtectedRoute>}>
         <Route path="ver-receta" element={<RecipeViewPage />} />
         <Route path="repetir-receta" element={<RepeatRecipePage />} />
-        <Route path="variantes-recetas" element={<VariantTreePage />} />
-        <Route path="arbol-variantes" element={<Navigate to="../variantes-recetas" replace />} />
+        <Route path="arbol-variantes" element={<Navigate to="/profile/variantes-recetas" replace />} />
       </Route>
       <Route path="/plan/dieta/:userId/:date" element={<ProtectedRoute><DietPlanLayout /></ProtectedRoute>}>
         <Route path="ver-receta" element={<RecipeViewPage />} />
         <Route path="repetir-receta" element={<RepeatRecipePage />} />
-        <Route path="variantes-recetas" element={<VariantTreePage />} />
-        <Route path="arbol-variantes" element={<Navigate to="../variantes-recetas" replace />} />
+        <Route path="arbol-variantes" element={<Navigate to="/profile/variantes-recetas" replace />} />
       </Route>
       <Route path="/registro-peso" element={<ProtectedRoute><WeightLogPage /></ProtectedRoute>} />
-      <Route path="/plan/entreno" element={<ProtectedRoute><TrainingPlanPage /></ProtectedRoute>} />
+      <Route path="/registro-pasos" element={<ProtectedRoute><StepsLogPage /></ProtectedRoute>} />
+      <Route path="/plan/entreno" element={<ProtectedRoute><TrainingAdminGuard><Navigate to={`/plan/entreno/${format(new Date(), 'yyyy-MM-dd')}`} replace /></TrainingAdminGuard></ProtectedRoute>} />
+      <Route path="/plan/entreno/:date" element={<ProtectedRoute><TrainingAdminGuard><TrainingPlanPage /></TrainingAdminGuard></ProtectedRoute>} />
+      <Route path="/plan/entreno/rutina/nueva" element={<ProtectedRoute><TrainingAdminGuard><CreateMesocyclePage /></TrainingAdminGuard></ProtectedRoute>} />
+      <Route path="/plan/entreno/rutina/edita" element={<Navigate to="/plan/entreno" replace />} />
+      <Route path="/plan/entreno/rutina/edita/:weeklyDayId" element={<RedirectWithParams to="/plan/entreno/dia" param="weeklyDayId" />} />
+      <Route path="/plan/entreno/rutina/editar" element={<Navigate to="/plan/entreno" replace />} />
+      <Route path="/plan/entreno/rutina/editar/:weeklyDayId" element={<RedirectWithParams to="/plan/entreno/dia" param="weeklyDayId" />} />
+      <Route path="/plan/entreno/dia/:weeklyDayId" element={<ProtectedRoute><TrainingAdminGuard><WorkoutDayPage /></TrainingAdminGuard></ProtectedRoute>} />
+      <Route path="/plan/entreno/dia/:weeklyDayId/ejercicio/:blockExerciseId" element={<ProtectedRoute><TrainingAdminGuard><ExerciseSessionPage /></TrainingAdminGuard></ProtectedRoute>} />
+      <Route path="/plan/entreno/ejercicio-demo" element={<ProtectedRoute><TrainingAdminGuard><ExerciseSessionPage /></TrainingAdminGuard></ProtectedRoute>} />
       <Route path="/create-free-recipe/:date/:mealId" element={<ProtectedRoute><CreateFreeRecipePage /></ProtectedRoute>} />
       <Route path="/create-snack/:date/:mealId" element={<ProtectedRoute><CreateSnackPage /></ProtectedRoute>} />
 
@@ -229,6 +248,7 @@ const AppRoutes = () => (
       <Route path="/admin-panel/content/centers" element={<ProtectedRoute adminOnly><CentersManagementPage /></ProtectedRoute>} />
       <Route path="/admin-panel/content/pricing" element={<ProtectedRoute adminOnly><PricingManagementPage /></ProtectedRoute>} />
       <Route path="/admin-panel/content/invitation-links" element={<ProtectedRoute adminOnly><InvitationLinksPage /></ProtectedRoute>} />
+      <Route path="/admin-panel/content/invitation-links/new" element={<ProtectedRoute adminOnly><InvitationLinksPage /></ProtectedRoute>} />
       <Route path="/admin-panel/reminders" element={<ProtectedRoute adminOnly><RemindersManagerPage /></ProtectedRoute>} />
       <Route path="/admin-panel/reminders/:userId" element={<ProtectedRoute adminOnly><RemindersManagerPage /></ProtectedRoute>} />
     </Route>
@@ -281,9 +301,9 @@ function App() {
             <NotificationsProvider>
               <OnboardingProvider>
                 <SwipeGestureProvider>
-                  <QuickStartGuideProvider>
+                  <ContextualGuideProvider>
                     <AppContent />
-                  </QuickStartGuideProvider>
+                  </ContextualGuideProvider>
                 </SwipeGestureProvider>
               </OnboardingProvider>
             </NotificationsProvider>

@@ -9,9 +9,16 @@ import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import SwipeIndicator from '@/components/shared/SwipeIndicator';
+import { useContextualGuide } from '@/contexts/ContextualGuideContext';
+import { GUIDE_BLOCK_IDS } from '@/config/guideBlocks';
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const { triggerBlock } = useContextualGuide();
+
+  useEffect(() => {
+    triggerBlock(GUIDE_BLOCK_IDS.DASHBOARD);
+  }, [triggerBlock]);
   const navigate = useNavigate();
   const { toast } = useToast();
   const todayPath = `/plan/dieta/${format(new Date(), 'yyyy-MM-dd')}`;
@@ -99,7 +106,7 @@ const Dashboard = () => {
           <div className="h-full flex flex-col">
             <div className="flex-grow">
               {/* Force userId to ensure personal calendar renders correctly */}
-              {user && <SharedCalendar userId={user.id} />}
+              {user && <SharedCalendar userId={user.id} enableViewToggle={true} />}
             </div>
           </div>
         </motion.div>

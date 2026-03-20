@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
-const MacroProgress = ({ icon, name, actual, target, color }) => {
+const MacroProgress = ({ icon, name, actual, target, color, isSticky = false }) => {
     const safeActual = isNaN(actual) ? 0 : actual;
     const safeTarget = isNaN(target) || target === 0 ? 1 : target; // Avoid division by zero
     
@@ -37,11 +37,21 @@ const MacroProgress = ({ icon, name, actual, target, color }) => {
     const c = colorMap[color] || colorMap.red;
 
     return (
-        <div className="flex flex-col items-center justify-between space-y-2 py-1 px-2 sm:px-4">
-            <div className="flex items-center space-x-2">
+        <motion.div
+            className="flex flex-col items-center justify-between gap-1 px-2 sm:px-4"
+            initial={false}
+            animate={{ paddingTop: isSticky ? 0 : 4, paddingBottom: isSticky ? 2 : 4 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+        >
+            <motion.div
+                initial={false}
+                animate={{ opacity: isSticky ? 0 : 1, maxHeight: isSticky ? 0 : 40 }}
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                className="overflow-hidden flex items-center space-x-2 w-full justify-center"
+            >
                 {icon}
                 <span className={`font-semibold ${c.text}`}>{name}</span>
-            </div>
+            </motion.div>
             
             <div className="w-full text-center">
                 <span className="text-xl font-bold text-foreground dark:text-white tabular-nums">{Math.round(safeActual)}</span>
@@ -61,7 +71,7 @@ const MacroProgress = ({ icon, name, actual, target, color }) => {
                     </span>
                 </div>
             </div>
-        </div>
+        </motion.div>
     );
 };
 

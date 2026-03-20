@@ -137,6 +137,7 @@ export const OnboardingProvider = ({ children }) => {
       dietPreferencesRes,
       userDayMealsRes,
       userSensitivitiesRes,
+      userIndividualFoodRestrictionsRes,
       userMedicalConditionsRes,
       preferredFoodsRes,
       nonPreferredFoodsRes,
@@ -161,6 +162,10 @@ export const OnboardingProvider = ({ children }) => {
         .is('diet_plan_id', null),
       supabase
         .from('user_sensitivities')
+        .select('*')
+        .eq('user_id', user.id),
+      supabase
+        .from('user_individual_food_restrictions')
         .select('*')
         .eq('user_id', user.id),
       supabase
@@ -196,6 +201,7 @@ export const OnboardingProvider = ({ children }) => {
       dietPreferencesRes.error,
       userDayMealsRes.error,
       userSensitivitiesRes.error,
+      userIndividualFoodRestrictionsRes.error,
       userMedicalConditionsRes.error,
       preferredFoodsRes.error,
       nonPreferredFoodsRes.error,
@@ -213,6 +219,7 @@ export const OnboardingProvider = ({ children }) => {
       dietPreferences: dietPreferencesRes.data || null,
       userDayMeals: userDayMealsRes.data || [],
       userSensitivities: userSensitivitiesRes.data || [],
+      userIndividualFoodRestrictions: userIndividualFoodRestrictionsRes.data || [],
       userMedicalConditions: userMedicalConditionsRes.data || [],
       preferredFoods: preferredFoodsRes.data || [],
       nonPreferredFoods: nonPreferredFoodsRes.data || [],
@@ -275,6 +282,14 @@ export const OnboardingProvider = ({ children }) => {
     await supabase.from('user_sensitivities').delete().eq('user_id', user.id);
     if (snapshot.userSensitivities.length > 0) {
       const { error } = await supabase.from('user_sensitivities').insert(snapshot.userSensitivities);
+      if (error) throw error;
+    }
+
+    await supabase.from('user_individual_food_restrictions').delete().eq('user_id', user.id);
+    if ((snapshot.userIndividualFoodRestrictions || []).length > 0) {
+      const { error } = await supabase
+        .from('user_individual_food_restrictions')
+        .insert(snapshot.userIndividualFoodRestrictions);
       if (error) throw error;
     }
 

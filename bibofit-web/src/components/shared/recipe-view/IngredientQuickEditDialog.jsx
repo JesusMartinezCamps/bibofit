@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import IngredientSearch from '@/components/plans/IngredientSearch';
 import { calculateMacros } from '@/lib/macroCalculator';
 import { cn } from '@/lib/utils';
+import { useContextualGuide } from '@/contexts/ContextualGuideContext';
+import { GUIDE_BLOCK_IDS } from '@/config/guideBlocks';
 
 const IngredientQuickEditDialog = ({
   open,
@@ -19,6 +21,7 @@ const IngredientQuickEditDialog = ({
   onOpenChange,
   onSave,
 }) => {
+  const { triggerBlock } = useContextualGuide();
   const [quantity, setQuantity] = useState('');
   const [selectedFoodId, setSelectedFoodId] = useState(null);
   const [isReplacing, setIsReplacing] = useState(false);
@@ -34,6 +37,14 @@ const IngredientQuickEditDialog = ({
     setSelectedFoodDraft(null);
     setIsLocked(!!ingredient.locked);
   }, [ingredient]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const frame = requestAnimationFrame(() => {
+      triggerBlock(GUIDE_BLOCK_IDS.RECIPE_INGREDIENT_LOCK);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [open, triggerBlock]);
 
   if (!ingredient) return null;
 
@@ -167,6 +178,7 @@ const IngredientQuickEditDialog = ({
           </div>
 
           <button
+            data-guide-target="recipe-ingredient-lock"
             type="button"
             onClick={() => setIsLocked((prev) => !prev)}
             className={`w-full flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
@@ -224,7 +236,7 @@ const IngredientQuickEditDialog = ({
             const conflictType = ingredient.conflictType;
             const conflictDetails = ingredient.conflictDetails || [];
             const recommendationDetails = ingredient.recommendationDetails || [];
-            const isConflict = ['condition_avoid', 'sensitivity', 'non-preferred'].includes(conflictType);
+            const isConflict = ['condition_avoid', 'sensitivity', 'individual_restriction', 'non-preferred'].includes(conflictType);
             const isRecommended = ['condition_recommend', 'preferred'].includes(conflictType);
             if (!isConflict && !isRecommended) return null;
 
@@ -244,6 +256,8 @@ const IngredientQuickEditDialog = ({
               switch (conflictType) {
                 case 'sensitivity':
                   return 'Sensibilidad';
+                case 'individual_restriction':
+                  return 'Restricción individual';
                 case 'condition_avoid':
                   return 'Condición médica (evitar)';
                 case 'non-preferred':

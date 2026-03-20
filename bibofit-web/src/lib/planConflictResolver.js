@@ -4,6 +4,7 @@ import { getConflictInfo, getConflictWithSubstitutions, prefetchSubstitutionMapp
 export const CRITICAL_CONFLICT_TYPES = new Set([
   'condition_avoid',
   'sensitivity',
+  'individual_restriction',
   'non-preferred',
   'diet_type_excluded',
 ]);

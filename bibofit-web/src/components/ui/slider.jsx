@@ -23,12 +23,16 @@ const getProgressRatio = ({ value, defaultValue, min = 0, max = 100 }) => {
   return clamp01((first - rangeMin) / (rangeMax - rangeMin))
 }
 
-const Slider = React.forwardRef(({ className, value, defaultValue, min = 0, max = 100, ...props }, ref) => {
+const Slider = React.forwardRef(({ className, value, defaultValue, min = 0, max = 100, colorScale = "asc", ...props }, ref) => {
   const progressRatio = getProgressRatio({ value, defaultValue, min, max })
   const safeRatio = Math.max(progressRatio, 0.0001)
+  const gradient =
+    colorScale === "desc"
+      ? "linear-gradient(90deg, #ef4444 0%, #f59e0b 50%, #22c55e 100%)"
+      : "linear-gradient(90deg, #22c55e 0%, #f59e0b 50%, #ef4444 100%)"
 
   const progressiveRangeStyle = {
-    backgroundImage: "linear-gradient(90deg, #22c55e 0%, #f59e0b 50%, #ef4444 100%)",
+    backgroundImage: gradient,
     backgroundSize: `${100 / safeRatio}% 100%`,
     backgroundPosition: "left center",
     backgroundRepeat: "no-repeat"
@@ -52,7 +56,7 @@ const Slider = React.forwardRef(({ className, value, defaultValue, min = 0, max 
     >
       <SliderPrimitive.Track className="relative h-2 w-full grow overflow-hidden rounded-full bg-muted">
         <SliderPrimitive.Range
-          className="absolute h-full bg-gradient-to-r from-green-500 via-amber-500 to-red-500"
+          className="absolute h-full"
           style={progressiveRangeStyle}
         />
       </SliderPrimitive.Track>

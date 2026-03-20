@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useContextualGuide } from '@/contexts/ContextualGuideContext';
+import { GUIDE_BLOCK_IDS } from '@/config/guideBlocks';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Loader2, Calendar, Search, X, ChevronDown, ChevronUp, Lock, ArrowLeft, Plus, Trash2, ShoppingCart, RefreshCw, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
@@ -21,6 +23,13 @@ import { getRecipeIngredients } from '@/lib/recipeEntity';
 
 const STORAGE_KEY = 'shoppingListModalMode';
 const SHOPPING_CACHE_TTL_MS = 3 * 60 * 1000;
+
+const resolveShoppingListMode = (rawMode) => {
+    if (rawMode === 'complete' || rawMode === 'planned') return rawMode;
+    if (rawMode === 'day' || rawMode === 'list') return 'complete';
+    if (rawMode === 'week') return 'planned';
+    return 'complete';
+};
 
 const normalizeText = (text) => {
     return text
@@ -85,7 +94,7 @@ const PrivateShoppingList = ({ items, onAdd, onToggle, onRemove, loading, search
     }, [items]);
 
     return (
-        <Card className="bg-card/75 border-purple-500/20 overflow-hidden transition-all duration-300">
+        <Card data-guide-target="shopping-list-private" className="bg-card/75 border-purple-500/20 overflow-hidden transition-all duration-300">
             <Collapsible open={isOpen} onOpenChange={onOpenChange}>
                 <CollapsibleTrigger className="w-full flex items-center justify-between p-4 hover:bg-muted/65 transition-colors">
                     <h3 className="text-lg font-semibold flex items-center gap-2 text-[rgb(206_165_255)]">
@@ -251,6 +260,11 @@ const ShoppingListGroup = ({ title, icon, items, checkedItems, onCheckedChange, 
 
 const ShoppingListPage = () => {
     const { user } = useAuth();
+    const { triggerBlock } = useContextualGuide();
+
+    useEffect(() => {
+        triggerBlock(GUIDE_BLOCK_IDS.SHOPPING_LIST);
+    }, [triggerBlock]);
     const navigate = useNavigate();
     const location = useLocation();
     const { toast } = useToast();
@@ -261,8 +275,8 @@ const ShoppingListPage = () => {
     }, [location.state?.initialDate]);
 
     // Initial state from navigation or defaults with lazy initialization
-    const [listMode, setListMode] = useState(() => 
-        location.state?.initialMode || localStorage.getItem(STORAGE_KEY) || 'planned'
+    const [listMode, setListMode] = useState(() =>
+        resolveShoppingListMode(location.state?.initialMode ?? localStorage.getItem(STORAGE_KEY))
     );
 
     const [loading, setLoading] = useState(true);
@@ -459,31 +473,29 @@ const ShoppingListPage = () => {
         return getRecipeIngredients(item);
     };
 
-    const getMacroCategory = (food) => {
-        let roles = [];
-        
+    const getMacroCategories = (food) => {
+        const categories = new Set();
+
         if (food.food_to_food_groups && Array.isArray(food.food_to_food_groups)) {
-            roles = food.food_to_food_groups
-                .map(r => r.food_groups?.macro_role)
-                .filter(Boolean);
-        } 
-        
+            food.food_to_food_groups.forEach(r => {
+                const role = r.food_groups?.macro_role?.toLowerCase();
+                if (role === 'proteins' || role === 'proteínas') categories.add('proteins');
+                else if (role === 'carbs' || role === 'hidratos de carbono') categories.add('carbs');
+                else if (role === 'fats' || role === 'grasas') categories.add('fats');
+            });
+        }
 
-        const hasRole = (target) => roles.some(role => role && role.toLowerCase() === target.toLowerCase());
-        
-        if (hasRole('proteins') || hasRole('Proteínas')) return 'proteins';
-        if (hasRole('carbs') || hasRole('Hidratos de Carbono')) return 'carbs';
-        if (hasRole('fats') || hasRole('Grasas')) return 'fats';
-        
-        const p = parseFloat(food.proteins || 0);
-        const c = parseFloat(food.total_carbs || 0);
-        const f = parseFloat(food.total_fats || 0);
+        if (categories.size === 0) {
+            const p = parseFloat(food.proteins || 0);
+            const c = parseFloat(food.total_carbs || 0);
+            const f = parseFloat(food.total_fats || 0);
 
-        if (p > 10 && p >= c && p >= f) return 'proteins';
-        if (c > 15 && c >= p && c >= f) return 'carbs';
-        if (f > 10 && f >= p && f >= c) return 'fats';
+            if (p > 10) categories.add('proteins');
+            if (c > 15) categories.add('carbs');
+            if (f > 10) categories.add('fats');
+        }
 
-        return 'others';
+        return categories.size > 0 ? Array.from(categories) : ['others'];
     };
 
     const fetchShoppingData = useCallback(async ({ force = false, silent = false } = {}) => {
@@ -609,23 +621,23 @@ const ShoppingListPage = () => {
                     if (!food) return;
                     
                     const quantity = parseFloat(ing.grams || ing.quantity || 0);
-                    const category = getMacroCategory(food);
+                    const categories = getMacroCategories(food);
 
                     if (listMode === 'planned') {
                         if (ingredientsMap.has(food.id)) {
                             const existing = ingredientsMap.get(food.id);
                             existing.totalQuantity += quantity;
-                            
+
                             if (!recipeNamesMap.has(food.id)) recipeNamesMap.set(food.id, {});
                             const counts = recipeNamesMap.get(food.id);
                             counts[recipeName] = (counts[recipeName] || 0) + 1;
                         } else {
                             recipeNamesMap.set(food.id, { [recipeName]: 1 });
-                            ingredientsMap.set(food.id, { 
-                                ...food, 
-                                totalQuantity: quantity, 
-                                unit: food.food_unit === 'unidades' ? 'ud(s)' : 'g', 
-                                category
+                            ingredientsMap.set(food.id, {
+                                ...food,
+                                totalQuantity: quantity,
+                                unit: food.food_unit === 'unidades' ? 'ud(s)' : 'g',
+                                categories
                             });
                         }
                     } else {
@@ -641,7 +653,7 @@ const ShoppingListPage = () => {
                                 unit: food.food_unit === 'unidades' ? 'ud(s)' : 'g',
                                 recipeNames: [recipeName],
                                 uniqueKey: `${food.id}_complete_unique`,
-                                category
+                                categories
                              });
                         }
                     }
@@ -649,26 +661,30 @@ const ShoppingListPage = () => {
             });
 
             const categorized = { proteins: [], carbs: [], fats: [], others: [] };
-            
+
             if (listMode === 'planned') {
                 Array.from(ingredientsMap.values()).forEach(food => {
                     const itemWithRecipes = { ...food, recipeCounts: recipeNamesMap.get(food.id) };
-                    const cat = food.category || 'others';
-                    if (categorized[cat]) {
-                        categorized[cat].push(itemWithRecipes);
-                    } else {
-                        categorized.others.push(itemWithRecipes);
-                    }
+                    const cats = food.categories || ['others'];
+                    cats.forEach(cat => {
+                        if (categorized[cat]) {
+                            categorized[cat].push(itemWithRecipes);
+                        } else {
+                            categorized.others.push(itemWithRecipes);
+                        }
+                    });
                 });
-            } 
+            }
             else {
                 Array.from(completeModeAggregationMap.values()).forEach(item => {
-                     const cat = item.category || 'others';
-                    if (categorized[cat]) {
-                        categorized[cat].push(item);
-                    } else {
-                        categorized.others.push(item);
-                    }
+                    const cats = item.categories || ['others'];
+                    cats.forEach(cat => {
+                        if (categorized[cat]) {
+                            categorized[cat].push(item);
+                        } else {
+                            categorized.others.push(item);
+                        }
+                    });
                 });
             }
 
@@ -818,7 +834,7 @@ const ShoppingListPage = () => {
                 </div>
 
                 {/* Controls */}
-                <div className="bg-card/75 p-2 rounded-xl border border-border/50 shadow-xl space-y-4">
+                <div data-guide-target="shopping-list-tabs" className="bg-card/75 p-2 rounded-xl border border-border/50 shadow-xl space-y-4">
                     <ContentStateToggle
                         mode={listMode}
                         onModeChange={handleModeChangeWithSync}
@@ -829,7 +845,7 @@ const ShoppingListPage = () => {
                         className="w-full"
                     />
                     
-                    <div className="relative">
+                    <div data-guide-target="shopping-list-search" className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input 
                             placeholder="Buscar ingrediente o receta..." 
@@ -870,16 +886,18 @@ const ShoppingListPage = () => {
                     </div>
                 ) : !error && (
                     <div className="space-y-6 pb-20 animate-in fade-in duration-500">
-                        <PrivateShoppingList 
-                            items={filteredData.privateItems} 
-                            onAdd={handleAddPrivateItem} 
-                            onToggle={handleTogglePrivateItem} 
-                            onRemove={handleRemovePrivateItem} 
-                            loading={loadingPrivate} 
-                            searchQuery={searchQuery}
-                            isOpen={openSections.private}
-                            onOpenChange={() => toggleSection('private')}
-                        />
+                        {(!searchQuery.trim() || filteredData.privateItems.length > 0) && (
+                            <PrivateShoppingList
+                                items={filteredData.privateItems}
+                                onAdd={handleAddPrivateItem}
+                                onToggle={handleTogglePrivateItem}
+                                onRemove={handleRemovePrivateItem}
+                                loading={loadingPrivate}
+                                searchQuery={searchQuery}
+                                isOpen={openSections.private}
+                                onOpenChange={() => toggleSection('private')}
+                            />
+                        )}
                         
                         <ShoppingListGroup 
                             title="Proteínas" 
@@ -929,15 +947,32 @@ const ShoppingListPage = () => {
                             colorClass="text-muted-foreground"
                         />
 
-                        {(!filteredData.privateItems.length && 
-                          !filteredData.listData.proteins.length && 
-                          !filteredData.listData.carbs.length && 
-                          !filteredData.listData.fats.length && 
+                        {((listMode === 'planned' || !filteredData.privateItems.length) &&
+                          !filteredData.listData.proteins.length &&
+                          !filteredData.listData.carbs.length &&
+                          !filteredData.listData.fats.length &&
                           !filteredData.listData.others.length) && (
-                            <div className="text-center py-12 bg-card/30 rounded-xl border border-dashed border-border">
-                                <ShoppingCart className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                                <p className="text-muted-foreground text-lg">No se encontraron artículos.</p>
-                                <p className="text-muted-foreground text-sm mt-1">Prueba a cambiar el modo de vista o añadir artículos privados.</p>
+                            <div className="text-center py-12 bg-card/30 rounded-xl border border-dashed border-border flex flex-col items-center gap-4">
+                                {listMode === 'planned' ? (
+                                    <>
+                                        <Calendar className="w-12 h-12 text-gray-600" />
+                                        <p className="text-muted-foreground text-lg">No hay comidas planificadas.</p>
+                                        <p className="text-muted-foreground text-sm">Planifica tu semana para generar la lista automáticamente.</p>
+                                        <Button
+                                            onClick={() => navigate(`/plan/dieta/${format(new Date(), 'yyyy-MM-dd')}`, { state: { initialViewMode: 'week' } })}
+                                            className="gap-2"
+                                        >
+                                            <Calendar className="w-4 h-4" />
+                                            Ir a Planificación Semanal
+                                        </Button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <ShoppingCart className="w-12 h-12 text-gray-600" />
+                                        <p className="text-muted-foreground text-lg">No se encontraron artículos.</p>
+                                        <p className="text-muted-foreground text-sm mt-1">Prueba a cambiar el modo de vista o añadir artículos privados.</p>
+                                    </>
+                                )}
                             </div>
                         )}
                     </div>

@@ -67,7 +67,7 @@ const normalizeDateKey = (value) => {
 };
 
 
-const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', logDate: propLogDate, currentDate, activePlan, onAddRecipeClick, onPlanUpdate, plannedMeals, setPlannedMeals, userRestrictions, onWeekSummaryChange, onMealExpand }, ref) => {
+const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', logDate: propLogDate, currentDate, activePlan, onAddRecipeClick, onPlanUpdate, plannedMeals, setPlannedMeals, userRestrictions, onWeekSummaryChange, onMealExpand, showMealTargetMacros = false }, ref) => {
     const { toast } = useToast();
     const { user } = useAuth();
     const navigate = useNavigate();
@@ -828,6 +828,7 @@ const WeeklyDietPlanner = forwardRef(({ isAdminView, userId, viewMode = 'week', 
         handleUndoEquivalence,
         recipeStyles,
         onMealExpand,
+        showMealTargetMacros,
     };
 
     return (

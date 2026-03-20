@@ -118,16 +118,6 @@ const CalorieAdjustment = ({
         }
     }, [effectiveTdee, onCaloriesChange]);
 
-    // Notify parent of override updates (for status indicators)
-    useEffect(() => {
-        const overridesStr = JSON.stringify(activeOverride);
-        if (overridesStr !== prevOverridesRef.current) {
-            prevOverridesRef.current = overridesStr;
-            if (onOverridesUpdate) {
-                onOverridesUpdate();
-            }
-        }
-    }, [activeOverride, onOverridesUpdate]);
 
     useEffect(() => {
         if (activeSelection?.type !== 'override') return;
@@ -202,6 +192,7 @@ const CalorieAdjustment = ({
                     return [savedOverride, ...withoutCurrent];
                 });
                 setActiveSelection({ type: 'override', overrideId: savedOverride.id });
+                if (onOverridesUpdate) onOverridesUpdate(savedOverride);
             }
 
             setManualCalories('');
@@ -239,6 +230,7 @@ const CalorieAdjustment = ({
             if (error) throw error;
             
             toast({ title: "Eliminado", description: "Registro eliminado correctamente.", variant: "success" });
+            if (onOverridesUpdate) onOverridesUpdate(null, id);
             await fetchOverrides();
         } catch (error) {
             console.error("❌ Error deleting override:", error);

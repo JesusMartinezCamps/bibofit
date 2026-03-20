@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { supabase } from '@/lib/supabaseClient';
 import { useToast } from '@/components/ui/use-toast';
 import { Loader2, ArrowRight, Utensils, CalendarDays, CheckCircle2, X } from 'lucide-react';
@@ -9,14 +10,26 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { invokeAutoBalanceEquivalence } from '@/lib/autoBalanceClient';
+import { useContextualGuide } from '@/contexts/ContextualGuideContext';
+import { GUIDE_BLOCK_IDS } from '@/config/guideBlocks';
+import {
+  AUTO_BALANCE_FEATURES,
+  consumeAutobalanceQuota,
+  fetchAutobalanceQuotaSnapshot,
+  getFeatureQuotaEntry,
+  getQuotaUpgradeMessage,
+  releaseAutobalanceQuota,
+} from '@/lib/autobalanceQuotaService';
 
 const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sourceLogId, onSuccess, sourceItemMacros }) => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { triggerBlock } = useContextualGuide();
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [availableMeals, setAvailableMeals] = useState([]);
   const [selectedMeal, setSelectedMeal] = useState(null);
+  const [autobalanceQuotaSnapshot, setAutobalanceQuotaSnapshot] = useState(null);
 
   const sourceDate = useMemo(() => {
     if (!sourceItem) return null;
@@ -26,6 +39,44 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
   const parsedSourceDate = useMemo(() => {
     return sourceDate ? parseISO(sourceDate) : null;
   }, [sourceDate]);
+  const equivalenceQuota = useMemo(
+    () =>
+      getFeatureQuotaEntry(
+        autobalanceQuotaSnapshot,
+        AUTO_BALANCE_FEATURES.RECIPE_EQUIVALENCE
+      ),
+    [autobalanceQuotaSnapshot]
+  );
+  const quotaBlocked = !!equivalenceQuota?.is_limited && Number(equivalenceQuota?.remaining || 0) <= 0;
+  const quotaTooltipMessage = getQuotaUpgradeMessage();
+
+  const loadAutobalanceQuotaSnapshot = useCallback(async () => {
+    if (!user?.id) {
+      setAutobalanceQuotaSnapshot(null);
+      return;
+    }
+    try {
+      const snapshot = await fetchAutobalanceQuotaSnapshot();
+      setAutobalanceQuotaSnapshot(snapshot);
+    } catch (error) {
+      console.error('Error loading autobalance quota snapshot for equivalence:', error);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!open) return;
+    loadAutobalanceQuotaSnapshot();
+  }, [open, loadAutobalanceQuotaSnapshot]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const frame = requestAnimationFrame(() => {
+      triggerBlock(GUIDE_BLOCK_IDS.SNACK_EQUIVALENCE);
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [open, triggerBlock]);
 
   useEffect(() => {
     const fetchAvailableMeals = async () => {
@@ -108,8 +159,31 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
         toast({ title: 'Error', description: 'Faltan datos para crear la equivalencia.', variant: 'destructive' });
         return;
     }
+    if (quotaBlocked) {
+      toast({ title: 'Límite alcanzado', description: quotaTooltipMessage, variant: 'destructive' });
+      return;
+    }
+
     setIsSubmitting(true);
+    const operationId = crypto.randomUUID();
+    let quotaConsumption = null;
     try {
+      quotaConsumption = await consumeAutobalanceQuota({
+        featureKey: AUTO_BALANCE_FEATURES.RECIPE_EQUIVALENCE,
+        operationId,
+        origin: 'equivalence',
+        metadata: {
+          source_item_type: sourceItemType || null,
+          source_item_id: sourceItem?.id || null,
+          source_log_id: sourceLogId || null,
+        },
+      });
+
+      if (quotaConsumption && quotaConsumption.allowed === false) {
+        toast({ title: 'Límite alcanzado', description: quotaTooltipMessage, variant: 'destructive' });
+        return;
+      }
+
       const freeRecipeId = sourceItemType === 'free_recipe' 
         ? (sourceItem.free_recipe?.id || sourceItem.id) 
         : null;
@@ -194,15 +268,34 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
       console.log('4. Edge Function Response:', funcData);
       if (funcData && !funcData.success) throw new Error('Error interno en balanceo: ' + (funcData.error || 'Unknown error'));
 
-      toast({ title: 'Éxito', description: 'Equivalencia aplicada y recetas ajustadas.', variant: 'success' });
+      const remainingText =
+        quotaConsumption?.consumed && Number.isFinite(Number(quotaConsumption?.remaining))
+          ? ` Te quedan ${quotaConsumption.remaining}/${quotaConsumption.limit} usos.`
+          : '';
+      toast({
+        title: 'Éxito',
+        description: `Equivalencia aplicada y recetas ajustadas.${remainingText}`,
+        variant: 'success',
+      });
       if(onSuccess) onSuccess(newAdjustment);
       // NO cerramos aquí: el padre se encarga de cerrar y limpiar estado.
       // Esto evita el "cierra/reabre" por dobles updates + refetch.    
     } catch (error) {
+      if (quotaConsumption?.consumed) {
+        try {
+          await releaseAutobalanceQuota({
+            featureKey: AUTO_BALANCE_FEATURES.RECIPE_EQUIVALENCE,
+            operationId,
+          });
+        } catch (rollbackError) {
+          console.error('Error rolling back equivalence quota consumption:', rollbackError);
+        }
+      }
       console.error("Equivalence Process Error:", error);
       toast({ title: 'Error', description: `No se pudo aplicar la equivalencia: ${error.message}`, variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
+      loadAutobalanceQuotaSnapshot();
     }
   };
 
@@ -216,6 +309,7 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
   return (
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent
+        data-guide-target="snack-equivalence-modal"
         className="bg-card border-border text-foreground max-w-2xl p-0 overflow-hidden shadow-2xl rounded-2xl"
         onEscapeKeyDown={(event) => {
           if (isSubmitting) event.preventDefault();
@@ -263,6 +357,11 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
                <span className="text-sm text-muted-foreground">Se ajustarán las porciones automáticamente</span>
              </div>
           </div>
+          {equivalenceQuota?.is_limited && (
+            <p className="mt-3 text-xs text-muted-foreground">
+              Usos de autocuadre recetas/equivalencias: {equivalenceQuota.remaining}/{equivalenceQuota.limit}
+            </p>
+          )}
         </DialogHeader>
 
         <div className="max-h-[55vh] overflow-y-auto p-6 relative z-10 styled-scrollbar-thin eq-scrollbar-blue">
@@ -373,28 +472,41 @@ const EquivalenceDialog = ({ open, onOpenChange, sourceItem, sourceItemType, sou
           >
             Cerrar sin aplicar equivalencia
           </Button>
-          <Button 
-            onClick={handleConfirm} 
-            disabled={!selectedMeal || isSubmitting || caloriesToCompensate <= 0}
-            className={cn(
-              'w-full sm:w-auto relative overflow-hidden transition-all duration-300 shadow-lg',
-              (!selectedMeal || caloriesToCompensate <= 0)
-                ? 'bg-muted text-slate-500 cursor-not-allowed border border-border'
-                : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-500/25 hover:shadow-blue-500/40 hover:-translate-y-0.5'
-            )}
-          >
-            {isSubmitting ? (
-              <span className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" /> 
-                Procesando...
-              </span>
-            ) : (
-              <span className="flex items-center gap-2">
-                Confirmar Equivalencia 
-                <ArrowRight className="h-4 w-4 opacity-80" />
-              </span>
-            )}
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button 
+                    onClick={handleConfirm} 
+                    disabled={!selectedMeal || isSubmitting || caloriesToCompensate <= 0 || quotaBlocked}
+                    className={cn(
+                      'w-full sm:w-auto relative overflow-hidden transition-all duration-300 shadow-lg',
+                      (!selectedMeal || caloriesToCompensate <= 0 || quotaBlocked)
+                        ? 'bg-muted text-slate-500 cursor-not-allowed border border-border'
+                        : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-500/25 hover:shadow-blue-500/40 hover:-translate-y-0.5'
+                    )}
+                  >
+                    {isSubmitting ? (
+                      <span className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" /> 
+                        Procesando...
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-2">
+                        Confirmar Equivalencia 
+                        <ArrowRight className="h-4 w-4 opacity-80" />
+                      </span>
+                    )}
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              {quotaBlocked && (
+                <TooltipContent className="max-w-xs">
+                  {quotaTooltipMessage}
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
           {isSubmitting && (
             <p className="text-xs text-muted-foreground sm:ml-2">
               Espera un momento, estamos recalculando tu plan.

@@ -19,7 +19,8 @@ const AdminDietPlanDetailPage = ({
     readOnlyProperties = false,
     hideUserAssignmentPanel = false,
     canEditMacros = true,
-    canEditRecipes = true
+    canEditRecipes = true,
+    protectTemplateRecipes = false,
 }) => {
     const { planId: routePlanId } = useParams();
     const navigate = useNavigate();
@@ -36,6 +37,10 @@ const AdminDietPlanDetailPage = ({
     const [calorieOverrides, setCalorieOverrides] = useState([]);
     const [macrosPct, setMacrosPct] = useState({ protein: 30, carbs: 40, fat: 30 });
     const [meals, setMeals] = useState([]);
+    const [savedSnapshot, setSavedSnapshot] = useState(null);
+    const [userSelectedTdee, setUserSelectedTdee] = useState(null);
+    // IDs de user_day_meals cuyos targets cambiaron desde el último autocuadre
+    const [dirtyMealIds, setDirtyMealIds] = useState([]);
     const debounceTimeout = useRef(null);
 
     // Check if we should focus on the macros section
@@ -47,12 +52,43 @@ const AdminDietPlanDetailPage = ({
     const isTemplate = useMemo(() => plan?.is_template || false, [plan]);
 
     const effectiveTdee = useMemo(() => {
-        // Find the most recent override by created_at
+        if (userSelectedTdee !== null) return userSelectedTdee;
         const applicableOverride = calorieOverrides
             .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
-        
         return applicableOverride ? applicableOverride.manual_calories : calculatedTdee;
-    }, [calculatedTdee, calorieOverrides]);
+    }, [userSelectedTdee, calculatedTdee, calorieOverrides]);
+
+    /**
+     * pendingChange: describe qué tipo de cambio global hay pendiente de aplicar.
+     *   null               → sin cambios pendientes
+     *   { type: 'linear_scale', oldTdee, newTdee }   → solo cambiaron calorías, misma distribución
+     *   { type: 'macro_redistribution', oldTdee, newTdee } → cambió la distribución de macros
+     *     (si además cambiaron las calorías, macro_redistribution tiene prioridad porque
+     *      el re-balance completo ya incorpora el nuevo TDEE)
+     */
+    const pendingChange = useMemo(() => {
+        if (!savedSnapshot || !meals.length || isTemplate) return null;
+        const tdeeChanged = savedSnapshot.tdee !== effectiveTdee;
+        const macrosChanged = (
+            savedSnapshot.macrosPct.protein !== macrosPct.protein ||
+            savedSnapshot.macrosPct.carbs !== macrosPct.carbs ||
+            savedSnapshot.macrosPct.fat !== macrosPct.fat
+        );
+        if (!tdeeChanged && !macrosChanged) return null;
+        if (macrosChanged) return { type: 'macro_redistribution', oldTdee: savedSnapshot.tdee, newTdee: effectiveTdee };
+        return { type: 'linear_scale', oldTdee: savedSnapshot.tdee, newTdee: effectiveTdee };
+    }, [savedSnapshot, effectiveTdee, macrosPct, meals.length, isTemplate]);
+
+    const handleOverridesUpdate = useCallback((savedOverride, deletedId) => {
+        if (deletedId) {
+            setCalorieOverrides(prev => prev.filter(o => o.id !== deletedId));
+        } else if (savedOverride) {
+            setCalorieOverrides(prev => {
+                const filtered = prev.filter(o => o.id !== savedOverride.id);
+                return [savedOverride, ...filtered];
+            });
+        }
+    }, []);
 
     const fetchData = useCallback(async (forceReload = false) => {
         if (!planId) return;
@@ -111,7 +147,17 @@ const AdminDietPlanDetailPage = ({
                 const { data: overridesRes } = await supabase.from('diet_plan_calorie_overrides').select('*').eq('diet_plan_id', planId).order('created_at', { ascending: false });
                 setCalorieOverrides(overridesRes || []);
 
-                setCalculatedTdee(planData.profile?.tdee_kcal || 2500);
+                const profileTdee = planData.profile?.tdee_kcal || 2500;
+                setCalculatedTdee(profileTdee);
+
+                if (!forceReload) {
+                    const latestOverride = (overridesRes || []).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+                    const initTdee = latestOverride ? latestOverride.manual_calories : profileTdee;
+                    setSavedSnapshot({
+                        tdee: initTdee,
+                        macrosPct: { protein: planData.protein_pct, carbs: planData.carbs_pct, fat: planData.fat_pct }
+                    });
+                }
 
                 // Fetch USER DAY MEALS linked to THIS PLAN
                 if (planData.user_id) {
@@ -188,44 +234,76 @@ const AdminDietPlanDetailPage = ({
 
     const handleSaveMealConfig = useCallback(async (newMeals) => {
         if (isTemplate || !canEditMacros) return;
+
+        const totalGrams = {
+            protein: Math.round((effectiveTdee * (macrosPct.protein / 100)) / 4),
+            carbs: Math.round((effectiveTdee * (macrosPct.carbs / 100)) / 4),
+            fat: Math.round((effectiveTdee * (macrosPct.fat / 100)) / 9)
+        };
+
+        const computedUpdates = newMeals.map(meal => {
+            const target_proteins = Math.round(totalGrams.protein * (meal.protein_pct / 100));
+            const target_carbs = Math.round(totalGrams.carbs * (meal.carbs_pct / 100));
+            const target_fats = Math.round(totalGrams.fat * (meal.fat_pct / 100));
+            const target_calories = (target_proteins * 4) + (target_carbs * 4) + (target_fats * 9);
+            return { id: meal.id, protein_pct: meal.protein_pct, carbs_pct: meal.carbs_pct, fat_pct: meal.fat_pct, target_proteins, target_carbs, target_fats, target_calories };
+        });
+
+        // Detectar qué meals cambian sus targets para marcarlos como dirty en PlanView
+        const changedMealIds = computedUpdates
+            .filter(u => {
+                const prev = meals.find(m => m.id === u.id);
+                return prev && (
+                    prev.target_proteins !== u.target_proteins ||
+                    prev.target_carbs !== u.target_carbs ||
+                    prev.target_fats !== u.target_fats
+                );
+            })
+            .map(u => String(u.id));
+
+        // Optimistic update: reflejar cambios en UI antes de esperar al servidor
+        const previousMeals = meals;
+        const previousSnapshot = savedSnapshot;
+        setMeals(prev => prev.map(m => {
+            const upd = computedUpdates.find(u => u.id === m.id);
+            return upd ? { ...m, ...upd } : m;
+        }));
+        setSavedSnapshot({ tdee: effectiveTdee, macrosPct: { ...macrosPct } });
+
         try {
-            const totalGrams = {
-                protein: Math.round((effectiveTdee * (macrosPct.protein / 100)) / 4),
-                carbs: Math.round((effectiveTdee * (macrosPct.carbs / 100)) / 4),
-                fat: Math.round((effectiveTdee * (macrosPct.fat / 100)) / 9)
-            };
+            const dbUpdates = computedUpdates.map(upd =>
+                supabase.from('user_day_meals').update({
+                    protein_pct: upd.protein_pct,
+                    carbs_pct: upd.carbs_pct,
+                    fat_pct: upd.fat_pct,
+                    target_proteins: upd.target_proteins,
+                    target_carbs: upd.target_carbs,
+                    target_fats: upd.target_fats,
+                    target_calories: upd.target_calories
+                }).eq('id', upd.id)
+            );
 
-            const updates = newMeals.map(meal => {
-                const target_proteins = Math.round(totalGrams.protein * (meal.protein_pct / 100));
-                const target_carbs = Math.round(totalGrams.carbs * (meal.carbs_pct / 100));
-                const target_fats = Math.round(totalGrams.fat * (meal.fat_pct / 100));
-                const target_calories = (target_proteins * 4) + (target_carbs * 4) + (target_fats * 9);
-
-                return supabase.from('user_day_meals').update({
-                    protein_pct: meal.protein_pct,
-                    carbs_pct: meal.carbs_pct,
-                    fat_pct: meal.fat_pct,
-                    target_proteins,
-                    target_carbs,
-                    target_fats,
-                    target_calories
-                }).eq('id', meal.id);
-            });
-
-            const results = await Promise.all(updates);
+            const results = await Promise.all(dbUpdates);
             const hasError = results.some(res => res.error);
 
             if (hasError) {
+                setMeals(previousMeals);
+                setSavedSnapshot(previousSnapshot);
                 const errorMsg = results.find(res => res.error)?.error.message;
                 throw new Error(errorMsg || 'Ocurrió un error al guardar.');
             }
 
+            // Marcar meals cuyos targets cambiaron → PlanView mostrará el Bot en esas secciones
+            if (changedMealIds.length > 0) {
+                setDirtyMealIds(prev => [...new Set([...prev, ...changedMealIds])]);
+            }
             toast({ title: 'Guardado', description: 'Configuración de macros por comida guardada.', variant: 'success' });
-            fetchData(true);
         } catch (error) {
+            setMeals(previousMeals);
+            setSavedSnapshot(previousSnapshot);
             toast({ title: 'Error', description: `No se pudo guardar: ${error.message}`, variant: 'destructive' });
         }
-    }, [isTemplate, effectiveTdee, macrosPct, toast, fetchData, canEditMacros]);
+    }, [isTemplate, effectiveTdee, macrosPct, meals, savedSnapshot, toast, canEditMacros]);
 
     const handlePlanUpdate = useCallback(() => {
         fetchData(true);
@@ -296,11 +374,13 @@ const AdminDietPlanDetailPage = ({
                              <div className="lg:col-span-2">
                                 <MacroDistribution
                                     effectiveTdee={effectiveTdee}
+                                    calculatedTdee={calculatedTdee}
                                     macrosPct={macrosPct}
                                     onMacrosPctChange={handleMacrosPctChange}
                                     calorieOverrides={calorieOverrides}
                                     dietPlanId={plan.id}
-                                    onOverridesUpdate={() => fetchData(true)}
+                                    onOverridesUpdate={handleOverridesUpdate}
+                                    onCaloriesChange={setUserSelectedTdee}
                                     isTemplate={isTemplate}
                                     readOnly={!canEditMacros}
                                 />
@@ -319,12 +399,17 @@ const AdminDietPlanDetailPage = ({
                                 </div>
                             )}
                         </div>
-                        <PlanView 
-                            plan={plan} 
-                            onUpdate={handlePlanUpdate} 
-                            userDayMeals={meals} 
-                            isAssignedPlan={true} 
+                        <PlanView
+                            plan={plan}
+                            onUpdate={handlePlanUpdate}
+                            userDayMeals={meals}
+                            isAssignedPlan={true}
                             readOnly={!canEditRecipes}
+                            protectTemplateRecipes={protectTemplateRecipes}
+                            pendingChange={pendingChange}
+                            dirtyMealIds={dirtyMealIds}
+                            onDirtyMealsCleared={() => setDirtyMealIds([])}
+                            onRecalculate={() => handleSaveMealConfig(meals)}
                         />
                     </>
                 ) : (
@@ -348,11 +433,13 @@ const AdminDietPlanDetailPage = ({
                         <div className="grid grid-cols-1">
                             <MacroDistribution
                                 effectiveTdee={effectiveTdee}
+                                calculatedTdee={calculatedTdee}
                                 macrosPct={macrosPct}
                                 onMacrosPctChange={handleMacrosPctChange}
                                 calorieOverrides={calorieOverrides}
                                 dietPlanId={plan.id}
-                                onOverridesUpdate={() => fetchData(true)}
+                                onOverridesUpdate={handleOverridesUpdate}
+                                onCaloriesChange={setUserSelectedTdee}
                                 isTemplate={isTemplate}
                                 readOnly={!canEditMacros}
                             />

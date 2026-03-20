@@ -1,9 +1,9 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef, useContext } from 'react';
 import { useToast } from '@/components/ui/use-toast';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, Calendar, List, ArrowLeft, ArrowRight, AlertTriangle, ShoppingCart, HeartPulse, ShieldAlert, Weight, StickyNote, GitBranch } from 'lucide-react';
+import { Loader2, Calendar, List, ArrowLeft, ArrowRight, AlertTriangle, ShoppingCart, HeartPulse, ShieldAlert, Weight, StickyNote, GitBranch, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import WeeklyDietPlanner from '@/components/shared/WeeklyDietPlanner/WeeklyDietPlanner';
 import { format, addDays, subDays, isValid, parseISO, isToday, isSameDay, isBefore, isAfter, startOfDay, differenceInCalendarDays } from 'date-fns';
@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import MacroVisualizer from '@/components/shared/MacroVisualizer/MacroVisualizer';
 import WeekVisualizer from '@/components/shared/WeekVisualizer';
 import ContentStateToggle from '@/components/shared/ContentStateToggle';
+import ColorLegendCollapsible from '@/components/shared/ColorLegendCollapsible';
 import ReminderFormDialog from '@/components/admin/reminders/ReminderFormDialog';
 import AssignRecipeDialog from './AssignRecipeDialog';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
@@ -24,6 +25,7 @@ import { useDietTimelineEvents } from './hooks/useDietTimelineEvents';
 import { useDietPlanHeaderData } from './hooks/useDietPlanHeaderData';
 import { useDietMacros } from './hooks/useDietMacros';
 import { DietPlanRefreshContext } from '@/contexts/DietPlanContext';
+import { readBooleanViewPreference, UI_VIEW_PREFERENCE_KEYS, writeBooleanViewPreference } from '@/lib/uiViewPreferences';
 
 const DateTimeline = React.memo(({ currentDate, setCurrentDate, navigate, isAdminView, userId, refreshTrigger, activePlanId }) => {
     const weekDates = useMemo(() => {
@@ -50,7 +52,7 @@ const DateTimeline = React.memo(({ currentDate, setCurrentDate, navigate, isAdmi
     const isTodayInPast = !isTodayVisible && isBefore(today, weekDates[0]);
 
     return (
-        <div className="flex items-center justify-center gap-2 bg-card/85 p-2 rounded-xl border border-border shadow-sm">
+        <div data-guide-target="diet-plan-week-viewer" className="flex items-center justify-center gap-2 bg-card/85 p-2 rounded-xl border border-border shadow-sm">
             <Button variant="ghost" size="icon" onClick={() => changeWeek('prev')} className="text-muted-foreground hover:bg-muted hover:text-muted-foreground">
                 <ArrowLeft className={cn(isTodayInPast ? "text-cyan-400" : "text-muted-foreground")} />
             </Button>
@@ -112,6 +114,7 @@ const DietPlanComponent = () => {
   const { user: authUser } = useAuth();
   const { userId: paramUserId, date: paramDate } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
 
   const userId = paramUserId || authUser.id;
@@ -125,7 +128,7 @@ const DietPlanComponent = () => {
   };
 
   const [currentDate, setCurrentDate] = useState(getInitialDate());
-  const [viewMode, setViewMode] = useState('list');
+  const [viewMode, setViewMode] = useState(location.state?.initialViewMode || 'list');
   const [isAddRecipeOpen, setIsAddRecipeOpen] = useState(false);
   const [mealToAddTo, setMealToAddTo] = useState(null);
   const [mealDateToAddTo, setMealDateToAddTo] = useState(null);
@@ -138,10 +141,15 @@ const DietPlanComponent = () => {
   const [plannedMeals, setPlannedMeals] = useState([]);
   const [weekSummaryByDate, setWeekSummaryByDate] = useState({});
   const [focusedWeekDate, setFocusedWeekDate] = useState(getInitialDate());
+  const [showMealTargetMacros, setShowMealTargetMacros] = useState(() =>
+    readBooleanViewPreference(UI_VIEW_PREFERENCE_KEYS.DIETPLAN_LIST_SHOW_TARGET_MACROS, false)
+  );
   
   const isAdminView = authUser?.id !== userId;
   const logDate = format(currentDate, 'yyyy-MM-dd');
   const plannerRef = useRef(null);
+  const stickysentinel = useRef(null);
+  const [isVisualizerStuck, setIsVisualizerStuck] = useState(false);
   const { registerPlannerRef } = useContext(DietPlanRefreshContext);
   useEffect(() => { registerPlannerRef(plannerRef); }, [registerPlannerRef]);
 
@@ -158,6 +166,21 @@ const DietPlanComponent = () => {
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const sentinel = stickysentinel.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsVisualizerStuck(!entry.isIntersecting),
+      { threshold: 0, rootMargin: '0px' }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    writeBooleanViewPreference(UI_VIEW_PREFERENCE_KEYS.DIETPLAN_LIST_SHOW_TARGET_MACROS, showMealTargetMacros);
+  }, [showMealTargetMacros]);
 
   const visualizerWeekDates = useMemo(
     () => Array.from({ length: 7 }, (_, i) => addDays(currentDate, i)),
@@ -294,11 +317,10 @@ const DietPlanComponent = () => {
 
   const handleOpenVariantTree = useCallback(() => {
     const targetDate = format(currentDate, 'yyyy-MM-dd');
-    const basePath = isAdminView
-      ? `/plan/dieta/${userId}/${targetDate}/variantes-recetas`
-      : `/plan/dieta/${targetDate}/variantes-recetas`;
-    const query = activePlan?.id ? `?planId=${activePlan.id}` : '';
-    navigate(`${basePath}${query}`);
+    const params = new URLSearchParams({ date: targetDate });
+    if (isAdminView && userId) params.set('userId', userId);
+    if (activePlan?.id) params.set('planId', activePlan.id);
+    navigate(`/profile/variantes-recetas?${params.toString()}`);
   }, [activePlan?.id, currentDate, isAdminView, navigate, userId]);
 
     const handlePlanUpdate = useCallback((updatePayload) => {
@@ -492,6 +514,16 @@ const combinedPlanRestrictions = useMemo(() => {
                 </div>
                 )}
                 
+                <ColorLegendCollapsible
+                  items={[
+                    ...(isAdminView ? [{ label: 'Recordatorio', dotClassName: 'bg-amber-500' }] : []),
+                    { label: 'Peso', dotClassName: 'bg-purple-500' },
+                    { label: 'Picoteo', dotClassName: 'bg-orange-500' },
+                    { label: 'Comida', dotClassName: 'bg-green-600' },
+                    { label: 'Receta libre', dotClassName: 'bg-cyan-500' },
+                  ]}
+                />
+
                 <DateTimeline currentDate={currentDate} setCurrentDate={handleDateChange} navigate={navigate} isAdminView={isAdminView} userId={userId} refreshTrigger={timelineRefreshTrigger} activePlanId={activePlan?.id} />
           </div>
 
@@ -506,13 +538,14 @@ const combinedPlanRestrictions = useMemo(() => {
             </CardHeader>
             <CardContent className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-4 pt-0">
               <div className="flex flex-col space-y-4">
-                  <div 
+                  <div
+                      data-guide-target="diet-plan-weight-log"
                       onClick={() => navigate(`/registro-peso?date=${format(currentDate, 'yyyy-MM-dd')}${userId ? `&userId=${userId}` : ''}`)}
                       className={cn(
-                          "p-3 rounded-lg border shadow-lg text-center cursor-pointer h-auto flex flex-col justify-center w-full transition-transform hover:scale-[1.02]",
+                          "p-3 rounded-lg border shadow-lg text-center cursor-pointer h-auto flex flex-col justify-center w-full transition-colors duration-200",
                           weightForDay
-                              ? "bg-violet-100/70 dark:bg-violet-900/30 border-violet-400/60 dark:border-violet-500/50"
-                              : "bg-muted/65 border-border/80"
+                              ? "bg-violet-100/70 dark:bg-violet-900/30 border-violet-400/60 dark:border-violet-500/50 hover:bg-gradient-to-br hover:from-violet-100/70 hover:to-violet-50/80 dark:hover:from-violet-900/30 dark:hover:to-violet-700/35"
+                              : "bg-muted/65 border-border/80 hover:bg-gradient-to-br hover:from-violet-100/40 hover:to-violet-50/60 dark:hover:from-violet-900/25 dark:hover:to-violet-700/30"
                       )}
                   >
                       <h4 className={cn(
@@ -606,23 +639,25 @@ const combinedPlanRestrictions = useMemo(() => {
                       </div>
                   )}
               </div>
-              <div className="hidden lg:block">
+              <div className="hidden lg:block" data-guide-target="diet-plan-macro-viewer">
                   <DietVisualizer isSticky={false} activePlan={activePlan} viewMode={viewMode} targetMacros={targetMacros} consumedMacros={consumedMacros} loadingMacros={loadingMacros} visualizerWeekDates={visualizerWeekDates} weekSummaryByDate={weekSummaryByDate} onDayClick={handleDayClickInVisualizer} focusedWeekDate={focusedWeekDate} />
               </div>
             </CardContent>
           </Card>
 
           <div className="lg:hidden contents">
+              <div ref={stickysentinel} className="h-0 w-full" aria-hidden="true" />
               <div
                 data-diet-sticky-visualizer="true"
+                data-guide-target="diet-plan-macro-viewer"
                 className="lg:hidden sticky !top-0 z-30 bg-card/95 backdrop-blur-sm -mx-1 sm:mx-0 px-1 sm:px-0 py-2 rounded-b-xl shadow-[0_8px_15px_-5px_rgba(0,0,0,0.3)]"
               >
-                <DietVisualizer isSticky={true} activePlan={activePlan} viewMode={viewMode} targetMacros={targetMacros} consumedMacros={consumedMacros} loadingMacros={loadingMacros} visualizerWeekDates={visualizerWeekDates} weekSummaryByDate={weekSummaryByDate} onDayClick={handleDayClickInVisualizer} focusedWeekDate={focusedWeekDate} />
+                <DietVisualizer isSticky={isVisualizerStuck} activePlan={activePlan} viewMode={viewMode} targetMacros={targetMacros} consumedMacros={consumedMacros} loadingMacros={loadingMacros} visualizerWeekDates={visualizerWeekDates} weekSummaryByDate={weekSummaryByDate} onDayClick={handleDayClickInVisualizer} focusedWeekDate={focusedWeekDate} />
               </div>
           </div>
 
-          <Card className="bg-card/85 border-border text-foreground shadow-xl">
-              <div className="p-4 border-b border-border">
+          <Card data-guide-target="diet-plan-meals" className="bg-card/85 border-border text-foreground shadow-xl">
+              <div className="p-4 border-b border-border" data-guide-target="diet-plan-weekly-planner">
                   <ContentStateToggle
                       mode={viewMode}
                       onModeChange={(newMode) => setViewMode(newMode)}
@@ -635,7 +670,37 @@ const combinedPlanRestrictions = useMemo(() => {
               <CardHeader>
                   <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
-                          <CardTitle>{viewMode === 'list' ? 'Comidas del día' : 'Planificación de semana'}</CardTitle>
+                          {viewMode === 'list' ? (
+                            <div className="flex items-center gap-2">
+                              <CardTitle>Comidas del día</CardTitle>
+                              <Button
+                                data-guide-target="diet-plan-eye-toggle"
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-foreground transition-colors"
+                                aria-label={showMealTargetMacros ? 'Ocultar macros objetivo' : 'Mostrar macros objetivo'}
+                                aria-pressed={showMealTargetMacros}
+                                onClick={() => setShowMealTargetMacros((prev) => !prev)}
+                              >
+                                <span className="relative h-5 w-5">
+                                  <Eye
+                                    className={cn(
+                                      "absolute inset-0 h-5 w-5 transition-all duration-300 ease-in-out",
+                                      showMealTargetMacros ? "opacity-100 scale-100 rotate-0" : "opacity-0 scale-75 -rotate-6"
+                                    )}
+                                  />
+                                  <EyeOff
+                                    className={cn(
+                                      "absolute inset-0 h-5 w-5 transition-all duration-300 ease-in-out",
+                                      showMealTargetMacros ? "opacity-0 scale-75 rotate-6" : "opacity-100 scale-100 rotate-0"
+                                    )}
+                                  />
+                                </span>
+                              </Button>
+                            </div>
+                          ) : (
+                            <CardTitle>Planificación de semana</CardTitle>
+                          )}
                           {viewMode === 'week' && <CardDescription className="text-muted-foreground">Planifica tu semana y revisa la Compra Inteligente</CardDescription>}
                       </div>
                       <div className="ml-auto flex items-center gap-2 sm:gap-4">
@@ -687,6 +752,7 @@ const combinedPlanRestrictions = useMemo(() => {
                       userRestrictions={combinedPlanRestrictions}
                       onWeekSummaryChange={setWeekSummaryByDate}
                       onMealExpand={handleMealExpand}
+                      showMealTargetMacros={showMealTargetMacros}
                   />
                   )}
               </CardContent>
